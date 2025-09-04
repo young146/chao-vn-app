@@ -35,9 +35,6 @@
         "android.permission.WAKE_LOCK"
       ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
     "extra": {
       "eas": {
         "projectId": "9b58881f-f09a-4042-acc3-a8593658c231"
