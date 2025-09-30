@@ -1,18 +1,17 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, SafeAreaView, View, Text } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
-
+import React, { useEffect } from "react";
+import { StyleSheet, SafeAreaView, View, Text } from "react-native";
+import { WebView } from "react-native-webview";
+import { NavigationContainer } from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 
 // 여기에 운영 중인 워드프레스 사이트의 URL 4개를 입력하세요.
 const siteURLs = {
-  site1: 'https://chaoVietNam.co.kr/', // 매거진
-  site2: 'https://vnkorlife.com/', // 커뮤니티 라운지
-  site3: 'https://jobs.vnkorlife.com/', // 구인구직
-  site4: 'https://market.vnkorlife.com/', // 부동산
+  site1: "https://chaoVietNam.co.kr/", // 매거진
+  site2: "https://vnkorlife.com/", // 씬짜오 당근
+  site3: "https://vnkorlife.com/?directory_type=jobs", // 구인구직
+  site4: "https://vnkorlife.com/?directory_type=real-estate", // 부동산
 };
 
 // 각 탭에서 웹사이트를 보여주는 컴포넌트
@@ -23,7 +22,9 @@ const SiteWebView = ({ url }) => {
         source={{ uri: url }}
         style={styles.webview}
         startInLoadingState={true}
-        renderLoading={() => <Text style={styles.loadingText}>사이트를 불러오는 중...</Text>}
+        renderLoading={() => (
+          <Text style={styles.loadingText}>사이트를 불러오는 중...</Text>
+        )}
       />
     </SafeAreaView>
   );
@@ -36,25 +37,26 @@ export default function App() {
   useEffect(() => {
     registerForPushNotificationsAsync();
   }, []);
-  
+
   async function registerForPushNotificationsAsync() {
     let token;
-    
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
+    if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
-    if (finalStatus !== 'granted') {
-      console.log('푸시 알림 권한이 거부되었습니다!');
+    if (finalStatus !== "granted") {
+      console.log("푸시 알림 권한이 거부되었습니다!");
       return;
     }
 
     token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('푸시 알림 토큰:', token);
+    console.log("푸시 알림 토큰:", token);
   }
 
   return (
@@ -65,30 +67,30 @@ export default function App() {
           tabBarIcon: ({ focused, color, size }) => {
             let iconName;
 
-            if (route.name === '매거진') {
-              iconName = focused ? 'book' : 'book-outline';
-            } else if (route.name === '커뮤니티 라운지') {
-              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            } else if (route.name === '구인구직') {
-              iconName = focused ? 'briefcase' : 'briefcase-outline';
-            } else if (route.name === '부동산') {
-              iconName = focused ? 'business' : 'business-outline';
+            if (route.name === "매거진") {
+              iconName = focused ? "book" : "book-outline";
+            } else if (route.name === "커뮤니티 라운지") {
+              iconName = focused ? "chatbubbles" : "chatbubbles-outline";
+            } else if (route.name === "구인구직") {
+              iconName = focused ? "briefcase" : "briefcase-outline";
+            } else if (route.name === "부동산") {
+              iconName = focused ? "business" : "business-outline";
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
         })}
       >
-        <Tab.Screen name="매거진" options={{ title: '뉴스' }}>
+        <Tab.Screen name="매거진" options={{ title: "뉴스" }}>
           {() => <SiteWebView url={siteURLs.site1} />}
         </Tab.Screen>
-        <Tab.Screen name="커뮤니티 라운지" options={{ title: '커뮤니티' }}>
+        <Tab.Screen name="커뮤니티 라운지" options={{ title: "커뮤니티" }}>
           {() => <SiteWebView url={siteURLs.site2} />}
         </Tab.Screen>
-        <Tab.Screen name="구인구직" options={{ title: '구인' }}>
+        <Tab.Screen name="구인구직" options={{ title: "구인" }}>
           {() => <SiteWebView url={siteURLs.site3} />}
         </Tab.Screen>
-        <Tab.Screen name="부동산" options={{ title: '부동산' }}>
+        <Tab.Screen name="부동산" options={{ title: "부동산" }}>
           {() => <SiteWebView url={siteURLs.site4} />}
         </Tab.Screen>
       </Tab.Navigator>
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingText: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 20,
     fontSize: 16,
   },
