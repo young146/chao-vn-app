@@ -11,12 +11,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification", "remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -42,6 +47,10 @@
       "eas": {
         "projectId": "9b58881f-f09a-4042-acc3-a8593658c231"
       }
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset"
+    ]
   }
 }
