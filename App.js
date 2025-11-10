@@ -278,21 +278,9 @@ const Stack = createNativeStackNavigator();
 // 헤더 우측 버튼 컴포넌트
 function DanggnHeaderRight({ navigation }) {
   const { user } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}>
-      {/* 새로고침 버튼 */}
-      <TouchableOpacity
-        style={{ padding: 8 }}
-        onPress={() => {
-          setRefreshKey(Date.now());
-          navigation.setParams({ refresh: Date.now() });
-        }}
-      >
-        <Ionicons name="refresh-outline" size={24} color="#fff" />
-      </TouchableOpacity>
-
       {/* 로그인 상태 표시 */}
       {user ? (
         <TouchableOpacity
