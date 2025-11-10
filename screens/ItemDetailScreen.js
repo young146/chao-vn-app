@@ -12,14 +12,15 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { doc, deleteDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { ref, deleteObject } from "firebase/storage";
+import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ItemDetailScreen({ route, navigation }) {
   const { item } = route.params;
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const images = item.images || (item.imageUri ? [item.imageUri] : []);
@@ -30,7 +31,7 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    const date = timestamp.toDate();
+    const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -103,26 +104,49 @@ export default function ItemDetailScreen({ route, navigation }) {
     Alert.alert("판매자 연락처", "연락 방법을 선택하세요", options);
   };
 
-  const handleDelete = () => {
-    Alert.alert("물품 삭제", "정말 삭제하시겠습니까?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "삭제",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteDoc(doc(db, "XinChaoDanggn", item.id));
-            Alert.alert("삭제 완료", "물품이 삭제되었습니다.", [
-              { text: "확인", onPress: () => navigation.goBack() },
-            ]);
-          } catch (error) {
-            console.error("삭제 실패:", error);
-            Alert.alert("오류", "삭제에 실패했습니다.");
-          }
-        },
-      },
-    ]);
+  const handleEdit = () => {
+    navigation.navigate("물품 수정", { item });
   };
+
+  const handleDelete = () => {
+  const message = isAdmin() && !isMyItem
+    ? "관리자 권한으로 이 물품을 삭제하시겠습니까?"
+    : "정말 삭제하시겠습니까?";
+
+  Alert.alert("물품 삭제", message, [
+    { text: "취소", style: "cancel" },
+    {
+      text: "삭제",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          // 1️⃣ Storage에서 이미지 먼저 삭제
+          if (images && images.length > 0) {
+            for (const imageUrl of images) {
+              try {
+                const imageRef = ref(storage, imageUrl);
+                await deleteObject(imageRef);
+                console.log('이미지 삭제 성공:', imageUrl);
+              } catch (imgError) {
+                console.log('이미지 삭제 실패 (이미 없을 수 있음):', imgError);
+              }
+            }
+          }
+
+          // 2️⃣ Firestore에서 데이터 삭제
+          await deleteDoc(doc(db, "XinChaoDanggn", item.id));
+          
+          Alert.alert("삭제 완료", "물품이 삭제되었습니다.", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+        } catch (error) {
+          console.error("삭제 실패:", error);
+          Alert.alert("오류", "삭제에 실패했습니다.");
+        }
+      },
+    },
+  ]);
+};
 
   const handleScroll = (event) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -131,6 +155,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   };
 
   const isMyItem = item.userId === user?.uid;
+  const canDelete = isMyItem || isAdmin();
 
   return (
     <View style={styles.container}>
@@ -191,7 +216,7 @@ export default function ItemDetailScreen({ route, navigation }) {
             <Text style={styles.price}>{formatPrice(item.price)}</Text>
             <View style={styles.metaInfo}>
               <Text style={styles.category}>{item.category}</Text>
-              <Text style={styles.dot}>•</Text>
+              <Text style={styles.metaDot}>•</Text>
               <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
             </View>
           </View>
@@ -206,9 +231,9 @@ export default function ItemDetailScreen({ route, navigation }) {
             </View>
             <View style={styles.locationDetails}>
               <Text style={styles.locationText}>📍 {item.city}</Text>
-              <Text style={styles.locationText}> {item.district}</Text>
+              <Text style={styles.locationText}>   {item.district}</Text>
               {item.apartment && item.apartment !== "기타" && (
-                <Text style={styles.locationText}> {item.apartment}</Text>
+                <Text style={styles.locationText}>   {item.apartment}</Text>
               )}
             </View>
           </View>
@@ -299,13 +324,23 @@ export default function ItemDetailScreen({ route, navigation }) {
       {/* 하단 버튼 */}
       <View style={styles.bottomBar}>
         {isMyItem ? (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={handleDelete}
-          >
-            <Ionicons name="trash-outline" size={20} color="#fff" />
-            <Text style={styles.buttonText}>삭제하기</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.editButton]}
+              onPress={handleEdit}
+            >
+              <Ionicons name="create-outline" size={20} color="#fff" />
+              <Text style={styles.buttonText}>수정하기</Text>
+            </TouchableOpacity>
+            <View style={{ width: 8 }} />
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash-outline" size={20} color="#fff" />
+              <Text style={styles.buttonText}>삭제하기</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <>
             <TouchableOpacity style={styles.heartButton}>
@@ -318,6 +353,19 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Ionicons name="chatbubble-outline" size={20} color="#fff" />
               <Text style={styles.buttonText}>연락하기</Text>
             </TouchableOpacity>
+            {/* Admin 삭제 버튼 */}
+            {isAdmin() && (
+              <>
+                <View style={{ width: 8 }} />
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.adminDeleteButton]}
+                  onPress={handleDelete}
+                >
+                  <Ionicons name="shield-outline" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>관리자 삭제</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
       </View>
@@ -416,7 +464,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-  dot: {
+  metaDot: {
     marginHorizontal: 6,
     fontSize: 14,
     color: "#666",
@@ -516,11 +564,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  editButton: {
+    backgroundColor: "#4CAF50",
+  },
   contactButton: {
     backgroundColor: "#FF6B35",
   },
   deleteButton: {
     backgroundColor: "#dc3545",
+  },
+  adminDeleteButton: {
+    backgroundColor: "#6c757d",
+    flex: 0,
+    paddingHorizontal: 16,
   },
   buttonText: {
     color: "#fff",

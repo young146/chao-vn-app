@@ -19,7 +19,7 @@ import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();  // ✅ isAdmin 추가!
   const [stats, setStats] = useState({
     bookmarks: 0,
     comments: 0,
@@ -94,11 +94,21 @@ export default function ProfileScreen() {
         <View style={styles.avatar}>
           <Ionicons name="person" size={40} color="#fff" />
         </View>
-        <Text style={styles.username}>
-          {user?.email?.split("@")[0] || "User"}
-        </Text>
+        {/* ✅ Admin 배지 추가 */}
+        <View style={styles.usernameContainer}>
+          <Text style={styles.username}>
+            {user?.email?.split("@")[0] || "User"}
+          </Text>
+          {isAdmin() && (
+            <View style={styles.adminBadge}>
+              <Ionicons name="shield-checkmark" size={14} color="#fff" />
+              <Text style={styles.adminBadgeText}>ADMIN</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.email}>{user?.email}</Text>
       </View>
+
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{stats.bookmarks}</Text>
@@ -159,11 +169,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  usernameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   username: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#333",
     marginBottom: 4,
+  },
+  adminBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#dc3545",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  adminBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#fff",
   },
   email: {
     fontSize: 14,

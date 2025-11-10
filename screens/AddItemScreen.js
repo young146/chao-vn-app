@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import {
@@ -19,7 +20,8 @@ import {
 } from "../utils/vietnamLocations";
 import { useAuth } from "../contexts/AuthContext";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, storage } from "../firebase/config";  // ✅ storage 추가!
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";  // ✅ 추가!
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -32,33 +34,101 @@ export default function AddItemScreen({ navigation }) {
   const [selectedCity, setSelectedCity] = useState("호치민");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedApartment, setSelectedApartment] = useState("");
-  const [images, setImages] = useState([]); // 배열로 변경
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);  // ✅ 업로드 상태
 
   const [phone, setPhone] = useState("");
   const [kakaoId, setKakaoId] = useState("");
   const [otherContact, setOtherContact] = useState("");
 
-  const pickImages = async () => {
-    if (images.length >= 5) {
-      Alert.alert("알림", "사진은 최대 5장까지 등록할 수 있습니다.");
-      return;
+    // ✅ 카메라 권한 요청
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '카메라 접근 권한이 필요합니다.');
+      return false;
     }
+    return true;
+  };
+
+  // ✅ 갤러리 권한 요청
+  const requestGalleryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+      return false;
+    }
+    return true;
+  };
+
+  // ✅ 카메라로 촬영
+  const takePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
 
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
-        allowsMultipleSelection: false, // 한 번에 하나씩 추가
       });
 
       if (!result.canceled) {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
+      Alert.alert("오류", "사진 촬영에 실패했습니다.");
+    }
+  };
+
+  // ✅ 갤러리에서 선택 (복수 선택 가능!)
+  const pickImagesFromGallery = async () => {
+    const hasPermission = await requestGalleryPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,  // ✅ 복수 선택 활성화!
+        quality: 0.8,
+        selectionLimit: 5 - images.length,  // 최대 5장까지
+      });
+
+      if (!result.canceled) {
+        const newImages = result.assets.map(asset => asset.uri);
+        setImages([...images, ...newImages].slice(0, 5));  // 최대 5장
+      }
+    } catch (error) {
       Alert.alert("오류", "사진을 선택할 수 없습니다.");
     }
+  };
+
+  // ✅ 사진 선택 메뉴
+  const pickImages = () => {
+    if (images.length >= 5) {
+      Alert.alert("알림", "사진은 최대 5장까지 등록할 수 있습니다.");
+      return;
+    }
+
+    Alert.alert(
+      "사진 선택",
+      "사진을 추가할 방법을 선택하세요",
+      [
+        {
+          text: "📷 카메라로 촬영",
+          onPress: takePhoto,
+        },
+        {
+          text: "🖼️ 갤러리에서 선택",
+          onPress: pickImagesFromGallery,
+        },
+        {
+          text: "취소",
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   const removeImage = (index) => {
@@ -66,51 +136,133 @@ export default function AddItemScreen({ navigation }) {
     setImages(newImages);
   };
 
-  const handleSubmit = async () => {
-    if (!title || !price || !description || !selectedApartment) {
-      Alert.alert("알림", "필수 항목을 모두 입력해주세요!");
-      return;
-    }
-
-    if (!phone && !kakaoId && !otherContact) {
-      Alert.alert("알림", "연락처를 최소 하나 이상 입력해주세요!");
-      return;
-    }
-
-    if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다!");
-      return;
-    }
-
+  // ✅ 이미지를 Firebase Storage에 업로드하는 함수
+  const uploadImageToStorage = async (uri) => {
     try {
-      await addDoc(collection(db, "XinChaoDanggn"), {
-        title,
-        price: parseInt(price),
-        description,
-        category,
-        location: `${selectedCity} ${selectedDistrict} ${selectedApartment}`,
-        city: selectedCity,
-        district: selectedDistrict,
-        apartment: selectedApartment,
-        images: images, // 배열로 저장
-        contact: {
-          phone: phone || "",
-          kakaoId: kakaoId || "",
-          other: otherContact || "",
-        },
-        userId: user.uid,
-        userEmail: user.email,
-        createdAt: serverTimestamp(),
-        status: "판매중",
-      });
-
-      Alert.alert("성공!", "상품이 등록되었습니다!");
-      navigation.goBack();
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      // 파일명 생성 (타임스탬프 + 랜덤)
+      const filename = `items/${user.uid}_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      const storageRef = ref(storage, filename);
+      
+      // 업로드
+      await uploadBytes(storageRef, blob);
+      
+      // 다운로드 URL 가져오기
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
     } catch (error) {
-      console.error("Error:", error);
-      Alert.alert("오류", "상품 등록에 실패했습니다.");
+      console.error("이미지 업로드 실패:", error);
+      throw error;
     }
   };
+
+  const handleSubmit = async () => {
+  // 1️⃣ 유효성 검사
+  if (!title || !price || !description || !selectedApartment) {
+    Alert.alert("알림", "필수 항목을 모두 입력해주세요!");
+    return;
+  }
+
+  if (!phone && !kakaoId && !otherContact) {
+    Alert.alert("알림", "연락처를 최소 하나 이상 입력해주세요!");
+    return;
+  }
+
+  if (!user) {
+    Alert.alert("알림", "로그인이 필요합니다!");
+    return;
+  }
+
+  setUploading(true);
+
+  try {
+    // 2️⃣ 이미지를 Firebase Storage에 업로드 (이 부분이 빠져있었음!)
+    console.log("📤 이미지 업로드 시작...");
+    const uploadedImageUrls = [];
+    
+    for (let i = 0; i < images.length; i++) {
+      console.log(`📷 이미지 ${i + 1}/${images.length} 업로드 중...`);
+      const url = await uploadImageToStorage(images[i]);
+      uploadedImageUrls.push(url);
+      console.log(`✅ 이미지 ${i + 1} 업로드 완료`);
+    }
+
+    console.log("✅ 모든 이미지 업로드 완료!");
+
+    // 3️⃣ Firestore에 데이터 저장
+    console.log("💾 Firestore에 저장 중...");
+    const docRef = await addDoc(collection(db, "XinChaoDanggn"), {
+      title,
+      price: parseInt(price),
+      description,
+      category,
+      location: `${selectedCity} ${selectedDistrict} ${selectedApartment}`,
+      city: selectedCity,
+      district: selectedDistrict,
+      apartment: selectedApartment,
+      images: uploadedImageUrls,
+      contact: {
+        phone: phone || "",
+        kakaoId: kakaoId || "",
+        other: otherContact || "",
+      },
+      userId: user.uid,
+      userEmail: user.email,
+      createdAt: serverTimestamp(),
+      status: "판매중",
+    });
+
+    console.log("✅ Firestore 저장 완료! ID:", docRef.id);
+
+    setUploading(false);
+
+    // 4️⃣ 등록된 물품 데이터 준비
+    const newItem = {
+      id: docRef.id,
+      title,
+      price: parseInt(price),
+      description,
+      category,
+      location: `${selectedCity} ${selectedDistrict} ${selectedApartment}`,
+      city: selectedCity,
+      district: selectedDistrict,
+      apartment: selectedApartment,
+      images: uploadedImageUrls,
+      contact: {
+        phone: phone || "",
+        kakaoId: kakaoId || "",
+        other: otherContact || "",
+      },
+      userId: user.uid,
+      userEmail: user.email,
+      createdAt:  new Date(),
+      status: "판매중",
+    };
+
+    // 5️⃣ 등록 완료 후 상세페이지로 이동
+    Alert.alert("성공!", "상품이 등록되었습니다!", [
+      {
+        text: "확인",
+        onPress: () => {
+          navigation.navigate("물품 상세", { item: newItem });
+        },
+      },
+    ]);
+
+  } catch (error) {
+    console.error("❌ 상품 등록 실패:", error);
+    console.error("❌ 에러 상세:", error.message);
+    
+    setUploading(false);
+    
+    Alert.alert(
+      "오류", 
+      `상품 등록에 실패했습니다.\n\n${error.message}\n\n다시 시도해주세요.`
+    );
+  }
+};
 
   const districts = getDistrictsByCity(selectedCity);
   const apartments = selectedDistrict
@@ -303,8 +455,19 @@ export default function AddItemScreen({ navigation }) {
         </View>
 
         {/* 등록 버튼 */}
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>등록하기</Text>
+        <TouchableOpacity 
+          style={[styles.button, uploading && styles.buttonDisabled]} 
+          onPress={handleSubmit}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <View style={styles.uploadingContainer}>
+              <ActivityIndicator color="#fff" />
+              <Text style={styles.buttonText}>  업로드 중...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>등록하기</Text>
+          )}
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -428,6 +591,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
+  },
+  buttonDisabled: {
+    backgroundColor: "#ccc",
+  },
+  uploadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   buttonText: {
     color: "#fff",

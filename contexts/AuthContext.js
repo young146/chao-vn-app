@@ -10,6 +10,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthContext = createContext({});
 
+// Admin 사용자 이메일 목록 (여기에 추가하세요!)
+const ADMIN_EMAILS = [
+  "info@chaovietnam.co,kr",  // 예시: 주필님 이메일로 변경하세요
+  "younghan146@gmail.com",  // 예시
+];
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +34,12 @@ export const AuthProvider = ({ children }) => {
 
     return unsubscribe;
   }, []);
+
+  // Admin 권한 확인
+  const isAdmin = () => {
+    if (!user || !user.email) return false;
+    return ADMIN_EMAILS.includes(user.email.toLowerCase());
+  };
 
   // 회원가입
   const signup = async (email, password) => {
@@ -85,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, signup, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

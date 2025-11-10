@@ -1,7 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { getStorage } from "firebase/storage";  // ✅ Storage 추가!
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,5 +22,10 @@ const app = initializeApp(firebaseConfig);
 // Firestore 데이터베이스 export
 export const db = getFirestore(app);
 
-// Authentication export (중요!)
-export const auth = getAuth(app);
+// Authentication with AsyncStorage persistence
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+
+// ✅ Firebase Storage export (사진 업로드용)
+export const storage = getStorage(app);

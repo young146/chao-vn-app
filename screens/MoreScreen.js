@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MoreScreen({ navigation }) {
-  const { logout, user } = useAuth();
+  const { logout, user, isAdmin } = useAuth();
 
   const menuItems = [
     {
@@ -67,8 +67,41 @@ export default function MoreScreen({ navigation }) {
         <Text style={styles.headerSubtitle}>
           북마크, 댓글, 알림 및 프로필 관리
         </Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
+        <View style={styles.userInfoContainer}>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          {/* ✅ Admin 배지 추가 */}
+          {isAdmin() && (
+            <View style={styles.adminBadge}>
+              <Ionicons name="shield-checkmark" size={14} color="#fff" />
+              <Text style={styles.adminBadgeText}>관리자</Text>
+            </View>
+          )}
+        </View>
       </View>
+
+      {/* ✅ Admin 메뉴 추가 */}
+      {isAdmin() && (
+        <View style={styles.adminMenuContainer}>
+          <TouchableOpacity
+            style={styles.adminMenuItem}
+            onPress={() => navigation.navigate("관리자 페이지")}
+          >
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: "#dc354520" },
+              ]}
+            >
+              <Ionicons name="shield-checkmark" size={28} color="#dc3545" />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={styles.menuTitle}>관리자 페이지</Text>
+              <Text style={styles.menuSubtitle}>통계 및 물품 관리</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#ccc" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.menuContainer}>
         {menuItems.map((item) => (
@@ -125,12 +158,43 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  userInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   userEmail: {
     fontSize: 13,
     color: "#FF6B35",
     fontWeight: "600",
+  },
+  adminBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#dc3545",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  adminBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  adminMenuContainer: {
+    marginTop: 12,
+    backgroundColor: "#FFF8F3",
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: "#FFE0CC",
+  },
+  adminMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
   },
   menuContainer: {
     marginTop: 12,
@@ -161,6 +225,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: "#333",
+  },
+  menuSubtitle: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
   },
   logoutButton: {
     flexDirection: "row",

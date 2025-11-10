@@ -8,10 +8,11 @@ import {
   Image,
   TextInput,
   ScrollView,
-  Modal,
   Alert,
+  RefreshControl,  // ✅ 추가!
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import {
   collection,
   query,
@@ -20,7 +21,11 @@ import {
   limit,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { CITIES } from "../utils/vietnamLocations";
+import {
+  VIETNAM_LOCATIONS,
+  getDistrictsByCity,
+  getApartmentsByDistrict,
+} from "../utils/vietnamLocations";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function XinChaoDanggnScreen({ navigation }) {
@@ -29,8 +34,10 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [selectedCity, setSelectedCity] = useState("전체");
-  const [showLocationModal, setShowLocationModal] = useState(false);
-
+  const [selectedDistrict, setSelectedDistrict] = useState("전체");
+  const [selectedApartment, setSelectedApartment] = useState("전체");
+  const [refreshing, setRefreshing] = useState(false);  // ✅ 추가!
+  const [refreshKey, setRefreshKey] = useState(0);  // ✅ 추가!
   const categories = [
     "전체",
     "가전/가구",
@@ -47,9 +54,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
       orderBy("createdAt", "desc")
     );
 
-    // 로그인하지 않은 경우 최신 5개만
+    // 로그인하지 않은 경우 최신 8개만
     if (!user) {
-      q = query(q, limit(5));
+      q = query(q, limit(8));
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -58,11 +65,22 @@ export default function XinChaoDanggnScreen({ navigation }) {
         ...doc.data(),
       }));
       setItems(itemsData);
+      setRefreshing(false);  // ✅ 데이터 로드 완료 시 refreshing 해제
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, refreshing]);
 
+    // ✅ 새로고침 함수
+  const onRefresh = () => {
+    setRefreshing(true);
+    setRefreshKey(Date.now());  // 강제 리렌더링
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  // 3단계 필터링
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.title
       ?.toLowerCase()
@@ -70,7 +88,18 @@ export default function XinChaoDanggnScreen({ navigation }) {
     const matchesCategory =
       selectedCategory === "전체" || item.category === selectedCategory;
     const matchesCity = selectedCity === "전체" || item.city === selectedCity;
-    return matchesSearch && matchesCategory && matchesCity;
+    const matchesDistrict =
+      selectedDistrict === "전체" || item.district === selectedDistrict;
+    const matchesApartment =
+      selectedApartment === "전체" || item.apartment === selectedApartment;
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesCity &&
+      matchesDistrict &&
+      matchesApartment
+    );
   });
 
   const formatPrice = (price) => {
@@ -113,6 +142,16 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
   };
 
+  // AddItemScreen과 동일한 방식
+  const districts = getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity);
+  const apartments =
+    selectedDistrict && selectedDistrict !== "전체"
+      ? getApartmentsByDistrict(
+          selectedCity === "전체" ? "호치민" : selectedCity,
+          selectedDistrict
+        )
+      : [];
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.itemCard}
@@ -144,7 +183,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* 로그인 안내 배너 (비로그인 상태일 때만) */}
+      {/* 로그인 안내 배너 */}
       {!user && (
         <TouchableOpacity
           style={styles.loginBanner}
@@ -174,17 +213,63 @@ export default function XinChaoDanggnScreen({ navigation }) {
         />
       </View>
 
-      {/* 지역 선택 버튼 */}
-      <TouchableOpacity
-        style={styles.locationButton}
-        onPress={() => setShowLocationModal(true)}
-      >
-        <Ionicons name="location" size={18} color="#FF6B35" />
-        <Text style={styles.locationButtonText}>
-          {selectedCity === "전체" ? "지역 선택" : selectedCity}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color="#666" />
-      </TouchableOpacity>
+      {/* 지역 필터 - AddItemScreen과 동일한 Picker 방식 */}
+      <View style={styles.filterSection}>
+        {/* 도시 */}
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedCity}
+            onValueChange={(value) => {
+              setSelectedCity(value);
+              setSelectedDistrict("전체");
+              setSelectedApartment("전체");
+            }}
+          >
+            <Picker.Item label="전체 도시" value="전체" />
+            <Picker.Item label="호치민" value="호치민" />
+            <Picker.Item label="하노이" value="하노이" />
+            <Picker.Item label="다낭" value="다낭" />
+            <Picker.Item label="냐짱" value="냐짱" />
+          </Picker>
+        </View>
+
+        {/* 구/군 */}
+        {selectedCity !== "전체" && (
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedDistrict}
+              onValueChange={(value) => {
+                setSelectedDistrict(value);
+                setSelectedApartment("전체");
+              }}
+            >
+              <Picker.Item label="전체 구/군" value="전체" />
+              {districts.map((district) => (
+                <Picker.Item key={district} label={district} value={district} />
+              ))}
+            </Picker>
+          </View>
+        )}
+
+        {/* 아파트/지역 */}
+        {selectedDistrict !== "전체" && apartments.length > 0 && (
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedApartment}
+              onValueChange={setSelectedApartment}
+            >
+              <Picker.Item label="전체 아파트" value="전체" />
+              {apartments.map((apartment) => (
+                <Picker.Item
+                  key={apartment}
+                  label={apartment}
+                  value={apartment}
+                />
+              ))}
+            </Picker>
+          </View>
+        )}
+      </View>
 
       {/* 카테고리 */}
       <View style={styles.categoriesContainer}>
@@ -217,7 +302,15 @@ export default function XinChaoDanggnScreen({ navigation }) {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={filteredItems.length === 0 ? { flex: 1 } : styles.listContainer}  // ✅ 수정!
+        refreshControl={  
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#FF6B35"]}
+            tintColor="#FF6B35"
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cart-outline" size={64} color="#ccc" />
@@ -240,68 +333,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
-
-      {/* 지역 선택 모달 */}
-      <Modal
-        visible={showLocationModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowLocationModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>지역 선택</Text>
-              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView>
-              <TouchableOpacity
-                style={styles.cityOption}
-                onPress={() => {
-                  setSelectedCity("전체");
-                  setShowLocationModal(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.cityText,
-                    selectedCity === "전체" && styles.cityTextSelected,
-                  ]}
-                >
-                  전체 지역
-                </Text>
-                {selectedCity === "전체" && (
-                  <Ionicons name="checkmark" size={20} color="#FF6B35" />
-                )}
-              </TouchableOpacity>
-              {CITIES.map((city) => (
-                <TouchableOpacity
-                  key={city}
-                  style={styles.cityOption}
-                  onPress={() => {
-                    setSelectedCity(city);
-                    setShowLocationModal(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.cityText,
-                      selectedCity === city && styles.cityTextSelected,
-                    ]}
-                  >
-                    {city}
-                  </Text>
-                  {selectedCity === city && (
-                    <Ionicons name="checkmark" size={20} color="#FF6B35" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -311,7 +342,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-
   loginBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -335,56 +365,60 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     margin: 12,
     marginBottom: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 10,
-    fontSize: 15,
+    paddingVertical: 8,
+    fontSize: 14,
   },
-  locationButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  filterSection: {
     backgroundColor: "#fff",
     marginHorizontal: 12,
     marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#FF6B35",
+    borderColor: "#e0e0e0",
   },
-  locationButtonText: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 15,
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
     color: "#333",
-    fontWeight: "600",
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 6,
+    marginBottom: 6,
+    backgroundColor: "#fff",
+    overflow: "hidden",
   },
   categoriesContainer: {
     backgroundColor: "#fff",
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
   categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginLeft: 12,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginLeft: 8,
+    borderRadius: 16,
     backgroundColor: "#f5f5f5",
   },
   categoryButtonActive: {
     backgroundColor: "#FF6B35",
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#666",
   },
   categoryTextActive: {
@@ -480,45 +514,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "70%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  cityOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  cityText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  cityTextSelected: {
-    color: "#FF6B35",
-    fontWeight: "600",
   },
 });
