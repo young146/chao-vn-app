@@ -1,3 +1,5 @@
+import MyFavoritesScreen from "./screens/MyFavoritesScreen";
+import ChatListScreen from './screens/ChatListScreen';
 import { LogBox } from 'react-native';
 LogBox.ignoreAllLogs(true);
 import "react-native-gesture-handler";
@@ -17,7 +19,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import * as Notifications from "expo-notifications";
+// import * as Notifications from "expo-notifications";
 
 // AuthContext
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -28,16 +30,21 @@ import SignupScreen from "./screens/SignupScreen";
 
 // 네이티브 화면들
 import MoreScreen from "./screens/MoreScreen";
+import MyPageScreen from "./screens/MyPageScreen";
+import MyItemsScreen from "./screens/MyItemsScreen";
 import BookmarksScreen from "./screens/BookmarksScreen";
 import MyCommentsScreen from "./screens/MyCommentsScreen";
 import NotificationSettingsScreen from "./screens/NotificationSettingsScreen";
 import ProfileScreen from "./screens/ProfileScreen";
+import ChatRoomScreen from './screens/ChatRoomScreen';
 
 // 씬짜오당근 화면들
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
+import ReviewScreen from "./screens/ReviewScreen";
 import AdminScreen from "./screens/AdminScreen"; 
+
 // ------------------------------------------------------------------
 // ** 1. URL 구조 **
 // ------------------------------------------------------------------
@@ -51,21 +58,21 @@ const siteURLs = {
 // ------------------------------------------------------------------
 // ** 2. 푸시 알림 로직 **
 // ------------------------------------------------------------------
-async function registerForPushNotificationsAsync() {
-  let token;
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  if (finalStatus !== "granted") {
-    console.log("푸시 알림 권한이 거부되었습니다!");
-    return;
-  }
-  token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log("푸시 알림 토큰:", token);
-}
+// async function registerForPushNotificationsAsync() {
+//   let token;
+//   const { status: existingStatus } = await Notifications.getPermissionsAsync();
+//   let finalStatus = existingStatus;
+//   if (existingStatus !== "granted") {
+//     const { status } = await Notifications.requestPermissionsAsync();
+//     finalStatus = status;
+//   }
+//   if (finalStatus !== "granted") {
+//     console.log("푸시 알림 권한이 거부되었습니다!");
+//     return;
+//   }
+//   token = (await Notifications.getExpoPushTokenAsync()).data;
+//   console.log("푸시 알림 토큰:", token);
+// }
 
 // ------------------------------------------------------------------
 // ** 3. WebView 컴포넌트 **
@@ -281,7 +288,6 @@ function DanggnHeaderRight({ navigation }) {
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}>
-      {/* 로그인 상태 표시 */}
       {user ? (
         <TouchableOpacity
           style={{ padding: 8 }}
@@ -350,12 +356,29 @@ function DanggnStack() {
           headerTintColor: "#fff",
         }}
       />
-      {/* ✅ 물품 수정 화면 추가! */}
       <Stack.Screen
         name="물품 수정"
         component={AddItemScreen}
         options={{
           title: "물품 수정",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+       <Stack.Screen
+        name="리뷰 작성"
+        component={ReviewScreen}
+        options={{
+          title: "리뷰 작성",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{
+          title: "채팅",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -375,6 +398,33 @@ function MoreStack() {
         component={MoreScreen}
         options={{
           title: "더보기",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="My Page"
+        component={MyPageScreen}
+        options={{
+          title: "My Page",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="내 채팅"
+        component={ChatListScreen}
+        options={{
+          title: "내 채팅",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="찜한 물품"
+        component={MyFavoritesScreen}
+        options={{
+          title: "찜한 물품",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -407,21 +457,66 @@ function MoreStack() {
         }}
       />
       <Stack.Screen
-        name="프로필"
-        component={ProfileScreen}
+  name="프로필"
+  component={ProfileScreen}
+  options={{
+    title: "프로필",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+  />
+<Stack.Screen
+  name="내 물품"
+  component={MyItemsScreen}
+  options={{
+    title: "내 물품",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+/>
+<Stack.Screen
+  name="물품 상세"
+  component={ItemDetailScreen}
+  options={{
+    title: "물품 상세",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+/>
+<Stack.Screen
+  name="물품 수정"
+  component={AddItemScreen}
+  options={{
+    title: "물품 수정",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+/>
+       
+       <Stack.Screen
+        name="리뷰 작성"
+        component={ReviewScreen}
         options={{
-          title: "프로필",
+          title: "리뷰 작성",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
       />
-      {/* ✅ 관리자 페이지 추가 */}
       <Stack.Screen
         name="관리자 페이지"
         component={AdminScreen}
         options={{
           title: "관리자 페이지",
           headerStyle: { backgroundColor: "#dc3545" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{
+          title: "채팅",
+          headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
       />
@@ -476,17 +571,17 @@ function RootNavigator() {
 // ** 9. App 컴포넌트 **
 // ------------------------------------------------------------------
 export default function App() {
-  useEffect(() => {
-    registerForPushNotificationsAsync();
-
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
-    });
-  }, []);
+  // useEffect(() => {
+  //   registerForPushNotificationsAsync();
+  //
+  //   Notifications.setNotificationHandler({
+  //     handleNotification: async () => ({
+  //       shouldShowAlert: true,
+  //       shouldPlaySound: true,
+  //       shouldSetBadge: true,
+  //     }),
+  //   });
+  // }, []);
 
   return (
     <AuthProvider>

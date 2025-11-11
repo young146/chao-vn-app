@@ -1,0 +1,200 @@
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../contexts/AuthContext";
+
+export default function MyPageScreen({ navigation }) {
+  const { user } = useAuth();
+
+  const myPageItems = [
+    {
+      id: "chat",
+      title: "내 채팅",
+      icon: "chatbubbles",
+      screen: "내 채팅",
+      color: "#FF6B35",
+    },
+    {
+      id: "favorites",
+      title: "찜한 물품",
+      icon: "heart",
+      screen: "찜한 물품",
+      color: "#E91E63",
+    },
+    {
+      id: "bookmarks",
+      title: "북마크",
+      icon: "bookmark",
+      screen: "북마크",
+      color: "#4CAF50",
+    },
+    {
+      id: "comments",
+      title: "내 댓글",
+      icon: "chatbox",
+      screen: "내 댓글",
+      color: "#2196F3",
+    },
+    {
+      id: "profile",
+      title: "프로필",
+      icon: "person",
+      screen: "프로필",
+      color: "#FF9800",
+    },
+    {
+      id: "myitems",
+      title: "내 물품",
+      icon: "cube",
+      screen: "내 물품",
+      color: "#9C27B0",
+      
+    },
+  ];
+
+  const handleMenuPress = (item) => {
+  navigation.navigate(item.screen);
+};
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* 사용자 정보 헤더 */}
+      <View style={styles.userHeader}>
+        <View style={styles.avatarContainer}>
+          <Ionicons name="person-circle" size={80} color="#FF6B35" />
+        </View>
+        <Text style={styles.userName}>
+          {user?.email ? user.email.split("@")[0] : "사용자"}
+        </Text>
+        <Text style={styles.userEmail}>{user?.email || ""}</Text>
+      </View>
+
+      {/* My Page 메뉴 */}
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>내 활동</Text>
+        {myPageItems.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.menuItem}
+            onPress={() => handleMenuPress(item)}
+            disabled={item.badge === "준비중"}
+          >
+            <View style={styles.menuLeft}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: item.color + "20" },
+                ]}
+              >
+                <Ionicons name={item.icon} size={24} color={item.color} />
+              </View>
+              <Text
+                style={[
+                  styles.menuTitle,
+                  item.badge === "준비중" && styles.disabledText,
+                ]}
+              >
+                {item.title}
+              </Text>
+              {item.badge && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{item.badge}</Text>
+                </View>
+              )}
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={item.badge === "준비중" ? "#ccc" : "#999"}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  userHeader: {
+    backgroundColor: "#fff",
+    padding: 24,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  avatarContainer: {
+    marginBottom: 12,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: "#666",
+  },
+  menuSection: {
+    backgroundColor: "#fff",
+    marginTop: 12,
+    paddingTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#999",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    textTransform: "uppercase",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  menuLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  menuTitle: {
+    fontSize: 16,
+    color: "#333",
+  },
+  disabledText: {
+    color: "#999",
+  },
+  badge: {
+    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  badgeText: {
+    fontSize: 11,
+    color: "#666",
+  },
+});

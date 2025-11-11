@@ -19,7 +19,6 @@
       "bundleIdentifier": "com.yourname.chaovnapp",
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -41,7 +40,8 @@
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.WAKE_LOCK"
-      ]
+      ],
+      "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
       "eas": {
@@ -50,7 +50,19 @@
     },
     "plugins": [
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FF6B35",
+          "sounds": [
+            "./assets/sounds/default.wav",
+            "./assets/sounds/chime.wav",
+            "./assets/sounds/bell.wav"
+          ]
+        }
+      ]
     ]
   }
 }

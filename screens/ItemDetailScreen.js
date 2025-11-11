@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useLayoutEffect, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
@@ -22,8 +22,66 @@ export default function ItemDetailScreen({ route, navigation }) {
   const { item } = route.params;
   const { user, isAdmin } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   const images = item.images || (item.imageUri ? [item.imageUri] : []);
+  const isMyItem = item.userId === user?.uid;
+  const canDelete = isMyItem || isAdmin();
+
+  // ✅ 리뷰 데이터 불러오기
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const reviewsRef = collection(db, "reviews");
+        const q = query(
+          reviewsRef,
+          where("itemId", "==", item.id),
+          orderBy("createdAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        const reviewData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        setReviews(reviewData);
+        
+        // 평균 별점 계산
+        if (reviewData.length > 0) {
+          const sum = reviewData.reduce((acc, review) => acc + review.rating, 0);
+          setAverageRating((sum / reviewData.length).toFixed(1));
+        }
+      } catch (error) {
+        console.error("리뷰 불러오기 실패:", error);
+      }
+    };
+
+    fetchReviews();
+  }, [item.id]);
+
+  // ✅ 찜 상태 확인
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!user) return;
+      
+      try {
+        const favoritesRef = collection(db, "favorites");
+        const q = query(
+          favoritesRef,
+          where("userId", "==", user.uid),
+          where("itemId", "==", item.id)
+        );
+        const snapshot = await getDocs(q);
+        setIsFavorited(!snapshot.empty);
+      } catch (error) {
+        console.error("찜 상태 확인 실패:", error);
+      }
+    };
+
+    checkFavorite();
+  }, [user, item.id]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("ko-KR").format(price) + "₫";
@@ -45,6 +103,54 @@ export default function ItemDetailScreen({ route, navigation }) {
 
     return date.toLocaleDateString("ko-KR");
   };
+
+  const handleChat = useCallback(() => {
+    if (!user) {
+      Alert.alert("알림", "로그인이 필요합니다.", [
+        { text: "확인" },
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") }
+      ]);
+      return;
+    }
+
+    navigation.navigate("ChatRoom", {
+      chatRoomId: null,
+      itemId: item.id,
+      itemTitle: item.title,
+      itemImage: images[0] || null,
+      otherUserId: item.userId,
+      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : "판매자",
+      sellerId: item.userId,
+    });
+  }, [user, item, images, navigation]);
+
+  useLayoutEffect(() => {
+    if (!isMyItem && user) {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleChat}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginRight: 12,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            }}
+          >
+            <Ionicons name="chatbubble" size={20} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginLeft: 4 }}>
+              판매자와 채팅
+            </Text>
+          </TouchableOpacity>
+        ),
+      });
+    } else {
+      navigation.setOptions({
+        headerRight: undefined,
+      });
+    }
+  }, [isMyItem, user, navigation, handleChat]);
 
   const handleContactOption = (type, value) => {
     if (!value) return;
@@ -109,44 +215,43 @@ export default function ItemDetailScreen({ route, navigation }) {
   };
 
   const handleDelete = () => {
-  const message = isAdmin() && !isMyItem
-    ? "관리자 권한으로 이 물품을 삭제하시겠습니까?"
-    : "정말 삭제하시겠습니까?";
+    const message =
+      isAdmin() && !isMyItem
+        ? "관리자 권한으로 이 물품을 삭제하시겠습니까?"
+        : "정말 삭제하시겠습니까?";
 
-  Alert.alert("물품 삭제", message, [
-    { text: "취소", style: "cancel" },
-    {
-      text: "삭제",
-      style: "destructive",
-      onPress: async () => {
-        try {
-          // 1️⃣ Storage에서 이미지 먼저 삭제
-          if (images && images.length > 0) {
-            for (const imageUrl of images) {
-              try {
-                const imageRef = ref(storage, imageUrl);
-                await deleteObject(imageRef);
-                console.log('이미지 삭제 성공:', imageUrl);
-              } catch (imgError) {
-                console.log('이미지 삭제 실패 (이미 없을 수 있음):', imgError);
+    Alert.alert("물품 삭제", message, [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            if (images && images.length > 0) {
+              for (const imageUrl of images) {
+                try {
+                  const imageRef = ref(storage, imageUrl);
+                  await deleteObject(imageRef);
+                  console.log("이미지 삭제 성공:", imageUrl);
+                } catch (imgError) {
+                  console.log("이미지 삭제 실패 (이미 없을 수 있음):", imgError);
+                }
               }
             }
-          }
 
-          // 2️⃣ Firestore에서 데이터 삭제
-          await deleteDoc(doc(db, "XinChaoDanggn", item.id));
-          
-          Alert.alert("삭제 완료", "물품이 삭제되었습니다.", [
-            { text: "확인", onPress: () => navigation.goBack() },
-          ]);
-        } catch (error) {
-          console.error("삭제 실패:", error);
-          Alert.alert("오류", "삭제에 실패했습니다.");
-        }
+            await deleteDoc(doc(db, "XinChaoDanggn", item.id));
+
+            Alert.alert("삭제 완료", "물품이 삭제되었습니다.", [
+              { text: "확인", onPress: () => navigation.goBack() },
+            ]);
+          } catch (error) {
+            console.error("삭제 실패:", error);
+            Alert.alert("오류", "삭제에 실패했습니다.");
+          }
+        },
       },
-    },
-  ]);
-};
+    ]);
+  };
 
   const handleScroll = (event) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -154,8 +259,70 @@ export default function ItemDetailScreen({ route, navigation }) {
     setCurrentImageIndex(index);
   };
 
-  const isMyItem = item.userId === user?.uid;
-  const canDelete = isMyItem || isAdmin();
+  // ✅ 찜하기 핸들러
+  const handleFavorite = async () => {
+    if (!user) {
+      Alert.alert("알림", "로그인이 필요합니다.", [
+        { text: "확인" },
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") }
+      ]);
+      return;
+    }
+
+    try {
+      if (isFavorited) {
+        // 찜 취소
+        const favoritesRef = collection(db, "favorites");
+        const q = query(
+          favoritesRef,
+          where("userId", "==", user.uid),
+          where("itemId", "==", item.id)
+        );
+        const snapshot = await getDocs(q);
+        
+        for (const docSnap of snapshot.docs) {
+          await deleteDoc(docSnap.ref);
+        }
+        
+        setIsFavorited(false);
+        Alert.alert("완료", "찜 목록에서 제거되었습니다.");
+      } else {
+        // 찜 추가
+        await addDoc(collection(db, "favorites"), {
+          userId: user.uid,
+          itemId: item.id,
+          itemTitle: item.title,
+          itemPrice: item.price,
+          itemCategory: item.category,
+          itemImage: images[0] || null,
+          createdAt: serverTimestamp(),
+        });
+        
+        setIsFavorited(true);
+        Alert.alert("완료", "찜 목록에 추가되었습니다! ❤️");
+      }
+    } catch (error) {
+      console.error("찜하기 실패:", error);
+      Alert.alert("오류", "찜하기에 실패했습니다.");
+    }
+  };
+
+  const handleWriteReview = () => {
+    if (!user) {
+      Alert.alert("알림", "로그인이 필요합니다.", [
+        { text: "확인" },
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") }
+      ]);
+      return;
+    }
+
+    if (isMyItem) {
+      Alert.alert("알림", "자신의 물품에는 리뷰를 작성할 수 없습니다.");
+      return;
+    }
+
+    navigation.navigate("리뷰 작성", { item });
+  };
 
   return (
     <View style={styles.container}>
@@ -176,7 +343,6 @@ export default function ItemDetailScreen({ route, navigation }) {
                 ))}
               </ScrollView>
 
-              {/* 이미지 인디케이터 */}
               {images.length > 1 && (
                 <View style={styles.imageIndicator}>
                   <Text style={styles.imageIndicatorText}>
@@ -185,7 +351,6 @@ export default function ItemDetailScreen({ route, navigation }) {
                 </View>
               )}
 
-              {/* 페이지 도트 */}
               {images.length > 1 && (
                 <View style={styles.dotContainer}>
                   {images.map((_, index) => (
@@ -318,6 +483,69 @@ export default function ItemDetailScreen({ route, navigation }) {
                 </View>
               </>
             )}
+
+          {/* ✅ 리뷰/후기 섹션 */}
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="star" size={20} color="#FFD700" />
+              <Text style={styles.sectionTitle}>리뷰/후기</Text>
+              {reviews.length > 0 && (
+                <View style={styles.ratingBadge}>
+                  <Ionicons name="star" size={14} color="#FFD700" />
+                  <Text style={styles.ratingText}>{averageRating}</Text>
+                  <Text style={styles.reviewCount}>({reviews.length})</Text>
+                </View>
+              )}
+            </View>
+
+            {reviews.length === 0 ? (
+              <View style={styles.noReviews}>
+                <Ionicons name="chatbubble-outline" size={40} color="#ccc" />
+                <Text style={styles.noReviewsText}>아직 리뷰가 없습니다</Text>
+                <Text style={styles.noReviewsSubtext}>
+                  첫 번째 리뷰를 남겨주세요!
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.reviewList}>
+                {reviews.slice(0, 3).map((review) => (
+                  <View key={review.id} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewerInfo}>
+                        <View style={styles.reviewerAvatar}>
+                          <Ionicons name="person" size={16} color="#fff" />
+                        </View>
+                        <Text style={styles.reviewerName}>
+                          {review.userEmail?.split("@")[0] || "익명"}
+                        </Text>
+                      </View>
+                      <View style={styles.reviewRating}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Ionicons
+                            key={star}
+                            name={star <= review.rating ? "star" : "star-outline"}
+                            size={14}
+                            color="#FFD700"
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={styles.reviewContent}>{review.content}</Text>
+                    <Text style={styles.reviewDate}>
+                      {formatDate(review.createdAt)}
+                    </Text>
+                  </View>
+                ))}
+                
+                {reviews.length > 3 && (
+                  <Text style={styles.moreReviews}>
+                    외 {reviews.length - 3}개의 리뷰
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -343,16 +571,27 @@ export default function ItemDetailScreen({ route, navigation }) {
           </>
         ) : (
           <>
-            <TouchableOpacity style={styles.heartButton}>
-              <Ionicons name="heart-outline" size={24} color="#333" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.contactButton]}
-              onPress={handleContact}
+            {/* ✅ 찜하기 버튼 */}
+            <TouchableOpacity 
+              style={styles.heartButton}
+              onPress={handleFavorite}
             >
-              <Ionicons name="chatbubble-outline" size={20} color="#fff" />
-              <Text style={styles.buttonText}>연락하기</Text>
+              <Ionicons 
+                name={isFavorited ? "heart" : "heart-outline"} 
+                size={24} 
+                color={isFavorited ? "#FF6B35" : "#333"} 
+              />
             </TouchableOpacity>
+            
+            {/* ✅ 리뷰 작성 버튼 */}
+            <TouchableOpacity
+              style={[styles.actionButton, styles.reviewButton]}
+              onPress={handleWriteReview}
+            >
+              <Ionicons name="star-outline" size={20} color="#fff" />
+              <Text style={styles.buttonText}>리뷰 작성</Text>
+            </TouchableOpacity>
+            
             {/* Admin 삭제 버튼 */}
             {isAdmin() && (
               <>
@@ -539,6 +778,97 @@ const styles = StyleSheet.create({
     color: "#333",
     marginLeft: 8,
   },
+  ratingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
+    backgroundColor: "#FFF8F3",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#FF6B35",
+    marginLeft: 4,
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: "#999",
+    marginLeft: 2,
+  },
+  noReviews: {
+    alignItems: "center",
+    paddingVertical: 40,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+  },
+  noReviewsText: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 12,
+    fontWeight: "600",
+  },
+  noReviewsSubtext: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 4,
+  },
+  reviewList: {
+    marginTop: 8,
+  },
+  reviewItem: {
+    backgroundColor: "#f9f9f9",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  reviewerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  reviewerAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FF6B35",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  reviewerName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  reviewRating: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  reviewContent: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: "#999",
+  },
+  moreReviews: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#FF6B35",
+    fontWeight: "600",
+    paddingVertical: 8,
+  },
   bottomBar: {
     flexDirection: "row",
     padding: 16,
@@ -567,8 +897,8 @@ const styles = StyleSheet.create({
   editButton: {
     backgroundColor: "#4CAF50",
   },
-  contactButton: {
-    backgroundColor: "#FF6B35",
+  reviewButton: {
+    backgroundColor: "#FFD700",
   },
   deleteButton: {
     backgroundColor: "#dc3545",

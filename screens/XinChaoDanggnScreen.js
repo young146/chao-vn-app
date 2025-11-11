@@ -9,7 +9,7 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  RefreshControl,  // ✅ 추가!
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
@@ -36,15 +36,19 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const [selectedCity, setSelectedCity] = useState("전체");
   const [selectedDistrict, setSelectedDistrict] = useState("전체");
   const [selectedApartment, setSelectedApartment] = useState("전체");
-  const [refreshing, setRefreshing] = useState(false);  // ✅ 추가!
-  const [refreshKey, setRefreshKey] = useState(0);  // ✅ 추가!
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const categories = [
     "전체",
-    "가전/가구",
+    "전자제품",
+    "가구/인테리어",
     "의류/잡화",
-    "디지털",
     "생활용품",
+    "맛음품",
     "도서/티켓",
+    "유아용품",
+    "펫용품",
     "기타",
   ];
 
@@ -65,16 +69,15 @@ export default function XinChaoDanggnScreen({ navigation }) {
         ...doc.data(),
       }));
       setItems(itemsData);
-      setRefreshing(false);  // ✅ 데이터 로드 완료 시 refreshing 해제
+      setRefreshing(false);
     });
 
     return () => unsubscribe();
   }, [user, refreshing]);
 
-    // ✅ 새로고침 함수
   const onRefresh = () => {
     setRefreshing(true);
-    setRefreshKey(Date.now());  // 강제 리렌더링
+    setRefreshKey(Date.now());
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -142,8 +145,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
   };
 
-  // AddItemScreen과 동일한 방식
-  const districts = getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity);
+  const districts = getDistrictsByCity(
+    selectedCity === "전체" ? "호치민" : selectedCity
+  );
   const apartments =
     selectedDistrict && selectedDistrict !== "전체"
       ? getApartmentsByDistrict(
@@ -183,151 +187,160 @@ export default function XinChaoDanggnScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* 로그인 안내 배너 */}
-      {!user && (
-        <TouchableOpacity
-          style={styles.loginBanner}
-          onPress={() => navigation.navigate("로그인")}
-        >
-          <Ionicons name="lock-closed" size={20} color="#FF6B35" />
-          <Text style={styles.loginBannerText}>
-            로그인하고 더 많은 상품을 확인하세요!
-          </Text>
-          <Ionicons name="chevron-forward" size={20} color="#FF6B35" />
-        </TouchableOpacity>
-      )}
-
-      {/* 검색바 */}
-      <View style={styles.searchContainer}>
-        <Ionicons
-          name="search"
-          size={20}
-          color="#999"
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="물품 검색..."
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-      </View>
-
-      {/* 지역 필터 - AddItemScreen과 동일한 Picker 방식 */}
-      <View style={styles.filterSection}>
-        {/* 도시 */}
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedCity}
-            onValueChange={(value) => {
-              setSelectedCity(value);
-              setSelectedDistrict("전체");
-              setSelectedApartment("전체");
-            }}
+      <ScrollView style={{ flex: 1 }}>
+        {/* 로그인 안내 배너 */}
+        {!user && (
+          <TouchableOpacity
+            style={styles.loginBanner}
+            onPress={() => navigation.navigate("로그인")}
           >
-            <Picker.Item label="전체 도시" value="전체" />
-            <Picker.Item label="호치민" value="호치민" />
-            <Picker.Item label="하노이" value="하노이" />
-            <Picker.Item label="다낭" value="다낭" />
-            <Picker.Item label="냐짱" value="냐짱" />
-          </Picker>
+            <Ionicons name="lock-closed" size={20} color="#FF6B35" />
+            <Text style={styles.loginBannerText}>
+              로그인하고 더 많은 상품을 확인하세요!
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color="#FF6B35" />
+          </TouchableOpacity>
+        )}
+
+        {/* 검색바 */}
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color="#999"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="물품 검색..."
+            value={searchText}
+            onChangeText={setSearchText}
+          />
         </View>
 
-        {/* 구/군 */}
-        {selectedCity !== "전체" && (
+        {/* 지역 필터 */}
+        <View style={styles.filterSection}>
+          {/* 도시 */}
           <View style={styles.pickerContainer}>
             <Picker
-              selectedValue={selectedDistrict}
+              selectedValue={selectedCity}
               onValueChange={(value) => {
-                setSelectedDistrict(value);
+                setSelectedCity(value);
+                setSelectedDistrict("전체");
                 setSelectedApartment("전체");
               }}
             >
-              <Picker.Item label="전체 구/군" value="전체" />
-              {districts.map((district) => (
-                <Picker.Item key={district} label={district} value={district} />
-              ))}
+              <Picker.Item label="전체 도시" value="전체" />
+              <Picker.Item label="호치민" value="호치민" />
+              <Picker.Item label="하노이" value="하노이" />
+              <Picker.Item label="다낭" value="다낭" />
+              <Picker.Item label="냐짱" value="냐짱" />
             </Picker>
           </View>
-        )}
 
-        {/* 아파트/지역 */}
-        {selectedDistrict !== "전체" && apartments.length > 0 && (
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedApartment}
-              onValueChange={setSelectedApartment}
-            >
-              <Picker.Item label="전체 아파트" value="전체" />
-              {apartments.map((apartment) => (
-                <Picker.Item
-                  key={apartment}
-                  label={apartment}
-                  value={apartment}
-                />
-              ))}
-            </Picker>
-          </View>
-        )}
-      </View>
-
-      {/* 카테고리 */}
-      <View style={styles.categoriesContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={[
-                styles.categoryButton,
-                selectedCategory === item && styles.categoryButtonActive,
-              ]}
-              onPress={() => setSelectedCategory(item)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === item && styles.categoryTextActive,
-                ]}
+          {/* 구/군 */}
+          {selectedCity !== "전체" && (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedDistrict}
+                onValueChange={(value) => {
+                  setSelectedDistrict(value);
+                  setSelectedApartment("전체");
+                }}
               >
-                {item}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+                <Picker.Item label="전체 구/군" value="전체" />
+                {districts.map((district) => (
+                  <Picker.Item
+                    key={district}
+                    label={district}
+                    value={district}
+                  />
+                ))}
+              </Picker>
+            </View>
+          )}
 
-      {/* 물품 목록 */}
-      <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={filteredItems.length === 0 ? { flex: 1 } : styles.listContainer}  // ✅ 수정!
-        refreshControl={  
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#FF6B35"]}
-            tintColor="#FF6B35"
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cart-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>등록된 물품이 없습니다</Text>
-            {!user && (
+          {/* 아파트/지역 */}
+          {selectedDistrict !== "전체" && apartments.length > 0 && (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedApartment}
+                onValueChange={setSelectedApartment}
+              >
+                <Picker.Item label="전체 아파트" value="전체" />
+                {apartments.map((apartment) => (
+                  <Picker.Item
+                    key={apartment}
+                    label={apartment}
+                    value={apartment}
+                  />
+                ))}
+              </Picker>
+            </View>
+          )}
+        </View>
+
+        {/* 카테고리 */}
+        <View style={styles.categoriesContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map((item) => (
               <TouchableOpacity
-                style={styles.emptyLoginButton}
-                onPress={() => navigation.navigate("로그인")}
+                key={item}
+                style={[
+                  styles.categoryButton,
+                  selectedCategory === item && styles.categoryButtonActive,
+                ]}
+                onPress={() => setSelectedCategory(item)}
               >
-                <Text style={styles.emptyLoginButtonText}>
-                  로그인하고 상품 보기
+                <Text
+                  style={[
+                    styles.categoryText,
+                    selectedCategory === item && styles.categoryTextActive,
+                  ]}
+                >
+                  {item}
                 </Text>
               </TouchableOpacity>
-            )}
-          </View>
-        }
-      />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* 물품 목록 */}
+        <FlatList
+          scrollEnabled={false}
+          data={filteredItems}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={
+            filteredItems.length === 0 ? { flex: 1 } : styles.listContainer
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#FF6B35"]}
+              tintColor="#FF6B35"
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cart-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>등록된 물품이 없습니다</Text>
+              {!user && (
+                <TouchableOpacity
+                  style={styles.emptyLoginButton}
+                  onPress={() => navigation.navigate("로그인")}
+                >
+                  <Text style={styles.emptyLoginButtonText}>
+                    로그인하고 상품 보기
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          }
+        />
+      </ScrollView>
 
       {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
@@ -387,12 +400,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
-  filterLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: "#333",
-  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -431,14 +438,12 @@ const styles = StyleSheet.create({
   itemCard: {
     flex: 1,
     backgroundColor: "#fff",
+    margin: 4,
     borderRadius: 8,
-    margin: 6,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    maxWidth: "48%",
   },
   imagePlaceholder: {
     width: "100%",
@@ -450,13 +455,14 @@ const styles = StyleSheet.create({
   itemImage: {
     width: "100%",
     height: "100%",
+    resizeMode: "cover",
   },
   itemInfo: {
-    padding: 12,
+    padding: 8,
   },
   itemTitle: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "500",
     color: "#333",
     marginBottom: 4,
   },
@@ -471,41 +477,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemLocation: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#999",
     marginLeft: 2,
-    flex: 1,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 100,
+    paddingVertical: 60,
   },
   emptyText: {
+    marginTop: 12,
     fontSize: 16,
     color: "#999",
-    marginTop: 16,
   },
   emptyLoginButton: {
-    marginTop: 20,
+    marginTop: 16,
     backgroundColor: "#FF6B35",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   emptyLoginButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   floatingButton: {
     position: "absolute",
-    right: 20,
     bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#FF6B35",
     justifyContent: "center",
     alignItems: "center",

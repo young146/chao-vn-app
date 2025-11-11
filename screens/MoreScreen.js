@@ -2,8 +2,8 @@ import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
   ScrollView,
   Alert,
 } from "react-native";
@@ -11,128 +11,138 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MoreScreen({ navigation }) {
-  const { logout, user, isAdmin } = useAuth();
-
-  const menuItems = [
-    {
-      id: "bookmarks",
-      title: "북마크",
-      icon: "bookmark-outline",
-      screen: "북마크",
-      color: "#FF6B35",
-    },
-    {
-      id: "comments",
-      title: "내 댓글",
-      icon: "chatbubble-outline",
-      screen: "내 댓글",
-      color: "#4CAF50",
-    },
-    {
-      id: "notifications",
-      title: "알림 설정",
-      icon: "notifications-outline",
-      screen: "알림 설정",
-      color: "#2196F3",
-    },
-    {
-      id: "profile",
-      title: "프로필",
-      icon: "person-outline",
-      screen: "프로필",
-      color: "#9C27B0",
-    },
-  ];
+  const { user, logout, isAdmin } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
+    Alert.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
       { text: "취소", style: "cancel" },
       {
         text: "로그아웃",
         style: "destructive",
         onPress: async () => {
-          const result = await logout();
-          if (!result.success) {
-            Alert.alert("오류", result.error);
+          try {
+            await logout();
+            Alert.alert("완료", "로그아웃되었습니다.");
+          } catch (error) {
+            console.error("로그아웃 실패:", error);
+            Alert.alert("오류", "로그아웃에 실패했습니다.");
           }
         },
       },
     ]);
   };
 
+  const menuItems = [
+    {
+      id: "mypage",
+      title: "My Page",
+      icon: "person-circle",
+      screen: "My Page",
+      color: "#FF6B35",
+      requiresAuth: true,
+    },
+    {
+      id: "notifications",
+      title: "알림 설정",
+      icon: "notifications",
+      screen: "알림 설정",
+      color: "#9C27B0",
+      requiresAuth: true,
+    },
+  ];
+
+  const handleMenuPress = (item) => {
+    if (item.requiresAuth && !user) {
+      Alert.alert(
+        "로그인 필요",
+        "이 기능을 사용하려면 로그인이 필요합니다.",
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "로그인",
+            onPress: () => navigation.navigate("로그인"),
+          },
+        ]
+      );
+      return;
+    }
+    navigation.navigate(item.screen);
+  };
+
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>더보기</Text>
-        <Text style={styles.headerSubtitle}>
-          북마크, 댓글, 알림 및 프로필 관리
-        </Text>
-        <View style={styles.userInfoContainer}>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          {/* ✅ Admin 배지 추가 */}
-          {isAdmin() && (
-            <View style={styles.adminBadge}>
-              <Ionicons name="shield-checkmark" size={14} color="#fff" />
-              <Text style={styles.adminBadgeText}>관리자</Text>
-            </View>
-          )}
+      {/* 사용자 정보 */}
+      <View style={styles.userSection}>
+        <View style={styles.avatarContainer}>
+          <Ionicons name="person-circle" size={60} color="#FF6B35" />
         </View>
+        {user ? (
+          <>
+            <Text style={styles.userName}>
+              {user.email ? user.email.split("@")[0] : "사용자"}
+            </Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.userName}>로그인이 필요합니다</Text>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => navigation.navigate("로그인")}
+            >
+              <Text style={styles.loginButtonText}>로그인하기</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
-      {/* ✅ Admin 메뉴 추가 */}
-      {isAdmin() && (
-        <View style={styles.adminMenuContainer}>
-          <TouchableOpacity
-            style={styles.adminMenuItem}
-            onPress={() => navigation.navigate("관리자 페이지")}
-          >
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: "#dc354520" },
-              ]}
-            >
-              <Ionicons name="shield-checkmark" size={28} color="#dc3545" />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>관리자 페이지</Text>
-              <Text style={styles.menuSubtitle}>통계 및 물품 관리</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="#ccc" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <View style={styles.menuContainer}>
+      {/* 메뉴 리스트 */}
+      <View style={styles.menuSection}>
         {menuItems.map((item) => (
           <TouchableOpacity
             key={item.id}
             style={styles.menuItem}
-            onPress={() => navigation.navigate(item.screen)}
+            onPress={() => handleMenuPress(item)}
           >
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: item.color + "20" },
-              ]}
-            >
-              <Ionicons name={item.icon} size={28} color={item.color} />
-            </View>
-            <View style={styles.menuTextContainer}>
+            <View style={styles.menuLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: item.color + "20" }]}>
+                <Ionicons name={item.icon} size={24} color={item.color} />
+              </View>
               <Text style={styles.menuTitle}>{item.title}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#ccc" />
+            <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
         ))}
+
+        {/* 관리자 메뉴 */}
+        {isAdmin() && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("관리자 페이지")}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: "#dc354520" }]}>
+                <Ionicons name="shield-checkmark" size={24} color="#dc3545" />
+              </View>
+              <Text style={styles.menuTitle}>관리자 페이지</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
-        <Text style={styles.logoutText}>로그아웃</Text>
-      </TouchableOpacity>
+      {/* 로그아웃 버튼 */}
+      {user && (
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#dc3545" />
+          <Text style={styles.logoutButtonText}>로그아웃</Text>
+        </TouchableOpacity>
+      )}
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>버전 1.0.0</Text>
+      {/* 앱 정보 */}
+      <View style={styles.appInfo}>
+        <Text style={styles.appInfoText}>씬짜오당근 v1.0.0</Text>
+        <Text style={styles.appInfoText}>베트남 한인 중고거래</Text>
       </View>
     </ScrollView>
   );
@@ -143,118 +153,90 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  header: {
+  userSection: {
     backgroundColor: "#fff",
     padding: 20,
+    alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#e0e0e0",
   },
-  headerTitle: {
-    fontSize: 28,
+  avatarContainer: {
+    marginBottom: 12,
+  },
+  userName: {
+    fontSize: 20,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  userInfoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    marginBottom: 4,
   },
   userEmail: {
-    fontSize: 13,
-    color: "#FF6B35",
+    fontSize: 14,
+    color: "#666",
+  },
+  loginButton: {
+    marginTop: 12,
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "600",
   },
-  adminBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#dc3545",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  adminBadgeText: {
-    fontSize: 11,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  adminMenuContainer: {
-    marginTop: 12,
-    backgroundColor: "#FFF8F3",
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: "#FFE0CC",
-  },
-  adminMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-  },
-  menuContainer: {
-    marginTop: 12,
+  menuSection: {
     backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
+    marginTop: 12,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
+  menuLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-  },
-  menuTextContainer: {
-    flex: 1,
+    marginRight: 12,
   },
   menuTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 16,
     color: "#333",
-  },
-  menuSubtitle: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 2,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
-    marginTop: 20,
-    marginHorizontal: 16,
+    marginTop: 12,
     padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#FF3B30",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#e0e0e0",
   },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FF3B30",
+  logoutButtonText: {
     marginLeft: 8,
+    fontSize: 16,
+    color: "#dc3545",
+    fontWeight: "600",
   },
-  footer: {
-    padding: 20,
+  appInfo: {
     alignItems: "center",
+    paddingVertical: 20,
   },
-  footerText: {
+  appInfoText: {
     fontSize: 12,
     color: "#999",
+    marginBottom: 4,
   },
 });
