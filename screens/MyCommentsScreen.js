@@ -12,7 +12,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot,
   deleteDoc,
   doc,
@@ -20,67 +19,91 @@ import {
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
-export default function MyCommentsScreen() {
+export default function MyCommentsScreen({ navigation }) {
   const { user } = useAuth();
-  const [comments, setComments] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.uid) return;
 
-    const q = query(
-      collection(db, "comments"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    // ✅ reviews 컬렉션에서 내가 쓴 리뷰 가져오기
+    // ✅ orderBy 제거하고 JavaScript로 정렬
+    const q = query(collection(db, "reviews"), where("userId", "==", user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const commentsData = snapshot.docs.map((doc) => ({
+      const reviewsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setComments(commentsData);
+
+      // ✅ JavaScript로 정렬 (최신순)
+      reviewsData.sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        return b.createdAt.toMillis() - a.createdAt.toMillis();
+      });
+
+      setReviews(reviewsData);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [user]);
 
-  const handleDelete = async (commentId) => {
-    Alert.alert("댓글 삭제", "이 댓글을 삭제하시겠습니까?", [
+  const handleDelete = async (reviewId) => {
+    Alert.alert("리뷰 삭제", "이 리뷰를 삭제하시겠습니까?", [
       { text: "취소", style: "cancel" },
       {
         text: "삭제",
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteDoc(doc(db, "comments", commentId));
+            await deleteDoc(doc(db, "reviews", reviewId));
+            Alert.alert("완료", "리뷰가 삭제되었습니다.");
           } catch (error) {
-            console.error("댓글 삭제 실패:", error);
-            Alert.alert("오류", "댓글 삭제에 실패했습니다.");
+            console.error("리뷰 삭제 실패:", error);
+            Alert.alert("오류", "리뷰 삭제에 실패했습니다.");
           }
         },
       },
     ]);
   };
 
-  const renderComment = ({ item }) => (
-    <View style={styles.commentItem}>
-      <View style={styles.commentContent}>
-        <Text style={styles.content}>{item.content}</Text>
-        <Text style={styles.articleId} numberOfLines={1}>
-          기사 ID: {item.articleId}
-        </Text>
-        <Text style={styles.date}>
-          {item.createdAt?.toDate().toLocaleDateString("ko-KR")}
-        </Text>
+  const renderReview = ({ item }) => (
+    <View style={styles.reviewItem}>
+      <View style={styles.reviewHeader}>
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemTitle} numberOfLines={1}>
+            {item.itemTitle || "물품"}
+          </Text>
+          <View style={styles.ratingContainer}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Ionicons
+                key={star}
+                name={star <= item.rating ? "star" : "star-outline"}
+                size={16}
+                color="#FFD700"
+              />
+            ))}
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleDelete(item.id)}
+          style={styles.deleteButton}
+        >
+          <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        onPress={() => handleDelete(item.id)}
-        style={styles.deleteButton}
-      >
-        <Ionicons name="trash-outline" size={24} color="#FF3B30" />
-      </TouchableOpacity>
+
+      <Text style={styles.content}>{item.content}</Text>
+
+      <Text style={styles.date}>
+        {item.createdAt?.toDate().toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+      </Text>
     </View>
   );
 
@@ -95,15 +118,19 @@ export default function MyCommentsScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={comments}
-        renderItem={renderComment}
+        data={reviews}
+        renderItem={renderReview}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubble-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>작성한 댓글이 없습니다</Text>
+            <Ionicons name="star-outline" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>작성한 리뷰가 없습니다</Text>
+            <Text style={styles.emptySubtext}>
+              거래한 물품에 리뷰를 남겨보세요!
+            </Text>
           </View>
         }
+        contentContainerStyle={reviews.length === 0 && { flex: 1 }}
       />
     </View>
   );
@@ -119,8 +146,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  commentItem: {
-    flexDirection: "row",
+  reviewItem: {
     backgroundColor: "#fff",
     padding: 16,
     marginHorizontal: 12,
@@ -132,27 +158,37 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  commentContent: {
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  itemInfo: {
     flex: 1,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 6,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  deleteButton: {
+    padding: 4,
   },
   content: {
     fontSize: 14,
     color: "#333",
-    marginBottom: 8,
+    marginBottom: 12,
     lineHeight: 20,
-  },
-  articleId: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
   },
   date: {
     fontSize: 12,
     color: "#999",
-  },
-  deleteButton: {
-    justifyContent: "center",
-    paddingLeft: 12,
   },
   emptyContainer: {
     flex: 1,
@@ -161,8 +197,14 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "600",
     color: "#999",
     marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#ccc",
+    marginTop: 8,
   },
 });

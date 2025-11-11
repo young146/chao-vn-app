@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MoreScreen({ navigation }) {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // ✅ 관리자 확인
+  useEffect(() => {
+    if (user && user.email) {
+      const adminEmails = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
+      setIsAdmin(adminEmails.includes(user.email));
+    }
+  }, [user]);
 
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
@@ -43,8 +52,16 @@ export default function MoreScreen({ navigation }) {
     },
     {
       id: "notifications",
+      title: "알림",
+      icon: "notifications-outline",
+      screen: "알림",
+      color: "#2196F3",
+      requiresAuth: true,
+    },
+    {
+      id: "notificationSettings",
       title: "알림 설정",
-      icon: "notifications",
+      icon: "settings",
       screen: "알림 설정",
       color: "#9C27B0",
       requiresAuth: true,
@@ -53,17 +70,13 @@ export default function MoreScreen({ navigation }) {
 
   const handleMenuPress = (item) => {
     if (item.requiresAuth && !user) {
-      Alert.alert(
-        "로그인 필요",
-        "이 기능을 사용하려면 로그인이 필요합니다.",
-        [
-          { text: "취소", style: "cancel" },
-          {
-            text: "로그인",
-            onPress: () => navigation.navigate("로그인"),
-          },
-        ]
-      );
+      Alert.alert("로그인 필요", "이 기능을 사용하려면 로그인이 필요합니다.", [
+        { text: "취소", style: "cancel" },
+        {
+          text: "로그인",
+          onPress: () => navigation.navigate("로그인"),
+        },
+      ]);
       return;
     }
     navigation.navigate(item.screen);
@@ -96,6 +109,27 @@ export default function MoreScreen({ navigation }) {
         )}
       </View>
 
+      {/* ✅ 관리자 메뉴 */}
+      {isAdmin && (
+        <View style={styles.adminSection}>
+          <Text style={styles.sectionTitle}>관리자 메뉴</Text>
+          <TouchableOpacity
+            style={styles.adminMenuItem}
+            onPress={() => navigation.navigate("관리자 페이지")}
+          >
+            <View style={styles.menuLeft}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#dc354520" }]}
+              >
+                <Ionicons name="shield-checkmark" size={24} color="#dc3545" />
+              </View>
+              <Text style={styles.menuTitle}>신규 물품 관리</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 메뉴 리스트 */}
       <View style={styles.menuSection}>
         {menuItems.map((item) => (
@@ -105,7 +139,12 @@ export default function MoreScreen({ navigation }) {
             onPress={() => handleMenuPress(item)}
           >
             <View style={styles.menuLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: item.color + "20" }]}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: item.color + "20" },
+                ]}
+              >
                 <Ionicons name={item.icon} size={24} color={item.color} />
               </View>
               <Text style={styles.menuTitle}>{item.title}</Text>
@@ -113,22 +152,6 @@ export default function MoreScreen({ navigation }) {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
         ))}
-
-        {/* 관리자 메뉴 */}
-        {isAdmin() && (
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate("관리자 페이지")}
-          >
-            <View style={styles.menuLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: "#dc354520" }]}>
-                <Ionicons name="shield-checkmark" size={24} color="#dc3545" />
-              </View>
-              <Text style={styles.menuTitle}>관리자 페이지</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* 로그아웃 버튼 */}
@@ -184,6 +207,27 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  adminSection: {
+    backgroundColor: "#fff",
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#dc3545",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  adminMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#FFF5F5",
   },
   menuSection: {
     backgroundColor: "#fff",

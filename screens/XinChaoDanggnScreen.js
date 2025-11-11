@@ -109,6 +109,20 @@ export default function XinChaoDanggnScreen({ navigation }) {
     return new Intl.NumberFormat("ko-KR").format(price) + "₫";
   };
 
+  // ✅ 상태 배지 색상 결정
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "판매중":
+        return "#4CAF50"; // 초록색
+      case "가격 조정됨":
+        return "#FF9800"; // 주황색
+      case "판매완료":
+        return "#9E9E9E"; // 회색
+      default:
+        return "#4CAF50";
+    }
+  };
+
   const handleItemPress = (item) => {
     if (!user) {
       Alert.alert(
@@ -156,34 +170,48 @@ export default function XinChaoDanggnScreen({ navigation }) {
         )
       : [];
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.itemCard}
-      onPress={() => handleItemPress(item)}
-    >
-      <View style={styles.imagePlaceholder}>
-        {item.images && item.images.length > 0 ? (
-          <Image source={{ uri: item.images[0] }} style={styles.itemImage} />
-        ) : item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.itemImage} />
-        ) : (
-          <Ionicons name="image-outline" size={40} color="#ccc" />
-        )}
-      </View>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
-        <View style={styles.locationContainer}>
-          <Ionicons name="location-outline" size={12} color="#999" />
-          <Text style={styles.itemLocation} numberOfLines={1}>
-            {item.city} · {item.district}
-          </Text>
+  const renderItem = ({ item }) => {
+    const status = item.status || "판매중";
+
+    return (
+      <TouchableOpacity
+        style={styles.itemCard}
+        onPress={() => handleItemPress(item)}
+      >
+        <View style={styles.imagePlaceholder}>
+          {item.images && item.images.length > 0 ? (
+            <Image source={{ uri: item.images[0] }} style={styles.itemImage} />
+          ) : item.imageUri ? (
+            <Image source={{ uri: item.imageUri }} style={styles.itemImage} />
+          ) : (
+            <Ionicons name="image-outline" size={40} color="#ccc" />
+          )}
+
+          {/* ✅ 상태 배지 */}
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(status) },
+            ]}
+          >
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+          <View style={styles.locationContainer}>
+            <Ionicons name="location-outline" size={12} color="#999" />
+            <Text style={styles.itemLocation} numberOfLines={1}>
+              {item.city} · {item.district}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -451,11 +479,31 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
+    position: "relative", // ✅ 배지 배치를 위해 추가
   },
   itemImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
+  },
+  // ✅ 상태 배지 스타일
+  statusBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
   },
   itemInfo: {
     padding: 8,

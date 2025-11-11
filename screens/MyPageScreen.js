@@ -36,9 +36,9 @@ export default function MyPageScreen({ navigation }) {
     },
     {
       id: "comments",
-      title: "내 댓글",
+      title: "내 후기",
       icon: "chatbox",
-      screen: "내 댓글",
+      screen: "내 후기",
       color: "#2196F3",
     },
     {
@@ -54,13 +54,12 @@ export default function MyPageScreen({ navigation }) {
       icon: "cube",
       screen: "내 물품",
       color: "#9C27B0",
-      
     },
   ];
 
   const handleMenuPress = (item) => {
-  navigation.navigate(item.screen);
-};
+    navigation.navigate(item.screen);
+  };
 
   return (
     <ScrollView style={styles.container}>

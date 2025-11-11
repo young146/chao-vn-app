@@ -18,26 +18,37 @@ import {
   deleteDoc,
   doc,
   orderBy,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 export default function AdminScreen({ navigation }) {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({
     totalItems: 0,
     categories: {},
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  // ✅ 관리자 확인
   useEffect(() => {
-    if (!isAdmin()) {
-      Alert.alert("권한 없음", "관리자만 접근할 수 있습니다.");
-      navigation.goBack();
-      return;
+    if (user && user.email) {
+      const adminEmails = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
+      const admin = adminEmails.includes(user.email);
+      setIsAdmin(admin);
+
+      if (!admin) {
+        Alert.alert("권한 없음", "관리자만 접근할 수 있습니다.");
+        navigation.goBack();
+        return;
+      }
+
+      loadItems();
     }
-    loadItems();
-  }, []);
+  }, [user]);
 
   const loadItems = async () => {
     try {
@@ -76,10 +87,11 @@ export default function AdminScreen({ navigation }) {
     setRefreshing(false);
   };
 
+  // ✅ 물품 삭제 + 판매자에게 알림 (수정됨!)
   const handleDeleteItem = (item) => {
     Alert.alert(
       "물품 삭제",
-      `"${item.title}"\n이 물품을 삭제하시겠습니까?`,
+      `"${item.title}"\n\n이 물품을 삭제하시겠습니까?\n판매자에게 거부 알림이 전송됩니다.`,
       [
         { text: "취소", style: "cancel" },
         {
@@ -87,12 +99,41 @@ export default function AdminScreen({ navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
+              console.log("🗑️ 물품 삭제 시작:", item.id);
+              console.log("📧 판매자 userId:", item.userId);
+
+              // 1. 물품 삭제
               await deleteDoc(doc(db, "XinChaoDanggn", item.id));
-              Alert.alert("완료", "물품이 삭제되었습니다.");
+              console.log("✅ 물품 삭제 완료");
+
+              // 2. 판매자에게 알림 생성 (간단하게!)
+              if (item.userId) {
+                console.log("📨 알림 생성 중...");
+
+                await addDoc(collection(db, "notifications"), {
+                  userId: item.userId, // ✅ 직접 사용!
+                  type: "item_rejected",
+                  itemTitle: item.title,
+                  itemImage: item.images?.[0] || "",
+                  message: `귀하의 등록물품 "${item.title}"은 당사의 규정에 의해 등록이 거부되었습니다.`,
+                  read: false,
+                  createdAt: serverTimestamp(),
+                });
+
+                console.log("✅ 알림 생성 완료!");
+              } else {
+                console.log("⚠️ userId가 없어서 알림을 생성할 수 없습니다.");
+              }
+
+              Alert.alert(
+                "완료",
+                "물품이 삭제되고 판매자에게 알림이 전송되었습니다."
+              );
               loadItems();
             } catch (error) {
-              console.error("삭제 실패:", error);
-              Alert.alert("오류", "삭제에 실패했습니다.");
+              console.error("❌ 삭제 실패:", error);
+              console.error("❌ 에러 상세:", error.message);
+              Alert.alert("오류", `삭제에 실패했습니다.\n\n${error.message}`);
             }
           },
         },
@@ -136,8 +177,16 @@ export default function AdminScreen({ navigation }) {
             </Text>
           </View>
           <Text style={styles.itemUser} numberOfLines={1}>
-            👤 {item.userEmail}
+            👤 {item.userEmail || "이메일 없음"}
           </Text>
+          <Text style={styles.itemUserId} numberOfLines={1}>
+            🆔 {item.userId || "userId 없음"}
+          </Text>
+          {item.createdAt && (
+            <Text style={styles.itemDate}>
+              📅 {item.createdAt.toDate().toLocaleDateString("ko-KR")}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
 
@@ -146,11 +195,12 @@ export default function AdminScreen({ navigation }) {
         onPress={() => handleDeleteItem(item)}
       >
         <Ionicons name="trash-outline" size={20} color="#dc3545" />
+        <Text style={styles.deleteButtonText}>삭제</Text>
       </TouchableOpacity>
     </View>
   );
 
-  if (!isAdmin()) {
+  if (!isAdmin) {
     return null;
   }
 
@@ -169,12 +219,14 @@ export default function AdminScreen({ navigation }) {
           <Text style={styles.statNumber}>{stats.totalItems}</Text>
           <Text style={styles.statLabel}>전체 물품</Text>
         </View>
-        {Object.entries(stats.categories).slice(0, 3).map(([cat, count]) => (
-          <View key={cat} style={styles.statBox}>
-            <Text style={styles.statNumber}>{count}</Text>
-            <Text style={styles.statLabel}>{cat}</Text>
-          </View>
-        ))}
+        {Object.entries(stats.categories)
+          .slice(0, 3)
+          .map(([cat, count]) => (
+            <View key={cat} style={styles.statBox}>
+              <Text style={styles.statNumber}>{count}</Text>
+              <Text style={styles.statLabel}>{cat}</Text>
+            </View>
+          ))}
       </View>
 
       {/* 물품 목록 */}
@@ -340,12 +392,28 @@ const styles = StyleSheet.create({
   itemUser: {
     fontSize: 11,
     color: "#999",
+    marginBottom: 2,
+  },
+  itemUserId: {
+    fontSize: 10,
+    color: "#ccc",
+    marginBottom: 2,
+  },
+  itemDate: {
+    fontSize: 11,
+    color: "#999",
   },
   deleteButton: {
-    width: 60,
+    width: 70,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFF0F0",
+  },
+  deleteButtonText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#dc3545",
+    fontWeight: "600",
   },
   emptyContainer: {
     flex: 1,

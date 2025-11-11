@@ -1,4 +1,9 @@
-import React, { useState, useLayoutEffect, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
@@ -11,7 +16,17 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, deleteDoc, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
@@ -25,6 +40,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState(item.status || "판매중"); // ✅ 상태 관리
 
   const images = item.images || (item.imageUri ? [item.imageUri] : []);
   const isMyItem = item.userId === user?.uid;
@@ -35,23 +51,30 @@ export default function ItemDetailScreen({ route, navigation }) {
     const fetchReviews = async () => {
       try {
         const reviewsRef = collection(db, "reviews");
-        const q = query(
-          reviewsRef,
-          where("itemId", "==", item.id),
-          orderBy("createdAt", "desc")
-        );
+        const q = query(reviewsRef, where("itemId", "==", item.id));
         const snapshot = await getDocs(q);
-        const reviewData = snapshot.docs.map(doc => ({
+        const reviewData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        
+
+        // ✅ JavaScript로 정렬 (최신순)
+        reviewData.sort((a, b) => {
+          if (!a.createdAt || !b.createdAt) return 0;
+          return b.createdAt.toMillis() - a.createdAt.toMillis();
+        });
+
         setReviews(reviewData);
-        
+
         // 평균 별점 계산
         if (reviewData.length > 0) {
-          const sum = reviewData.reduce((acc, review) => acc + review.rating, 0);
+          const sum = reviewData.reduce(
+            (acc, review) => acc + review.rating,
+            0
+          );
           setAverageRating((sum / reviewData.length).toFixed(1));
+        } else {
+          setAverageRating(0);
         }
       } catch (error) {
         console.error("리뷰 불러오기 실패:", error);
@@ -65,7 +88,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   useEffect(() => {
     const checkFavorite = async () => {
       if (!user) return;
-      
+
       try {
         const favoritesRef = collection(db, "favorites");
         const q = query(
@@ -104,11 +127,49 @@ export default function ItemDetailScreen({ route, navigation }) {
     return date.toLocaleDateString("ko-KR");
   };
 
+  // ✅ 상태 배지 색상 결정
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "판매중":
+        return "#4CAF50"; // 초록색
+      case "가격 조정됨":
+        return "#FF9800"; // 주황색
+      case "판매완료":
+        return "#9E9E9E"; // 회색
+      default:
+        return "#4CAF50";
+    }
+  };
+
+  // ✅ 판매완료 처리
+  const handleMarkAsSold = async () => {
+    Alert.alert("판매완료", "이 물품을 판매완료로 표시하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "확인",
+        onPress: async () => {
+          try {
+            const itemRef = doc(db, "XinChaoDanggn", item.id);
+            await updateDoc(itemRef, {
+              status: "판매완료",
+            });
+
+            setCurrentStatus("판매완료");
+            Alert.alert("완료", "판매완료로 표시되었습니다!");
+          } catch (error) {
+            console.error("상태 변경 실패:", error);
+            Alert.alert("오류", "상태 변경에 실패했습니다.");
+          }
+        },
+      },
+    ]);
+  };
+
   const handleChat = useCallback(() => {
     if (!user) {
       Alert.alert("알림", "로그인이 필요합니다.", [
         { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") }
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
@@ -131,15 +192,22 @@ export default function ItemDetailScreen({ route, navigation }) {
           <TouchableOpacity
             onPress={handleChat}
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
+              flexDirection: "row",
+              alignItems: "center",
               marginRight: 12,
               paddingHorizontal: 8,
               paddingVertical: 4,
             }}
           >
             <Ionicons name="chatbubble" size={20} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginLeft: 4 }}>
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: "600",
+                marginLeft: 4,
+              }}
+            >
               판매자와 채팅
             </Text>
           </TouchableOpacity>
@@ -234,7 +302,10 @@ export default function ItemDetailScreen({ route, navigation }) {
                   await deleteObject(imageRef);
                   console.log("이미지 삭제 성공:", imageUrl);
                 } catch (imgError) {
-                  console.log("이미지 삭제 실패 (이미 없을 수 있음):", imgError);
+                  console.log(
+                    "이미지 삭제 실패 (이미 없을 수 있음):",
+                    imgError
+                  );
                 }
               }
             }
@@ -264,7 +335,7 @@ export default function ItemDetailScreen({ route, navigation }) {
     if (!user) {
       Alert.alert("알림", "로그인이 필요합니다.", [
         { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") }
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
@@ -279,11 +350,11 @@ export default function ItemDetailScreen({ route, navigation }) {
           where("itemId", "==", item.id)
         );
         const snapshot = await getDocs(q);
-        
+
         for (const docSnap of snapshot.docs) {
           await deleteDoc(docSnap.ref);
         }
-        
+
         setIsFavorited(false);
         Alert.alert("완료", "찜 목록에서 제거되었습니다.");
       } else {
@@ -297,7 +368,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           itemImage: images[0] || null,
           createdAt: serverTimestamp(),
         });
-        
+
         setIsFavorited(true);
         Alert.alert("완료", "찜 목록에 추가되었습니다! ❤️");
       }
@@ -311,7 +382,7 @@ export default function ItemDetailScreen({ route, navigation }) {
     if (!user) {
       Alert.alert("알림", "로그인이 필요합니다.", [
         { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") }
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
@@ -375,9 +446,20 @@ export default function ItemDetailScreen({ route, navigation }) {
 
         {/* 물품 정보 */}
         <View style={styles.contentContainer}>
-          {/* 제목 & 가격 */}
+          {/* 제목 & 가격 & 상태 */}
           <View style={styles.headerSection}>
-            <Text style={styles.title}>{item.title}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{item.title}</Text>
+              {/* ✅ 상태 배지 */}
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: getStatusColor(currentStatus) },
+                ]}
+              >
+                <Text style={styles.statusText}>{currentStatus}</Text>
+              </View>
+            </View>
             <Text style={styles.price}>{formatPrice(item.price)}</Text>
             <View style={styles.metaInfo}>
               <Text style={styles.category}>{item.category}</Text>
@@ -396,9 +478,9 @@ export default function ItemDetailScreen({ route, navigation }) {
             </View>
             <View style={styles.locationDetails}>
               <Text style={styles.locationText}>📍 {item.city}</Text>
-              <Text style={styles.locationText}>   {item.district}</Text>
+              <Text style={styles.locationText}> {item.district}</Text>
               {item.apartment && item.apartment !== "기타" && (
-                <Text style={styles.locationText}>   {item.apartment}</Text>
+                <Text style={styles.locationText}> {item.apartment}</Text>
               )}
             </View>
           </View>
@@ -524,7 +606,9 @@ export default function ItemDetailScreen({ route, navigation }) {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Ionicons
                             key={star}
-                            name={star <= review.rating ? "star" : "star-outline"}
+                            name={
+                              star <= review.rating ? "star" : "star-outline"
+                            }
                             size={14}
                             color="#FFD700"
                           />
@@ -537,7 +621,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                     </Text>
                   </View>
                 ))}
-                
+
                 {reviews.length > 3 && (
                   <Text style={styles.moreReviews}>
                     외 {reviews.length - 3}개의 리뷰
@@ -553,6 +637,23 @@ export default function ItemDetailScreen({ route, navigation }) {
       <View style={styles.bottomBar}>
         {isMyItem ? (
           <>
+            {/* ✅ 판매완료 버튼 (판매중일 때만) */}
+            {currentStatus !== "판매완료" && (
+              <>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.soldButton]}
+                  onPress={handleMarkAsSold}
+                >
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color="#fff"
+                  />
+                  <Text style={styles.buttonText}>판매완료</Text>
+                </TouchableOpacity>
+                <View style={{ width: 8 }} />
+              </>
+            )}
             <TouchableOpacity
               style={[styles.actionButton, styles.editButton]}
               onPress={handleEdit}
@@ -572,17 +673,17 @@ export default function ItemDetailScreen({ route, navigation }) {
         ) : (
           <>
             {/* ✅ 찜하기 버튼 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.heartButton}
               onPress={handleFavorite}
             >
-              <Ionicons 
-                name={isFavorited ? "heart" : "heart-outline"} 
-                size={24} 
-                color={isFavorited ? "#FF6B35" : "#333"} 
+              <Ionicons
+                name={isFavorited ? "heart" : "heart-outline"}
+                size={24}
+                color={isFavorited ? "#FF6B35" : "#333"}
               />
             </TouchableOpacity>
-            
+
             {/* ✅ 리뷰 작성 버튼 */}
             <TouchableOpacity
               style={[styles.actionButton, styles.reviewButton]}
@@ -591,7 +692,7 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Ionicons name="star-outline" size={20} color="#fff" />
               <Text style={styles.buttonText}>리뷰 작성</Text>
             </TouchableOpacity>
-            
+
             {/* Admin 삭제 버튼 */}
             {isAdmin() && (
               <>
@@ -637,27 +738,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   imagePlaceholder: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: 10,
+    fontSize: 16,
     color: "#999",
   },
   imageIndicator: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
   },
   imageIndicatorText: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   dotContainer: {
     position: "absolute",
-    bottom: 16,
+    bottom: 10,
     left: 0,
     right: 0,
     flexDirection: "row",
@@ -668,7 +769,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
     marginHorizontal: 4,
   },
   activeDot: {
@@ -678,19 +779,37 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   contentContainer: {
-    padding: 16,
+    padding: 20,
   },
   headerSection: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
-  price: {
+  title: {
     fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    flex: 1,
+    marginRight: 10,
+  },
+  // ✅ 상태 배지 스타일
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  price: {
+    fontSize: 28,
     fontWeight: "bold",
     color: "#FF6B35",
     marginBottom: 8,
@@ -704,21 +823,20 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   metaDot: {
-    marginHorizontal: 6,
-    fontSize: 14,
+    marginHorizontal: 8,
     color: "#666",
   },
   date: {
     fontSize: 14,
-    color: "#999",
+    color: "#666",
   },
   divider: {
     height: 1,
-    backgroundColor: "#e0e0e0",
-    marginVertical: 16,
+    backgroundColor: "#eee",
+    marginVertical: 20,
   },
   section: {
-    marginBottom: 16,
+    marginBottom: 5,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -726,30 +844,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
     color: "#333",
     marginLeft: 8,
+    flex: 1,
   },
   locationDetails: {
-    paddingLeft: 28,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
   },
   locationText: {
-    fontSize: 15,
-    color: "#333",
+    fontSize: 16,
+    color: "#666",
     marginBottom: 4,
-    lineHeight: 22,
   },
   description: {
-    fontSize: 15,
-    color: "#333",
+    fontSize: 16,
+    color: "#444",
     lineHeight: 24,
-    paddingLeft: 28,
   },
   sellerInfo: {
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 28,
   },
   sellerAvatar: {
     width: 40,
@@ -766,7 +884,9 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   contactInfo: {
-    paddingLeft: 28,
+    backgroundColor: "#F8F9FA",
+    padding: 15,
+    borderRadius: 8,
   },
   contactItem: {
     flexDirection: "row",
@@ -775,14 +895,13 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 15,
-    color: "#333",
-    marginLeft: 8,
+    color: "#444",
+    marginLeft: 10,
   },
   ratingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: "auto",
-    backgroundColor: "#FFF8F3",
+    backgroundColor: "#FFF9E6",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -795,32 +914,29 @@ const styles = StyleSheet.create({
   },
   reviewCount: {
     fontSize: 12,
-    color: "#999",
-    marginLeft: 2,
+    color: "#666",
+    marginLeft: 4,
   },
   noReviews: {
     alignItems: "center",
     paddingVertical: 40,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
   },
   noReviewsText: {
     fontSize: 16,
-    color: "#666",
+    color: "#999",
     marginTop: 12,
-    fontWeight: "600",
   },
   noReviewsSubtext: {
     fontSize: 14,
-    color: "#999",
+    color: "#ccc",
     marginTop: 4,
   },
   reviewList: {
     marginTop: 8,
   },
   reviewItem: {
-    backgroundColor: "#f9f9f9",
-    padding: 12,
+    backgroundColor: "#F8F9FA",
+    padding: 15,
     borderRadius: 8,
     marginBottom: 12,
   },
@@ -835,9 +951,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   reviewerAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "#FF6B35",
     justifyContent: "center",
     alignItems: "center",
@@ -850,13 +966,12 @@ const styles = StyleSheet.create({
   },
   reviewRating: {
     flexDirection: "row",
-    gap: 2,
   },
   reviewContent: {
     fontSize: 14,
-    color: "#333",
+    color: "#444",
     lineHeight: 20,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   reviewDate: {
     fontSize: 12,
@@ -864,24 +979,27 @@ const styles = StyleSheet.create({
   },
   moreReviews: {
     textAlign: "center",
-    fontSize: 14,
     color: "#FF6B35",
-    fontWeight: "600",
-    paddingVertical: 8,
+    fontSize: 14,
+    marginTop: 8,
   },
   bottomBar: {
     flexDirection: "row",
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    padding: 12,
     backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   heartButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
@@ -889,29 +1007,30 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     flexDirection: "row",
-    height: 48,
-    borderRadius: 8,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  soldButton: {
+    backgroundColor: "#4CAF50",
   },
   editButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#2196F3",
+  },
+  deleteButton: {
+    backgroundColor: "#f44336",
   },
   reviewButton: {
     backgroundColor: "#FFD700",
   },
-  deleteButton: {
-    backgroundColor: "#dc3545",
-  },
   adminDeleteButton: {
-    backgroundColor: "#6c757d",
-    flex: 0,
-    paddingHorizontal: 16,
+    backgroundColor: "#9C27B0",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
-    marginLeft: 6,
   },
 });

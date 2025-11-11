@@ -19,16 +19,26 @@ import {
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
 import { useAuth } from "../contexts/AuthContext";
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db, storage } from "../firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
-  const editItem = route?.params?.item; // 수정할 물품 데이터
-  const isEditMode = !!editItem; // 수정 모드 여부
+  const editItem = route?.params?.item;
+  const isEditMode = !!editItem;
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -39,16 +49,16 @@ export default function AddItemScreen({ navigation, route }) {
   const [selectedApartment, setSelectedApartment] = useState("");
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [status, setStatus] = useState("판매중");
 
   const [phone, setPhone] = useState("");
   const [kakaoId, setKakaoId] = useState("");
   const [otherContact, setOtherContact] = useState("");
 
-  // ✅ 수정 모드일 때 기존 데이터 불러오기
   useEffect(() => {
     if (isEditMode && editItem) {
       console.log("📝 수정 모드: 기존 데이터 로드", editItem);
-      
+
       setTitle(editItem.title || "");
       setPrice(editItem.price ? String(editItem.price) : "");
       setDescription(editItem.description || "");
@@ -56,13 +66,12 @@ export default function AddItemScreen({ navigation, route }) {
       setSelectedCity(editItem.city || "호치민");
       setSelectedDistrict(editItem.district || "");
       setSelectedApartment(editItem.apartment || "");
-      
-      // 이미지 로드
+      setStatus(editItem.status || "판매중");
+
       if (editItem.images && editItem.images.length > 0) {
         setImages(editItem.images);
       }
-      
-      // 연락처 로드
+
       if (editItem.contact) {
         setPhone(editItem.contact.phone || "");
         setKakaoId(editItem.contact.kakaoId || "");
@@ -71,34 +80,31 @@ export default function AddItemScreen({ navigation, route }) {
     }
   }, [isEditMode, editItem]);
 
-  // ✅ 카메라 권한 요청
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('권한 필요', '카메라 접근 권한이 필요합니다.');
+    if (status !== "granted") {
+      Alert.alert("권한 필요", "카메라 접근 권한이 필요합니다.");
       return false;
     }
     return true;
   };
 
-  // ✅ 갤러리 권한 요청
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+    if (status !== "granted") {
+      Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
       return false;
     }
     return true;
   };
 
-  // ✅ 카메라로 촬영
   const takePhoto = async () => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) return;
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -112,21 +118,20 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
-  // ✅ 갤러리에서 선택 (복수 선택 가능!)
   const pickImagesFromGallery = async () => {
     const hasPermission = await requestGalleryPermission();
     if (!hasPermission) return;
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsMultipleSelection: true,
         quality: 0.8,
         selectionLimit: 5 - images.length,
       });
 
       if (!result.canceled) {
-        const newImages = result.assets.map(asset => asset.uri);
+        const newImages = result.assets.map((asset) => asset.uri);
         setImages([...images, ...newImages].slice(0, 5));
       }
     } catch (error) {
@@ -134,31 +139,26 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
-  // ✅ 사진 선택 메뉴
   const pickImages = () => {
     if (images.length >= 5) {
       Alert.alert("알림", "사진은 최대 5장까지 등록할 수 있습니다.");
       return;
     }
 
-    Alert.alert(
-      "사진 선택",
-      "사진을 추가할 방법을 선택하세요",
-      [
-        {
-          text: "📷 카메라로 촬영",
-          onPress: takePhoto,
-        },
-        {
-          text: "🖼️ 갤러리에서 선택",
-          onPress: pickImagesFromGallery,
-        },
-        {
-          text: "취소",
-          style: "cancel",
-        },
-      ]
-    );
+    Alert.alert("사진 선택", "사진을 추가할 방법을 선택하세요", [
+      {
+        text: "📷 카메라로 촬영",
+        onPress: takePhoto,
+      },
+      {
+        text: "🖼️ 갤러리에서 선택",
+        onPress: pickImagesFromGallery,
+      },
+      {
+        text: "취소",
+        style: "cancel",
+      },
+    ]);
   };
 
   const removeImage = (index) => {
@@ -166,20 +166,20 @@ export default function AddItemScreen({ navigation, route }) {
     setImages(newImages);
   };
 
-  // ✅ 이미지를 Firebase Storage에 업로드하는 함수
   const uploadImageToStorage = async (uri) => {
     try {
-      // 이미 Firebase URL인 경우 그대로 반환
-      if (uri.startsWith('https://')) {
+      if (uri.startsWith("https://")) {
         return uri;
       }
 
       const response = await fetch(uri);
       const blob = await response.blob();
-      
-      const filename = `items/${user.uid}_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+
+      const filename = `items/${user.uid}_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}.jpg`;
       const storageRef = ref(storage, filename);
-      
+
       await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
       return downloadURL;
@@ -189,8 +189,105 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
+  const notifyPriceChange = async (itemId, oldPrice, newPrice) => {
+    try {
+      console.log("💰 가격 변동 감지:", oldPrice, "→", newPrice);
+
+      const favoritesRef = collection(db, "favorites");
+      const q = query(favoritesRef, where("itemId", "==", itemId));
+      const snapshot = await getDocs(q);
+
+      console.log(`💝 찜한 사람 ${snapshot.size}명 발견`);
+
+      if (snapshot.empty) {
+        console.log("찜한 사람 없음");
+        return;
+      }
+
+      let notificationCount = 0;
+
+      for (const favoriteDoc of snapshot.docs) {
+        const favorite = favoriteDoc.data();
+        const userId = favorite.userId;
+
+        const settingsData = await AsyncStorage.getItem("notificationSettings");
+        let settings = { priceChange: true };
+
+        if (settingsData) {
+          settings = JSON.parse(settingsData);
+        }
+
+        if (settings.priceChange !== false) {
+          await addDoc(collection(db, "notifications"), {
+            userId: userId,
+            type: "priceChange",
+            itemId: itemId,
+            itemTitle: title,
+            itemImage: images[0] || null,
+            oldPrice: oldPrice,
+            newPrice: newPrice,
+            discount: oldPrice - newPrice,
+            message: `찜한 물품 "${title}"의 가격이 ${(
+              oldPrice - newPrice
+            ).toLocaleString()}₫ 할인되었습니다!`,
+            read: false,
+            createdAt: serverTimestamp(),
+          });
+
+          notificationCount++;
+        }
+      }
+
+      console.log(`✅ ${notificationCount}명에게 알림 생성 완료`);
+    } catch (error) {
+      console.error("가격 변동 알림 생성 실패:", error);
+    }
+  };
+
+  // ✅ 관리자에게 알림 생성하는 함수
+  const notifyAdminsNewItem = async (
+    itemId,
+    itemTitle,
+    itemImage,
+    itemPrice
+  ) => {
+    try {
+      console.log("📢 관리자에게 신규 물품 알림 생성 중...");
+
+      const adminEmails = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
+
+      for (const adminEmail of adminEmails) {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", adminEmail));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const adminUserId = snapshot.docs[0].id;
+
+          await addDoc(collection(db, "notifications"), {
+            userId: adminUserId,
+            type: "new_item",
+            itemId: itemId,
+            itemTitle: itemTitle,
+            itemImage: itemImage || "",
+            itemPrice: itemPrice,
+            sellerEmail: user.email,
+            message: `새 물품이 등록되었습니다: ${itemTitle}`,
+            read: false,
+            createdAt: serverTimestamp(),
+          });
+
+          console.log(`✅ ${adminEmail}에게 알림 생성 완료`);
+        } else {
+          console.log(`⚠️ ${adminEmail} 계정을 찾을 수 없음`);
+        }
+      }
+    } catch (error) {
+      console.error("❌ 관리자 알림 생성 실패:", error);
+    }
+  };
+
   const handleSubmit = async () => {
-    // 1️⃣ 유효성 검사
     if (!title || !price || !description || !selectedApartment) {
       Alert.alert("알림", "필수 항목을 모두 입력해주세요!");
       return;
@@ -209,10 +306,9 @@ export default function AddItemScreen({ navigation, route }) {
     setUploading(true);
 
     try {
-      // 2️⃣ 이미지 업로드
       console.log("📤 이미지 업로드 시작...");
       const uploadedImageUrls = [];
-      
+
       for (let i = 0; i < images.length; i++) {
         console.log(`📷 이미지 ${i + 1}/${images.length} 처리 중...`);
         const url = await uploadImageToStorage(images[i]);
@@ -222,7 +318,6 @@ export default function AddItemScreen({ navigation, route }) {
 
       console.log("✅ 모든 이미지 처리 완료!");
 
-      // 3️⃣ 데이터 준비
       const itemData = {
         title,
         price: parseInt(price),
@@ -243,14 +338,31 @@ export default function AddItemScreen({ navigation, route }) {
       let resultItem;
 
       if (isEditMode) {
-        // 4️⃣-A 수정 모드: Firestore 업데이트
+        const oldPrice = editItem.price;
+        const newPrice = parseInt(price);
+        let newStatus = editItem.status || "판매중";
+
+        if (newPrice < oldPrice) {
+          newStatus = "가격 조정됨";
+          console.log("💸 가격 할인 감지! 상태를 '가격 조정됨'으로 변경");
+        }
+
         console.log("💾 물품 수정 중...");
         const itemRef = doc(db, "XinChaoDanggn", editItem.id);
-        await updateDoc(itemRef, itemData);
-        
+        await updateDoc(itemRef, {
+          ...itemData,
+          status: newStatus,
+        });
+
+        if (newPrice < oldPrice) {
+          console.log("💸 가격 할인 감지! 알림 생성 시작...");
+          await notifyPriceChange(editItem.id, oldPrice, newPrice);
+        }
+
         resultItem = {
           ...editItem,
           ...itemData,
+          status: newStatus,
         };
 
         console.log("✅ 물품 수정 완료!");
@@ -265,9 +377,8 @@ export default function AddItemScreen({ navigation, route }) {
             },
           },
         ]);
-
       } else {
-        // 4️⃣-B 등록 모드: Firestore에 새로 추가
+        // ✅ 새 물품 등록
         console.log("💾 물품 등록 중...");
         const docRef = await addDoc(collection(db, "XinChaoDanggn"), {
           ...itemData,
@@ -276,6 +387,14 @@ export default function AddItemScreen({ navigation, route }) {
           createdAt: serverTimestamp(),
           status: "판매중",
         });
+
+        // ✅ 관리자에게 알림!
+        await notifyAdminsNewItem(
+          docRef.id,
+          title,
+          uploadedImageUrls[0] || "",
+          parseInt(price)
+        );
 
         resultItem = {
           id: docRef.id,
@@ -299,15 +418,14 @@ export default function AddItemScreen({ navigation, route }) {
           },
         ]);
       }
-
     } catch (error) {
       console.error("❌ 작업 실패:", error);
       console.error("❌ 에러 상세:", error.message);
-      
+
       setUploading(false);
-      
+
       Alert.alert(
-        "오류", 
+        "오류",
         `작업에 실패했습니다.\n\n${error.message}\n\n다시 시도해주세요.`
       );
     }
@@ -340,7 +458,6 @@ export default function AddItemScreen({ navigation, route }) {
             showsHorizontalScrollIndicator={false}
             style={styles.imageScroll}
           >
-            {/* 사진 추가 버튼 */}
             {images.length < 5 && (
               <TouchableOpacity
                 style={styles.addImageButton}
@@ -351,7 +468,6 @@ export default function AddItemScreen({ navigation, route }) {
               </TouchableOpacity>
             )}
 
-            {/* 선택된 사진들 */}
             {images.map((uri, index) => (
               <View key={index} style={styles.imageWrapper}>
                 <Image source={{ uri }} style={styles.imagePreview} />
@@ -371,7 +487,6 @@ export default function AddItemScreen({ navigation, route }) {
           </ScrollView>
         </View>
 
-        {/* 제목 */}
         <Text style={styles.label}>제목 *</Text>
         <TextInput
           style={styles.input}
@@ -380,7 +495,6 @@ export default function AddItemScreen({ navigation, route }) {
           onChangeText={setTitle}
         />
 
-        {/* 가격 */}
         <Text style={styles.label}>가격 (VND) *</Text>
         <TextInput
           style={styles.input}
@@ -390,7 +504,6 @@ export default function AddItemScreen({ navigation, route }) {
           keyboardType="numeric"
         />
 
-        {/* 카테고리 */}
         <Text style={styles.label}>카테고리</Text>
         <View style={styles.pickerContainer}>
           <Picker selectedValue={category} onValueChange={setCategory}>
@@ -405,7 +518,6 @@ export default function AddItemScreen({ navigation, route }) {
           </Picker>
         </View>
 
-        {/* 도시 */}
         <Text style={styles.label}>도시 *</Text>
         <View style={styles.pickerContainer}>
           <Picker
@@ -423,7 +535,6 @@ export default function AddItemScreen({ navigation, route }) {
           </Picker>
         </View>
 
-        {/* 구/군 */}
         <Text style={styles.label}>구/군 *</Text>
         <View style={styles.pickerContainer}>
           <Picker
@@ -440,7 +551,6 @@ export default function AddItemScreen({ navigation, route }) {
           </Picker>
         </View>
 
-        {/* 아파트/지역 */}
         {apartments.length > 0 && (
           <>
             <Text style={styles.label}>아파트/지역 *</Text>
@@ -462,7 +572,6 @@ export default function AddItemScreen({ navigation, route }) {
           </>
         )}
 
-        {/* 상품 설명 */}
         <Text style={styles.label}>상품 설명 *</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -474,7 +583,6 @@ export default function AddItemScreen({ navigation, route }) {
           textAlignVertical="top"
         />
 
-        {/* 연락처 섹션 */}
         <View style={styles.contactSection}>
           <Text style={styles.sectionTitle}>
             📞 연락처 (최소 1개 이상 입력) *
@@ -506,16 +614,15 @@ export default function AddItemScreen({ navigation, route }) {
           />
         </View>
 
-        {/* 등록/수정 버튼 */}
-        <TouchableOpacity 
-          style={[styles.button, uploading && styles.buttonDisabled]} 
+        <TouchableOpacity
+          style={[styles.button, uploading && styles.buttonDisabled]}
           onPress={handleSubmit}
           disabled={uploading}
         >
           {uploading ? (
             <View style={styles.uploadingContainer}>
               <ActivityIndicator color="#fff" />
-              <Text style={styles.buttonText}>  처리 중...</Text>
+              <Text style={styles.buttonText}> 처리 중...</Text>
             </View>
           ) : (
             <Text style={styles.buttonText}>
@@ -627,21 +734,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   contactSection: {
-    backgroundColor: "#FFF8F3",
-    padding: 15,
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
-    marginTop: 10,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-    color: "#FF6B35",
-    marginBottom: 15,
+    color: "#333",
+    marginBottom: 16,
   },
   button: {
     backgroundColor: "#FF6B35",
-    padding: 15,
+    padding: 16,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
@@ -649,13 +756,13 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: "#ccc",
   },
-  uploadingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   buttonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  uploadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });

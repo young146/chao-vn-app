@@ -8,6 +8,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
@@ -35,6 +37,7 @@ export default function ReviewScreen({ route, navigation }) {
     setSubmitting(true);
 
     try {
+      // ✅ Firebase에 리뷰 저장
       await addDoc(collection(db, "reviews"), {
         itemId: item.id,
         itemTitle: item.title,
@@ -49,7 +52,16 @@ export default function ReviewScreen({ route, navigation }) {
       Alert.alert("완료!", "리뷰가 등록되었습니다!", [
         {
           text: "확인",
-          onPress: () => navigation.goBack(),
+          onPress: () => {
+            // ✅ 뒤로가기하면서 화면 새로고침 신호 보내기
+            navigation.navigate("당근마켓", {
+              screen: "물품 상세",
+              params: {
+                item,
+                refresh: Date.now(), // 새로고침 트리거
+              },
+            });
+          },
         },
       ]);
     } catch (error) {
@@ -61,85 +73,94 @@ export default function ReviewScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* 물품 정보 */}
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle}>{item.title}</Text>
-          <Text style={styles.itemPrice}>
-            {new Intl.NumberFormat("ko-KR").format(item.price)}₫
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* 별점 선택 */}
-        <View style={styles.section}>
-          <Text style={styles.label}>별점 *</Text>
-          <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity
-                key={star}
-                onPress={() => setRating(star)}
-                style={styles.starButton}
-              >
-                <Ionicons
-                  name={star <= rating ? "star" : "star-outline"}
-                  size={40}
-                  color={star <= rating ? "#FFD700" : "#ccc"}
-                />
-              </TouchableOpacity>
-            ))}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          {/* 물품 정보 */}
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemTitle}>{item.title}</Text>
+            <Text style={styles.itemPrice}>
+              {new Intl.NumberFormat("ko-KR").format(item.price)}₫
+            </Text>
           </View>
-          <Text style={styles.ratingText}>
-            {rating === 5
-              ? "⭐ 최고예요!"
-              : rating === 4
-              ? "⭐ 좋아요!"
-              : rating === 3
-              ? "⭐ 보통이에요"
-              : rating === 2
-              ? "⭐ 별로예요"
-              : "⭐ 최악이에요"}
-          </Text>
-        </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        {/* 리뷰 내용 */}
-        <View style={styles.section}>
-          <Text style={styles.label}>리뷰 내용 *</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="거래 경험을 공유해주세요&#10;&#10;• 물품 상태는 어땠나요?&#10;• 판매자는 친절했나요?&#10;• 거래 과정은 만족스러웠나요?"
-            value={content}
-            onChangeText={setContent}
-            multiline
-            numberOfLines={8}
-            textAlignVertical="top"
-          />
-        </View>
-
-        {/* 등록 버튼 */}
-        <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <View style={styles.uploadingContainer}>
-              <ActivityIndicator color="#fff" />
-              <Text style={styles.buttonText}>  등록 중...</Text>
+          {/* 별점 선택 */}
+          <View style={styles.section}>
+            <Text style={styles.label}>별점 *</Text>
+            <View style={styles.ratingContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setRating(star)}
+                  style={styles.starButton}
+                >
+                  <Ionicons
+                    name={star <= rating ? "star" : "star-outline"}
+                    size={40}
+                    color={star <= rating ? "#FFD700" : "#ccc"}
+                  />
+                </TouchableOpacity>
+              ))}
             </View>
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.buttonText}>  리뷰 등록하기</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+            <Text style={styles.ratingText}>
+              {rating === 5
+                ? "⭐ 최고예요!"
+                : rating === 4
+                ? "⭐ 좋아요!"
+                : rating === 3
+                ? "⭐ 보통이에요"
+                : rating === 2
+                ? "⭐ 별로예요"
+                : "⭐ 최악이에요"}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* 리뷰 내용 */}
+          <View style={styles.section}>
+            <Text style={styles.label}>리뷰 내용 *</Text>
+            <TextInput
+              style={styles.textArea}
+              placeholder="거래 경험을 공유해주세요&#10;&#10;• 물품 상태는 어땠나요?&#10;• 판매자는 친절했나요?&#10;• 거래 과정은 만족스러웠나요?"
+              value={content}
+              onChangeText={setContent}
+              multiline
+              numberOfLines={8}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* 등록 버튼 - 키보드 위에 보이도록! */}
+          <TouchableOpacity
+            style={[styles.submitButton, submitting && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <View style={styles.uploadingContainer}>
+                <ActivityIndicator color="#fff" />
+                <Text style={styles.buttonText}> 등록 중...</Text>
+              </View>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Text style={styles.buttonText}> 리뷰 등록하기</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -217,6 +238,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginTop: 20,
+    marginBottom: 40,
   },
   buttonDisabled: {
     backgroundColor: "#ccc",
