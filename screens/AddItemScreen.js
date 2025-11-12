@@ -1,3 +1,4 @@
+import { StackActions } from "@react-navigation/native"; // 추가
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -28,6 +29,7 @@ import {
   getDocs,
   query,
   where,
+  getDoc,
 } from "firebase/firestore";
 import { db, storage } from "../firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -244,7 +246,7 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
-  // ✅ 관리자에게 알림 생성하는 함수
+  // 관리자에게 알림 생성하는 함수
   const notifyAdminsNewItem = async (
     itemId,
     itemTitle,
@@ -284,6 +286,88 @@ export default function AddItemScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error("❌ 관리자 알림 생성 실패:", error);
+    }
+  };
+
+  // 🆕 주변 사용자에게 알림 생성하는 함수
+  const notifyNearbyUsers = async (
+    itemId,
+    itemTitle,
+    itemImage,
+    itemPrice,
+    itemCity,
+    itemDistrict,
+    itemApartment
+  ) => {
+    try {
+      console.log("🏘️ 주변 사용자에게 알림 생성 중...");
+      console.log(`📍 위치: ${itemCity} ${itemDistrict} ${itemApartment}`);
+
+      // 1️⃣ 같은 주소를 가진 사용자 찾기
+      const usersRef = collection(db, "users");
+      const q = query(
+        usersRef,
+        where("city", "==", itemCity),
+        where("district", "==", itemDistrict),
+        where("apartment", "==", itemApartment)
+      );
+      const usersSnapshot = await getDocs(q);
+
+      console.log(`👥 같은 주소 사용자 ${usersSnapshot.size}명 발견`);
+
+      if (usersSnapshot.empty) {
+        console.log("⚠️ 같은 주소의 사용자 없음");
+        return;
+      }
+
+      let notificationCount = 0;
+
+      // 2️⃣ 각 사용자의 알림 설정 확인
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const nearbyUserId = userDoc.id;
+
+        // 본인은 제외
+        if (nearbyUserId === user.uid) {
+          console.log("⏭️ 본인은 제외");
+          continue;
+        }
+
+        // 3️⃣ notificationSettings 확인
+        const settingsRef = doc(db, "notificationSettings", nearbyUserId);
+        const settingsSnap = await getDoc(settingsRef);
+
+        if (settingsSnap.exists()) {
+          const settings = settingsSnap.data();
+
+          // nearbyItems가 true인 경우만 알림 생성
+          if (settings.nearbyItems === true) {
+            await addDoc(collection(db, "notifications"), {
+              userId: nearbyUserId,
+              type: "nearby_item",
+              itemId: itemId,
+              itemTitle: itemTitle,
+              itemImage: itemImage || "",
+              itemPrice: itemPrice,
+              itemLocation: `${itemCity} ${itemDistrict} ${itemApartment}`,
+              message: `내 주변에 새 상품이 등록되었습니다: ${itemTitle}`,
+              read: false,
+              createdAt: serverTimestamp(),
+            });
+
+            notificationCount++;
+            console.log(`✅ ${userData.email}에게 알림 생성`);
+          } else {
+            console.log(`⏭️ ${userData.email} - 주변 상품 알림 OFF`);
+          }
+        } else {
+          console.log(`⚠️ ${userData.email} - 알림 설정 없음 (스킵)`);
+        }
+      }
+
+      console.log(`✅ 총 ${notificationCount}명에게 주변 상품 알림 생성 완료`);
+    } catch (error) {
+      console.error("❌ 주변 사용자 알림 생성 실패:", error);
     }
   };
 
@@ -373,12 +457,19 @@ export default function AddItemScreen({ navigation, route }) {
           {
             text: "확인",
             onPress: () => {
-              navigation.navigate("물품 상세", { item: resultItem });
+              // 스택 리셋: 씬짜오당근메인 → 물품 상세
+              navigation.reset({
+                index: 1,
+                routes: [
+                  { name: "씬짜오당근메인" },
+                  { name: "물품 상세", params: { item: resultItem } },
+                ],
+              });
             },
           },
         ]);
       } else {
-        // ✅ 새 물품 등록
+        // 새 물품 등록
         console.log("💾 물품 등록 중...");
         const docRef = await addDoc(collection(db, "XinChaoDanggn"), {
           ...itemData,
@@ -388,12 +479,23 @@ export default function AddItemScreen({ navigation, route }) {
           status: "판매중",
         });
 
-        // ✅ 관리자에게 알림!
+        // 관리자에게 알림
         await notifyAdminsNewItem(
           docRef.id,
           title,
           uploadedImageUrls[0] || "",
           parseInt(price)
+        );
+
+        // 🆕 주변 사용자에게 알림
+        await notifyNearbyUsers(
+          docRef.id,
+          title,
+          uploadedImageUrls[0] || "",
+          parseInt(price),
+          selectedCity,
+          selectedDistrict,
+          selectedApartment
         );
 
         resultItem = {
@@ -732,26 +834,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
     backgroundColor: "#fff",
+    overflow: "hidden",
   },
   contactSection: {
     marginTop: 20,
     padding: 16,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#F9F9F9",
     borderRadius: 8,
-    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   button: {
     backgroundColor: "#FF6B35",
     padding: 16,
     borderRadius: 8,
-    alignItems: "center",
     marginTop: 20,
+    alignItems: "center",
   },
   buttonDisabled: {
     backgroundColor: "#ccc",

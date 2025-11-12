@@ -188,6 +188,14 @@ export default function ItemDetailScreen({ route, navigation }) {
   useLayoutEffect(() => {
     if (!isMyItem && user) {
       navigation.setOptions({
+        headerLeft: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("씬짜오당근메인")}
+            style={{ marginLeft: 12 }}
+          >
+            <Ionicons name="home-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        ),
         headerRight: () => (
           <TouchableOpacity
             onPress={handleChat}
@@ -329,8 +337,7 @@ export default function ItemDetailScreen({ route, navigation }) {
     const index = Math.round(scrollPosition / SCREEN_WIDTH);
     setCurrentImageIndex(index);
   };
-
-  // ✅ 찜하기 핸들러
+  // ✅ 찜하기 핸들러 (알림 추가!)
   const handleFavorite = async () => {
     if (!user) {
       Alert.alert("알림", "로그인이 필요합니다.", [
@@ -368,6 +375,24 @@ export default function ItemDetailScreen({ route, navigation }) {
           itemImage: images[0] || null,
           createdAt: serverTimestamp(),
         });
+
+        // ✅ 판매자에게 알림 전송 (자기 물품은 제외)
+        if (item.userId !== user.uid) {
+          await addDoc(collection(db, "notifications"), {
+            userId: item.userId, // 판매자
+            type: "favorite",
+            message: `${user.email?.split("@")[0] || "사용자"}님이 "${
+              item.title
+            }" 물품을 찜했습니다! ❤️`,
+            itemId: item.id,
+            itemTitle: item.title,
+            itemImage: images[0] || null,
+            read: false,
+            createdAt: serverTimestamp(),
+          });
+
+          console.log("✅ 찜 알림 전송 완료:", item.userId);
+        }
 
         setIsFavorited(true);
         Alert.alert("완료", "찜 목록에 추가되었습니다! ❤️");

@@ -11,6 +11,9 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { useAuth } from "../contexts/AuthContext";
 
 // 알림음 옵션
 const NOTIFICATION_SOUNDS = [
@@ -25,6 +28,7 @@ const NOTIFICATION_SOUNDS = [
 ];
 
 export default function NotificationSettingsScreen() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState({
     newArticles: true,
     comments: true,
@@ -32,21 +36,45 @@ export default function NotificationSettingsScreen() {
     jobs: false,
     realEstate: false,
     chat: true, // 채팅 알림
-    priceChange: true, // ✅ 가격 변동 알림 추가
-    review: true, // ✅ 리뷰 알림 추가
+    priceChange: true, // 가격 변동 알림
+    review: true, // 리뷰 알림
+    nearbyItems: false, // 🆕 내 주변 상품 알림
   });
 
   const [selectedSound, setSelectedSound] = useState("default");
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [user]);
 
   const loadSettings = async () => {
     try {
+      // AsyncStorage에서 로드
       const saved = await AsyncStorage.getItem("notificationSettings");
       if (saved) {
         setSettings(JSON.parse(saved));
+      }
+
+      // Firebase에서 notificationSettings 로드 (있으면 덮어쓰기)
+      if (user) {
+        const docRef = doc(db, "notificationSettings", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const firebaseSettings = docSnap.data();
+          setSettings((prev) => ({
+            ...prev,
+            nearbyItems: firebaseSettings.nearbyItems || false,
+            chat:
+              firebaseSettings.chat !== undefined
+                ? firebaseSettings.chat
+                : prev.chat,
+            review:
+              firebaseSettings.reviews !== undefined
+                ? firebaseSettings.reviews
+                : prev.review,
+          }));
+        }
       }
 
       // 알림음 설정 로드
@@ -62,10 +90,25 @@ export default function NotificationSettingsScreen() {
 
   const saveSettings = async (newSettings) => {
     try {
+      // AsyncStorage에 저장
       await AsyncStorage.setItem(
         "notificationSettings",
         JSON.stringify(newSettings)
       );
+
+      // Firebase notificationSettings 업데이트 (주변 상품 알림만)
+      if (user) {
+        const docRef = doc(db, "notificationSettings", user.uid);
+        await setDoc(
+          docRef,
+          {
+            nearbyItems: newSettings.nearbyItems,
+            chat: newSettings.chat,
+            reviews: newSettings.review,
+          },
+          { merge: true }
+        );
+      }
     } catch (error) {
       console.error("설정 저장 실패:", error);
     }
@@ -228,6 +271,30 @@ export default function NotificationSettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🥕 당근마켓 알림</Text>
 
+        {/* 🆕 내 주변 상품 알림 */}
+        <View style={styles.settingItem}>
+          <View style={styles.settingLeft}>
+            <Ionicons
+              name="location"
+              size={20}
+              color="#E91E63"
+              style={styles.settingIcon}
+            />
+            <View>
+              <Text style={styles.settingLabel}>내 주변 상품 알림</Text>
+              <Text style={styles.settingDescription}>
+                내 주소 주변에 새 상품이 등록되면 알려드립니다
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={settings.nearbyItems}
+            onValueChange={() => toggleSetting("nearbyItems")}
+            trackColor={{ false: "#ccc", true: "#FF6B35" }}
+            thumbColor="#fff"
+          />
+        </View>
+
         <View style={styles.settingItem}>
           <View style={styles.settingLeft}>
             <Ionicons
@@ -251,7 +318,7 @@ export default function NotificationSettingsScreen() {
           />
         </View>
 
-        {/* ✅ 가격 변동 알림 */}
+        {/* 가격 변동 알림 */}
         <View style={styles.settingItem}>
           <View style={styles.settingLeft}>
             <Ionicons
@@ -275,7 +342,7 @@ export default function NotificationSettingsScreen() {
           />
         </View>
 
-        {/* ✅ 리뷰 알림 */}
+        {/* 리뷰 알림 */}
         <View style={styles.settingItem}>
           <View style={styles.settingLeft}>
             <Ionicons
@@ -353,7 +420,8 @@ export default function NotificationSettingsScreen() {
         <Ionicons name="information-circle-outline" size={20} color="#8E8E93" />
         <Text style={styles.footerText}>
           알림은 앱이 실행 중일 때 표시됩니다.{"\n"}
-          가격 변동 알림은 찜한 물품의 가격이 낮아질 때 알려드립니다.
+          가격 변동 알림은 찜한 물품의 가격이 낮아질 때 알려드립니다.{"\n"}
+          주변 상품 알림은 프로필에 주소를 등록하셔야 받으실 수 있습니다.
         </Text>
       </View>
     </ScrollView>

@@ -117,12 +117,17 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   // 알림 아이콘 선택
+  // 알림 아이콘 선택
   const getNotificationIcon = (type) => {
     switch (type) {
       case "priceChange":
         return { name: "pricetag", color: "#FF9800" };
       case "review":
         return { name: "star", color: "#FFD700" };
+      case "new_review":
+        return { name: "star", color: "#FFD700" };
+      case "favorite":
+        return { name: "heart", color: "#FF6B6B" };
       case "chat":
         return { name: "chatbubble-ellipses", color: "#4CAF50" };
       case "new_item":
@@ -167,6 +172,8 @@ export default function NotificationsScreen({ navigation }) {
             <Text style={[styles.title, !item.read && styles.unreadTitle]}>
               {item.type === "priceChange" && "🏷️ 가격 할인!"}
               {item.type === "review" && "⭐ 새 리뷰"}
+              {item.type === "new_review" && "⭐ 새 리뷰"}
+              {item.type === "favorite" && "❤️ 새로운 찜"}
               {item.type === "chat" && "💬 새 메시지"}
               {item.type === "new_item" && "📦 새 물품 등록"}
               {item.type === "item_rejected" && "🚫 물품 등록 거부"}

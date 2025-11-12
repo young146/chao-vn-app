@@ -49,16 +49,34 @@ export default function ReviewScreen({ route, navigation }) {
         createdAt: serverTimestamp(),
       });
 
+      // ✅ 판매자에게 알림 전송
+      if (item.userId !== user.uid) {
+        await addDoc(collection(db, "notifications"), {
+          userId: item.userId,
+          type: "new_review",
+          message: `${user.email?.split("@")[0] || "사용자"}님이 "${
+            item.title
+          }" 물품에 ${rating}점 리뷰를 남겼습니다!`,
+          itemId: item.id,
+          itemTitle: item.title,
+          itemImage: item.images?.[0] || null,
+          rating: rating,
+          read: false,
+          createdAt: serverTimestamp(),
+        });
+
+        console.log("✅ 리뷰 알림 전송 완료:", item.userId);
+      }
+
       Alert.alert("완료!", "리뷰가 등록되었습니다!", [
         {
           text: "확인",
           onPress: () => {
-            // ✅ 뒤로가기하면서 화면 새로고침 신호 보내기
             navigation.navigate("당근마켓", {
               screen: "물품 상세",
               params: {
                 item,
-                refresh: Date.now(), // 새로고침 트리거
+                refresh: Date.now(),
               },
             });
           },
@@ -140,7 +158,7 @@ export default function ReviewScreen({ route, navigation }) {
             />
           </View>
 
-          {/* 등록 버튼 - 키보드 위에 보이도록! */}
+          {/* 등록 버튼 */}
           <TouchableOpacity
             style={[styles.submitButton, submitting && styles.buttonDisabled]}
             onPress={handleSubmit}

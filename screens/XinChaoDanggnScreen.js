@@ -19,6 +19,8 @@ import {
   orderBy,
   onSnapshot,
   limit,
+  doc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import {
@@ -38,6 +40,8 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const [selectedApartment, setSelectedApartment] = useState("전체");
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
 
   const categories = [
     "전체",
@@ -52,13 +56,61 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "기타",
   ];
 
+  // 사용자 프로필 로드
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (user) {
+        try {
+          console.log("👤 사용자 프로필 로딩 시작... UID:", user.uid);
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const profileData = userDoc.data();
+            setUserProfile(profileData);
+            console.log("✅ 프로필 로드 완료:", profileData);
+            console.log("📍 주소 정보:", {
+              city: profileData.city || "없음",
+              district: profileData.district || "없음",
+              apartment: profileData.apartment || "없음",
+            });
+          } else {
+            console.log("⚠️ 프로필 문서가 존재하지 않음");
+            setUserProfile({});
+          }
+        } catch (error) {
+          console.error("❌ 프로필 로드 실패:", error);
+        }
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
+
+  // 지역 필터 사용 시 프로필 미작성 확인
+  useEffect(() => {
+    console.log("🔍 배너 표시 조건 확인:");
+    console.log("  - user:", user ? "로그인됨" : "로그인 안됨");
+    console.log("  - userProfile:", userProfile);
+    console.log("  - selectedCity:", selectedCity);
+
+    if (user && userProfile && selectedCity !== "전체") {
+      const isProfileIncomplete = !userProfile.city || !userProfile.district;
+      console.log("  - userProfile.city:", userProfile.city || "없음");
+      console.log("  - userProfile.district:", userProfile.district || "없음");
+      console.log("  - isProfileIncomplete:", isProfileIncomplete);
+      console.log("  ➡️ 배너 표시:", isProfileIncomplete ? "YES" : "NO");
+      setShowProfilePrompt(isProfileIncomplete);
+    } else {
+      console.log("  ➡️ 배너 표시: NO (조건 미충족)");
+      setShowProfilePrompt(false);
+    }
+  }, [user, userProfile, selectedCity]);
+
   useEffect(() => {
     let q = query(
       collection(db, "XinChaoDanggn"),
       orderBy("createdAt", "desc")
     );
 
-    // 로그인하지 않은 경우 최신 8개만
     if (!user) {
       q = query(q, limit(8));
     }
@@ -83,7 +135,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }, 1000);
   };
 
-  // 3단계 필터링
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.title
       ?.toLowerCase()
@@ -109,15 +160,14 @@ export default function XinChaoDanggnScreen({ navigation }) {
     return new Intl.NumberFormat("ko-KR").format(price) + "₫";
   };
 
-  // ✅ 상태 배지 색상 결정
   const getStatusColor = (status) => {
     switch (status) {
       case "판매중":
-        return "#4CAF50"; // 초록색
+        return "#4CAF50";
       case "가격 조정됨":
-        return "#FF9800"; // 주황색
+        return "#FF9800";
       case "판매완료":
-        return "#9E9E9E"; // 회색
+        return "#9E9E9E";
       default:
         return "#4CAF50";
     }
@@ -159,6 +209,30 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
   };
 
+  const handleProfilePrompt = () => {
+    Alert.alert(
+      "프로필 작성 📝",
+      "주소를 등록하면 내 주변 새 상품이 등록될 때마다 자동으로 알림을 받을 수 있습니다.\n\n지금 프로필을 작성하시겠어요?",
+      [
+        {
+          text: "나중에",
+          style: "cancel",
+          onPress: () => setShowProfilePrompt(false),
+        },
+        {
+          text: "작성하기",
+          onPress: () => {
+            setShowProfilePrompt(false);
+            // ✅ 수정: 탭을 "더보기"로 바꾸고, "프로필" 화면으로 이동
+            navigation.navigate("더보기", {
+              screen: "프로필",
+            });
+          },
+        },
+      ]
+    );
+  };
+
   const districts = getDistrictsByCity(
     selectedCity === "전체" ? "호치민" : selectedCity
   );
@@ -187,7 +261,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
             <Ionicons name="image-outline" size={40} color="#ccc" />
           )}
 
-          {/* ✅ 상태 배지 */}
           <View
             style={[
               styles.statusBadge,
@@ -230,6 +303,21 @@ export default function XinChaoDanggnScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* 프로필 미작성 안내 배너 */}
+        {showProfilePrompt && (
+          <TouchableOpacity
+            style={styles.profilePromptBanner}
+            onPress={handleProfilePrompt}
+          >
+            <Ionicons name="notifications" size={20} color="#2196F3" />
+            <Text style={styles.profilePromptText}>
+              프로필을 작성하시면 자동으로 귀하의 주변 새상품 등록을 확인할 수
+              있습니다
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color="#2196F3" />
+          </TouchableOpacity>
+        )}
+
         {/* 검색바 */}
         <View style={styles.searchContainer}>
           <Ionicons
@@ -248,7 +336,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
 
         {/* 지역 필터 */}
         <View style={styles.filterSection}>
-          {/* 도시 */}
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={selectedCity}
@@ -266,7 +353,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
             </Picker>
           </View>
 
-          {/* 구/군 */}
           {selectedCity !== "전체" && (
             <View style={styles.pickerContainer}>
               <Picker
@@ -288,7 +374,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
             </View>
           )}
 
-          {/* 아파트/지역 */}
           {selectedDistrict !== "전체" && apartments.length > 0 && (
             <View style={styles.pickerContainer}>
               <Picker
@@ -370,7 +455,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
         />
       </ScrollView>
 
-      {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
@@ -399,6 +483,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#FF6B35",
+  },
+  profilePromptBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E3F2FD",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#90CAF9",
+  },
+  profilePromptText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1976D2",
   },
   searchContainer: {
     flexDirection: "row",
@@ -479,14 +580,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative", // ✅ 배지 배치를 위해 추가
+    position: "relative",
   },
   itemImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  // ✅ 상태 배지 스타일
   statusBadge: {
     position: "absolute",
     top: 8,

@@ -3,7 +3,7 @@ import ChatListScreen from "./screens/ChatListScreen";
 import { LogBox } from "react-native";
 LogBox.ignoreAllLogs(true);
 import "react-native-gesture-handler";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -44,6 +44,18 @@ import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
 import ReviewScreen from "./screens/ReviewScreen";
 import AdminScreen from "./screens/AdminScreen";
+import * as Notifications from "expo-notifications";
+import { onSnapshot, collection, query, where } from "firebase/firestore";
+import { db } from "./firebase/config";
+
+// ✅ 알림 핸들러 설정
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 // ------------------------------------------------------------------
 // ** 1. URL 구조 **
@@ -531,30 +543,121 @@ function AuthStack() {
 // ** 7. 메인 Navigator **
 // ------------------------------------------------------------------
 function RootNavigator() {
+  const { user } = useAuth();
+  const navigationRef = useRef(null);
+
+  // ✅ 전역 채팅 메시지 알림 리스너
+  useEffect(() => {
+    if (!user) return;
+
+    console.log("👂 전역 채팅 알림 리스너 시작");
+
+    const chatRoomsQuery = query(
+      collection(db, "chatRooms"),
+      where("participants", "array-contains", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(chatRoomsQuery, (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === "modified") {
+          const chatRoom = change.doc.data();
+
+          if (
+            chatRoom.lastMessageSenderId !== user.uid &&
+            chatRoom.lastMessage &&
+            chatRoom.unreadCount > 0
+          ) {
+            const isSeller = chatRoom.sellerId === user.uid;
+            const hasUnread = isSeller
+              ? !chatRoom.sellerRead
+              : !chatRoom.buyerRead;
+
+            if (hasUnread) {
+              console.log("🔔 새 채팅 메시지 감지!");
+
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `💬 ${chatRoom.itemTitle || "새 메시지"}`,
+                  body: chatRoom.lastMessage,
+                  data: {
+                    chatRoomId: change.doc.id,
+                    itemId: chatRoom.itemId,
+                    itemTitle: chatRoom.itemTitle,
+                    itemImage: chatRoom.itemImage,
+                    otherUserId: isSeller
+                      ? chatRoom.buyerId
+                      : chatRoom.sellerId,
+                    otherUserName: isSeller
+                      ? chatRoom.buyerName
+                      : chatRoom.sellerName,
+                    sellerId: chatRoom.sellerId,
+                  },
+                },
+                trigger: null,
+              });
+            }
+          }
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // ✅ 알림 탭했을 때 채팅방으로 이동
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data;
+
+        if (data.chatRoomId && navigationRef.current) {
+          console.log("📱 알림 탭! 채팅방으로 이동:", data.chatRoomId);
+
+          navigationRef.current.navigate("씬짜오당근", {
+            screen: "ChatRoom",
+            params: {
+              chatRoomId: data.chatRoomId,
+              itemId: data.itemId,
+              itemTitle: data.itemTitle,
+              itemImage: data.itemImage,
+              otherUserId: data.otherUserId,
+              otherUserName: data.otherUserName,
+              sellerId: data.sellerId,
+            },
+          });
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, []);
+
   return (
-    <Stack.Navigator screenOptions={{ presentation: "modal" }}>
-      <Stack.Screen
-        name="MainApp"
-        component={BottomTabNavigator}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="로그인"
-        component={LoginScreen}
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
-      />
-      <Stack.Screen
-        name="회원가입"
-        component={SignupScreen}
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
-      />
-    </Stack.Navigator>
+    <NavigationContainer ref={navigationRef}>
+      <Stack.Navigator screenOptions={{ presentation: "modal" }}>
+        <Stack.Screen
+          name="MainApp"
+          component={BottomTabNavigator}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="로그인"
+          component={LoginScreen}
+          options={{
+            headerShown: false,
+            presentation: "modal",
+          }}
+        />
+        <Stack.Screen
+          name="회원가입"
+          component={SignupScreen}
+          options={{
+            headerShown: false,
+            presentation: "modal",
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -564,10 +667,8 @@ function RootNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        <RootNavigator />
-      </NavigationContainer>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <RootNavigator />
     </AuthProvider>
   );
 }

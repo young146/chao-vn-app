@@ -5,16 +5,14 @@ import {
   createUserWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthContext = createContext({});
 
 // Admin 사용자 이메일 목록 (여기에 추가하세요!)
-const ADMIN_EMAILS = [
-  "info@chaovietnam.co,kr",  // 예시: 주필님 이메일로 변경하세요
-  "younghan146@gmail.com",  // 예시
-];
+const ADMIN_EMAILS = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -41,16 +39,44 @@ export const AuthProvider = ({ children }) => {
     return ADMIN_EMAILS.includes(user.email.toLowerCase());
   };
 
-  // 회원가입
-  const signup = async (email, password) => {
+  // 회원가입 (프로필 정보 포함)
+  const signup = async (email, password, profileData = {}) => {
     try {
+      // 1. Firebase Authentication 계정 생성
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-      return { success: true, user: userCredential.user };
+      const newUser = userCredential.user;
+
+      // 2. users 컬렉션에 프로필 저장
+      const profileCompleted = !!(profileData.city && profileData.district);
+
+      await setDoc(doc(db, "users", newUser.uid), {
+        uid: newUser.uid,
+        email: newUser.email,
+        displayName: profileData.displayName || email.split("@")[0],
+        city: profileData.city || null,
+        district: profileData.district || null,
+        apartment: profileData.apartment || null,
+        profileCompleted: profileCompleted,
+        createdAt: serverTimestamp(),
+      });
+
+      // 3. notificationSettings 초기화
+      await setDoc(doc(db, "notificationSettings", newUser.uid), {
+        userId: newUser.uid,
+        nearbyItems: profileCompleted ? true : false, // 주소 입력하면 자동 활성화
+        favorites: true,
+        reviews: true,
+        chat: true,
+        adminAlerts: true,
+      });
+
+      return { success: true, user: newUser, profileCompleted };
     } catch (error) {
+      console.error("회원가입 오류:", error);
       let message = "회원가입에 실패했습니다.";
       if (error.code === "auth/email-already-in-use") {
         message = "이미 사용중인 이메일입니다.";
@@ -97,7 +123,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signup, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, isAdmin, signup, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -33,41 +33,46 @@ import {
 
 export default function ProfileScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
-  const scrollViewRef = useRef(null); // 추가
-  const detailedAddressRef = useRef(null); // 추가
   const [stats, setStats] = useState({
     bookmarks: 0,
     comments: 0,
   });
 
+  // 프로필 사진
   const [profileImage, setProfileImage] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  // 기본 정보
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
   const [gender, setGender] = useState("");
 
+  // 주소
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedApartment, setSelectedApartment] = useState("");
   const [detailedAddress, setDetailedAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
 
+  // 베트남 생활 정보
   const [residencePeriod, setResidencePeriod] = useState("");
   const [residencePurpose, setResidencePurpose] = useState("");
   const [occupation, setOccupation] = useState("");
 
+  // SNS
   const [kakaoId, setKakaoId] = useState("");
   const [zaloId, setZaloId] = useState("");
   const [facebook, setFacebook] = useState("");
   const [instagram, setInstagram] = useState("");
 
+  // 잡지 관련
   const [howDidYouKnow, setHowDidYouKnow] = useState("");
   const [interests, setInterests] = useState([]);
   const [languagePreference, setLanguagePreference] = useState("");
   const [suggestions, setSuggestions] = useState("");
 
+  // 마케팅 동의
   const [marketingConsent, setMarketingConsent] = useState({
     events: false,
     discounts: false,
@@ -188,11 +193,14 @@ export default function ProfileScreen({ navigation }) {
       console.log("=== 사진 업로드 시작 ===");
       console.log("📸 이미지 URI:", uri);
       console.log("👤 User UID:", user?.uid);
+      console.log("🔐 User 객체:", user);
 
+      // 1. 로그인 확인
       if (!user || !user.uid) {
         throw new Error("로그인되지 않았습니다. 다시 로그인해주세요.");
       }
 
+      // 2. 이미지 fetch
       console.log("⏳ 이미지 fetch 중...");
       const response = await fetch(uri);
       if (!response.ok) {
@@ -200,6 +208,7 @@ export default function ProfileScreen({ navigation }) {
       }
       console.log("✅ 이미지 fetch 성공");
 
+      // 3. Blob 생성
       console.log("⏳ Blob 생성 중...");
       const blob = await response.blob();
       console.log("✅ Blob 생성 성공, 크기:", blob.size, "bytes");
@@ -208,33 +217,39 @@ export default function ProfileScreen({ navigation }) {
         throw new Error("이미지 파일이 비어있습니다.");
       }
 
+      // 4. Storage 업로드
       const filename = `profile_${user.uid}_${Date.now()}.jpg`;
       const storageRef = ref(storage, `profileImages/${filename}`);
       console.log("📁 Storage 경로:", storageRef.fullPath);
+      console.log("📁 Storage Bucket:", storageRef.bucket);
 
       console.log("⏳ Firebase Storage에 업로드 중...");
-      await uploadBytes(storageRef, blob);
-      console.log("✅ uploadBytes 성공");
+      const uploadResult = await uploadBytes(storageRef, blob);
+      console.log("✅ uploadBytes 성공:", uploadResult);
 
+      // 5. URL 받기
       console.log("⏳ Download URL 받기 중...");
       const downloadURL = await getDownloadURL(storageRef);
-      console.log("✅ Download URL 받기 성공");
+      console.log("✅ Download URL:", downloadURL);
 
+      // 6. Firestore 저장
       console.log("⏳ Firestore에 저장 중...");
       await setDoc(
         doc(db, "users", user.uid),
         { profileImage: downloadURL },
-        { merge: true }
+        { merge: true } // ✅ 문서가 없으면 생성, 있으면 업데이트
       );
       console.log("✅ Firestore 저장 성공");
-
       setProfileImage(downloadURL);
       Alert.alert("✅ 성공", "프로필 사진이 업데이트되었습니다!");
     } catch (error) {
-      console.error("❌ 사진 업로드 실패:", error);
+      console.error("❌❌❌ 사진 업로드 실패 ❌❌❌");
+      console.error("Error 전체:", error);
       console.error("Error code:", error.code);
       console.error("Error message:", error.message);
+      console.error("Error name:", error.name);
 
+      // 사용자에게 자세한 오류 메시지 표시
       let errorMessage = "사진 업로드에 실패했습니다.";
 
       if (error.code === "storage/unauthorized") {
@@ -252,7 +267,6 @@ export default function ProfileScreen({ navigation }) {
       setUploading(false);
     }
   };
-
   const toggleInterest = (interest) => {
     if (interests.includes(interest)) {
       setInterests(interests.filter((i) => i !== interest));
@@ -275,41 +289,7 @@ export default function ProfileScreen({ navigation }) {
     try {
       setIsSaving(true);
 
-      console.log("=== 프로필 저장 시작 ===");
-      console.log("👤 User:", user);
-      console.log("📝 이름:", name);
-      console.log("📞 전화:", phone);
-      console.log("🏙️ 도시:", selectedCity);
-      console.log("🏘️ 구/군:", selectedDistrict);
-      console.log("📍 아파트:", selectedApartment);
-      console.log("🏠 상세 주소:", detailedAddress);
-      console.log("📮 우편번호:", postalCode);
-      console.log("📅 거주 기간:", residencePeriod);
-      console.log("🎯 거주 목적:", residencePurpose);
-      console.log("💼 직업:", occupation);
-      console.log("💬 카카오:", kakaoId);
-      console.log("💬 Zalo:", zaloId);
-      console.log("📘 Facebook:", facebook);
-      console.log("📷 Instagram:", instagram);
-      console.log("🔍 알게된 경로:", howDidYouKnow);
-      console.log("❤️ 관심사:", interests);
-      console.log("🌐 언어:", languagePreference);
-      console.log("💡 희망사항:", suggestions);
-      console.log("📧 마케팅 동의:", marketingConsent);
-
-      const isProfileIncomplete =
-        !selectedCity ||
-        !selectedDistrict ||
-        !residencePeriod ||
-        !residencePurpose ||
-        !occupation;
-
-      console.log(
-        "📊 프로필 완성도:",
-        !isProfileIncomplete ? "완전" : "불완전"
-      );
-
-      await setDoc(
+      await updateDoc(
         doc(db, "users", user.uid),
         {
           name,
@@ -339,74 +319,23 @@ export default function ProfileScreen({ navigation }) {
 
           marketingConsent,
 
-          isProfileIncomplete,
-          userProfile: {
-            city: selectedCity,
-            district: selectedDistrict,
-          },
-
           profileCompletedAt: new Date().toISOString(),
         },
-        { merge: true }
+        { merge: true } // ✅ 추가!
       );
 
-      console.log("✅ 프로필 저장 성공!");
-      console.log("📊 Firestore 저장 완료");
+      Alert.alert(
+        "✅ 저장 완료!",
+        "프로필이 저장되었습니다!\n\n무료 잡지 배송이 시작됩니다. 주변에 새 상품이 등록되면 알림도 받을 수 있어요!",
+        [{ text: "확인" }]
+      );
 
-      // 상세주소 여부 확인
-      const hasDetailedAddress = detailedAddress && detailedAddress.trim();
-      if (hasDetailedAddress) {
-        // 상세주소 있을 때: 매거진으로 바로 이동
-        Alert.alert(
-          "✅ 저장 완료!",
-          "프로필이 저장되었습니다!\n\n📦 담당자가 2-3일 내 전화로 배송지를 확인한 후\n무료 잡지를 보내드립니다.",
-          [
-            {
-              text: "확인",
-              onPress: () => {
-                navigation.navigate("더보기메인");
-                navigation.getParent()?.navigate("매거진");
-              },
-            },
-          ]
-        );
-      } else {
-        // 상세주소 없을 때: 선택지 제공
-        Alert.alert(
-          "✅ 저장 완료!",
-          "프로필이 저장되었습니다!\n\n💡 잡지 무료 배송을 원하시면\n'상세 주소'를 입력해주세요.",
-          [
-            {
-              text: "지금기입",
-              onPress: () => {
-                // 상세주소 입력란으로 스크롤
-                setTimeout(() => {
-                  detailedAddressRef.current?.focus();
-                }, 100);
-              },
-            },
-            {
-              text: "나중에",
-              onPress: () => {
-                navigation.navigate("더보기메인");
-                navigation.getParent()?.navigate("매거진");
-              },
-            },
-          ]
-        );
-      }
+      console.log("✅ 프로필 저장 성공");
     } catch (error) {
-      console.error("❌❌❌ 프로필 저장 실패 ❌❌❌");
-      console.error("Error 전체:", error);
-      console.error("Error code:", error.code);
-      console.error("Error message:", error.message);
-      console.error("Error name:", error.name);
-      console.error("Error stack:", error.stack);
-
-      Alert.alert("오류", `프로필 저장에 실패했습니다.\n\n${error.message}`);
+      console.error("❌ 프로필 저장 실패:", error);
+      Alert.alert("오류", "프로필 저장에 실패했습니다.");
     } finally {
       setIsSaving(false);
-      console.log("=== 프로필 저장 종료 ===");
     }
   };
 
@@ -464,7 +393,8 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   return (
-    <ScrollView ref={scrollViewRef} style={styles.container}>
+    <ScrollView style={styles.container}>
+      {/* 프로필 헤더 */}
       <View style={styles.profileHeader}>
         <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
           {uploading ? (
@@ -497,6 +427,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.email}>{user?.email}</Text>
       </View>
 
+      {/* 통계 */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{stats.bookmarks}</Text>
@@ -509,6 +440,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
+      {/* 혜택 안내 */}
       <View style={styles.benefitBanner}>
         <Ionicons name="gift" size={24} color="#FF6B35" />
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -520,6 +452,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
+      {/* 기본 정보 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="person-outline" size={20} color="#FF6B35" />
@@ -530,7 +463,6 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="이름을 입력하세요"
-          placeholderTextColor="#bbb"
           value={name}
           onChangeText={setName}
         />
@@ -539,7 +471,6 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="+84 901234567"
-          placeholderTextColor="#bbb"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
@@ -568,6 +499,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
+      {/* 배송 주소 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="location" size={20} color="#FF6B35" />
@@ -639,10 +571,8 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={styles.inputLabel}>상세 주소</Text>
         <TextInput
-          ref={detailedAddressRef}
           style={styles.textInput}
           placeholder="101동 2003호"
-          placeholderTextColor="#bbb"
           value={detailedAddress}
           onChangeText={setDetailedAddress}
         />
@@ -657,6 +587,7 @@ export default function ProfileScreen({ navigation }) {
         />
       </View>
 
+      {/* 베트남 생활 정보 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="flag" size={20} color="#FF6B35" />
@@ -713,6 +644,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
+      {/* SNS 연락처 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="chatbubbles" size={20} color="#FF6B35" />
@@ -723,7 +655,6 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="hongvn"
-          placeholderTextColor="#bbb"
           value={kakaoId}
           onChangeText={setKakaoId}
         />
@@ -732,7 +663,6 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="0901234567"
-          placeholderTextColor="#bbb"
           value={zaloId}
           onChangeText={setZaloId}
         />
@@ -741,7 +671,6 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="facebook.com/yourname"
-          placeholderTextColor="#bbb"
           value={facebook}
           onChangeText={setFacebook}
         />
@@ -750,12 +679,12 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="@yourname"
-          placeholderTextColor="#bbb"
           value={instagram}
           onChangeText={setInstagram}
         />
       </View>
 
+      {/* 잡지 관련 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="newspaper" size={20} color="#FF6B35" />
@@ -815,7 +744,6 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={[styles.textInput, styles.textArea]}
           placeholder="추가했으면 하는 콘텐츠나 개선사항을 자유롭게 적어주세요"
-          placeholderTextColor="#bbb"
           value={suggestions}
           onChangeText={setSuggestions}
           multiline
@@ -824,6 +752,7 @@ export default function ProfileScreen({ navigation }) {
         />
       </View>
 
+      {/* 마케팅 동의 */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="mail" size={20} color="#FF6B35" />
@@ -899,6 +828,7 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* 저장 버튼 */}
       <TouchableOpacity
         style={[
           styles.saveButton,
@@ -922,6 +852,7 @@ export default function ProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
+      {/* 메뉴 섹션 */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.menuItem} onPress={handleAppSettings}>
           <Ionicons name="settings-outline" size={24} color="#333" />

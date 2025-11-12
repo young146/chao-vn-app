@@ -12,20 +12,38 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  getDistrictsByCity,
+  getApartmentsByDistrict,
+} from "../utils/vietnamLocations";
 
 export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+
+  // 주소 정보 (선택사항)
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedApartment, setSelectedApartment] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signup } = useAuth();
 
+  const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
+  const apartments =
+    selectedCity && selectedDistrict
+      ? getApartmentsByDistrict(selectedCity, selectedDistrict)
+      : [];
+
   const handleSignup = async () => {
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert("알림", "모든 항목을 입력해주세요.");
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
       return;
     }
 
@@ -40,11 +58,24 @@ export default function SignupScreen({ navigation }) {
     }
 
     setLoading(true);
-    const result = await signup(email, password);
+
+    // 프로필 데이터 준비
+    const profileData = {
+      displayName: displayName.trim() || email.split("@")[0],
+      city: selectedCity || null,
+      district: selectedDistrict || null,
+      apartment: selectedApartment || null,
+    };
+
+    const result = await signup(email, password, profileData);
     setLoading(false);
 
     if (result.success) {
-      Alert.alert("가입 완료", "회원가입이 완료되었습니다!", [
+      const message = result.profileCompleted
+        ? "프로필이 등록되었습니다!\n주변 상품 알림을 받으실 수 있어요."
+        : "언제든 프로필에서 주소를 등록하시면\n주변 새상품 알림을 받으실 수 있어요!";
+
+      Alert.alert("🎉 가입 완료", message, [
         {
           text: "확인",
           onPress: () => navigation.goBack(),
@@ -72,6 +103,7 @@ export default function SignupScreen({ navigation }) {
 
           {/* 입력 폼 */}
           <View style={styles.formContainer}>
+            {/* 이메일 */}
             <View style={styles.inputGroup}>
               <Ionicons
                 name="mail-outline"
@@ -90,6 +122,24 @@ export default function SignupScreen({ navigation }) {
               />
             </View>
 
+            {/* 닉네임 (선택) */}
+            <View style={styles.inputGroup}>
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color="#999"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="닉네임 (선택)"
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* 비밀번호 */}
             <View style={styles.inputGroup}>
               <Ionicons
                 name="lock-closed-outline"
@@ -117,6 +167,7 @@ export default function SignupScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
+            {/* 비밀번호 확인 */}
             <View style={styles.inputGroup}>
               <Ionicons
                 name="lock-closed-outline"
@@ -144,6 +195,82 @@ export default function SignupScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
+            {/* 안내 메시지 */}
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={18} color="#FF6B35" />
+              <Text style={styles.infoText}>
+                프로필을 작성하시면 주변 새상품 알림을 받을 수 있습니다
+              </Text>
+            </View>
+
+            {/* 주소 입력 (선택사항) */}
+            <View style={styles.addressSection}>
+              <Text style={styles.sectionTitle}>주소 정보 (선택사항)</Text>
+
+              {/* 도시 */}
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={selectedCity}
+                  onValueChange={(value) => {
+                    setSelectedCity(value);
+                    setSelectedDistrict("");
+                    setSelectedApartment("");
+                  }}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="도시 선택" value="" />
+                  <Picker.Item label="호치민" value="호치민" />
+                  <Picker.Item label="하노이" value="하노이" />
+                  <Picker.Item label="다낭" value="다낭" />
+                  <Picker.Item label="냐짱" value="냐짱" />
+                </Picker>
+              </View>
+
+              {/* 구/군 */}
+              {selectedCity && (
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={selectedDistrict}
+                    onValueChange={(value) => {
+                      setSelectedDistrict(value);
+                      setSelectedApartment("");
+                    }}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="구/군 선택" value="" />
+                    {districts.map((district) => (
+                      <Picker.Item
+                        key={district}
+                        label={district}
+                        value={district}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              )}
+
+              {/* 아파트/지역 */}
+              {selectedDistrict && apartments.length > 0 && (
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={selectedApartment}
+                    onValueChange={setSelectedApartment}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="아파트/지역 선택" value="" />
+                    {apartments.map((apartment) => (
+                      <Picker.Item
+                        key={apartment}
+                        label={apartment}
+                        value={apartment}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              )}
+            </View>
+
+            {/* 가입 버튼 */}
             <TouchableOpacity
               style={styles.signupButton}
               onPress={handleSignup}
@@ -156,6 +283,7 @@ export default function SignupScreen({ navigation }) {
               )}
             </TouchableOpacity>
 
+            {/* 로그인으로 이동 */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>이미 계정이 있으신가요? </Text>
               <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -184,7 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   header: {
-    marginBottom: 40,
+    marginBottom: 30,
   },
   title: {
     fontSize: 32,
@@ -220,6 +348,40 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 4,
+  },
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF4E6",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  infoText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 12,
+    color: "#FF6B35",
+    lineHeight: 16,
+  },
+  addressSection: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+  },
+  pickerWrapper: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    marginBottom: 12,
+  },
+  picker: {
+    height: 50,
   },
   signupButton: {
     backgroundColor: "#FF6B35",
