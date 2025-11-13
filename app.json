@@ -2,7 +2,7 @@
   "expo": {
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,16 +11,13 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.chaovnapp",
+      "bundleIdentifier": "com.chaovietnam.chaovnapp",
+      "buildNumber": "2",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
+        "UIBackgroundModes": ["remote-notification"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -34,8 +31,8 @@
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourname.chaovnapp",
-      "versionCode": 29,
+      "package": "com.chaovietnam.chaovnapp",
+      "versionCode": 30,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -55,12 +52,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#FF6B35",
-          "sounds": [
-            "./assets/sounds/default.wav",
-            "./assets/sounds/chime.wav",
-            "./assets/sounds/bell.wav"
-          ]
+          "color": "#FF6B35"
         }
       ]
     ]
