@@ -585,22 +585,21 @@ const GlobalChatNotificationListener = () => {
         console.log("🔇 알림 OFF 상태");
         return;
       }
-      const soundData = await AsyncStorage.getItem("notification_sound");
-      const selectedSound = soundData
-        ? JSON.parse(soundData)
-        : { id: "default", file: "default.wav", channel: "chat_default" };
+
+      // ✅ 기본 시스템 알림음 사용
       await Notifications.scheduleNotificationAsync({
         content: {
           title: itemTitle || "새 메시지",
           body: messageText,
-          sound: selectedSound.file,
+          sound: true, // ✅ 시스템 기본 소리
           data: { screen: "ChatRoom" },
         },
         trigger:
           Platform.OS === "android"
-            ? { seconds: 1, channelId: selectedSound.channel }
+            ? { seconds: 1, channelId: "chat_default" }
             : { seconds: 1 },
       });
+
       Vibration.vibrate([0, 200, 100, 200]);
       console.log("🔔 전역 알림 재생 완료!");
     } catch (error) {
