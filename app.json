@@ -14,7 +14,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chaovietnam.chaovnapp",
+      "bundleIdentifier": "com.yourname.chaovnapp",
       "buildNumber": "2",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
@@ -31,7 +31,7 @@
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.chaovietnam.chaovnapp",
+      "package": "com.yourname.chaovnapp",
       "versionCode": 30,
       "permissions": [
         "android.permission.INTERNET",
