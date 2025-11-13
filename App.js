@@ -1,9 +1,7 @@
-import MyFavoritesScreen from "./screens/MyFavoritesScreen";
-import ChatListScreen from "./screens/ChatListScreen";
 import { LogBox } from "react-native";
 LogBox.ignoreAllLogs(true);
 import "react-native-gesture-handler";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -19,7 +17,17 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db, auth } from "./firebase/config";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 // AuthContext
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
@@ -30,11 +38,11 @@ import SignupScreen from "./screens/SignupScreen";
 // 네이티브 화면들
 import MoreScreen from "./screens/MoreScreen";
 import MyPageScreen from "./screens/MyPageScreen";
-import MyItemsScreen from "./screens/MyItemsScreen";
+import MyFavoritesScreen from "./screens/MyFavoritesScreen";
+import ChatListScreen from "./screens/ChatListScreen";
 import BookmarksScreen from "./screens/BookmarksScreen";
 import MyCommentsScreen from "./screens/MyCommentsScreen";
-import NotificationSettingsScreen from "./screens/NotificationSettingScreen";
-import NotificationsScreen from "./screens/NotificationsScreen";
+import NotificationSettingScreen from "./screens/NotificationSettingScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import ChatRoomScreen from "./screens/ChatRoomScreen";
 
@@ -42,33 +50,41 @@ import ChatRoomScreen from "./screens/ChatRoomScreen";
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
-import ReviewScreen from "./screens/ReviewScreen";
 import AdminScreen from "./screens/AdminScreen";
-import * as Notifications from "expo-notifications";
-import { onSnapshot, collection, query, where } from "firebase/firestore";
-import { db } from "./firebase/config";
-
-// ✅ 알림 핸들러 설정
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
 
 // ------------------------------------------------------------------
 // ** 1. URL 구조 **
 // ------------------------------------------------------------------
 const siteURLs = {
-  site1: "https://chaovietnam.co.kr/",
-  site3: "https://vnkorlife.com/?directory_type=jobs",
-  site4: "https://vnkorlife.com/?directory_type=real-estate",
-  site5: "https://vnkorlife.com/xinchao-board/",
+  magazine: "https://chaovietnam.co.kr/",
+  board: "https://vnkorlife.com/xinchao-board/",
 };
 
 // ------------------------------------------------------------------
-// ** 2. WebView 컴포넌트 **
+// ** 2. 자동 로그인 토큰 생성 **
+// ------------------------------------------------------------------
+const generateAutoLoginToken = (email) => {
+  const secret = "chaovietnam_firebase_2025"; // WordPress 플러그인과 동일
+  const timestamp = Math.floor(Date.now() / (3600 * 1000)); // 1시간 단위
+
+  // 간단한 해시 생성
+  const text = email + secret + timestamp;
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+
+  // SHA256 흉내 (더 강력한 해시)
+  const hashStr = Math.abs(hash).toString(16);
+  const extendedHash = hashStr + text.length.toString(16);
+
+  return extendedHash.padStart(64, "0").substring(0, 64);
+};
+
+// ------------------------------------------------------------------
+// ** 3. WebView 컴포넌트 **
 // ------------------------------------------------------------------
 const SiteWebView = ({ url }) => {
   const webviewRef = React.useRef(null);
@@ -78,6 +94,21 @@ const SiteWebView = ({ url }) => {
   const [currentUrl, setCurrentUrl] = React.useState(url);
   const [currentTitle, setCurrentTitle] = React.useState("");
   const { user } = useAuth();
+
+  // 자동 로그인 URL 생성
+  const getAutoLoginUrl = () => {
+    if (!user || !user.email) {
+      return url;
+    }
+
+    const token = generateAutoLoginToken(user.email);
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}firebase_token=${token}&user_email=${encodeURIComponent(
+      user.email
+    )}`;
+  };
+
+  const finalUrl = getAutoLoginUrl();
 
   const onNavigationStateChange = (navState) => {
     setCanGoBack(navState.canGoBack);
@@ -180,7 +211,7 @@ const SiteWebView = ({ url }) => {
         <>
           <WebView
             ref={webviewRef}
-            source={{ uri: url }}
+            source={{ uri: finalUrl }}
             style={styles.webview}
             onNavigationStateChange={onNavigationStateChange}
             onError={handleError}
@@ -211,7 +242,7 @@ const SiteWebView = ({ url }) => {
 };
 
 // ------------------------------------------------------------------
-// ** 3. Bottom Tab Navigator **
+// ** 4. Bottom Tab Navigator **
 // ------------------------------------------------------------------
 const Tab = createBottomTabNavigator();
 
@@ -225,15 +256,11 @@ function BottomTabNavigator() {
 
           if (route.name === "매거진") {
             iconName = focused ? "book" : "book-outline";
-          } else if (route.name === "씬짜오당근") {
-            iconName = focused ? "cart" : "cart-outline";
-          } else if (route.name === "구인구직") {
-            iconName = focused ? "briefcase" : "briefcase-outline";
-          } else if (route.name === "부동산") {
-            iconName = focused ? "business" : "business-outline";
           } else if (route.name === "게시판") {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
-          } else if (route.name === "더보기") {
+          } else if (route.name === "씬짜오당근") {
+            iconName = focused ? "cart" : "cart-outline";
+          } else if (route.name === "메뉴") {
             iconName = focused ? "menu" : "menu-outline";
           }
 
@@ -245,36 +272,31 @@ function BottomTabNavigator() {
       })}
     >
       <Tab.Screen name="매거진" options={{ title: "매거진" }}>
-        {() => <SiteWebView url={siteURLs.site1} />}
+        {() => <SiteWebView url={siteURLs.magazine} />}
+      </Tab.Screen>
+      <Tab.Screen name="게시판" options={{ title: "게시판" }}>
+        {() => <SiteWebView url={siteURLs.board} />}
       </Tab.Screen>
       <Tab.Screen
         name="씬짜오당근"
         component={DanggnStack}
         options={{ title: "당근" }}
       />
-      <Tab.Screen name="게시판" options={{ title: "게시판" }}>
-        {() => <SiteWebView url={siteURLs.site5} />}
-      </Tab.Screen>
-      <Tab.Screen name="구인구직" options={{ title: "구인" }}>
-        {() => <SiteWebView url={siteURLs.site3} />}
-      </Tab.Screen>
-      <Tab.Screen name="부동산" options={{ title: "부동산" }}>
-        {() => <SiteWebView url={siteURLs.site4} />}
-      </Tab.Screen>
       <Tab.Screen
-        name="더보기"
+        name="메뉴"
         component={MoreStack}
-        options={{ title: "더보기" }}
+        options={{ title: "메뉴" }}
       />
     </Tab.Navigator>
   );
 }
 
 // ------------------------------------------------------------------
-// ** 4. 씬짜오당근 Stack Navigator **
+// ** 5. 씬짜오당근 Stack Navigator **
 // ------------------------------------------------------------------
 const Stack = createNativeStackNavigator();
 
+// 헤더 우측 버튼 컴포넌트
 function DanggnHeaderRight({ navigation }) {
   const { user } = useAuth();
 
@@ -285,7 +307,7 @@ function DanggnHeaderRight({ navigation }) {
       {user ? (
         <TouchableOpacity
           style={{ padding: 8 }}
-          onPress={() => navigation.navigate("더보기")}
+          onPress={() => navigation.navigate("메뉴")}
         >
           <Ionicons name="person-circle" size={28} color="#fff" />
         </TouchableOpacity>
@@ -360,15 +382,6 @@ function DanggnStack() {
         }}
       />
       <Stack.Screen
-        name="리뷰 작성"
-        component={ReviewScreen}
-        options={{
-          title: "리뷰 작성",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{
@@ -380,18 +393,17 @@ function DanggnStack() {
     </Stack.Navigator>
   );
 }
-
 // ------------------------------------------------------------------
-// ** 5. 더보기 Stack Navigator **
+// ** 6. 더보기 Stack Navigator **
 // ------------------------------------------------------------------
 function MoreStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="더보기메인"
+        name="메뉴메인"
         component={MoreScreen}
         options={{
-          title: "더보기",
+          title: "메뉴",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -415,6 +427,15 @@ function MoreStack() {
         }}
       />
       <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{
+          title: "채팅",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
         name="찜한 물품"
         component={MyFavoritesScreen}
         options={{
@@ -433,26 +454,17 @@ function MoreStack() {
         }}
       />
       <Stack.Screen
-        name="내 후기"
+        name="내 댓글"
         component={MyCommentsScreen}
         options={{
-          title: "내 후기",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
-        name="알림"
-        component={NotificationsScreen}
-        options={{
-          title: "알림",
+          title: "내 댓글",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
       />
       <Stack.Screen
         name="알림 설정"
-        component={NotificationSettingsScreen}
+        component={NotificationSettingScreen}
         options={{
           title: "알림 설정",
           headerStyle: { backgroundColor: "#FF6B35" },
@@ -469,43 +481,6 @@ function MoreStack() {
         }}
       />
       <Stack.Screen
-        name="내 물품"
-        component={MyItemsScreen}
-        options={{
-          title: "내 물품",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
-        name="물품 상세"
-        component={ItemDetailScreen}
-        options={{
-          title: "물품 상세",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
-        name="물품 수정"
-        component={AddItemScreen}
-        options={{
-          title: "물품 수정",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
-        name="리뷰 작성"
-        component={ReviewScreen}
-        options={{
-          title: "리뷰 작성",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      {/* ✅ 관리자 페이지 */}
-      <Stack.Screen
         name="관리자 페이지"
         component={AdminScreen}
         options={{
@@ -514,21 +489,11 @@ function MoreStack() {
           headerTintColor: "#fff",
         }}
       />
-      <Stack.Screen
-        name="ChatRoom"
-        component={ChatRoomScreen}
-        options={{
-          title: "채팅",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
     </Stack.Navigator>
   );
 }
-
 // ------------------------------------------------------------------
-// ** 6. Auth Stack Navigator **
+// ** 7. Auth Stack Navigator **
 // ------------------------------------------------------------------
 function AuthStack() {
   return (
@@ -540,141 +505,127 @@ function AuthStack() {
 }
 
 // ------------------------------------------------------------------
-// ** 7. 메인 Navigator **
+// ** 8. 메인 Navigator **
 // ------------------------------------------------------------------
 function RootNavigator() {
-  const { user } = useAuth();
-  const navigationRef = useRef(null);
-
-  // ✅ 전역 채팅 메시지 알림 리스너
+  return (
+    <Stack.Navigator screenOptions={{ presentation: "modal" }}>
+      <Stack.Screen
+        name="MainApp"
+        component={BottomTabNavigator}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="로그인"
+        component={LoginScreen}
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="회원가입"
+        component={SignupScreen}
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+// ** 9. 전역 채팅 알림 리스너 **
+// ------------------------------------------------------------------
+const GlobalChatNotificationListener = () => {
   useEffect(() => {
-    if (!user) return;
-
-    console.log("👂 전역 채팅 알림 리스너 시작");
-
-    const chatRoomsQuery = query(
-      collection(db, "chatRooms"),
-      where("participants", "array-contains", user.uid)
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("🔔 전역 채팅 알림 리스너 시작:", user.uid);
+        listenToAllChatRooms(user.uid);
+      }
+    });
+    return unsubscribe;
+  }, []);
+  const listenToAllChatRooms = (userId) => {
+    const chatRoomsRef = collection(db, "chatRooms");
+    const q = query(
+      chatRoomsRef,
+      where("participants", "array-contains", userId)
     );
-
-    const unsubscribe = onSnapshot(chatRoomsQuery, (snapshot) => {
-      snapshot.docChanges().forEach(async (change) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
         if (change.type === "modified") {
-          const chatRoom = change.doc.data();
+          const chatData = change.doc.data();
 
           if (
-            chatRoom.lastMessageSenderId !== user.uid &&
-            chatRoom.lastMessage &&
-            chatRoom.unreadCount > 0
+            chatData.lastMessageSenderId &&
+            chatData.lastMessageSenderId !== userId
           ) {
-            const isSeller = chatRoom.sellerId === user.uid;
+            const isSeller = userId === chatData.sellerId;
             const hasUnread = isSeller
-              ? !chatRoom.sellerRead
-              : !chatRoom.buyerRead;
+              ? !chatData.sellerRead
+              : !chatData.buyerRead;
 
             if (hasUnread) {
-              console.log("🔔 새 채팅 메시지 감지!");
-
-              await Notifications.scheduleNotificationAsync({
-                content: {
-                  title: `💬 ${chatRoom.itemTitle || "새 메시지"}`,
-                  body: chatRoom.lastMessage,
-                  data: {
-                    chatRoomId: change.doc.id,
-                    itemId: chatRoom.itemId,
-                    itemTitle: chatRoom.itemTitle,
-                    itemImage: chatRoom.itemImage,
-                    otherUserId: isSeller
-                      ? chatRoom.buyerId
-                      : chatRoom.sellerId,
-                    otherUserName: isSeller
-                      ? chatRoom.buyerName
-                      : chatRoom.sellerName,
-                    sellerId: chatRoom.sellerId,
-                  },
-                },
-                trigger: null,
-              });
+              console.log("🔔 새 메시지 감지!", chatData.lastMessage);
+              playGlobalNotification(chatData.lastMessage, chatData.itemTitle);
             }
           }
         }
       });
     });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // ✅ 알림 탭했을 때 채팅방으로 이동
-  useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data;
-
-        if (data.chatRoomId && navigationRef.current) {
-          console.log("📱 알림 탭! 채팅방으로 이동:", data.chatRoomId);
-
-          navigationRef.current.navigate("씬짜오당근", {
-            screen: "ChatRoom",
-            params: {
-              chatRoomId: data.chatRoomId,
-              itemId: data.itemId,
-              itemTitle: data.itemTitle,
-              itemImage: data.itemImage,
-              otherUserId: data.otherUserId,
-              otherUserName: data.otherUserName,
-              sellerId: data.sellerId,
-            },
-          });
-        }
+    return unsubscribe;
+  };
+  const playGlobalNotification = async (messageText, itemTitle) => {
+    try {
+      const notificationEnabled = await AsyncStorage.getItem(
+        "chatNotificationEnabled"
+      );
+      if (notificationEnabled === "false") {
+        console.log("🔇 알림 OFF 상태");
+        return;
       }
-    );
-
-    return () => subscription.remove();
-  }, []);
-
-  return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ presentation: "modal" }}>
-        <Stack.Screen
-          name="MainApp"
-          component={BottomTabNavigator}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="로그인"
-          component={LoginScreen}
-          options={{
-            headerShown: false,
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="회원가입"
-          component={SignupScreen}
-          options={{
-            headerShown: false,
-            presentation: "modal",
-          }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-}
-
+      const soundData = await AsyncStorage.getItem("notification_sound");
+      const selectedSound = soundData
+        ? JSON.parse(soundData)
+        : { id: "default", file: "default.wav", channel: "chat_default" };
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: itemTitle || "새 메시지",
+          body: messageText,
+          sound: selectedSound.file,
+          data: { screen: "ChatRoom" },
+        },
+        trigger:
+          Platform.OS === "android"
+            ? { seconds: 1, channelId: selectedSound.channel }
+            : { seconds: 1 },
+      });
+      Vibration.vibrate([0, 200, 100, 200]);
+      console.log("🔔 전역 알림 재생 완료!");
+    } catch (error) {
+      console.log("전역 알림 실패:", error);
+    }
+  };
+  return null;
+};
 // ------------------------------------------------------------------
-// ** 8. App 컴포넌트 **
+// ** 10. App 컴포넌트 **
 // ------------------------------------------------------------------
 export default function App() {
   return (
     <AuthProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <RootNavigator />
+      <GlobalChatNotificationListener /> {/* 👈 이 줄 추가! */}
+      <NavigationContainer>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <RootNavigator />
+      </NavigationContainer>
     </AuthProvider>
   );
 }
 
 // ------------------------------------------------------------------
-// ** 9. Styles **
+// ** 11. Styles **
 // ------------------------------------------------------------------
 const styles = StyleSheet.create({
   container: {

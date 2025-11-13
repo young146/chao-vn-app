@@ -43,8 +43,16 @@ export default function MoreScreen({ navigation }) {
 
   const menuItems = [
     {
+      id: "chat",
+      title: "채팅",
+      icon: "chatbubble-ellipses",
+      screen: "내 채팅",
+      color: "#4CAF50",
+      requiresAuth: true,
+    },
+    {
       id: "mypage",
-      title: "My Page",
+      title: "마이페이지",
       icon: "person-circle",
       screen: "My Page",
       color: "#FF6B35",
@@ -53,17 +61,9 @@ export default function MoreScreen({ navigation }) {
     {
       id: "notifications",
       title: "알림",
-      icon: "notifications-outline",
+      icon: "notifications",
       screen: "알림",
       color: "#2196F3",
-      requiresAuth: true,
-    },
-    {
-      id: "notificationSettings",
-      title: "알림 설정",
-      icon: "settings",
-      screen: "알림 설정",
-      color: "#9C27B0",
       requiresAuth: true,
     },
   ];
@@ -109,27 +109,6 @@ export default function MoreScreen({ navigation }) {
         )}
       </View>
 
-      {/* ✅ 관리자 메뉴 */}
-      {isAdmin && (
-        <View style={styles.adminSection}>
-          <Text style={styles.sectionTitle}>관리자 메뉴</Text>
-          <TouchableOpacity
-            style={styles.adminMenuItem}
-            onPress={() => navigation.navigate("관리자 페이지")}
-          >
-            <View style={styles.menuLeft}>
-              <View
-                style={[styles.iconContainer, { backgroundColor: "#dc354520" }]}
-              >
-                <Ionicons name="shield-checkmark" size={24} color="#dc3545" />
-              </View>
-              <Text style={styles.menuTitle}>신규 물품 관리</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* 메뉴 리스트 */}
       <View style={styles.menuSection}>
         {menuItems.map((item) => (
@@ -153,6 +132,43 @@ export default function MoreScreen({ navigation }) {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* ✅ 관리자 메뉴 */}
+      {isAdmin && (
+        <View style={styles.adminSection}>
+          <Text style={styles.sectionTitle}>👑 관리자 메뉴</Text>
+
+          <TouchableOpacity
+            style={styles.adminMenuItem}
+            onPress={() => navigation.navigate("회원관리")}
+          >
+            <View style={styles.menuLeft}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#dc354520" }]}
+              >
+                <Ionicons name="people" size={24} color="#dc3545" />
+              </View>
+              <Text style={styles.menuTitle}>회원관리</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.adminMenuItem}
+            onPress={() => navigation.navigate("관리자 페이지")}
+          >
+            <View style={styles.menuLeft}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#dc354520" }]}
+              >
+                <Ionicons name="shield-checkmark" size={24} color="#dc3545" />
+              </View>
+              <Text style={styles.menuTitle}>신규 물품 관리</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* 로그아웃 버튼 */}
       {user && (
@@ -208,27 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  adminSection: {
-    backgroundColor: "#fff",
-    marginTop: 12,
-    paddingTop: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#dc3545",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  adminMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-    backgroundColor: "#FFF5F5",
-  },
   menuSection: {
     backgroundColor: "#fff",
     marginTop: 12,
@@ -256,6 +251,26 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     color: "#333",
+  },
+  adminSection: {
+    backgroundColor: "#fff",
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#dc3545",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  adminMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   logoutButton: {
     flexDirection: "row",

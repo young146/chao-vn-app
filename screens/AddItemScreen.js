@@ -608,14 +608,22 @@ export default function AddItemScreen({ navigation, route }) {
 
         <Text style={styles.label}>카테고리</Text>
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={category} onValueChange={setCategory}>
+          <Picker
+            selectedValue={category}
+            onValueChange={setCategory}
+            style={styles.picker}
+          >
             <Picker.Item label="전자제품" value="전자제품" />
             <Picker.Item label="가구/인테리어" value="가구/인테리어" />
             <Picker.Item label="의류/잡화" value="의류/잡화" />
-            <Picker.Item label="생활용품" value="생활용품" />
-            <Picker.Item label="도서/티켓" value="도서/티켓" />
-            <Picker.Item label="유아용품" value="유아용품" />
-            <Picker.Item label="펫용품" value="펫용품" />
+            <Picker.Item label="도서/문구" value="도서/문구" />
+            <Picker.Item label="유아동/출산" value="유아동/출산" />
+            <Picker.Item label="스포츠/레저" value="스포츠/레저" />
+            <Picker.Item label="무료나눔" value="무료나눔" />
+            <Picker.Item label="🔍 구인" value="구인" />
+            <Picker.Item label="💼 구직" value="구직" />
+            <Picker.Item label="🏠 부동산 임대" value="부동산 임대" />
+            <Picker.Item label="🏡 부동산 판매" value="부동산 판매" />
             <Picker.Item label="기타" value="기타" />
           </Picker>
         </View>

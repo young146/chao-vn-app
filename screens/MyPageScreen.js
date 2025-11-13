@@ -14,13 +14,6 @@ export default function MyPageScreen({ navigation }) {
 
   const myPageItems = [
     {
-      id: "chat",
-      title: "내 채팅",
-      icon: "chatbubbles",
-      screen: "내 채팅",
-      color: "#FF6B35",
-    },
-    {
       id: "favorites",
       title: "찜한 물품",
       icon: "heart",
