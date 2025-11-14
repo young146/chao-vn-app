@@ -103,9 +103,20 @@ export default function NotificationsScreen({ navigation }) {
 
         if (!snapshot.empty) {
           const itemDoc = snapshot.docs[0];
+          const itemData = itemDoc.data();
+
           const item = {
             id: itemDoc.id,
-            ...itemDoc.data(),
+            title: itemData.title,
+            price: itemData.price,
+            category: itemData.category,
+            description: itemData.description,
+            images: itemData.images,
+            sellerId: itemData.sellerId,
+            status: itemData.status,
+            city: itemData.city,
+            district: itemData.district,
+            apartment: itemData.apartment,
           };
 
           navigation.navigate("물품 상세", { item });
@@ -169,15 +180,15 @@ export default function NotificationsScreen({ navigation }) {
 
           <View style={styles.textContainer}>
             {/* 제목 */}
-           <Text style={[styles.title, !item.read && styles.unreadTitle]}>
-  {item.type === "priceChange" && <Text>🏷️ 가격 할인!</Text>}
-  {item.type === "review" && <Text>⭐ 새 리뷰</Text>}
-  {item.type === "new_review" && <Text>⭐ 새 리뷰</Text>}
-  {item.type === "favorite" && <Text>❤️ 새로운 찜</Text>}
-  {item.type === "chat" && <Text>💬 새 메시지</Text>}
-  {item.type === "new_item" && <Text>📦 새 물품 등록</Text>}
-  {item.type === "item_rejected" && <Text>🚫 물품 등록 거부</Text>}
-</Text>
+            <Text style={[styles.title, !item.read && styles.unreadTitle]}>
+              {item.type === "priceChange" && <Text>🏷️ 가격 할인!</Text>}
+              {item.type === "review" && <Text>⭐ 새 리뷰</Text>}
+              {item.type === "new_review" && <Text>⭐ 새 리뷰</Text>}
+              {item.type === "favorite" && <Text>❤️ 새로운 찜</Text>}
+              {item.type === "chat" && <Text>💬 새 메시지</Text>}
+              {item.type === "new_item" && <Text>📦 새 물품 등록</Text>}
+              {item.type === "item_rejected" && <Text>🚫 물품 등록 거부</Text>}
+            </Text>
             {/* ✅ 메시지 (numberOfLines 제거!) */}
             <Text style={styles.message}>{item.message}</Text>
 

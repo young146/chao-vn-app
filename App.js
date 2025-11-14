@@ -18,6 +18,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db, auth } from "./firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
@@ -25,7 +26,7 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 // AuthContext
@@ -49,6 +50,7 @@ import ReviewScreen from "./screens/ReviewScreen";
 import MyItemsScreen from "./screens/MyItemsScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
+
 // 씬짜오당근 화면들
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
@@ -669,6 +671,26 @@ const GlobalChatNotificationListener = () => {
 // ** 10. App 컴포넌트 **
 // ------------------------------------------------------------------
 export default function App() {
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      Notifications.setNotificationChannelAsync("default", {
+        name: "기본 알림",
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF6B35",
+      });
+
+      // 채팅 알림 채널도 추가
+      Notifications.setNotificationChannelAsync("chat_default", {
+        name: "채팅 알림",
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF6B35",
+      });
+    }
+  }, []);
   return (
     <AuthProvider>
       <GlobalChatNotificationListener /> {/* 👈 이 줄 추가! */}
