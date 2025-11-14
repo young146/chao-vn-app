@@ -465,15 +465,7 @@ function MoreStack() {
           headerTintColor: "#fff",
         }}
       />
-      <Stack.Screen
-        name="내 댓글"
-        component={MyCommentsScreen}
-        options={{
-          title: "내 댓글",
-          headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
+
       <Stack.Screen
         name="알림 설정"
         component={NotificationSettingScreen}
@@ -502,41 +494,58 @@ function MoreStack() {
         }}
       />
       <Stack.Screen
-  name="내 물품"
-  component={MyItemsScreen}
-  options={{
-    title: "내 물품",
-    headerStyle: { backgroundColor: "#FF6B35" },
-    headerTintColor: "#fff",
-  }}
-/>
-<Stack.Screen
-  name="내 후기"
-  component={MyCommentsScreen}
-  options={{
-    title: "내 후기",
-    headerStyle: { backgroundColor: "#FF6B35" },
-    headerTintColor: "#fff",
-  }}
-/>
-<Stack.Screen
-  name="회원관리"
-  component={UserManagementScreen}
-  options={{
-    title: "회원관리",
-    headerStyle: { backgroundColor: "#dc3545" },
-    headerTintColor: "#fff",
-  }}
-/>
-<Stack.Screen
-  name="알림"
-  component={NotificationsScreen}
-  options={{
-    title: "알림",
-    headerStyle: { backgroundColor: "#FF6B35" },
-    headerTintColor: "#fff",
-  }}
-/>
+        name="물품 상세"
+        component={ItemDetailScreen}
+        options={{
+          title: "물품 상세",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="내 물품"
+        component={MyItemsScreen}
+        options={{
+          title: "내 물품",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="내 후기"
+        component={MyCommentsScreen}
+        options={{
+          title: "내 후기",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="회원관리"
+        component={UserManagementScreen}
+        options={{
+          title: "회원관리",
+          headerStyle: { backgroundColor: "#dc3545" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="알림"
+        component={NotificationsScreen}
+        options={({ navigation }) => ({
+          title: "알림",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("알림 설정")}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="settings-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
     </Stack.Navigator>
   );
 }

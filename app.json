@@ -2,7 +2,7 @@
   "expo": {
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "ITSAppUsesNonExemptEncryption": false
@@ -32,7 +32,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 30,
+      "versionCode": 31,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",

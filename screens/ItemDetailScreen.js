@@ -186,16 +186,19 @@ export default function ItemDetailScreen({ route, navigation }) {
   }, [user, item, images, navigation]);
 
   useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ marginLeft: 12 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+
     if (!isMyItem && user) {
       navigation.setOptions({
-        headerLeft: () => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate("씬짜오당근메인")}
-            style={{ marginLeft: 12 }}
-          >
-            <Ionicons name="home-outline" size={24} color="#fff" />
-          </TouchableOpacity>
-        ),
         headerRight: () => (
           <TouchableOpacity
             onPress={handleChat}

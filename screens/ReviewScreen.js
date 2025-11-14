@@ -72,13 +72,7 @@ export default function ReviewScreen({ route, navigation }) {
         {
           text: "확인",
           onPress: () => {
-            navigation.navigate("당근마켓", {
-              screen: "물품 상세",
-              params: {
-                item,
-                refresh: Date.now(),
-              },
-            });
+            navigation.goBack();
           },
         },
       ]);
