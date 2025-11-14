@@ -49,7 +49,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "가구/인테리어",
     "의류/잡화",
     "생활용품",
-    "맛음품",
     "도서/티켓",
     "유아용품",
     "펫용품",
@@ -57,7 +56,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "구직",
     "부동산 임대",
     "부동산 판매",
-    "무료 나눔",
+    "무료나눔",
     "기타",
   ];
 

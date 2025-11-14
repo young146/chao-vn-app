@@ -169,16 +169,15 @@ export default function NotificationsScreen({ navigation }) {
 
           <View style={styles.textContainer}>
             {/* 제목 */}
-            <Text style={[styles.title, !item.read && styles.unreadTitle]}>
-              {item.type === "priceChange" && "🏷️ 가격 할인!"}
-              {item.type === "review" && "⭐ 새 리뷰"}
-              {item.type === "new_review" && "⭐ 새 리뷰"}
-              {item.type === "favorite" && "❤️ 새로운 찜"}
-              {item.type === "chat" && "💬 새 메시지"}
-              {item.type === "new_item" && "📦 새 물품 등록"}
-              {item.type === "item_rejected" && "🚫 물품 등록 거부"}
-            </Text>
-
+           <Text style={[styles.title, !item.read && styles.unreadTitle]}>
+  {item.type === "priceChange" && <Text>🏷️ 가격 할인!</Text>}
+  {item.type === "review" && <Text>⭐ 새 리뷰</Text>}
+  {item.type === "new_review" && <Text>⭐ 새 리뷰</Text>}
+  {item.type === "favorite" && <Text>❤️ 새로운 찜</Text>}
+  {item.type === "chat" && <Text>💬 새 메시지</Text>}
+  {item.type === "new_item" && <Text>📦 새 물품 등록</Text>}
+  {item.type === "item_rejected" && <Text>🚫 물품 등록 거부</Text>}
+</Text>
             {/* ✅ 메시지 (numberOfLines 제거!) */}
             <Text style={styles.message}>{item.message}</Text>
 

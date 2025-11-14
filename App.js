@@ -45,7 +45,10 @@ import MyCommentsScreen from "./screens/MyCommentsScreen";
 import NotificationSettingScreen from "./screens/NotificationSettingScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import ChatRoomScreen from "./screens/ChatRoomScreen";
-
+import ReviewScreen from "./screens/ReviewScreen";
+import MyItemsScreen from "./screens/MyItemsScreen";
+import UserManagementScreen from "./screens/UserManagementScreen";
+import NotificationsScreen from "./screens/NotificationsScreen";
 // 씬짜오당근 화면들
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
@@ -382,6 +385,15 @@ function DanggnStack() {
         }}
       />
       <Stack.Screen
+        name="리뷰 작성"
+        component={ReviewScreen}
+        options={{
+          title: "리뷰 작성",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{
@@ -489,6 +501,42 @@ function MoreStack() {
           headerTintColor: "#fff",
         }}
       />
+      <Stack.Screen
+  name="내 물품"
+  component={MyItemsScreen}
+  options={{
+    title: "내 물품",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+/>
+<Stack.Screen
+  name="내 후기"
+  component={MyCommentsScreen}
+  options={{
+    title: "내 후기",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+/>
+<Stack.Screen
+  name="회원관리"
+  component={UserManagementScreen}
+  options={{
+    title: "회원관리",
+    headerStyle: { backgroundColor: "#dc3545" },
+    headerTintColor: "#fff",
+  }}
+/>
+<Stack.Screen
+  name="알림"
+  component={NotificationsScreen}
+  options={{
+    title: "알림",
+    headerStyle: { backgroundColor: "#FF6B35" },
+    headerTintColor: "#fff",
+  }}
+/>
     </Stack.Navigator>
   );
 }

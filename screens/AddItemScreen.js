@@ -616,9 +616,10 @@ export default function AddItemScreen({ navigation, route }) {
             <Picker.Item label="전자제품" value="전자제품" />
             <Picker.Item label="가구/인테리어" value="가구/인테리어" />
             <Picker.Item label="의류/잡화" value="의류/잡화" />
+            <Picker.Item label="생활용품" value="생활용품" />
             <Picker.Item label="도서/문구" value="도서/문구" />
-            <Picker.Item label="유아동/출산" value="유아동/출산" />
-            <Picker.Item label="스포츠/레저" value="스포츠/레저" />
+            <Picker.Item label="유아용품" value="유아용품" />
+            <Picker.Item label="펫 용품" value="펫 용품" />
             <Picker.Item label="무료나눔" value="무료나눔" />
             <Picker.Item label="🔍 구인" value="구인" />
             <Picker.Item label="💼 구직" value="구직" />
