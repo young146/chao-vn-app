@@ -333,6 +333,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
           <TextInput
             style={styles.searchInput}
             placeholder="물품 검색..."
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={searchText}
             onChangeText={setSearchText}
           />

@@ -69,6 +69,7 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="이메일"
+              placeholderTextColor="rgba(0, 0, 0, 0.38)"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -87,6 +88,7 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="비밀번호"
+              placeholderTextColor="rgba(0, 0, 0, 0.38)"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}

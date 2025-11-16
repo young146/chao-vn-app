@@ -144,6 +144,7 @@ export default function ReviewScreen({ route, navigation }) {
             <TextInput
               style={styles.textArea}
               placeholder="거래 경험을 공유해주세요&#10;&#10;• 물품 상태는 어땠나요?&#10;• 판매자는 친절했나요?&#10;• 거래 과정은 만족스러웠나요?"
+              placeholderTextColor="rgba(0, 0, 0, 0.38)"
               value={content}
               onChangeText={setContent}
               multiline

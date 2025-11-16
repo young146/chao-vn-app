@@ -114,6 +114,7 @@ export default function SignupScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 placeholder="이메일"
+                placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -133,6 +134,7 @@ export default function SignupScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 placeholder="닉네임 (선택)"
+                placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={displayName}
                 onChangeText={setDisplayName}
                 autoCapitalize="words"
@@ -150,6 +152,7 @@ export default function SignupScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 placeholder="비밀번호 (최소 6자)"
+                placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -178,6 +181,7 @@ export default function SignupScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 placeholder="비밀번호 확인"
+                placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}

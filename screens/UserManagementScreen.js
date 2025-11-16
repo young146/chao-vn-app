@@ -317,6 +317,7 @@ export default function UserManagementScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="이름, 이메일, 전화번호 검색..."
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={searchText}
           onChangeText={setSearchText}
         />

@@ -363,6 +363,7 @@ export default function ChatRoomScreen({ route, navigation }) {
           value={messageText}
           onChangeText={setMessageText}
           placeholder="메시지를 입력하세요"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           multiline
           maxLength={500}
         />

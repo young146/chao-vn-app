@@ -84,6 +84,7 @@ export default function CommentsSection({ articleId }) {
         <TextInput
           style={styles.input}
           placeholder="댓글을 입력하세요..."
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={newComment}
           onChangeText={setNewComment}
           multiline
