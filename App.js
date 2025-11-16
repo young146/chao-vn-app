@@ -24,11 +24,18 @@ import { db, auth } from "./firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    // iOS용 새 옵션
+    shouldShowBanner: true,
+    shouldShowList: true,
+
+    // 소리 여부
     shouldPlaySound: true,
+
+    // 뱃지 (iOS)
     shouldSetBadge: true,
   }),
 });
+
 // AuthContext
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
@@ -92,7 +99,7 @@ const generateAutoLoginToken = (email) => {
 // ** 3. WebView 컴포넌트 **
 // ------------------------------------------------------------------
 const SiteWebView = ({ url }) => {
-  const webviewRef = React.useRef(null);
+  const webViewRef = React.useRef(null);
   const [canGoBack, setCanGoBack] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasError, setHasError] = React.useState(false);
@@ -100,17 +107,22 @@ const SiteWebView = ({ url }) => {
   const [currentTitle, setCurrentTitle] = React.useState("");
   const { user } = useAuth();
 
-  // 자동 로그인 URL 생성
+  // 🔹 자동 로그인 URL 생성
   const getAutoLoginUrl = () => {
     if (!user || !user.email) {
+      // 로그인 정보 없으면 그냥 원본 URL 사용
       return url;
     }
 
-    const token = generateAutoLoginToken(user.email);
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}firebase_token=${token}&user_email=${encodeURIComponent(
-      user.email
-    )}`;
+    // 🔸 원래 자동 로그인 쿼리스트링 로직 (잠시 보류)
+    // const token = generateAutoLoginToken(user.email);
+    // const separator = url.includes("?") ? "&" : "?";
+    // return `${url}${separator}firebase_token=${token}&user_email=${encodeURIComponent(
+    //   user.email
+    // )}`;
+
+    // 🔹 임시 조치: 쿼리스트링 없이 기본 URL만 사용
+    return url;
   };
 
   const finalUrl = getAutoLoginUrl();
@@ -118,19 +130,32 @@ const SiteWebView = ({ url }) => {
   const onNavigationStateChange = (navState) => {
     setCanGoBack(navState.canGoBack);
     setIsLoading(navState.loading);
-    setCurrentUrl(navState.url);
-    setCurrentTitle(navState.title || navState.url);
+
+    if (navState.url) {
+      setCurrentUrl(navState.url);
+    }
+    if (navState.title) {
+      setCurrentTitle(navState.title || navState.url);
+    }
+
+    // 페이지가 다시 로딩되면 에러 상태는 해제
+    setHasError(false);
   };
 
   const handleBack = () => {
-    if (canGoBack) {
-      webviewRef.current.goBack();
+    if (canGoBack && webViewRef.current) {
+      webViewRef.current.goBack();
     }
   };
 
   const handleRefresh = () => {
+    // 에러 상태/로딩 상태 초기화 후 새로고침
     setHasError(false);
-    webviewRef.current.reload();
+    setIsLoading(true);
+
+    if (webViewRef.current) {
+      webViewRef.current.reload();
+    }
   };
 
   const handleError = () => {
@@ -215,7 +240,7 @@ const SiteWebView = ({ url }) => {
       ) : (
         <>
           <WebView
-            ref={webviewRef}
+            ref={webViewRef}
             source={{ uri: finalUrl }}
             style={styles.webview}
             onNavigationStateChange={onNavigationStateChange}
@@ -593,6 +618,7 @@ function RootNavigator() {
     </Stack.Navigator>
   );
 }
+// ------------------------------------------------------------------
 // ** 9. 전역 채팅 알림 리스너 **
 // ------------------------------------------------------------------
 const GlobalChatNotificationListener = () => {
@@ -605,12 +631,14 @@ const GlobalChatNotificationListener = () => {
     });
     return unsubscribe;
   }, []);
+
   const listenToAllChatRooms = (userId) => {
     const chatRoomsRef = collection(db, "chatRooms");
     const q = query(
       chatRoomsRef,
       where("participants", "array-contains", userId)
     );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "modified") {
@@ -633,8 +661,10 @@ const GlobalChatNotificationListener = () => {
         }
       });
     });
+
     return unsubscribe;
   };
+
   const playGlobalNotification = async (messageText, itemTitle) => {
     try {
       const notificationEnabled = await AsyncStorage.getItem(
@@ -645,55 +675,58 @@ const GlobalChatNotificationListener = () => {
         return;
       }
 
-      // ✅ 기본 시스템 알림음 사용
+      // ✅ 기본 시스템 알림음 + 채팅 전용 채널 사용
       await Notifications.scheduleNotificationAsync({
         content: {
           title: itemTitle || "새 메시지",
           body: messageText,
-          sound: true, // ✅ 시스템 기본 소리
+          sound: "default", // 🔊 true 대신 "default" 로 명시
           data: { screen: "ChatRoom" },
         },
         trigger:
           Platform.OS === "android"
-            ? { seconds: 1, channelId: "chat_default" }
+            ? { seconds: 1, channelId: "chat_default_v2" } // 👈 아래 App에서 만든 채널과 이름 일치
             : { seconds: 1 },
       });
 
-      Vibration.vibrate([0, 200, 100, 200]);
       console.log("🔔 전역 알림 재생 완료!");
     } catch (error) {
       console.log("전역 알림 실패:", error);
     }
   };
+
   return null;
 };
+
 // ------------------------------------------------------------------
 // ** 10. App 컴포넌트 **
 // ------------------------------------------------------------------
 export default function App() {
   useEffect(() => {
     if (Platform.OS === "android") {
+      // ✅ 기본 알림 채널 (내 주변상품, 가격변동, 리뷰, 뉴스 등)
       Notifications.setNotificationChannelAsync("default", {
         name: "기본 알림",
-        importance: Notifications.AndroidImportance.HIGH,
-        sound: true,
+        importance: Notifications.AndroidImportance.MAX,
+        sound: "default",
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF6B35",
       });
 
-      // 채팅 알림 채널도 추가
-      Notifications.setNotificationChannelAsync("chat_default", {
+      // ✅ 채팅 알림 전용 채널 (소리 + 높은 우선순위)
+      Notifications.setNotificationChannelAsync("chat_default_v2", {
         name: "채팅 알림",
-        importance: Notifications.AndroidImportance.HIGH,
-        sound: true,
+        importance: Notifications.AndroidImportance.MAX, // 채팅은 가장 강하게
+        sound: "default", // 🔊 여기서도 "default"
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF6B35",
       });
     }
   }, []);
+
   return (
     <AuthProvider>
-      <GlobalChatNotificationListener /> {/* 👈 이 줄 추가! */}
+      <GlobalChatNotificationListener />
       <NavigationContainer>
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
         <RootNavigator />

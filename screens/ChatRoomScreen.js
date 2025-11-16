@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,10 @@ import {
   Image,
   Keyboard,
   Vibration,
-} from 'react-native';
-import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db, auth } from '../firebase/config';
+} from "react-native";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db, auth } from "../firebase/config";
 import {
   collection,
   addDoc,
@@ -26,9 +26,9 @@ import {
   serverTimestamp,
   getDoc,
   setDoc,
-} from 'firebase/firestore';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+} from "firebase/firestore";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 
 // 알림 핸들러 설정 (앱 시작 시 한 번만)
 Notifications.setNotificationHandler({
@@ -52,10 +52,10 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const [chatRoomId, setChatRoomId] = useState(initialChatRoomId);
   const [messages, setMessages] = useState([]);
-  const [messageText, setMessageText] = useState('');
+  const [messageText, setMessageText] = useState("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const currentUserId = auth.currentUser?.uid;
-  const currentUserName = auth.currentUser?.email?.split('@')[0] || '사용자';
+  const currentUserName = auth.currentUser?.email?.split("@")[0] || "사용자";
   const flatListRef = useRef(null);
   const prevMessageCountRef = useRef(0);
 
@@ -67,31 +67,31 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const requestNotificationPermissions = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      console.log('⚠️ 알림 권한 거부됨');
+    if (status !== "granted") {
+      console.log("⚠️ 알림 권한 거부됨");
     }
   };
 
   const setupNotificationChannels = async () => {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('chat_default', {
-        name: '기본 알림음',
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("chat_default", {
+        name: "기본 알림음",
         importance: Notifications.AndroidImportance.HIGH,
-        sound: 'default.wav',
+        sound: "default.wav",
         vibrationPattern: [0, 250, 250, 250],
       });
 
-      await Notifications.setNotificationChannelAsync('chat_chime', {
-        name: '차임벨',
+      await Notifications.setNotificationChannelAsync("chat_chime", {
+        name: "차임벨",
         importance: Notifications.AndroidImportance.HIGH,
-        sound: 'chime.wav',
+        sound: "chime.wav",
         vibrationPattern: [0, 250, 250, 250],
       });
 
-      await Notifications.setNotificationChannelAsync('chat_bell', {
-        name: '종소리',
+      await Notifications.setNotificationChannelAsync("chat_bell", {
+        name: "종소리",
         importance: Notifications.AndroidImportance.HIGH,
-        sound: 'bell.wav',
+        sound: "bell.wav",
         vibrationPattern: [0, 250, 250, 250],
       });
     }
@@ -100,13 +100,13 @@ export default function ChatRoomScreen({ route, navigation }) {
   // 키보드 높이 감지 (Android 대응)
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
+      "keyboardDidShow",
       (e) => {
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
     const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
+      "keyboardDidHide",
       () => {
         setKeyboardHeight(0);
       }
@@ -125,32 +125,34 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       const userIds = [sellerId, currentUserId].sort();
       const newChatRoomId = `${itemId}_${userIds[0]}_${userIds[1]}`;
-      
-      console.log('📌 채팅방 ID:', newChatRoomId);
 
-      const chatRoomRef = doc(db, 'chatRooms', newChatRoomId);
+      console.log("📌 채팅방 ID:", newChatRoomId);
+
+      const chatRoomRef = doc(db, "chatRooms", newChatRoomId);
       const chatRoomSnap = await getDoc(chatRoomRef);
 
       if (!chatRoomSnap.exists()) {
-        console.log('✅ 새 채팅방 생성');
+        console.log("✅ 새 채팅방 생성");
         await setDoc(chatRoomRef, {
           participants: [sellerId, currentUserId],
           itemId,
           itemTitle,
-          itemImage: itemImage || '',
+          itemImage: itemImage || "",
           sellerId,
-          sellerName: sellerId === currentUserId ? currentUserName : otherUserName,
+          sellerName:
+            sellerId === currentUserId ? currentUserName : otherUserName,
           buyerId: sellerId === currentUserId ? otherUserId : currentUserId,
-          buyerName: sellerId === currentUserId ? otherUserName : currentUserName,
-          lastMessage: '',
+          buyerName:
+            sellerId === currentUserId ? otherUserName : currentUserName,
+          lastMessage: "",
           lastMessageAt: serverTimestamp(),
-          lastMessageSenderId: '',
+          lastMessageSenderId: "",
           unreadCount: 0,
           sellerRead: true,
           buyerRead: true,
         });
       } else {
-        console.log('✅ 기존 채팅방 사용');
+        console.log("✅ 기존 채팅방 사용");
       }
 
       setChatRoomId(newChatRoomId);
@@ -163,37 +165,39 @@ export default function ChatRoomScreen({ route, navigation }) {
   const playNotification = async (messageText) => {
     try {
       // 설정 확인
-      const notificationEnabled = await AsyncStorage.getItem('chatNotificationEnabled');
-      if (notificationEnabled === 'false') {
-        console.log('🔇 알림 OFF 상태');
+      const notificationEnabled = await AsyncStorage.getItem(
+        "chatNotificationEnabled"
+      );
+      if (notificationEnabled === "false") {
+        console.log("🔇 알림 OFF 상태");
         return;
       }
 
       // 사용자가 선택한 알림음 가져오기
-      const soundData = await AsyncStorage.getItem('notification_sound');
-      const selectedSound = soundData 
-        ? JSON.parse(soundData) 
-        : { id: 'default', file: 'default.wav', channel: 'chat_default' };
+      const soundData = await AsyncStorage.getItem("notification_sound");
+      const selectedSound = soundData
+        ? JSON.parse(soundData)
+        : { id: "default", file: "default.wav", channel: "chat_default" };
 
       // 로컬 알림 발생
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '새 메시지',
+          title: "새 메시지",
           body: messageText,
           sound: selectedSound.file,
-          data: { screen: 'ChatRoom' },
+          data: { screen: "ChatRoom" },
         },
-        trigger: Platform.OS === 'android' 
-          ? { seconds: 1, channelId: selectedSound.channel }
-          : { seconds: 1 },
+        trigger:
+          Platform.OS === "android"
+            ? { seconds: 1, channelId: selectedSound.channel }
+            : { seconds: 1 },
       });
 
       // 진동
-      Vibration.vibrate([0, 200, 100, 200]);
 
-      console.log('🔔 알림 재생 완료!', selectedSound.id);
+      console.log("🔔 알림 재생 완료!", selectedSound.id);
     } catch (error) {
-      console.log('알림 재생 실패:', error);
+      console.log("알림 재생 실패:", error);
     }
   };
 
@@ -201,11 +205,11 @@ export default function ChatRoomScreen({ route, navigation }) {
   useEffect(() => {
     if (!chatRoomId) return;
 
-    console.log('👂 메시지 수신 대기:', chatRoomId);
+    console.log("👂 메시지 수신 대기:", chatRoomId);
 
     const q = query(
-      collection(db, 'chatRooms', chatRoomId, 'messages'),
-      orderBy('timestamp', 'asc')
+      collection(db, "chatRooms", chatRoomId, "messages"),
+      orderBy("timestamp", "asc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -213,27 +217,30 @@ export default function ChatRoomScreen({ route, navigation }) {
         id: doc.id,
         ...doc.data(),
       }));
-      
-      console.log('📨 받은 메시지:', msgs.length, '개');
-      
+
+      console.log("📨 받은 메시지:", msgs.length, "개");
+
       // ✅ 새 메시지 알림 (상대방이 보낸 경우만)
-      if (prevMessageCountRef.current > 0 && msgs.length > prevMessageCountRef.current) {
+      if (
+        prevMessageCountRef.current > 0 &&
+        msgs.length > prevMessageCountRef.current
+      ) {
         const newMessage = msgs[msgs.length - 1];
         if (newMessage.senderId !== currentUserId) {
-          console.log('🔔 새 메시지 도착!', newMessage.text);
+          console.log("🔔 새 메시지 도착!", newMessage.text);
           playNotification(newMessage.text);
         }
       }
-      
+
       prevMessageCountRef.current = msgs.length;
       setMessages(msgs);
 
       // 읽음 표시
       if (msgs.length > 0) {
-        const chatRoomRef = doc(db, 'chatRooms', chatRoomId);
+        const chatRoomRef = doc(db, "chatRooms", chatRoomId);
         const isSeller = currentUserId === sellerId;
         updateDoc(chatRoomRef, {
-          [isSeller ? 'sellerRead' : 'buyerRead']: true,
+          [isSeller ? "sellerRead" : "buyerRead"]: true,
           unreadCount: 0,
         });
       }
@@ -244,48 +251,50 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const sendMessage = async () => {
     if (!messageText.trim() || !chatRoomId) {
-      console.log('❌ 전송 불가:', { messageText, chatRoomId });
+      console.log("❌ 전송 불가:", { messageText, chatRoomId });
       return;
     }
 
-    console.log('📤 메시지 전송:', messageText);
+    console.log("📤 메시지 전송:", messageText);
 
     try {
-      const docRef = await addDoc(collection(db, 'chatRooms', chatRoomId, 'messages'), {
-        text: messageText.trim(),
-        senderId: currentUserId,
-        senderName: currentUserName,
-        timestamp: serverTimestamp(),
-      });
+      const docRef = await addDoc(
+        collection(db, "chatRooms", chatRoomId, "messages"),
+        {
+          text: messageText.trim(),
+          senderId: currentUserId,
+          senderName: currentUserName,
+          timestamp: serverTimestamp(),
+        }
+      );
 
-      console.log('✅ 메시지 저장 성공!', docRef.id);
+      console.log("✅ 메시지 저장 성공!", docRef.id);
 
-      const chatRoomRef = doc(db, 'chatRooms', chatRoomId);
+      const chatRoomRef = doc(db, "chatRooms", chatRoomId);
       const isSeller = currentUserId === sellerId;
-      
+
       await updateDoc(chatRoomRef, {
         lastMessage: messageText.trim(),
         lastMessageAt: serverTimestamp(),
         lastMessageSenderId: currentUserId,
-        [isSeller ? 'sellerRead' : 'buyerRead']: true,
-        [isSeller ? 'buyerRead' : 'sellerRead']: false,
+        [isSeller ? "sellerRead" : "buyerRead"]: true,
+        [isSeller ? "buyerRead" : "sellerRead"]: false,
         unreadCount: 1,
       });
 
-      console.log('✅ 채팅방 업데이트 성공!');
-      setMessageText('');
-      
+      console.log("✅ 채팅방 업데이트 성공!");
+      setMessageText("");
     } catch (error) {
-      console.error('❌❌❌ 메시지 전송 실패:', error);
-      alert('전송 실패: ' + error.message);
+      console.error("❌❌❌ 메시지 전송 실패:", error);
+      alert("전송 실패: " + error.message);
     }
   };
 
   const renderMessage = ({ item }) => {
     const isMyMessage = item.senderId === currentUserId;
     const messageTime = item.timestamp
-      ? format(item.timestamp.toDate(), 'HH:mm', { locale: ko })
-      : '';
+      ? format(item.timestamp.toDate(), "HH:mm", { locale: ko })
+      : "";
 
     return (
       <View
@@ -317,8 +326,8 @@ export default function ChatRoomScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
       <View style={styles.itemHeader}>
         {itemImage && (
@@ -340,12 +349,13 @@ export default function ChatRoomScreen({ route, navigation }) {
         }
       />
 
-      <View 
+      <View
         style={[
           styles.inputContainer,
-          Platform.OS === 'android' && keyboardHeight > 0 && {
-            marginBottom: keyboardHeight - 20,
-          }
+          Platform.OS === "android" &&
+            keyboardHeight > 0 && {
+              marginBottom: keyboardHeight - 20,
+            },
         ]}
       >
         <TextInput
@@ -357,7 +367,10 @@ export default function ChatRoomScreen({ route, navigation }) {
           maxLength={500}
         />
         <TouchableOpacity
-          style={[styles.sendButton, !messageText.trim() && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            !messageText.trim() && styles.sendButtonDisabled,
+          ]}
           onPress={sendMessage}
           disabled={!messageText.trim()}
         >
@@ -371,15 +384,15 @@ export default function ChatRoomScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   headerImage: {
     width: 40,
@@ -389,7 +402,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   messageList: {
@@ -398,15 +411,15 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginBottom: 12,
-    maxWidth: '75%',
+    maxWidth: "75%",
   },
   myMessage: {
-    alignSelf: 'flex-end',
-    alignItems: 'flex-end',
+    alignSelf: "flex-end",
+    alignItems: "flex-end",
   },
   otherMessage: {
-    alignSelf: 'flex-start',
-    alignItems: 'flex-start',
+    alignSelf: "flex-start",
+    alignItems: "flex-start",
   },
   messageBubble: {
     padding: 12,
@@ -414,36 +427,36 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   myBubble: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: "#FF6B35",
   },
   otherBubble: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
   },
   myMessageText: {
-    color: '#fff',
+    color: "#fff",
   },
   otherMessageText: {
-    color: '#333',
+    color: "#333",
   },
   messageTime: {
     fontSize: 11,
-    color: '#999',
+    color: "#999",
   },
   inputContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'flex-end',
+    borderTopColor: "#eee",
+    alignItems: "flex-end",
   },
   input: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -452,18 +465,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   sendButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: "#FF6B35",
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
   },
   sendButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
