@@ -24,14 +24,10 @@ import { db, auth } from "./firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    // iOS용 새 옵션
-    shouldShowBanner: true,
-    shouldShowList: true,
-
-    // 소리 여부
+    shouldShowAlert: true, // ← 추가!
+    shouldShowBanner: true, // iOS용
+    shouldShowList: true, // iOS용
     shouldPlaySound: true,
-
-    // 뱃지 (iOS)
     shouldSetBadge: true,
   }),
 });
