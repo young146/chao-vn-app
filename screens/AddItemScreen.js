@@ -593,6 +593,7 @@ export default function AddItemScreen({ navigation, route }) {
         <TextInput
           style={styles.input}
           placeholder="상품 제목"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={title}
           onChangeText={setTitle}
         />
@@ -601,6 +602,7 @@ export default function AddItemScreen({ navigation, route }) {
         <TextInput
           style={styles.input}
           placeholder="가격"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={price}
           onChangeText={setPrice}
           keyboardType="numeric"
@@ -613,6 +615,11 @@ export default function AddItemScreen({ navigation, route }) {
             onValueChange={setCategory}
             style={styles.picker}
           >
+            <Picker.Item label="무료나눔" value="무료나눔" />
+            <Picker.Item label="🔍 구인" value="구인" />
+            <Picker.Item label="💼 구직" value="구직" />
+            <Picker.Item label="🏠 부동산 임대" value="부동산 임대" />
+            <Picker.Item label="🏡 부동산 판매" value="부동산 판매" />
             <Picker.Item label="전자제품" value="전자제품" />
             <Picker.Item label="가구/인테리어" value="가구/인테리어" />
             <Picker.Item label="의류/잡화" value="의류/잡화" />
@@ -620,11 +627,7 @@ export default function AddItemScreen({ navigation, route }) {
             <Picker.Item label="도서/문구" value="도서/문구" />
             <Picker.Item label="유아용품" value="유아용품" />
             <Picker.Item label="펫 용품" value="펫 용품" />
-            <Picker.Item label="무료나눔" value="무료나눔" />
-            <Picker.Item label="🔍 구인" value="구인" />
-            <Picker.Item label="💼 구직" value="구직" />
-            <Picker.Item label="🏠 부동산 임대" value="부동산 임대" />
-            <Picker.Item label="🏡 부동산 판매" value="부동산 판매" />
+
             <Picker.Item label="기타" value="기타" />
           </Picker>
         </View>
@@ -687,6 +690,7 @@ export default function AddItemScreen({ navigation, route }) {
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder="상품 설명을 입력하세요"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={description}
           onChangeText={setDescription}
           multiline
@@ -703,6 +707,7 @@ export default function AddItemScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             placeholder="예: 010-1234-5678 또는 +84-123-456-789"
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -712,6 +717,7 @@ export default function AddItemScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             placeholder="예: kakao_id123"
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={kakaoId}
             onChangeText={setKakaoId}
           />
@@ -720,6 +726,7 @@ export default function AddItemScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             placeholder="예: Zalo: 0123456789"
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={otherContact}
             onChangeText={setOtherContact}
           />

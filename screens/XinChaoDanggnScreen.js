@@ -45,6 +45,11 @@ export default function XinChaoDanggnScreen({ navigation }) {
 
   const categories = [
     "전체",
+    "무료나눔",
+    "구인",
+    "구직",
+    "부동산 임대",
+    "부동산 판매",
     "전자제품",
     "가구/인테리어",
     "의류/잡화",
@@ -52,11 +57,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "도서/티켓",
     "유아용품",
     "펫용품",
-    "구인",
-    "구직",
-    "부동산 임대",
-    "부동산 판매",
-    "무료나눔",
+
     "기타",
   ];
 
