@@ -57,7 +57,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "도서/티켓",
     "유아용품",
     "펫용품",
-
     "기타",
   ];
 

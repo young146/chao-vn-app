@@ -8,6 +8,7 @@
       "cache": {
         "disabled": true
       },
+      "channel": "production",
       "android": {
         "buildType": "app-bundle"
       },
