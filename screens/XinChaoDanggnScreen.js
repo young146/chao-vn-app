@@ -538,14 +538,23 @@ const styles = StyleSheet.create({
     borderColor: "#e0e0e0",
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
-    marginBottom: 6,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 6,
   },
   picker: {
-    height: 50,
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: "#333",
+  },
+  pickerItem: {
+    fontSize: 14,
     color: "#333",
   },
   categoriesContainer: {
