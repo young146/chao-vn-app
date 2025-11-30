@@ -69,8 +69,11 @@ const siteURLs = {
 };
 
 // ------------------------------------------------------------------
-// ** 2. 자동 로그인 토큰 생성 **
+// ** 2. 자동 로그인 토큰 생성 (현재 사용 안 함 - 웹사이트와 당근 메뉴 로그인 분리) **
 // ------------------------------------------------------------------
+// 웹사이트는 자체 로그인 시스템 사용, 당근 메뉴는 Firebase Authentication 사용
+// 필요시 주석 해제하여 사용 가능
+/*
 const generateAutoLoginToken = (email) => {
   const secret = "chaovietnam_firebase_2025"; // WordPress 플러그인과 동일
   const timestamp = Math.floor(Date.now() / (3600 * 1000)); // 1시간 단위
@@ -90,6 +93,7 @@ const generateAutoLoginToken = (email) => {
 
   return extendedHash.padStart(64, "0").substring(0, 64);
 };
+*/
 
 // ------------------------------------------------------------------
 // ** 3. WebView 컴포넌트 **
@@ -101,27 +105,9 @@ const SiteWebView = ({ url }) => {
   const [hasError, setHasError] = React.useState(false);
   const [currentUrl, setCurrentUrl] = React.useState(url);
   const [currentTitle, setCurrentTitle] = React.useState("");
-  const { user } = useAuth();
+  const { user } = useAuth(); // 북마크 기능을 위해만 사용
 
-  // 🔹 자동 로그인 URL 생성
-  const getAutoLoginUrl = () => {
-    if (!user || !user.email) {
-      // 로그인 정보 없으면 그냥 원본 URL 사용
-      return url;
-    }
-
-    // 🔸 원래 자동 로그인 쿼리스트링 로직 (잠시 보류)
-    // const token = generateAutoLoginToken(user.email);
-    // const separator = url.includes("?") ? "&" : "?";
-    // return `${url}${separator}firebase_token=${token}&user_email=${encodeURIComponent(
-    //   user.email
-    // )}`;
-
-    // 🔹 임시 조치: 쿼리스트링 없이 기본 URL만 사용
-    return url;
-  };
-
-  const finalUrl = getAutoLoginUrl();
+  // 웹사이트는 자체 로그인 시스템 사용, 당근 메뉴는 Firebase Authentication 사용
 
   const onNavigationStateChange = (navState) => {
     setCanGoBack(navState.canGoBack);
@@ -130,9 +116,8 @@ const SiteWebView = ({ url }) => {
     if (navState.url) {
       setCurrentUrl(navState.url);
     }
-    if (navState.title) {
-      setCurrentTitle(navState.title || navState.url);
-    }
+    // 항상 제목 업데이트 (제목이 없으면 URL을 fallback으로 사용)
+    setCurrentTitle(navState.title || navState.url);
 
     // 페이지가 다시 로딩되면 에러 상태는 해제
     setHasError(false);
@@ -237,7 +222,7 @@ const SiteWebView = ({ url }) => {
         <>
           <WebView
             ref={webViewRef}
-            source={{ uri: finalUrl }}
+            source={{ uri: url }}
             style={styles.webview}
             onNavigationStateChange={onNavigationStateChange}
             onError={handleError}
@@ -250,6 +235,7 @@ const SiteWebView = ({ url }) => {
             cacheEnabled={true}
             injectedJavaScript={injectedJavaScript}
             setSupportMultipleWindows={false}
+            originWhitelist={['https://*', 'http://*']}
             androidHardwareAccelerationDisabled={false}
             androidLayerType="hardware"
           />

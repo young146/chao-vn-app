@@ -378,14 +378,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pickerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#f5f5f5",
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e0e0e0",
+    borderRadius: 8,
+    paddingHorizontal: 10,
     marginBottom: 12,
   },
   picker: {
-    height: 50,
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: "#333",
   },
   signupButton: {
     backgroundColor: "#FF6B35",
