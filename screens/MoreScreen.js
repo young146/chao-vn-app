@@ -6,13 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import * as Updates from "expo-updates";
 
 export default function MoreScreen({ navigation }) {
   const { user, logout } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   // ✅ 관리자 확인
   useEffect(() => {
@@ -21,6 +25,45 @@ export default function MoreScreen({ navigation }) {
       setIsAdmin(adminEmails.includes(user.email));
     }
   }, [user]);
+
+  // ✅ 업데이트 정보 확인
+  const checkUpdateInfo = async () => {
+    try {
+      setCheckingUpdate(true);
+      const update = await Updates.checkForUpdateAsync();
+      
+      if (update.isAvailable) {
+        const manifest = await Updates.fetchUpdateAsync();
+        setUpdateInfo({
+          isAvailable: true,
+          manifest: manifest.manifest,
+          message: "새 업데이트가 있습니다! 앱을 재시작하면 적용됩니다.",
+        });
+        Alert.alert(
+          "업데이트 확인",
+          "새 업데이트가 있습니다.\n앱을 재시작하면 적용됩니다.",
+          [
+            { text: "나중에", style: "cancel" },
+            {
+              text: "지금 재시작",
+              onPress: () => Updates.reloadAsync(),
+            },
+          ]
+        );
+      } else {
+        setUpdateInfo({
+          isAvailable: false,
+          message: "최신 버전입니다.",
+        });
+        Alert.alert("업데이트 확인", "최신 버전입니다.");
+      }
+    } catch (error) {
+      console.error("업데이트 확인 실패:", error);
+      Alert.alert("오류", "업데이트 확인에 실패했습니다.");
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
@@ -178,10 +221,40 @@ export default function MoreScreen({ navigation }) {
         </TouchableOpacity>
       )}
 
+      {/* 업데이트 확인 버튼 */}
+      <View style={styles.updateSection}>
+        <TouchableOpacity
+          style={styles.updateButton}
+          onPress={checkUpdateInfo}
+          disabled={checkingUpdate}
+        >
+          {checkingUpdate ? (
+            <ActivityIndicator size="small" color="#FF6B35" />
+          ) : (
+            <Ionicons name="refresh" size={20} color="#FF6B35" />
+          )}
+          <Text style={styles.updateButtonText}>
+            {checkingUpdate ? "확인 중..." : "업데이트 확인"}
+          </Text>
+        </TouchableOpacity>
+        {updateInfo && (
+          <Text style={styles.updateInfoText}>{updateInfo.message}</Text>
+        )}
+      </View>
+
       {/* 앱 정보 */}
       <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>씬짜오당근 v1.0.0</Text>
+        <Text style={styles.appInfoText}>씬짜오당근 v2.0.1</Text>
         <Text style={styles.appInfoText}>베트남 한인 중고거래</Text>
+        {__DEV__ ? (
+          <Text style={[styles.appInfoText, { color: "#FF6B35" }]}>
+            개발 모드
+          </Text>
+        ) : (
+          <Text style={[styles.appInfoText, { color: "#4CAF50" }]}>
+            프로덕션 모드
+          </Text>
+        )}
       </View>
     </ScrollView>
   );
@@ -288,6 +361,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#dc3545",
     fontWeight: "600",
+  },
+  updateSection: {
+    backgroundColor: "#fff",
+    marginTop: 12,
+    padding: 16,
+  },
+  updateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF4E6",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FF6B35",
+  },
+  updateButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#FF6B35",
+    fontWeight: "600",
+  },
+  updateInfoText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
   },
   appInfo: {
     alignItems: "center",
