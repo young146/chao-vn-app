@@ -22,6 +22,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -125,15 +126,47 @@ export default function ProfileScreen({ navigation }) {
         setAgeGroup(data.ageGroup || "");
         setGender(data.gender || "");
 
-        setSelectedCity(data.city || "");
-        setSelectedDistrict(data.district || "");
-        setSelectedApartment(data.apartment || "");
+        let cityValue = data.city || "";
+        const districtValue = data.district || "";
+        const apartmentValue = data.apartment || "";
+
+        // 도시 값 정규화 (공백 제거, 정확한 매칭을 위해)
+        if (cityValue) {
+          cityValue = cityValue.trim();
+          // 가능한 도시 값들 확인
+          const validCities = ["호치민", "하노이", "다낭", "냐짱"];
+          if (!validCities.includes(cityValue)) {
+            console.warn("⚠️ 알 수 없는 도시 값:", cityValue);
+            cityValue = ""; // 유효하지 않은 값이면 빈 문자열로
+          }
+        }
+
+        console.log("📍 프로필 로드 - 주소 정보:", {
+          city: cityValue,
+          cityType: typeof cityValue,
+          district: districtValue,
+          apartment: apartmentValue,
+        });
+
+        setSelectedCity(cityValue);
+        setSelectedDistrict(districtValue);
+        setSelectedApartment(apartmentValue);
         setDetailedAddress(data.detailedAddress || "");
         setPostalCode(data.postalCode || "");
 
-        setResidencePeriod(data.residencePeriod || "");
-        setResidencePurpose(data.residencePurpose || "");
-        setOccupation(data.occupation || "");
+        const residencePeriodValue = data.residencePeriod || "";
+        const residencePurposeValue = data.residencePurpose || "";
+        const occupationValue = data.occupation || "";
+
+        console.log("📍 프로필 로드 - 거주 정보:", {
+          residencePeriod: residencePeriodValue,
+          residencePurpose: residencePurposeValue,
+          occupation: occupationValue,
+        });
+
+        setResidencePeriod(residencePeriodValue);
+        setResidencePurpose(residencePurposeValue);
+        setOccupation(occupationValue);
 
         setKakaoId(data.kakaoId || "");
         setZaloId(data.zaloId || "");
@@ -440,6 +473,72 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
+  const handleDeleteProfile = () => {
+    Alert.alert(
+      "프로필 삭제",
+      "프로필을 삭제하시겠습니까?\n\n삭제된 프로필은 복구할 수 없습니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제하기",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsSaving(true);
+              const userRef = doc(db, "users", user.uid);
+
+              // Firestore 프로필 데이터만 삭제 (Auth 계정은 유지)
+              await deleteDoc(userRef);
+              console.log("✅ 프로필 삭제 완료");
+
+              // 프로필 삭제 후 초기화
+              setEmail("");
+              setName("");
+              setPhone("");
+              setAgeGroup("");
+              setGender("");
+              setSelectedCity("");
+              setSelectedDistrict("");
+              setSelectedApartment("");
+              setDetailedAddress("");
+              setPostalCode("");
+              setResidencePeriod("");
+              setResidencePurpose("");
+              setOccupation("");
+              setKakaoId("");
+              setZaloId("");
+              setFacebook("");
+              setInstagram("");
+              setHowDidYouKnow("");
+              setInterests([]);
+              setLanguagePreference("");
+              setSuggestions("");
+              setMarketingConsent({
+                events: false,
+                discounts: false,
+                surveys: false,
+                partnerships: false,
+              });
+              setProfileImage(null);
+              setIsProfileComplete(false);
+              setIsEditMode(false);
+
+              Alert.alert("✅ 완료", "프로필이 삭제되었습니다.");
+            } catch (error) {
+              console.error("❌ 프로필 삭제 실패:", error);
+              Alert.alert(
+                "오류",
+                "프로필 삭제 중 오류가 발생했습니다.\n다시 시도해주세요."
+              );
+            } finally {
+              setIsSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleHelp = () => {
     Alert.alert(
       "도움말",
@@ -739,7 +838,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="example@email.com"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -750,7 +849,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="이름을 입력하세요"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={name}
           onChangeText={setName}
         />
@@ -759,7 +858,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="+84 901234567"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
@@ -767,7 +866,11 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={styles.inputLabel}>나이대</Text>
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={ageGroup} onValueChange={setAgeGroup}>
+          <Picker
+            selectedValue={ageGroup}
+            onValueChange={setAgeGroup}
+            style={styles.picker}
+          >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="20대" value="20대" />
             <Picker.Item label="30대" value="30대" />
@@ -779,7 +882,11 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={styles.inputLabel}>성별</Text>
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={gender} onValueChange={setGender}>
+          <Picker
+            selectedValue={gender}
+            onValueChange={setGender}
+            style={styles.picker}
+          >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="남" value="남" />
             <Picker.Item label="여" value="여" />
@@ -797,12 +904,13 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.inputLabel}>도시 *</Text>
         <View style={styles.pickerContainer}>
           <Picker
-            selectedValue={selectedCity}
+            selectedValue={selectedCity || ""}
             onValueChange={(value) => {
-              setSelectedCity(value);
+              setSelectedCity(value || "");
               setSelectedDistrict("");
               setSelectedApartment("");
             }}
+            style={styles.picker}
           >
             <Picker.Item label="도시 선택" value="" />
             <Picker.Item label="호치민" value="호치민" />
@@ -814,7 +922,9 @@ export default function ProfileScreen({ navigation }) {
 
         {selectedCity && (
           <>
-            <Text style={styles.inputLabel}>구/군 (District) *</Text>
+            <Text style={[styles.inputLabel, { marginTop: 0 }]}>
+              구/군 (District) *
+            </Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedDistrict}
@@ -822,6 +932,7 @@ export default function ProfileScreen({ navigation }) {
                   setSelectedDistrict(value);
                   setSelectedApartment("");
                 }}
+                style={styles.picker}
               >
                 <Picker.Item label="구/군 선택" value="" />
                 {districts.map((district) => (
@@ -843,6 +954,7 @@ export default function ProfileScreen({ navigation }) {
               <Picker
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
+                style={styles.picker}
               >
                 <Picker.Item label="아파트 선택" value="" />
                 {apartments.map((apartment) => (
@@ -862,7 +974,7 @@ export default function ProfileScreen({ navigation }) {
           ref={detailedAddressRef}
           style={styles.textInput}
           placeholder="101동 2003호"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={detailedAddress}
           onChangeText={setDetailedAddress}
         />
@@ -888,6 +1000,7 @@ export default function ProfileScreen({ navigation }) {
           <Picker
             selectedValue={residencePeriod}
             onValueChange={setResidencePeriod}
+            style={styles.picker}
           >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="6개월 미만" value="6개월 미만" />
@@ -898,11 +1011,12 @@ export default function ProfileScreen({ navigation }) {
           </Picker>
         </View>
 
-        <Text style={styles.inputLabel}>거주 목적</Text>
+        <Text style={[styles.inputLabel, { marginTop: 0 }]}>거주 목적</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={residencePurpose}
             onValueChange={setResidencePurpose}
+            style={styles.picker}
           >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="현지 취업" value="현지 취업" />
@@ -917,7 +1031,11 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={styles.inputLabel}>직업/업종</Text>
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={occupation} onValueChange={setOccupation}>
+          <Picker
+            selectedValue={occupation}
+            onValueChange={setOccupation}
+            style={styles.picker}
+          >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="IT/소프트웨어" value="IT/소프트웨어" />
             <Picker.Item label="제조업" value="제조업" />
@@ -944,7 +1062,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="카카오톡 ID"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={kakaoId}
           onChangeText={setKakaoId}
         />
@@ -953,7 +1071,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="Zalo ID"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={zaloId}
           onChangeText={setZaloId}
         />
@@ -962,7 +1080,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="Facebook 계정"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={facebook}
           onChangeText={setFacebook}
         />
@@ -971,7 +1089,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.textInput}
           placeholder="Instagram 계정"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={instagram}
           onChangeText={setInstagram}
         />
@@ -990,6 +1108,7 @@ export default function ProfileScreen({ navigation }) {
           <Picker
             selectedValue={howDidYouKnow}
             onValueChange={setHowDidYouKnow}
+            style={styles.picker}
           >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="검색엔진 (구글, 네이버)" value="검색엔진" />
@@ -1030,6 +1149,7 @@ export default function ProfileScreen({ navigation }) {
           <Picker
             selectedValue={languagePreference}
             onValueChange={setLanguagePreference}
+            style={styles.picker}
           >
             <Picker.Item label="선택하세요" value="" />
             <Picker.Item label="한국어" value="한국어" />
@@ -1043,7 +1163,7 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={[styles.textInput, styles.textArea]}
           placeholder="예) 더 많은 부동산 정보, 한인 맛집 리뷰 등"
-          placeholderTextColor="#bbb"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={suggestions}
           onChangeText={setSuggestions}
           multiline
@@ -1153,6 +1273,17 @@ export default function ProfileScreen({ navigation }) {
             </>
           )}
         </TouchableOpacity>
+
+        {/* 프로필 삭제 버튼 (저장 버튼 옆에 작게) */}
+        {isProfileComplete && (
+          <TouchableOpacity
+            style={styles.deleteProfileButton}
+            onPress={handleDeleteProfile}
+            disabled={isSaving}
+          >
+            <Text style={styles.deleteProfileText}>삭제</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -1344,19 +1475,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
-    marginBottom: 6,
-    marginTop: 12,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginTop: 10,
+    marginBottom: 5,
   },
   textInput: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 10,
     backgroundColor: "#fff",
   },
   textArea: {
@@ -1364,11 +1495,20 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff",
-    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  picker: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 16,
+    color: "#333",
   },
   interestsGrid: {
     flexDirection: "row",
@@ -1463,5 +1603,16 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: "#999",
+  },
+  deleteProfileButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteProfileText: {
+    fontSize: 12,
+    color: "#999",
+    textDecorationLine: "underline",
   },
 });

@@ -112,7 +112,18 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
+    let date;
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === "string") {
+      // ISO 문자열인 경우
+      date = new Date(timestamp);
+    } else if (timestamp.toDate) {
+      // Firestore Timestamp인 경우
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);

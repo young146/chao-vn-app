@@ -142,7 +142,12 @@ export default function AdminScreen({ navigation }) {
   };
 
   const handleViewDetail = (item) => {
-    navigation.navigate("물품 상세", { item });
+    // createdAt을 문자열로 변환하여 navigation params에 전달
+    const serializableItem = {
+      ...item,
+      createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
+    };
+    navigation.navigate("물품 상세", { item: serializableItem });
   };
 
   const formatPrice = (price) => {

@@ -117,6 +117,8 @@ export default function NotificationsScreen({ navigation }) {
             city: itemData.city,
             district: itemData.district,
             apartment: itemData.apartment,
+            // createdAt을 문자열로 변환하여 navigation params에 전달
+            createdAt: itemData.createdAt?.toDate?.()?.toISOString() || itemData.createdAt,
           };
 
           navigation.navigate("물품 상세", { item });

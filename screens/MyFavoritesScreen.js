@@ -100,7 +100,12 @@ export default function MyFavoritesScreen({ navigation }) {
       
       if (!itemDoc.empty) {
         const itemData = { id: itemDoc.docs[0].id, ...itemDoc.docs[0].data() };
-        navigation.navigate("물품 상세", { item: itemData });
+        // createdAt을 문자열로 변환하여 navigation params에 전달
+        const serializableItem = {
+          ...itemData,
+          createdAt: itemData.createdAt?.toDate?.()?.toISOString() || itemData.createdAt,
+        };
+        navigation.navigate("물품 상세", { item: serializableItem });
       } else {
         Alert.alert("알림", "해당 물품을 찾을 수 없습니다.\n삭제되었을 수 있습니다.");
       }

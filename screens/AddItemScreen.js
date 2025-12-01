@@ -447,6 +447,8 @@ export default function AddItemScreen({ navigation, route }) {
           ...editItem,
           ...itemData,
           status: newStatus,
+          // createdAt을 문자열로 변환
+          createdAt: editItem.createdAt?.toDate?.()?.toISOString() || editItem.createdAt,
         };
 
         console.log("✅ 물품 수정 완료!");
@@ -503,7 +505,7 @@ export default function AddItemScreen({ navigation, route }) {
           ...itemData,
           userId: user.uid,
           userEmail: user.email,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           status: "판매중",
         };
 
