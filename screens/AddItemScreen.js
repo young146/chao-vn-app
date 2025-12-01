@@ -448,7 +448,8 @@ export default function AddItemScreen({ navigation, route }) {
           ...itemData,
           status: newStatus,
           // createdAt을 문자열로 변환
-          createdAt: editItem.createdAt?.toDate?.()?.toISOString() || editItem.createdAt,
+          createdAt:
+            editItem.createdAt?.toDate?.()?.toISOString() || editItem.createdAt,
         };
 
         console.log("✅ 물품 수정 완료!");
@@ -643,6 +644,7 @@ export default function AddItemScreen({ navigation, route }) {
               setSelectedDistrict("");
               setSelectedApartment("");
             }}
+            style={styles.picker}
           >
             <Picker.Item label="호치민" value="호치민" />
             <Picker.Item label="하노이" value="하노이" />
@@ -659,6 +661,7 @@ export default function AddItemScreen({ navigation, route }) {
               setSelectedDistrict(value);
               setSelectedApartment("");
             }}
+            style={styles.picker}
           >
             <Picker.Item label="선택하세요" value="" />
             {districts.map((district) => (
@@ -674,6 +677,7 @@ export default function AddItemScreen({ navigation, route }) {
               <Picker
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
+                style={styles.picker}
               >
                 <Picker.Item label="선택하세요" value="" />
                 {apartments.map((apartment) => (
@@ -847,12 +851,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff",
-    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  picker: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 16,
+    color: "#333",
   },
   contactSection: {
     marginTop: 20,
