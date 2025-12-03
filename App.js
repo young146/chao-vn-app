@@ -283,6 +283,7 @@ function ChatStack() {
 function BottomTabNavigator() {
   return (
     <Tab.Navigator
+      initialRouteName={Platform.OS === "ios" ? "씬짜오당근" : "매거진"}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
@@ -306,12 +307,16 @@ function BottomTabNavigator() {
         tabBarLabelStyle: { fontSize: 11 },
       })}
     >
-      <Tab.Screen name="매거진" options={{ title: "매거진" }}>
-        {() => <SiteWebView url={siteURLs.magazine} />}
-      </Tab.Screen>
-      <Tab.Screen name="게시판" options={{ title: "게시판" }}>
-        {() => <SiteWebView url={siteURLs.board} />}
-      </Tab.Screen>
+      {Platform.OS !== "ios" && (
+        <>
+          <Tab.Screen name="매거진" options={{ title: "매거진" }}>
+            {() => <SiteWebView url={siteURLs.magazine} />}
+          </Tab.Screen>
+          <Tab.Screen name="게시판" options={{ title: "게시판" }}>
+            {() => <SiteWebView url={siteURLs.board} />}
+          </Tab.Screen>
+        </>
+      )}
       <Tab.Screen
         name="씬짜오당근"
         component={DanggnStack}
