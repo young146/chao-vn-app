@@ -178,26 +178,12 @@ export default function XinChaoDanggnScreen({ navigation }) {
   };
 
   const handleItemPress = (item) => {
-    if (!user) {
-      Alert.alert(
-        "로그인 필요 🔒",
-        "상품 상세 정보를 보려면 로그인이 필요합니다.\n지금 로그인하시겠어요?",
-        [
-          { text: "나중에", style: "cancel" },
-          {
-            text: "로그인",
-            onPress: () => navigation.navigate("로그인"),
-          },
-        ]
-      );
-    } else {
-      // createdAt을 문자열로 변환하여 navigation params에 전달
-      const serializableItem = {
-        ...item,
-        createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
-      };
-      navigation.navigate("물품 상세", { item: serializableItem });
-    }
+    // createdAt을 문자열로 변환하여 navigation params에 전달
+    const serializableItem = {
+      ...item,
+      createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
+    };
+    navigation.navigate("물품 상세", { item: serializableItem });
   };
 
   const handleAddItem = () => {
@@ -248,9 +234,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const apartments =
     selectedDistrict && selectedDistrict !== "전체"
       ? getApartmentsByDistrict(
-          selectedCity === "전체" ? "호치민" : selectedCity,
-          selectedDistrict
-        )
+        selectedCity === "전체" ? "호치민" : selectedCity,
+        selectedDistrict
+      )
       : [];
 
   const renderItem = ({ item }) => {

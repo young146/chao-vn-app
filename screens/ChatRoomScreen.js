@@ -11,10 +11,16 @@ import {
   Image,
   Keyboard,
   Vibration,
+  Modal,
+  Dimensions,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { db, auth } from "../firebase/config";
+import { db, auth, storage } from "../firebase/config";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   collection,
   addDoc,
@@ -54,6 +60,9 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(null); // 이미지 뷰어용 상태
+  const [previewImage, setPreviewImage] = useState(null); // 전송 전 이미지 미리보기 상태
+  const [isUploading, setIsUploading] = useState(false); // 업로드 중 상태
   const currentUserId = auth.currentUser?.uid;
   const currentUserName = auth.currentUser?.email?.split("@")[0] || "사용자";
   const flatListRef = useRef(null);
@@ -250,31 +259,62 @@ export default function ChatRoomScreen({ route, navigation }) {
   }, [chatRoomId]);
 
   const sendMessage = async () => {
-    if (!messageText.trim() || !chatRoomId) {
-      console.log("❌ 전송 불가:", { messageText, chatRoomId });
+    if ((!messageText.trim() && !previewImage) || !chatRoomId) {
       return;
     }
 
-    console.log("📤 메시지 전송:", messageText);
+    if (isUploading) return;
+
+    console.log("📤 메시지 전송 시작");
+    setIsUploading(true);
 
     try {
+      let downloadURL = null;
+
+      // 이미지가 있다면 업로드
+      if (previewImage) {
+        // 1. Resize
+        const manipResult = await ImageManipulator.manipulateAsync(
+          previewImage,
+          [{ resize: { width: 800 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const resizedUri = manipResult.uri;
+
+        // 2. Upload
+        const response = await fetch(resizedUri);
+        const blob = await response.blob();
+        const filename = `chat/${chatRoomId}/${Date.now()}.jpg`;
+        const storageRef = ref(storage, filename);
+        await uploadBytes(storageRef, blob);
+        downloadURL = await getDownloadURL(storageRef);
+      }
+
+      // 3. Send Message
+      const messageData = {
+        text: messageText.trim() || (previewImage ? "사진" : ""),
+        senderId: currentUserId,
+        senderName: currentUserName,
+        timestamp: serverTimestamp(),
+      };
+
+      if (downloadURL) {
+        messageData.image = downloadURL;
+      }
+
       const docRef = await addDoc(
         collection(db, "chatRooms", chatRoomId, "messages"),
-        {
-          text: messageText.trim(),
-          senderId: currentUserId,
-          senderName: currentUserName,
-          timestamp: serverTimestamp(),
-        }
+        messageData
       );
 
       console.log("✅ 메시지 저장 성공!", docRef.id);
 
+      // 4. Update ChatRoom
       const chatRoomRef = doc(db, "chatRooms", chatRoomId);
       const isSeller = currentUserId === sellerId;
 
       await updateDoc(chatRoomRef, {
-        lastMessage: messageText.trim(),
+        lastMessage: downloadURL ? "사진을 보냈습니다." : messageText.trim(),
         lastMessageAt: serverTimestamp(),
         lastMessageSenderId: currentUserId,
         [isSeller ? "sellerRead" : "buyerRead"]: true,
@@ -284,11 +324,34 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       console.log("✅ 채팅방 업데이트 성공!");
       setMessageText("");
+      setPreviewImage(null);
     } catch (error) {
       console.error("❌❌❌ 메시지 전송 실패:", error);
       alert("전송 실패: " + error.message);
+    } finally {
+      setIsUploading(false);
     }
   };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("갤러리 접근 권한이 필요합니다.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setPreviewImage(result.assets[0].uri);
+    }
+  };
+
+
 
   const renderMessage = ({ item }) => {
     const isMyMessage = item.senderId === currentUserId;
@@ -307,16 +370,27 @@ export default function ChatRoomScreen({ route, navigation }) {
           style={[
             styles.messageBubble,
             isMyMessage ? styles.myBubble : styles.otherBubble,
+            item.image && { padding: 4 }, // 이미지일 경우 패딩 줄임
           ]}
         >
-          <Text
-            style={[
-              styles.messageText,
-              isMyMessage ? styles.myMessageText : styles.otherMessageText,
-            ]}
-          >
-            {item.text}
-          </Text>
+          {item.image ? (
+            <TouchableOpacity onPress={() => setSelectedImage(item.image)}>
+              <Image
+                source={{ uri: item.image }}
+                style={{ width: 200, height: 200, borderRadius: 12 }}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          ) : (
+            <Text
+              style={[
+                styles.messageText,
+                isMyMessage ? styles.myMessageText : styles.otherMessageText,
+              ]}
+            >
+              {item.text}
+            </Text>
+          )}
         </View>
         <Text style={styles.messageTime}>{messageTime}</Text>
       </View>
@@ -333,9 +407,14 @@ export default function ChatRoomScreen({ route, navigation }) {
         {itemImage && (
           <Image source={{ uri: itemImage }} style={styles.headerImage} />
         )}
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {itemTitle}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {itemTitle}
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            나: {currentUserName} ↔ 상대: {otherUserName}
+          </Text>
+        </View>
       </View>
 
       <FlatList
@@ -353,31 +432,72 @@ export default function ChatRoomScreen({ route, navigation }) {
         style={[
           styles.inputContainer,
           Platform.OS === "android" &&
-            keyboardHeight > 0 && {
-              marginBottom: keyboardHeight - 20,
-            },
+          keyboardHeight > 0 && {
+            marginBottom: keyboardHeight - 20,
+          },
         ]}
       >
-        <TextInput
-          style={styles.input}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="메시지를 입력하세요"
-          placeholderTextColor="rgba(0, 0, 0, 0.38)"
-          multiline
-          maxLength={500}
-        />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            !messageText.trim() && styles.sendButtonDisabled,
-          ]}
-          onPress={sendMessage}
-          disabled={!messageText.trim()}
-        >
-          <Text style={styles.sendButtonText}>전송</Text>
-        </TouchableOpacity>
+        {previewImage && (
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: previewImage }} style={styles.previewImage} />
+            <TouchableOpacity
+              style={styles.previewCloseButton}
+              onPress={() => setPreviewImage(null)}
+            >
+              <Ionicons name="close-circle" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.attachButton} onPress={pickImage}>
+            <Ionicons name="add" size={24} color="#666" />
+          </TouchableOpacity>
+
+          <TextInput
+            style={styles.input}
+            value={messageText}
+            onChangeText={setMessageText}
+            placeholder="메시지를 입력하세요"
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!messageText.trim() && !previewImage) && styles.sendButtonDisabled,
+            ]}
+            onPress={sendMessage}
+            disabled={(!messageText.trim() && !previewImage) || isUploading}
+          >
+            <Text style={styles.sendButtonText}>
+              {isUploading ? "..." : "전송"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* 이미지 확대 보기 모달 */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setSelectedImage(null)}
+          >
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+          <Image
+            source={{ uri: selectedImage }}
+            style={styles.fullImage}
+            resizeMode="contain"
+          />
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -404,7 +524,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: "600",
-    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
   messageList: {
     padding: 15,
@@ -448,12 +574,31 @@ const styles = StyleSheet.create({
     color: "#999",
   },
   inputContainer: {
-    flexDirection: "row",
-    padding: 10,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#eee",
+    padding: 10,
+  },
+  inputRow: {
+    flexDirection: "row",
     alignItems: "flex-end",
+  },
+  previewContainer: {
+    flexDirection: "row",
+    paddingBottom: 10,
+    paddingHorizontal: 10,
+  },
+  previewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  previewCloseButton: {
+    position: "absolute",
+    top: -5,
+    left: 75,
+    backgroundColor: "#fff",
+    borderRadius: 12,
   },
   input: {
     flex: 1,
@@ -464,6 +609,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
     maxHeight: 100,
     fontSize: 15,
+  },
+  attachButton: {
+    padding: 10,
+    marginRight: 5,
+    justifyContent: "center",
+    alignItems: "center",
   },
   sendButton: {
     backgroundColor: "#FF6B35",
@@ -477,7 +628,23 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+  },
+  fullImage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
 });

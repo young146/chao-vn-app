@@ -271,6 +271,14 @@ export default function ItemDetailScreen({ route, navigation }) {
     const contact = item.contact || {};
     const hasContact = contact.phone || contact.kakaoId || contact.other;
 
+    if (!user) {
+      Alert.alert("알림", "로그인이 필요합니다.", [
+        { text: "확인" },
+        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      ]);
+      return;
+    }
+
     if (!hasContact) {
       Alert.alert("알림", "판매자가 연락처를 등록하지 않았습니다.");
       return;
@@ -395,9 +403,8 @@ export default function ItemDetailScreen({ route, navigation }) {
           await addDoc(collection(db, "notifications"), {
             userId: item.userId, // 판매자
             type: "favorite",
-            message: `${user.email?.split("@")[0] || "사용자"}님이 "${
-              item.title
-            }" 물품을 찜했습니다! ❤️`,
+            message: `${user.email?.split("@")[0] || "사용자"}님이 "${item.title
+              }" 물품을 찜했습니다! ❤️`,
             itemId: item.id,
             itemTitle: item.title,
             itemImage: images[0] || null,
@@ -567,40 +574,53 @@ export default function ItemDetailScreen({ route, navigation }) {
                     <Ionicons name="call" size={20} color="#FF6B35" />
                     <Text style={styles.sectionTitle}>연락처</Text>
                   </View>
-                  <View style={styles.contactInfo}>
-                    {item.contact.phone && (
-                      <View style={styles.contactItem}>
-                        <Ionicons name="call-outline" size={18} color="#666" />
-                        <Text style={styles.contactText}>
-                          {item.contact.phone}
-                        </Text>
-                      </View>
-                    )}
-                    {item.contact.kakaoId && (
-                      <View style={styles.contactItem}>
-                        <Ionicons
-                          name="chatbubble-outline"
-                          size={18}
-                          color="#666"
-                        />
-                        <Text style={styles.contactText}>
-                          카톡: {item.contact.kakaoId}
-                        </Text>
-                      </View>
-                    )}
-                    {item.contact.other && (
-                      <View style={styles.contactItem}>
-                        <Ionicons
-                          name="share-social-outline"
-                          size={18}
-                          color="#666"
-                        />
-                        <Text style={styles.contactText}>
-                          {item.contact.other}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
+
+                  {user ? (
+                    <View style={styles.contactInfo}>
+                      {item.contact.phone && (
+                        <View style={styles.contactItem}>
+                          <Ionicons name="call-outline" size={18} color="#666" />
+                          <Text style={styles.contactText}>
+                            {item.contact.phone}
+                          </Text>
+                        </View>
+                      )}
+                      {item.contact.kakaoId && (
+                        <View style={styles.contactItem}>
+                          <Ionicons
+                            name="chatbubble-outline"
+                            size={18}
+                            color="#666"
+                          />
+                          <Text style={styles.contactText}>
+                            카톡: {item.contact.kakaoId}
+                          </Text>
+                        </View>
+                      )}
+                      {item.contact.other && (
+                        <View style={styles.contactItem}>
+                          <Ionicons
+                            name="share-social-outline"
+                            size={18}
+                            color="#666"
+                          />
+                          <Text style={styles.contactText}>
+                            {item.contact.other}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.loginToViewContact}
+                      onPress={() => navigation.navigate("로그인")}
+                    >
+                      <Ionicons name="lock-closed-outline" size={20} color="#666" />
+                      <Text style={styles.loginToViewContactText}>
+                        로그인하고 연락처 보기
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </>
             )}
@@ -802,7 +822,6 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
   },
   dot: {
     width: 8,
@@ -813,34 +832,31 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     backgroundColor: "#fff",
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   contentContainer: {
-    padding: 20,
+    paddingBottom: 100,
   },
   headerSection: {
-    marginBottom: 10,
+    padding: 16,
+    backgroundColor: "#fff",
   },
   titleRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
   title: {
-    fontSize: 24,
+    flex: 1,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#333",
-    flex: 1,
-    marginRight: 10,
+    marginRight: 8,
   },
-  // ✅ 상태 배지 스타일
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusText: {
     color: "#fff",
@@ -848,7 +864,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   price: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#FF6B35",
     marginBottom: 8,
@@ -860,22 +876,23 @@ const styles = StyleSheet.create({
   category: {
     fontSize: 14,
     color: "#666",
+    textDecorationLine: "underline",
   },
   metaDot: {
-    marginHorizontal: 8,
-    color: "#666",
+    marginHorizontal: 6,
+    color: "#ccc",
   },
   date: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#999",
   },
   divider: {
-    height: 1,
-    backgroundColor: "#eee",
-    marginVertical: 20,
+    height: 8,
+    backgroundColor: "#f5f5f5",
   },
   section: {
-    marginBottom: 5,
+    padding: 16,
+    backgroundColor: "#fff",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -883,25 +900,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#333",
     marginLeft: 8,
-    flex: 1,
   },
   locationDetails: {
     flexDirection: "row",
     flexWrap: "wrap",
-    alignItems: "center",
   },
   locationText: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 4,
+    fontSize: 15,
+    color: "#333",
   },
   description: {
-    fontSize: 16,
-    color: "#444",
+    fontSize: 15,
+    color: "#333",
     lineHeight: 24,
   },
   sellerInfo: {
@@ -912,19 +926,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FF6B35",
+    backgroundColor: "#ccc",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   sellerName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#333",
   },
   contactInfo: {
-    backgroundColor: "#F8F9FA",
-    padding: 15,
+    backgroundColor: "#f9f9f9",
+    padding: 12,
     borderRadius: 8,
   },
   contactItem: {
@@ -934,73 +948,92 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 15,
-    color: "#444",
-    marginLeft: 10,
+    color: "#333",
+    marginLeft: 8,
+  },
+  loginToViewContact: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f5f5f5",
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderStyle: "dashed",
+  },
+  loginToViewContactText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 8,
+    fontWeight: "500",
   },
   ratingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF9E6",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: "#FFF9C4",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 12,
+    marginLeft: 8,
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "bold",
-    color: "#FF6B35",
+    color: "#FBC02D",
     marginLeft: 4,
   },
   reviewCount: {
     fontSize: 12,
     color: "#666",
-    marginLeft: 4,
+    marginLeft: 2,
   },
   noReviews: {
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: 20,
   },
   noReviewsText: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "bold",
     color: "#999",
-    marginTop: 12,
+    marginTop: 8,
   },
   noReviewsSubtext: {
-    fontSize: 14,
-    color: "#ccc",
+    fontSize: 12,
+    color: "#bbb",
     marginTop: 4,
   },
   reviewList: {
     marginTop: 8,
   },
   reviewItem: {
-    backgroundColor: "#F8F9FA",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 12,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 12,
   },
   reviewHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   reviewerInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
   reviewerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FF6B35",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#ccc",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   reviewerName: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "500",
     color: "#333",
   },
   reviewRating: {
@@ -1008,68 +1041,65 @@ const styles = StyleSheet.create({
   },
   reviewContent: {
     fontSize: 14,
-    color: "#444",
+    color: "#333",
     lineHeight: 20,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   reviewDate: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#999",
   },
   moreReviews: {
     textAlign: "center",
     color: "#FF6B35",
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 8,
   },
   bottomBar: {
     flexDirection: "row",
-    padding: 12,
-    backgroundColor: "#fff",
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#eee",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    backgroundColor: "#fff",
+    paddingBottom: 30,
   },
   heartButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#f5f5f5",
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
+    marginRight: 12,
   },
   actionButton: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    alignItems: "center",
     borderRadius: 8,
-    gap: 6,
+    height: 48,
   },
-  soldButton: {
-    backgroundColor: "#4CAF50",
+  reviewButton: {
+    backgroundColor: "#FF6B35",
   },
   editButton: {
     backgroundColor: "#2196F3",
   },
   deleteButton: {
-    backgroundColor: "#f44336",
+    backgroundColor: "#F44336",
   },
-  reviewButton: {
-    backgroundColor: "#FFD700",
+  soldButton: {
+    backgroundColor: "#4CAF50",
   },
   adminDeleteButton: {
-    backgroundColor: "#9C27B0",
+    backgroundColor: "#333",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 4,
   },
 });

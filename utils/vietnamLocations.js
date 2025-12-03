@@ -261,6 +261,12 @@ export const VIETNAM_LOCATIONS = {
       "기타 지역": ["기타"],
     },
   },
+  기타: {
+    districts: ["기타 지역"],
+    apartmentsByDistrict: {
+      "기타 지역": ["기타"],
+    },
+  },
 };
 
 export const CITIES = Object.keys(VIETNAM_LOCATIONS);

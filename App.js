@@ -38,6 +38,8 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 // 인증 화면
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
+import FindIdScreen from "./screens/FindIdScreen";
+import FindPasswordScreen from "./screens/FindPasswordScreen";
 
 // 네이티브 화면들
 import MoreScreen from "./screens/MoreScreen";
@@ -53,6 +55,7 @@ import ReviewScreen from "./screens/ReviewScreen";
 import MyItemsScreen from "./screens/MyItemsScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
+
 
 // 씬짜오당근 화면들
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
@@ -254,9 +257,28 @@ const SiteWebView = ({ url }) => {
 };
 
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
 // ** 4. Bottom Tab Navigator **
 // ------------------------------------------------------------------
 const Tab = createBottomTabNavigator();
+
+// 채팅 스택
+function ChatStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{ title: "채팅 목록" }}
+      />
+      <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{ title: "채팅방" }}
+      />
+    </Stack.Navigator>
+  );
+}
 
 function BottomTabNavigator() {
   return (
@@ -272,9 +294,10 @@ function BottomTabNavigator() {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           } else if (route.name === "씬짜오당근") {
             iconName = focused ? "cart" : "cart-outline";
-          } else if (route.name === "메뉴") {
+          } else if (route.name === "Menu") { // Changed from "메뉴" to "Menu"
             iconName = focused ? "menu" : "menu-outline";
           }
+          // Chat tab icon is handled directly in Tab.Screen
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -295,8 +318,18 @@ function BottomTabNavigator() {
         options={{ title: "당근" }}
       />
       <Tab.Screen
-        name="메뉴"
-        component={MoreStack}
+        name="Chat"
+        component={ChatStack}
+        options={{
+          title: "채팅",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbox-ellipses-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Menu" // Changed from "메뉴" to "Menu"
+        component={MenuStack} // Changed from MoreStack to MenuStack
         options={{ title: "메뉴" }}
       />
     </Tab.Navigator>
@@ -417,7 +450,7 @@ function DanggnStack() {
 // ------------------------------------------------------------------
 // ** 6. 더보기 Stack Navigator **
 // ------------------------------------------------------------------
-function MoreStack() {
+function MenuStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -566,10 +599,15 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="로그인" component={LoginScreen} />
       <Stack.Screen name="회원가입" component={SignupScreen} />
+      <Stack.Screen name="아이디찾기" component={FindIdScreen} />
+      <Stack.Screen name="비밀번호찾기" component={FindPasswordScreen} />
     </Stack.Navigator>
   );
 }
 
+// ------------------------------------------------------------------
+// ** 8. 메인 Navigator **
+// ------------------------------------------------------------------
 // ------------------------------------------------------------------
 // ** 8. 메인 Navigator **
 // ------------------------------------------------------------------
@@ -592,6 +630,22 @@ function RootNavigator() {
       <Stack.Screen
         name="회원가입"
         component={SignupScreen}
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="아이디찾기"
+        component={FindIdScreen}
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+      <Stack.Screen
+        name="비밀번호찾기"
+        component={FindPasswordScreen}
         options={{
           headerShown: false,
           presentation: "modal",
@@ -702,6 +756,7 @@ export default function App() {
         sound: "default", // 🔊 여기서도 "default"
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF6B35",
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC, // 잠금화면 알림 표시
       });
     }
   }, []);

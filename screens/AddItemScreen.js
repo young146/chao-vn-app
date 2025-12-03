@@ -34,6 +34,7 @@ import {
 import { db, storage } from "../firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -46,7 +47,7 @@ export default function AddItemScreen({ navigation, route }) {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("전자제품");
-  const [selectedCity, setSelectedCity] = useState("호치민");
+  const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedApartment, setSelectedApartment] = useState("");
   const [images, setImages] = useState([]);
@@ -129,12 +130,12 @@ export default function AddItemScreen({ navigation, route }) {
         mediaTypes: ["images"],
         allowsMultipleSelection: true,
         quality: 0.8,
-        selectionLimit: 5 - images.length,
+        selectionLimit: 10 - images.length,
       });
 
       if (!result.canceled) {
         const newImages = result.assets.map((asset) => asset.uri);
-        setImages([...images, ...newImages].slice(0, 5));
+        setImages([...images, ...newImages].slice(0, 10));
       }
     } catch (error) {
       Alert.alert("오류", "사진을 선택할 수 없습니다.");
@@ -142,8 +143,8 @@ export default function AddItemScreen({ navigation, route }) {
   };
 
   const pickImages = () => {
-    if (images.length >= 5) {
-      Alert.alert("알림", "사진은 최대 5장까지 등록할 수 있습니다.");
+    if (images.length >= 10) {
+      Alert.alert("알림", "사진은 최대 10장까지 등록할 수 있습니다.");
       return;
     }
 
@@ -166,6 +167,20 @@ export default function AddItemScreen({ navigation, route }) {
   const removeImage = (index) => {
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
+  };
+
+  const resizeImage = async (uri) => {
+    try {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1080 } }], // 가로 1080px로 리사이징 (비율 유지)
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 압축률 0.7
+      );
+      return manipResult.uri;
+    } catch (error) {
+      console.error("이미지 리사이징 실패:", error);
+      return uri; // 실패 시 원본 반환
+    }
   };
 
   const uploadImageToStorage = async (uri) => {
@@ -395,7 +410,11 @@ export default function AddItemScreen({ navigation, route }) {
 
       for (let i = 0; i < images.length; i++) {
         console.log(`📷 이미지 ${i + 1}/${images.length} 처리 중...`);
-        const url = await uploadImageToStorage(images[i]);
+
+        // 리사이징 적용
+        const resizedUri = await resizeImage(images[i]);
+        const url = await uploadImageToStorage(resizedUri);
+
         uploadedImageUrls.push(url);
         console.log(`✅ 이미지 ${i + 1} 완료`);
       }
@@ -555,7 +574,7 @@ export default function AddItemScreen({ navigation, route }) {
         {/* 사진 업로드 섹션 */}
         <View style={styles.imageSection}>
           <Text style={styles.imageSectionTitle}>
-            📷 사진 등록 ({images.length}/5)
+            📷 사진 등록 ({images.length}/10)
           </Text>
 
           <ScrollView
@@ -563,7 +582,7 @@ export default function AddItemScreen({ navigation, route }) {
             showsHorizontalScrollIndicator={false}
             style={styles.imageScroll}
           >
-            {images.length < 5 && (
+            {images.length < 10 && (
               <TouchableOpacity
                 style={styles.addImageButton}
                 onPress={pickImages}
@@ -646,10 +665,10 @@ export default function AddItemScreen({ navigation, route }) {
             }}
             style={styles.picker}
           >
-            <Picker.Item label="호치민" value="호치민" />
-            <Picker.Item label="하노이" value="하노이" />
-            <Picker.Item label="다낭" value="다낭" />
-            <Picker.Item label="냐짱" value="냐짱" />
+            <Picker.Item label="도시 선정" value="" />
+            {Object.keys(VIETNAM_LOCATIONS).map((city) => (
+              <Picker.Item key={city} label={city} value={city} />
+            ))}
           </Picker>
         </View>
 

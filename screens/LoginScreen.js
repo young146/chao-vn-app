@@ -118,6 +118,16 @@ export default function LoginScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
+          <View style={styles.findContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate("아이디찾기")}>
+              <Text style={styles.findText}>아이디 찾기</Text>
+            </TouchableOpacity>
+            <Text style={styles.findDivider}>|</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("비밀번호찾기")}>
+              <Text style={styles.findText}>비밀번호 찾기</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>계정이 없으신가요? </Text>
             <TouchableOpacity onPress={() => navigation.navigate("회원가입")}>
@@ -213,5 +223,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#FF6B35",
     fontWeight: "600",
+  },
+  findContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
+  },
+  findText: {
+    color: "#666",
+    fontSize: 13,
+  },
+  findDivider: {
+    color: "#ddd",
+    marginHorizontal: 12,
   },
 });
