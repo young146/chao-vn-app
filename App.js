@@ -21,7 +21,16 @@ import * as Notifications from "expo-notifications";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db, auth } from "./firebase/config";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import Constants from "expo-constants";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true, // ← 추가!
@@ -681,9 +690,71 @@ const GlobalChatNotificationListener = () => {
 };
 
 // ------------------------------------------------------------------
+// ** 9-1. 푸시 토큰 등록 (Expo Push Token → Firestore 저장) **
+// ------------------------------------------------------------------
+const registerPushToken = async (user) => {
+  if (!user?.uid) return;
+
+  try {
+    // 1) 권한 확인/요청
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      console.log("🔇 푸시 권한 거부됨");
+      return;
+    }
+
+    // 2) Expo Push Token 발급
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ||
+      Constants?.easConfig?.projectId ||
+      Constants?.expoConfig?.projectId;
+    if (!projectId) {
+      console.log("⚠️ projectId 없음. app.json > extra.eas.projectId 확인 필요");
+      return;
+    }
+
+    const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
+    if (!expoPushToken) {
+      console.log("⚠️ Expo Push Token 발급 실패");
+      return;
+    }
+    console.log("✅ Expo Push Token:", expoPushToken);
+
+    // 3) Firestore users/{uid}에 저장
+    await setDoc(
+      doc(db, "users", user.uid),
+      {
+        pushToken: expoPushToken,
+        pushTokenUpdatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.log("❌ 푸시 토큰 등록 실패:", error);
+  }
+};
+
+// ------------------------------------------------------------------
 // ** 10. App 컴포넌트 **
 // ------------------------------------------------------------------
 export default function App() {
+  // 로그인 시 푸시 토큰 등록
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        registerPushToken(user);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === "android") {
       // ✅ 기본 알림 채널 (내 주변상품, 가격변동, 리뷰, 뉴스 등)
