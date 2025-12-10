@@ -31,6 +31,7 @@ export default function ProfileEditForm({
     residencePeriod, setResidencePeriod,
     residencePurpose, setResidencePurpose,
     occupation, setOccupation,
+    position, setPosition,
     kakaoId, setKakaoId,
     zaloId, setZaloId,
     facebook, setFacebook,
@@ -67,7 +68,7 @@ export default function ProfileEditForm({
                 </TouchableOpacity>
 
                 <View style={styles.usernameContainer}>
-                    <Text style={styles.username}>{name || "User"}</Text>
+                    <Text style={styles.username}>{name || user?.email?.split("@")[0] || "User"}</Text>
                     {isAdmin() && (
                         <View style={styles.adminBadge}>
                             <Ionicons name="shield-checkmark" size={14} color="#fff" />
@@ -84,8 +85,10 @@ export default function ProfileEditForm({
                     <Text style={styles.label}>이메일</Text>
                     <TextInput
                         style={[styles.input, styles.disabledInput]}
-                        value={email}
+                        value={email || user?.email || ""}
                         editable={false}
+                        placeholder="이메일"
+                        placeholderTextColor="rgba(0, 0, 0, 0.38)"
                     />
                 </View>
 
@@ -257,13 +260,48 @@ export default function ProfileEditForm({
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>직업 <Text style={styles.required}>*</Text></Text>
-                    <TextInput
-                        style={styles.input}
-                        value={occupation}
-                        onChangeText={setOccupation}
-                        placeholder="직업을 입력하세요"
-                    />
+                    <View style={styles.pickerWrapper}>
+                        <Picker
+                            selectedValue={occupation}
+                            onValueChange={setOccupation}
+                            style={styles.picker}
+                        >
+                            <Picker.Item label="직업 선택" value="" />
+                            <Picker.Item label="회사원" value="회사원" />
+                            <Picker.Item label="자영업" value="자영업" />
+                            <Picker.Item label="사업가" value="사업가" />
+                            <Picker.Item label="프리랜서" value="프리랜서" />
+                            <Picker.Item label="교사/강사" value="교사/강사" />
+                            <Picker.Item label="의료진" value="의료진" />
+                            <Picker.Item label="법조인" value="법조인" />
+                            <Picker.Item label="공무원" value="공무원" />
+                            <Picker.Item label="엔지니어" value="엔지니어" />
+                            <Picker.Item label="디자이너" value="디자이너" />
+                            <Picker.Item label="개발자" value="개발자" />
+                            <Picker.Item label="마케터" value="마케터" />
+                            <Picker.Item label="영업" value="영업" />
+                            <Picker.Item label="서비스업" value="서비스업" />
+                            <Picker.Item label="요리사/셰프" value="요리사/셰프" />
+                            <Picker.Item label="학생" value="학생" />
+                            <Picker.Item label="주부" value="주부" />
+                            <Picker.Item label="무직" value="무직" />
+                            <Picker.Item label="은퇴" value="은퇴" />
+                            <Picker.Item label="기타" value="기타" />
+                        </Picker>
+                    </View>
                 </View>
+
+                {occupation && occupation !== "" && (
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>직위</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={position}
+                            onChangeText={setPosition}
+                            placeholder="직위를 입력하세요 (예: 대리, 과장, 팀장 등)"
+                        />
+                    </View>
+                )}
 
                 <Text style={styles.sectionTitle}>SNS 정보</Text>
 
@@ -273,7 +311,8 @@ export default function ProfileEditForm({
                         style={styles.input}
                         value={kakaoId}
                         onChangeText={setKakaoId}
-                        placeholder="카카오톡 ID"
+                        placeholder="예: ID: vnkor25"
+                        placeholderTextColor="rgba(0, 0, 0, 0.38)"
                     />
                 </View>
                 <View style={styles.inputGroup}>
@@ -282,7 +321,9 @@ export default function ProfileEditForm({
                         style={styles.input}
                         value={zaloId}
                         onChangeText={setZaloId}
-                        placeholder="Zalo ID"
+                        placeholder="예: 0908225000 (전화번호)"
+                        placeholderTextColor="rgba(0, 0, 0, 0.38)"
+                        keyboardType="phone-pad"
                     />
                 </View>
                 <View style={styles.inputGroup}>
@@ -291,7 +332,8 @@ export default function ProfileEditForm({
                         style={styles.input}
                         value={facebook}
                         onChangeText={setFacebook}
-                        placeholder="Facebook 프로필 링크"
+                        placeholder="예: facebook.com/username 또는 ID: username"
+                        placeholderTextColor="rgba(0, 0, 0, 0.38)"
                     />
                 </View>
                 <View style={styles.inputGroup}>
@@ -300,7 +342,8 @@ export default function ProfileEditForm({
                         style={styles.input}
                         value={instagram}
                         onChangeText={setInstagram}
-                        placeholder="Instagram 아이디"
+                        placeholder="예: @username 또는 username"
+                        placeholderTextColor="rgba(0, 0, 0, 0.38)"
                     />
                 </View>
 
@@ -461,12 +504,16 @@ const styles = StyleSheet.create({
     pickerWrapper: {
         borderWidth: 1,
         borderColor: "#ddd",
-        borderRadius: 8,
+        borderRadius: 6,
+        marginBottom: 6,
+        backgroundColor: "#fff",
         overflow: "hidden",
-        justifyContent: "center",
     },
     picker: {
-        height: 60,
+        flex: 1,
+        paddingVertical: 8,
+        fontSize: 16,
+        color: "#333",
     },
     interestsContainer: {
         flexDirection: "row",

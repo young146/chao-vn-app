@@ -354,6 +354,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
                 setSelectedDistrict("전체");
                 setSelectedApartment("전체");
               }}
+              style={styles.picker}
             >
               <Picker.Item label="전체 도시" value="전체" />
               <Picker.Item label="호치민" value="호치민" />
@@ -371,6 +372,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
                   setSelectedDistrict(value);
                   setSelectedApartment("전체");
                 }}
+                style={styles.picker}
               >
                 <Picker.Item label="전체 구/군" value="전체" />
                 {districts.map((district) => (
@@ -389,6 +391,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
               <Picker
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
+                style={styles.picker}
               >
                 <Picker.Item label="전체 아파트" value="전체" />
                 {apartments.map((apartment) => (
@@ -546,6 +549,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     backgroundColor: "#fff",
     overflow: "hidden",
+  },
+  picker: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 16,
+    color: "#333",
   },
   categoriesContainer: {
     backgroundColor: "#fff",

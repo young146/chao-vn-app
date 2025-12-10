@@ -52,6 +52,7 @@ export default function ProfileScreen({ navigation }) {
   const [residencePeriod, setResidencePeriod] = useState("");
   const [residencePurpose, setResidencePurpose] = useState("");
   const [occupation, setOccupation] = useState("");
+  const [position, setPosition] = useState("");
 
   const [kakaoId, setKakaoId] = useState("");
   const [zaloId, setZaloId] = useState("");
@@ -73,9 +74,23 @@ export default function ProfileScreen({ navigation }) {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadStats();
-    loadUserProfile();
-  }, []);
+    if (user?.uid) {
+      loadStats();
+      loadUserProfile();
+    }
+  }, [user?.uid]);
+
+  // user.email이 변경될 때 초기값 설정
+  useEffect(() => {
+    if (user?.email) {
+      if (!email) {
+        setEmail(user.email);
+      }
+      if (!name) {
+        setName(user.email.split("@")[0]);
+      }
+    }
+  }, [user?.email]);
 
   const loadStats = async () => {
     try {
@@ -104,13 +119,21 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserProfile = async () => {
     try {
+      if (!user?.uid) return;
+
+      // user.email을 기본값으로 먼저 설정
+      if (user?.email) {
+        setEmail(user.email);
+        setName(user.email.split("@")[0]);
+      }
+
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
 
         setProfileImage(data.profileImage || null);
-        setEmail(data.email || "");
-        setName(data.name || "");
+        setEmail(data.email || user?.email || "");
+        setName(data.name || user?.email?.split("@")[0] || "");
         setPhone(data.phone || "");
         setAgeGroup(data.ageGroup || "");
         setGender(data.gender || "");
@@ -132,6 +155,7 @@ export default function ProfileScreen({ navigation }) {
         setResidencePeriod(data.residencePeriod || "");
         setResidencePurpose(data.residencePurpose || "");
         setOccupation(data.occupation || "");
+        setPosition(data.position || "");
 
         setKakaoId(data.kakaoId || "");
         setZaloId(data.zaloId || "");
@@ -277,6 +301,7 @@ export default function ProfileScreen({ navigation }) {
           residencePeriod,
           residencePurpose,
           occupation,
+          position,
           kakaoId,
           zaloId,
           facebook,
@@ -374,7 +399,7 @@ export default function ProfileScreen({ navigation }) {
               setEmail(""); setName(""); setPhone(""); setAgeGroup(""); setGender("");
               setSelectedCity(""); setSelectedDistrict(""); setSelectedApartment("");
               setDetailedAddress(""); setPostalCode("");
-              setResidencePeriod(""); setResidencePurpose(""); setOccupation("");
+              setResidencePeriod(""); setResidencePurpose(""); setOccupation(""); setPosition("");
               setKakaoId(""); setZaloId(""); setFacebook(""); setInstagram("");
               setInterests([]);
               setProfileImage(null);
@@ -457,6 +482,7 @@ export default function ProfileScreen({ navigation }) {
       residencePeriod={residencePeriod} setResidencePeriod={setResidencePeriod}
       residencePurpose={residencePurpose} setResidencePurpose={setResidencePurpose}
       occupation={occupation} setOccupation={setOccupation}
+      position={position} setPosition={setPosition}
       kakaoId={kakaoId} setKakaoId={setKakaoId}
       zaloId={zaloId} setZaloId={setZaloId}
       facebook={facebook} setFacebook={setFacebook}
