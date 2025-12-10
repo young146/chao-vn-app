@@ -23,6 +23,7 @@ export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState(""); // 실명
   const [displayName, setDisplayName] = useState("");
 
   // 주소 정보 (선택사항)
@@ -42,8 +43,8 @@ export default function SignupScreen({ navigation }) {
       : [];
 
   const handleSignup = async () => {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+    if (!email.trim() || !password.trim() || !confirmPassword.trim() || !name.trim()) {
+      Alert.alert("알림", "이메일, 비밀번호, 이름을 모두 입력해주세요.");
       return;
     }
 
@@ -61,6 +62,7 @@ export default function SignupScreen({ navigation }) {
 
     // 프로필 데이터 준비
     const profileData = {
+      name: name.trim(),
       displayName: displayName.trim() || email.split("@")[0],
       city: selectedCity || null,
       district: selectedDistrict || null,
@@ -120,6 +122,24 @@ export default function SignupScreen({ navigation }) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+              />
+            </View>
+
+            {/* 이름 (실명) */}
+            <View style={styles.inputGroup}>
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color="#999"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="이름 (실명)"
+                placeholderTextColor="rgba(0, 0, 0, 0.38)"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
               />
             </View>
 

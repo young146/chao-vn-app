@@ -191,7 +191,12 @@ export default function XinChaoDanggnScreen({ navigation }) {
         ]
       );
     } else {
-      navigation.navigate("물품 상세", { item });
+      // createdAt을 문자열로 변환하여 navigation params에 전달
+      const serializableItem = {
+        ...item,
+        createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
+      };
+      navigation.navigate("물품 상세", { item: serializableItem });
     }
   };
 
@@ -243,9 +248,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const apartments =
     selectedDistrict && selectedDistrict !== "전체"
       ? getApartmentsByDistrict(
-          selectedCity === "전체" ? "호치민" : selectedCity,
-          selectedDistrict
-        )
+        selectedCity === "전체" ? "호치민" : selectedCity,
+        selectedDistrict
+      )
       : [];
 
   const renderItem = ({ item }) => {
