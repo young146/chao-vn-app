@@ -28,8 +28,10 @@ export default function LoginScreen({ navigation }) {
 
   // 구글 로그인 설정
   const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-    androidClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+    expoClientId: "659951812239-h9dfdva0mur528980nkv1ai1hk4bn10q.apps.googleusercontent.com", // Web 클라이언트 ID
+    androidClientId: "659951812239-bt34r41t5jsg0n556uuha9d6008pi913.apps.googleusercontent.com", // Android 클라이언트 ID
+    scopes: ['openid', 'profile', 'email'],
+    responseType: 'id_token',
   });
 
   // 구글 로그인 응답 처리
