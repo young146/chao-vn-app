@@ -5,8 +5,19 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -29,13 +40,26 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         await AsyncStorage.setItem("@user_id", currentUser.uid);
 
-        // 로그인 시 푸시 토큰 등록
-        const token = await registerForPushNotificationsAsync();
-        if (token) {
-          await setDoc(doc(db, "users", currentUser.uid), {
-            expoPushToken: token
-          }, { merge: true });
-          console.log("✅ 푸시 토큰 저장 완료:", token);
+        // 로그인 시 푸시 토큰 등록 (Expo + FCM 둘 다)
+        const tokens = await registerForPushNotificationsAsync();
+        if (tokens && (tokens.expoToken || tokens.fcmToken)) {
+          const tokenData = {
+            ...(tokens.expoToken && { expoPushToken: tokens.expoToken }),
+            ...(tokens.fcmToken && {
+              fcmToken: tokens.fcmToken,
+              fcmTokenUpdatedAt: serverTimestamp(),
+              platform: Platform.OS,
+            }),
+          };
+          await setDoc(doc(db, "users", currentUser.uid), tokenData, {
+            merge: true,
+          });
+          console.log(
+            "✅ 푸시 토큰 저장 완료 - Expo:",
+            tokens.expoToken,
+            "FCM:",
+            tokens.fcmToken
+          );
         }
       } else {
         await AsyncStorage.removeItem("@user_id");
@@ -47,40 +71,71 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   async function registerForPushNotificationsAsync() {
-    let token;
+    let expoToken;
+    let fcmToken;
 
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
+        lightColor: "#FF231F7C",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
+      });
+
+      // 채팅 알림용 채널 (높은 우선순위)
+      await Notifications.setNotificationChannelAsync("chat", {
+        name: "채팅 알림",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF6B35",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
       });
     }
 
     if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
+      if (existingStatus !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      if (finalStatus !== 'granted') {
-        console.log('알림 권한이 거부되었습니다!');
-        return;
+      if (finalStatus !== "granted") {
+        console.log("알림 권한이 거부되었습니다!");
+        return { expoToken: null, fcmToken: null };
       }
 
-      // Expo Push Token 가져오기 (FCM 연동됨)
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: "9b58881f-f09a-4042-acc3-a8593658c231" // app.json의 eas.projectId
-      })).data;
+      // Expo Push Token 가져오기
+      try {
+        expoToken = (
+          await Notifications.getExpoPushTokenAsync({
+            projectId: "9b58881f-f09a-4042-acc3-a8593658c231",
+          })
+        ).data;
+        console.log("📲 Expo Push Token:", expoToken);
+      } catch (e) {
+        console.log("Expo Token 획득 실패:", e);
+      }
 
-      console.log("📲 Expo Push Token:", token);
+      // FCM/APNS 기기 토큰 가져오기 (Force Alarm용 - 앱이 꺼져도 작동)
+      try {
+        const devicePushToken = await Notifications.getDevicePushTokenAsync();
+        fcmToken = devicePushToken.data;
+        console.log("🔥 FCM/APNS Device Token:", fcmToken);
+        console.log("📱 Token Type:", devicePushToken.type); // 'fcm' or 'apns'
+      } catch (e) {
+        console.log("FCM Token 획득 실패:", e);
+      }
     } else {
-      console.log('실물 기기에서만 푸시 알림이 작동합니다.');
+      console.log("실물 기기에서만 푸시 알림이 작동합니다.");
     }
 
-    return token;
+    return { expoToken, fcmToken };
   }
 
   // Admin 권한 확인
@@ -177,12 +232,9 @@ export const AuthProvider = ({ children }) => {
   const findId = async (type, value) => {
     try {
       // type: 'displayName' or 'name'
-      const field = type === 'name' ? 'name' : 'displayName';
+      const field = type === "name" ? "name" : "displayName";
 
-      const q = query(
-        collection(db, "users"),
-        where(field, "==", value)
-      );
+      const q = query(collection(db, "users"), where(field, "==", value));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -212,9 +264,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("비밀번호 찾기 오류:", error);
       let message = "메일 발송에 실패했습니다.";
-      if (error.code === 'auth/user-not-found') {
+      if (error.code === "auth/user-not-found") {
         message = "가입되지 않은 이메일입니다.";
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         message = "유효하지 않은 이메일 형식입니다.";
       }
       return { success: false, error: message };
@@ -235,7 +287,8 @@ export const AuthProvider = ({ children }) => {
           uid: googleUser.uid,
           email: googleUser.email,
           name: googleUser.displayName || googleUser.email?.split("@")[0] || "",
-          displayName: googleUser.displayName || googleUser.email?.split("@")[0] || "",
+          displayName:
+            googleUser.displayName || googleUser.email?.split("@")[0] || "",
           profileImage: googleUser.photoURL || null,
           profileCompleted: false,
           createdAt: serverTimestamp(),
@@ -256,7 +309,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("구글 로그인 오류:", error);
       let message = "구글 로그인에 실패했습니다.";
-      if (error.code === 'auth/account-exists-with-different-credential') {
+      if (error.code === "auth/account-exists-with-different-credential") {
         message = "이미 다른 방법으로 가입된 이메일입니다.";
       }
       return { success: false, error: message };
@@ -265,7 +318,17 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, isAdmin, signup, login, logout, findId, findPassword, googleLogin }}
+      value={{
+        user,
+        loading,
+        isAdmin,
+        signup,
+        login,
+        logout,
+        findId,
+        findPassword,
+        googleLogin,
+      }}
     >
       {children}
     </AuthContext.Provider>

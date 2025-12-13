@@ -27,20 +27,41 @@ export default function LoginScreen({ navigation }) {
   const { login, googleLogin } = useAuth();
 
   // 구글 로그인 설정
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: "659951812239-h9dfdva0mur528980nkv1ai1hk4bn10q.apps.googleusercontent.com", // Web 클라이언트 ID
-    androidClientId: "659951812239-bt34r41t5jsg0n556uuha9d6008pi913.apps.googleusercontent.com", // Android 클라이언트 ID
-    scopes: ['openid', 'profile', 'email'],
-    responseType: 'id_token',
-  });
+  // ⚠️ iOS용 Client ID는 Google Cloud Console에서 생성 후 아래에 추가해주세요
+  // https://console.cloud.google.com/ → API 및 서비스 → 사용자 인증 정보 → OAuth 2.0 클라이언트 ID (iOS 유형)
+  const googleConfig = {
+    webClientId:
+      "659951812239-6cepdkckqcdtj66kq7vm32lup773u7q9.apps.googleusercontent.com", // Web 클라이언트 ID (Expo Go용)
+    expoClientId:
+      "659951812239-6cepdkckqcdtj66kq7vm32lup773u7q9.apps.googleusercontent.com", // Expo Go용
+    androidClientId:
+      "659951812239-bt34r41t5jsg0n556uuha9d6008pi913.apps.googleusercontent.com", // 프로덕션 Android용
+    // iosClientId: "659951812239-xxxxx.apps.googleusercontent.com", // TODO: iOS 출시 시 추가 필요
+    scopes: ["openid", "profile", "email"],
+    responseType: "id_token",
+  };
+
+  const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
   // 구글 로그인 응답 처리
   React.useEffect(() => {
     if (response?.type === "success") {
-      handleGoogleLogin(response.authentication.idToken);
+      // id_token 응답 타입 사용시 params에서 가져옴
+      const idToken =
+        response.params?.id_token || response.authentication?.idToken;
+      if (idToken) {
+        handleGoogleLogin(idToken);
+      } else {
+        setGoogleLoading(false);
+        console.error("ID Token not found in response:", response);
+        Alert.alert("구글 로그인 실패", "인증 토큰을 받지 못했습니다.");
+      }
     } else if (response?.type === "error") {
       setGoogleLoading(false);
+      console.error("Google login error:", response.error);
       Alert.alert("구글 로그인 실패", "구글 로그인에 실패했습니다.");
+    } else if (response?.type === "dismiss") {
+      setGoogleLoading(false);
     }
   }, [response]);
 
@@ -203,7 +224,9 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.findText}>아이디 찾기</Text>
             </TouchableOpacity>
             <Text style={styles.findDivider}>|</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("비밀번호찾기")}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("비밀번호찾기")}
+            >
               <Text style={styles.findText}>비밀번호 찾기</Text>
             </TouchableOpacity>
           </View>
