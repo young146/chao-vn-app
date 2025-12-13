@@ -26,6 +26,7 @@ export default function ProfileScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
   const scrollViewRef = useRef(null);
 
+  const [isLoading, setIsLoading] = useState(true); // 초기 로딩 상태 추가
   const [isEditMode, setIsEditMode] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
@@ -75,8 +76,16 @@ export default function ProfileScreen({ navigation }) {
 
   useEffect(() => {
     if (user?.uid) {
-      loadStats();
-      loadUserProfile();
+      // 초기 로딩 시작
+      const initProfile = async () => {
+        setIsLoading(true);
+        await Promise.all([loadStats(), loadUserProfile()]);
+        setIsLoading(false);
+      };
+      initProfile();
+    } else {
+      // 유저 정보가 없으면 로딩 끝 (로그인 화면 등으로 이동하거나 빈 화면)
+      setIsLoading(false);
     }
   }, [user?.uid]);
 
@@ -382,12 +391,12 @@ export default function ProfileScreen({ navigation }) {
 
   const handleDeleteProfile = () => {
     Alert.alert(
-      "프로필 삭제",
-      "프로필을 삭제하시겠습니까?\n\n삭제된 프로필은 복구할 수 없습니다.",
+      "프로필 초기화",
+      "프로필을 초기화하시겠습니까?\n\n입력한 모든 정보가 삭제되며 복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
         {
-          text: "삭제하기",
+          text: "초기화",
           style: "destructive",
           onPress: async () => {
             try {
@@ -406,10 +415,10 @@ export default function ProfileScreen({ navigation }) {
               setIsProfileComplete(false);
               setIsEditMode(false);
 
-              Alert.alert("✅ 완료", "프로필이 삭제되었습니다.");
+              Alert.alert("✅ 완료", "프로필이 초기화되었습니다.");
             } catch (error) {
-              console.error("❌ 프로필 삭제 실패:", error);
-              Alert.alert("오류", "프로필 삭제 중 오류가 발생했습니다.");
+              console.error("❌ 프로필 초기화 실패:", error);
+              Alert.alert("오류", "프로필 초기화 중 오류가 발생했습니다.");
             } finally {
               setIsSaving(false);
             }
@@ -432,6 +441,14 @@ export default function ProfileScreen({ navigation }) {
       ]
     );
   };
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
 
   if (!isEditMode && isProfileComplete) {
     return (

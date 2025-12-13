@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
+import { makeRedirectUri } from "expo-auth-session";
 
 // WebBrowser 완료 후 자동 닫기
 WebBrowser.maybeCompleteAuthSession();
@@ -31,12 +32,15 @@ export default function LoginScreen({ navigation }) {
   // https://console.cloud.google.com/ → API 및 서비스 → 사용자 인증 정보 → OAuth 2.0 클라이언트 ID (iOS 유형)
   const googleConfig = {
     webClientId:
-      "659951812239-6cepdkckqcdtj66kq7vm32lup773u7q9.apps.googleusercontent.com", // Web 클라이언트 ID (Expo Go용)
+      "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com", // Web 클라이언트 ID
     expoClientId:
-      "659951812239-6cepdkckqcdtj66kq7vm32lup773u7q9.apps.googleusercontent.com", // Expo Go용
+      "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
     androidClientId:
-      "659951812239-bt34r41t5jsg0n556uuha9d6008pi913.apps.googleusercontent.com", // 프로덕션 Android용
+      "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com", // 새 SHA-1로 생성된 Android Client ID
     // iosClientId: "659951812239-xxxxx.apps.googleusercontent.com", // TODO: iOS 출시 시 추가 필요
+    redirectUri: makeRedirectUri({
+      scheme: "chao-vn-app",
+    }),
     scopes: ["openid", "profile", "email"],
     responseType: "id_token",
   };

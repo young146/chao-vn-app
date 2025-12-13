@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yourname.chaovnapp",
+            "certificate_hash": "4e3e8a5b3ff64cba3cf3dc166ddc0c173c54b31b"
+          }
+        },
+        {
           "client_id": "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
           "client_type": 3
         }

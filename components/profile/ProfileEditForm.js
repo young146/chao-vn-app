@@ -391,7 +391,7 @@ export default function ProfileEditForm({
                 </View>
 
                 <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-                    <Text style={styles.deleteButtonText}>프로필 삭제</Text>
+                    <Text style={styles.deleteButtonText}>프로필 초기화</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
