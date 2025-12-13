@@ -673,13 +673,27 @@ function RootNavigator() {
 // ------------------------------------------------------------------
 const GlobalChatNotificationListener = () => {
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    let unsubscribeChatListener = null;
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      // 이전 리스너가 있다면 정리
+      if (unsubscribeChatListener) {
+        unsubscribeChatListener();
+        unsubscribeChatListener = null;
+      }
+
       if (user) {
         console.log("🔔 전역 채팅 알림 리스너 시작:", user.uid);
-        listenToAllChatRooms(user.uid);
+        unsubscribeChatListener = listenToAllChatRooms(user.uid);
       }
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeChatListener) {
+        unsubscribeChatListener();
+      }
+    };
   }, []);
 
   const listenToAllChatRooms = (userId) => {
@@ -689,11 +703,18 @@ const GlobalChatNotificationListener = () => {
       where("participants", "array-contains", userId)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
+      // 로컬 변경사항(내가 쓴 글)은 무시
+      if (snapshot.metadata.hasPendingWrites) {
+        return;
+      }
+
       snapshot.docChanges().forEach((change) => {
         if (change.type === "modified") {
           const chatData = change.doc.data();
 
+          // 1. 보낸 사람이 내가 아닐 때
+          // 2. 메시지가 존재할 때
           if (
             chatData.lastMessageSenderId &&
             chatData.lastMessageSenderId !== userId

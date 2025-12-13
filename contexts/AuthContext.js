@@ -231,14 +231,21 @@ export const AuthProvider = ({ children }) => {
   // 아이디 찾기 (닉네임 또는 이름으로 이메일 찾기)
   const findId = async (type, value) => {
     try {
+      const searchTerm = value.trim();
+      if (!searchTerm) {
+        return { success: false, error: "검색어를 입력해주세요." };
+      }
+
       // type: 'displayName' or 'name'
       const field = type === "name" ? "name" : "displayName";
+      console.log(`🔎 ID 찾기 시도: field=${field}, value=${searchTerm}`);
 
-      const q = query(collection(db, "users"), where(field, "==", value));
+      const q = query(collection(db, "users"), where(field, "==", searchTerm));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        return { success: false, error: "해당 정보로 가입된 계정이 없습니다." };
+        console.log("❌ 검색 결과 없음");
+        return { success: false, error: "가입된 정보를 찾을 수 없습니다." };
       }
 
       const foundEmails = [];
@@ -249,10 +256,19 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
+      if (foundEmails.length === 0) {
+        return { success: false, error: "해당 정보로 가입된 이메일이 없습니다." };
+      }
+
+      console.log("✅ ID 찾기 성공:", foundEmails);
       return { success: true, emails: foundEmails };
     } catch (error) {
-      console.error("아이디 찾기 오류:", error);
-      return { success: false, error: "아이디 찾기 중 오류가 발생했습니다." };
+      console.error("❌ 아이디 찾기 오류 (상세):", error);
+      // 권한 에러 등 구체적인 에러 메시지 처리
+      if (error.code === 'permission-denied') {
+        return { success: false, error: "데이터베이스 접근 권한이 없습니다." };
+      }
+      return { success: false, error: "아이디 찾기 중 알 수 없는 오류가 발생했습니다." };
     }
   };
 
