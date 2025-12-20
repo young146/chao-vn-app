@@ -12,6 +12,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import { auth } from "../firebase/config";
+import { makeRedirectUri } from "expo-auth-session";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -19,6 +26,34 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+
+  // 구글 로그인 설정
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+    androidClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+    // 구글 허용 주소 직접 입력 (사장님 콘솔 설정과 100% 일치)
+    redirectUri: "exp://localhost:8081",
+  });
+
+  React.useEffect(() => {
+    if (response?.type === "success") {
+      const { id_token } = response.params;
+      const credential = GoogleAuthProvider.credential(id_token);
+
+      setLoading(true);
+      signInWithCredential(auth, credential)
+        .then((userCredential) => {
+          Alert.alert("로그인 성공! ✅", `환영합니다, ${userCredential.user.displayName || "회원"}님!`, [
+            { text: "확인", onPress: () => navigation.goBack() }
+          ]);
+        })
+        .catch((error) => {
+          console.error("Firebase Login Error:", error);
+          Alert.alert("로그인 실패", `코드: ${error.code}\n메시지: ${error.message}`);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [response]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -116,6 +151,15 @@ export default function LoginScreen({ navigation }) {
             ) : (
               <Text style={styles.loginButtonText}>로그인</Text>
             )}
+          </TouchableOpacity>
+
+          {/* 구글 로그인 버튼 */}
+          <TouchableOpacity
+            style={[styles.loginButton, { backgroundColor: "#fff", borderWidth: 1, borderColor: "#ddd", marginTop: 12, flexDirection: "row", justifyContent: "center" }]}
+            onPress={() => promptAsync()}
+          >
+            <Ionicons name="logo-google" size={20} color="#333" style={{ marginRight: 8 }} />
+            <Text style={[styles.loginButtonText, { color: "#333" }]}>Google로 계속하기</Text>
           </TouchableOpacity>
 
           <View style={styles.findContainer}>
