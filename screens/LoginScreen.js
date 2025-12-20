@@ -30,9 +30,8 @@ export default function LoginScreen({ navigation }) {
   // 구글 로그인 설정
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-    androidClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-    // 구글 허용 주소 직접 입력 (사장님 콘솔 설정과 100% 일치)
-    redirectUri: "exp://localhost:8081",
+    // Android 전용 클라이언트 ID (qmfr로 끝나는 것)
+    androidClientId: "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com",
   });
 
   React.useEffect(() => {
