@@ -15,6 +15,14 @@
       "ios": {
         "simulator": false
       }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "android": {
+        "buildType": "apk"
+      }
     }
   }
 }
