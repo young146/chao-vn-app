@@ -30,23 +30,16 @@ export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
 
   // 구글 로그인 설정 - Development Build용
-  const discovery = AuthSession.useAutoDiscovery('https://accounts.google.com');
-  
-  // Development Build에서 작동하는 Redirect URI
-  // Expo Auth Proxy를 사용하되, 앱으로 돌아올 수 있도록 설정
-  const redirectUri = AuthSession.makeRedirectUri({
-    // Development Build의 경우 native를 true로 설정
-    native: 'com.yourname.chaovnapp://oauthredirect',
-    useProxy: true,
-  });
-  
-  console.log("🔧 Generated redirectUri:", redirectUri);
-  
-  // Web Client ID 사용 (google-services.json에서 확인)
+  const discovery = AuthSession.useAutoDiscovery("https://accounts.google.com");
+
+  // Expo Auth Proxy URI (Google Cloud Console에 등록됨)
+  const redirectUri = "https://auth.expo.io/@young146/chao-vn-app";
+
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
-      clientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-      scopes: ['openid', 'profile', 'email'],
+      clientId:
+        "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+      scopes: ["openid", "profile", "email"],
       redirectUri: redirectUri,
     },
     discovery
@@ -54,24 +47,27 @@ export default function LoginScreen({ navigation }) {
 
   React.useEffect(() => {
     if (request) {
-      console.log("🔧 [Android Auth] Client ID:", request.clientId);
-      console.log("🔧 [Android Auth] Redirect URI:", request.redirectUri);
-      console.log("🔧 [Android Auth] Discovery ready:", !!discovery);
+      console.log("✅ Auth Request Created!");
+      console.log("🔧 Redirect URI:", request.redirectUri);
     }
   }, [request]);
 
   React.useEffect(() => {
     console.log("🔍 Response changed:", response?.type);
-    
+    console.log("🔍 Response:", JSON.stringify(response, null, 2));
+
     // 디버깅: response 전체 확인
     if (response) {
-      console.log("📩 Google Auth Response:", JSON.stringify(response, null, 2));
+      console.log(
+        "📩 Google Auth Response:",
+        JSON.stringify(response, null, 2)
+      );
     }
 
     if (response?.type === "success") {
       console.log("✅ Google Auth Success!");
       const { id_token, access_token } = response.params;
-      
+
       if (!id_token) {
         console.error("❌ No id_token in response");
         Alert.alert("로그인 오류", "Google 인증 토큰을 받지 못했습니다.");
@@ -85,14 +81,14 @@ export default function LoginScreen({ navigation }) {
       signInWithCredential(auth, credential)
         .then(async (userCredential) => {
           console.log("✅ Firebase Login Success:", userCredential.user.email);
-          
+
           // 구글 로그인 사용자의 Firestore 프로필 생성/업데이트
           const user = userCredential.user;
           const userDocRef = doc(db, "users", user.uid);
-          
+
           // 기존 프로필이 있는지 확인
           const userDoc = await getDoc(userDocRef);
-          
+
           if (!userDoc.exists()) {
             // 신규 구글 로그인 사용자 - 프로필 생성
             await setDoc(userDocRef, {
@@ -108,7 +104,7 @@ export default function LoginScreen({ navigation }) {
               createdAt: serverTimestamp(),
               provider: "google",
             });
-            
+
             // notificationSettings 초기화
             await setDoc(doc(db, "notificationSettings", user.uid), {
               userId: user.uid,
@@ -118,21 +114,24 @@ export default function LoginScreen({ navigation }) {
               chat: true,
               adminAlerts: true,
             });
-            
+
             console.log("✅ 구글 로그인 신규 사용자 프로필 생성 완료");
           } else {
             console.log("✅ 기존 구글 로그인 사용자");
           }
-          
-          Alert.alert("로그인 성공! ✅", `환영합니다, ${user.displayName || "회원"}님!`, [
-            { text: "확인", onPress: () => navigation.goBack() }
-          ]);
+
+          Alert.alert(
+            "로그인 성공! ✅",
+            `환영합니다, ${user.displayName || "회원"}님!`,
+            [{ text: "확인", onPress: () => navigation.goBack() }]
+          );
         })
         .catch((error) => {
           console.error("❌ Firebase Login Error:", error);
           let errorMessage = "로그인에 실패했습니다.";
           if (error.code === "auth/account-exists-with-different-credential") {
-            errorMessage = "이 이메일은 다른 로그인 방법으로 가입되어 있습니다.";
+            errorMessage =
+              "이 이메일은 다른 로그인 방법으로 가입되어 있습니다.";
           } else if (error.code === "auth/invalid-credential") {
             errorMessage = "인증 정보가 유효하지 않습니다.";
           } else if (error.code === "auth/network-request-failed") {
@@ -144,7 +143,10 @@ export default function LoginScreen({ navigation }) {
     } else if (response?.type === "error") {
       setGoogleLoading(false);
       console.error("❌ Google Auth Error:", response.error);
-      Alert.alert("로그인 오류", "구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
+      Alert.alert(
+        "로그인 오류",
+        "구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요."
+      );
     } else if (response?.type === "cancel") {
       setGoogleLoading(false);
       console.log("⚠️ User cancelled Google login");
@@ -266,17 +268,9 @@ export default function LoginScreen({ navigation }) {
             ]}
             onPress={async () => {
               if (!googleLoading) {
-                try {
-                  setGoogleLoading(true);
-                  console.log("🚀 Starting Google login...");
-                  await promptAsync();
-                  // promptAsync가 완료되면 response useEffect에서 처리됨
-                  // 사용자가 취소하거나 에러가 발생하면 response.type이 'cancel' 또는 'error'가 됨
-                } catch (error) {
-                  console.error("Google Auth Prompt Error:", error);
-                  setGoogleLoading(false);
-                  Alert.alert("오류", "구글 로그인을 시작할 수 없습니다. 다시 시도해주세요.");
-                }
+                setGoogleLoading(true);
+                console.log("🚀 Starting Google login...");
+                await promptAsync();
               }
             }}
             disabled={googleLoading}
@@ -285,8 +279,15 @@ export default function LoginScreen({ navigation }) {
               <ActivityIndicator color="#333" size="small" />
             ) : (
               <>
-                <Ionicons name="logo-google" size={20} color="#333" style={{ marginRight: 8 }} />
-                <Text style={[styles.loginButtonText, { color: "#333" }]}>Google로 계속하기</Text>
+                <Ionicons
+                  name="logo-google"
+                  size={20}
+                  color="#333"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={[styles.loginButtonText, { color: "#333" }]}>
+                  Google로 계속하기
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -296,7 +297,9 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.findText}>아이디 찾기</Text>
             </TouchableOpacity>
             <Text style={styles.findDivider}>|</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("비밀번호찾기")}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("비밀번호찾기")}
+            >
               <Text style={styles.findText}>비밀번호 찾기</Text>
             </TouchableOpacity>
           </View>

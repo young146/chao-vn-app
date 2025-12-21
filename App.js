@@ -56,7 +56,6 @@ import MyItemsScreen from "./screens/MyItemsScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
 
-
 // 씬짜오당근 화면들
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
@@ -238,7 +237,7 @@ const SiteWebView = ({ url }) => {
             cacheEnabled={true}
             injectedJavaScript={injectedJavaScript}
             setSupportMultipleWindows={false}
-            originWhitelist={['https://*', 'http://*']}
+            originWhitelist={["https://*", "http://*"]}
             androidHardwareAccelerationDisabled={false}
             androidLayerType="hardware"
           />
@@ -295,7 +294,8 @@ function BottomTabNavigator() {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           } else if (route.name === "씬짜오당근") {
             iconName = focused ? "cart" : "cart-outline";
-          } else if (route.name === "Menu") { // Changed from "메뉴" to "Menu"
+          } else if (route.name === "Menu") {
+            // Changed from "메뉴" to "Menu"
             iconName = focused ? "menu" : "menu-outline";
           }
           // Chat tab icon is handled directly in Tab.Screen
@@ -328,7 +328,11 @@ function BottomTabNavigator() {
         options={{
           title: "채팅",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbox-ellipses-outline" size={size} color={color} />
+            <Ionicons
+              name="chatbox-ellipses-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -778,7 +782,8 @@ export default function App() {
         sound: "default", // 🔊 여기서도 "default"
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF6B35",
-        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC, // 잠금화면 알림 표시
+        lockscreenVisibility:
+          Notifications.AndroidNotificationVisibility.PUBLIC, // 잠금화면 알림 표시
       });
     }
   }, []);
@@ -786,7 +791,30 @@ export default function App() {
   return (
     <AuthProvider>
       <GlobalChatNotificationListener />
-      <NavigationContainer>
+      <NavigationContainer
+        linking={{
+          prefixes: [
+            "com.yourname.chaovnapp://",
+            "exp+chao-vn-app://",
+            "https://auth.expo.io/@young146/chao-vn-app",
+          ],
+          config: {
+            screens: {
+              MainApp: {
+                screens: {
+                  씬짜오당근: "danggn",
+                  Chat: "chat",
+                  Menu: "menu",
+                },
+              },
+              로그인: "login",
+            },
+          },
+        }}
+        onStateChange={(state) => {
+          console.log("🔗 Navigation state changed:", state);
+        }}
+      >
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
         <RootNavigator />
       </NavigationContainer>
