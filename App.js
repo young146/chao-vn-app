@@ -357,7 +357,7 @@ function DanggnHeaderRight({ navigation }) {
       {user ? (
         <TouchableOpacity
           style={{ padding: 8 }}
-          onPress={() => navigation.navigate("메뉴")}
+          onPress={() => navigation.navigate("Menu")}
         >
           <Ionicons name="person-circle" size={28} color="#fff" />
         </TouchableOpacity>
@@ -663,14 +663,31 @@ function RootNavigator() {
 // ** 9. 전역 채팅 알림 리스너 **
 // ------------------------------------------------------------------
 const GlobalChatNotificationListener = () => {
+  const chatRoomsUnsubscribeRef = React.useRef(null);
+
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      // 이전 채팅방 리스너 정리
+      if (chatRoomsUnsubscribeRef.current) {
+        console.log("🔕 이전 채팅방 리스너 정리");
+        chatRoomsUnsubscribeRef.current();
+        chatRoomsUnsubscribeRef.current = null;
+      }
+
       if (user) {
         console.log("🔔 전역 채팅 알림 리스너 시작:", user.uid);
-        listenToAllChatRooms(user.uid);
+        chatRoomsUnsubscribeRef.current = listenToAllChatRooms(user.uid);
       }
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribeAuth();
+      // 채팅방 리스너도 정리
+      if (chatRoomsUnsubscribeRef.current) {
+        chatRoomsUnsubscribeRef.current();
+        chatRoomsUnsubscribeRef.current = null;
+      }
+    };
   }, []);
 
   const listenToAllChatRooms = (userId) => {

@@ -27,7 +27,7 @@ const NOTIFICATION_SOUNDS = [
   { id: "bell", label: "종소리", file: "bell.wav", channel: "chat_bell" },
 ];
 
-export default function NotificationSettingsScreen() {
+export default function NotificationSettingScreen() {
   const { user } = useAuth();
   const [settings, setSettings] = useState({
     newArticles: true,

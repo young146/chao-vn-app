@@ -3,7 +3,7 @@
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
     "version": "2.0.1",
-    "scheme": "chao-vn-app",
+    "scheme": ["com.yourname.chaovnapp", "exp+chao-vn-app"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

@@ -59,37 +59,65 @@ exports.sendChatNotification = onDocumentCreated("chatRooms/{roomId}/messages/{m
             return;
         }
 
-        // 4. 알림 메시지 구성
+        // 3-1. 수신자의 알림 설정 확인
+        const notificationSettingsDoc = await db.collection("notificationSettings").doc(receiverId).get();
+        
+        if (notificationSettingsDoc.exists) {
+            const notificationSettings = notificationSettingsDoc.data();
+            if (notificationSettings.chat === false) {
+                console.log("Receiver has disabled chat notifications");
+                return;
+            }
+        }
+
+        // 4. 발신자 정보 가져오기 (알림에 표시)
+        const senderDoc = await db.collection("users").doc(senderId).get();
+        const senderName = senderDoc.exists ? senderDoc.data().displayName || "사용자" : "사용자";
+
+        // 5. 알림 메시지 구성
         const messages = [];
-        const bodyText = messageData.image ? "사진을 보냈습니다." : messageData.text;
+        const bodyText = messageData.image ? `${senderName}님이 사진을 보냈습니다.` : messageData.text;
         const titleText = chatRoomData.itemTitle || "새 메시지";
 
         messages.push({
             to: pushToken,
             sound: "default",
-            title: titleText,
+            title: `${titleText} - ${senderName}`,
             body: bodyText,
             data: {
                 roomId: roomId,
-                screen: "ChatRoom"
+                chatRoomId: roomId,
+                screen: "ChatRoom",
+                itemTitle: titleText,
+                otherUserId: senderId,
+                otherUserName: senderName,
             },
             channelId: "chat_default_v2",
             priority: "high",
+            badge: 1, // 뱃지 카운트 증가
         });
 
-        // 5. Expo로 전송
+        console.log("📤 Sending notification:", {
+            to: pushToken,
+            title: `${titleText} - ${senderName}`,
+            body: bodyText
+        });
+
+        // 6. Expo로 전송
         const chunks = expo.chunkPushNotifications(messages);
 
         for (const chunk of chunks) {
             try {
                 const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-                console.log("Notification sent:", ticketChunk);
+                console.log("✅ Notification sent successfully:", ticketChunk);
             } catch (error) {
-                console.error("Error sending chunk:", error);
+                console.error("❌ Error sending chunk:", error);
             }
         }
 
+        console.log(`🔔 Chat notification sent to ${receiverId} for room ${roomId}`);
+
     } catch (error) {
-        console.error("Error in sendChatNotification:", error);
+        console.error("❌ Error in sendChatNotification:", error);
     }
 });
