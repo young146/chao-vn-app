@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  Image,
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
