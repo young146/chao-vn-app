@@ -27,29 +27,17 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const { login, googleLogin } = useAuth();
 
-  // 구글 로그인 설정
-  const googleConfig = {
-    webClientId:
-      "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com", // Web 클라이언트 ID
-    expoClientId:
-      "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-    androidClientId:
-      "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com", // Android Client ID
-    // iosClientId: "TODO: iOS 출시 시 추가 필요",
-    redirectUri: makeRedirectUri({
-      scheme: "chao-vn-app",
-    }),
-    scopes: ["openid", "profile", "email"],
+  // 구글 로그인 설정 (makeRedirectUri로 자동 생성)
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com",
+    webClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
     responseType: "id_token",
-  };
-
-  const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
+  });
 
   // 구글 로그인 응답 처리
   React.useEffect(() => {
     if (response?.type === "success") {
-      const idToken =
-        response.params?.id_token || response.authentication?.idToken;
+      const idToken = response.params?.id_token || response.authentication?.idToken;
       if (idToken) {
         handleGoogleLogin(idToken);
       } else {
@@ -60,7 +48,7 @@ export default function LoginScreen({ navigation }) {
     } else if (response?.type === "error") {
       setGoogleLoading(false);
       console.error("Google login error:", response.error);
-      Alert.alert("구글 로그인 실패", "구글 로그인에 실패했습니다.");
+      Alert.alert("구글 로그인 실패", "구글 로그인 중 오류가 발생했습니다.");
     } else if (response?.type === "dismiss" || response?.type === "cancel") {
       setGoogleLoading(false);
     }
@@ -94,21 +82,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(false);
 
     if (!result.success) {
-      if (result.error.includes("비밀번호")) {
-        Alert.alert(
-          "로그인 실패",
-          result.error + "\n\n비밀번호를 잊으셨나요?",
-          [
-            { text: "취소", style: "cancel" },
-            {
-              text: "비밀번호 찾기",
-              onPress: () => navigation.navigate("비밀번호찾기"),
-            },
-          ]
-        );
-      } else {
-        Alert.alert("로그인 실패", result.error);
-      }
+      Alert.alert("로그인 실패", result.error);
     } else {
       Alert.alert("로그인 성공! ✅", "환영합니다!", [
         {
@@ -135,12 +109,7 @@ export default function LoginScreen({ navigation }) {
 
         <View style={styles.formContainer}>
           <View style={styles.inputGroup}>
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color="#999"
-              style={styles.inputIcon}
-            />
+            <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="이메일"
@@ -154,12 +123,7 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color="#999"
-              style={styles.inputIcon}
-            />
+            <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="비밀번호"
@@ -169,28 +133,13 @@ export default function LoginScreen({ navigation }) {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
             />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-            >
-              <Ionicons
-                name={showPassword ? "eye-outline" : "eye-off-outline"}
-                size={20}
-                color="#999"
-              />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+              <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#999" />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>로그인</Text>
-            )}
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>로그인</Text>}
           </TouchableOpacity>
 
           <View style={styles.dividerContainer}>
@@ -200,7 +149,7 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[styles.googleButton, (googleLoading || !request) && { opacity: 0.7 }]}
             onPress={() => {
               setGoogleLoading(true);
               promptAsync();
@@ -222,9 +171,7 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.findText}>아이디 찾기</Text>
             </TouchableOpacity>
             <Text style={styles.findDivider}>|</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("비밀번호찾기")}
-            >
+            <TouchableOpacity onPress={() => navigation.navigate("비밀번호찾기")}>
               <Text style={styles.findText}>비밀번호 찾기</Text>
             </TouchableOpacity>
           </View>
@@ -242,133 +189,28 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#FFF0EB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#999",
-  },
-  formContainer: {
-    width: "100%",
-  },
-  inputGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: "#333",
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  loginButton: {
-    backgroundColor: "#FF6B35",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  signupContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  signupText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  signupLink: {
-    fontSize: 14,
-    color: "#FF6B35",
-    fontWeight: "600",
-  },
-  findContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16,
-  },
-  findText: {
-    color: "#666",
-    fontSize: 13,
-  },
-  findDivider: {
-    color: "#ddd",
-    marginHorizontal: 12,
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e0e0e0",
-  },
-  dividerText: {
-    marginHorizontal: 12,
-    fontSize: 14,
-    color: "#999",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    marginBottom: 16,
-  },
-  googleButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  content: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
+  logoContainer: { alignItems: "center", marginBottom: 48 },
+  logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#FFF0EB", justifyContent: "center", alignItems: "center", marginBottom: 16 },
+  logoText: { fontSize: 28, fontWeight: "bold", color: "#333", marginBottom: 8 },
+  subtitle: { fontSize: 14, color: "#999" },
+  formContainer: { width: "100%" },
+  inputGroup: { flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", borderRadius: 8, paddingHorizontal: 12, marginBottom: 16, borderWidth: 1, borderColor: "#e0e0e0" },
+  inputIcon: { marginRight: 8 },
+  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: "#333" },
+  eyeIcon: { padding: 4 },
+  loginButton: { backgroundColor: "#FF6B35", borderRadius: 8, paddingVertical: 14, alignItems: "center", marginTop: 8 },
+  loginButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  signupContainer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
+  signupText: { fontSize: 14, color: "#666" },
+  signupLink: { fontSize: 14, color: "#FF6B35", fontWeight: "600" },
+  findContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 16 },
+  findText: { color: "#666", fontSize: 13 },
+  findDivider: { color: "#ddd", marginHorizontal: 12 },
+  dividerContainer: { flexDirection: "row", alignItems: "center", marginVertical: 24 },
+  divider: { flex: 1, height: 1, backgroundColor: "#e0e0e0" },
+  dividerText: { marginHorizontal: 12, fontSize: 14, color: "#999" },
+  googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderRadius: 8, paddingVertical: 14, borderWidth: 1, borderColor: "#e0e0e0", marginBottom: 16 },
+  googleButtonText: { marginLeft: 8, fontSize: 16, fontWeight: "600", color: "#333" },
 });

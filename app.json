@@ -3,7 +3,7 @@
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
     "version": "2.0.1",
-    "scheme": ["com.yourname.chaovnapp", "exp+chao-vn-app"],
+    "scheme": "com.yourname.chaovnapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,18 +12,13 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
       "buildNumber": "6",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification",
-          "remote-notification"
-        ],
+        "UIBackgroundModes": ["remote-notification"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -43,9 +38,7 @@
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.WAKE_LOCK",
-        "android.permission.INTERNET",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.WAKE_LOCK"
+        "android.permission.VIBRATE"
       ],
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json"

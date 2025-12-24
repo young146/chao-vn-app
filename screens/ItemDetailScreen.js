@@ -16,6 +16,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import {
   doc,
   deleteDoc,
@@ -456,7 +457,14 @@ export default function ItemDetailScreen({ route, navigation }) {
                 scrollEventThrottle={16}
               >
                 {images.map((uri, index) => (
-                  <Image key={index} source={{ uri }} style={styles.image} />
+                  <Image
+                    key={index}
+                    source={{ uri }}
+                    style={styles.image}
+                    contentFit="cover"
+                    transition={300}
+                    cachePolicy="memory-disk"
+                  />
                 ))}
               </ScrollView>
 
