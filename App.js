@@ -18,6 +18,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db, auth } from "./firebase/config";
@@ -667,95 +669,13 @@ function RootNavigator() {
 // ** 9. 전역 채팅 알림 리스너 **
 // ------------------------------------------------------------------
 const GlobalChatNotificationListener = () => {
-  const chatRoomsUnsubscribeRef = React.useRef(null);
-
+  // ⚠️ 완전히 비활성화 - Firebase Functions가 알림을 보내므로 로컬 알림은 중복이고 발신자에게도 알림이 가는 문제 발생
+  // Firebase Functions만 사용하여 수신자에게만 알림 전송
   useEffect(() => {
-    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      // 이전 채팅방 리스너 정리
-      if (chatRoomsUnsubscribeRef.current) {
-        console.log("🔕 이전 채팅방 리스너 정리");
-        chatRoomsUnsubscribeRef.current();
-        chatRoomsUnsubscribeRef.current = null;
-      }
-
-      if (user) {
-        console.log("🔔 전역 채팅 알림 리스너 시작:", user.uid);
-        chatRoomsUnsubscribeRef.current = listenToAllChatRooms(user.uid);
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-      // 채팅방 리스너도 정리
-      if (chatRoomsUnsubscribeRef.current) {
-        chatRoomsUnsubscribeRef.current();
-        chatRoomsUnsubscribeRef.current = null;
-      }
-    };
-  }, []);
-
-  const listenToAllChatRooms = (userId) => {
-    const chatRoomsRef = collection(db, "chatRooms");
-    const q = query(
-      chatRoomsRef,
-      where("participants", "array-contains", userId)
+    console.log(
+      "🔇 GlobalChatNotificationListener 비활성화됨 - Firebase Functions가 알림 처리"
     );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "modified") {
-          const chatData = change.doc.data();
-
-          if (
-            chatData.lastMessageSenderId &&
-            chatData.lastMessageSenderId !== userId
-          ) {
-            const isSeller = userId === chatData.sellerId;
-            const hasUnread = isSeller
-              ? !chatData.sellerRead
-              : !chatData.buyerRead;
-
-            if (hasUnread) {
-              console.log("🔔 새 메시지 감지!", chatData.lastMessage);
-              playGlobalNotification(chatData.lastMessage, chatData.itemTitle);
-            }
-          }
-        }
-      });
-    });
-
-    return unsubscribe;
-  };
-
-  const playGlobalNotification = async (messageText, itemTitle) => {
-    try {
-      const notificationEnabled = await AsyncStorage.getItem(
-        "chatNotificationEnabled"
-      );
-      if (notificationEnabled === "false") {
-        console.log("🔇 알림 OFF 상태");
-        return;
-      }
-
-      // ✅ 기본 시스템 알림음 + 채팅 전용 채널 사용
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: itemTitle || "새 메시지",
-          body: messageText,
-          sound: "default", // 🔊 true 대신 "default" 로 명시
-          data: { screen: "ChatRoom" },
-        },
-        trigger:
-          Platform.OS === "android"
-            ? { seconds: 1, channelId: "chat_default_v2" } // 👈 아래 App에서 만든 채널과 이름 일치
-            : { seconds: 1 },
-      });
-
-      console.log("🔔 전역 알림 재생 완료!");
-    } catch (error) {
-      console.log("전역 알림 실패:", error);
-    }
-  };
+  }, []);
 
   return null;
 };
@@ -764,29 +684,7 @@ const GlobalChatNotificationListener = () => {
 // ** 10. App 컴포넌트 **
 // ------------------------------------------------------------------
 export default function App() {
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      // ✅ 기본 알림 채널 (내 주변상품, 가격변동, 리뷰, 뉴스 등)
-      Notifications.setNotificationChannelAsync("default", {
-        name: "기본 알림",
-        importance: Notifications.AndroidImportance.MAX,
-        sound: "default",
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF6B35",
-      });
-
-      // ✅ 채팅 알림 전용 채널 (소리 + 높은 우선순위)
-      Notifications.setNotificationChannelAsync("chat_default_v2", {
-        name: "채팅 알림",
-        importance: Notifications.AndroidImportance.MAX, // 채팅은 가장 강하게
-        sound: "default", // 🔊 여기서도 "default"
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF6B35",
-        lockscreenVisibility:
-          Notifications.AndroidNotificationVisibility.PUBLIC, // 잠금화면 알림 표시
-      });
-    }
-  }, []);
+  // 채널은 setupNotificationChannels()에서 이미 생성되므로 여기서는 제거
 
   return (
     <AuthProvider>

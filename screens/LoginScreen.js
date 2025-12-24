@@ -12,13 +12,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import * as Google from "expo-auth-session/providers/google";
-import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
-import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase/config";
+import * as Google from "expo-auth-session/providers/google";
+import { makeRedirectUri } from "expo-auth-session";
 
+// WebBrowser 완료 후 자동 닫기
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ navigation }) {
@@ -27,132 +25,63 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
 
-  // 구글 로그인 설정 - Development Build용
-  const discovery = AuthSession.useAutoDiscovery("https://accounts.google.com");
+  // 구글 로그인 설정
+  const googleConfig = {
+    webClientId:
+      "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com", // Web 클라이언트 ID
+    expoClientId:
+      "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+    androidClientId:
+      "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com", // Android Client ID
+    // iosClientId: "TODO: iOS 출시 시 추가 필요",
+    redirectUri: makeRedirectUri({
+      scheme: "chao-vn-app",
+    }),
+    scopes: ["openid", "profile", "email"],
+    responseType: "id_token",
+  };
 
-  // Expo Auth Proxy URI (Google Cloud Console에 등록됨)
-  const redirectUri = "https://auth.expo.io/@young146/chao-vn-app";
+  const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId:
-        "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-      scopes: ["openid", "profile", "email"],
-      redirectUri: redirectUri,
-    },
-    discovery
-  );
-
+  // 구글 로그인 응답 처리
   React.useEffect(() => {
-    if (request) {
-      console.log("✅ Auth Request Created!");
-      console.log("🔧 Redirect URI:", request.redirectUri);
-    }
-  }, [request]);
-
-  React.useEffect(() => {
-    console.log("🔍 Response changed:", response?.type);
-    console.log("🔍 Response:", JSON.stringify(response, null, 2));
-
-    // 디버깅: response 전체 확인
-    if (response) {
-      console.log(
-        "📩 Google Auth Response:",
-        JSON.stringify(response, null, 2)
-      );
-    }
-
     if (response?.type === "success") {
-      console.log("✅ Google Auth Success!");
-      const { id_token, access_token } = response.params;
-
-      if (!id_token) {
-        console.error("❌ No id_token in response");
-        Alert.alert("로그인 오류", "Google 인증 토큰을 받지 못했습니다.");
+      const idToken =
+        response.params?.id_token || response.authentication?.idToken;
+      if (idToken) {
+        handleGoogleLogin(idToken);
+      } else {
         setGoogleLoading(false);
-        return;
+        console.error("ID Token not found in response:", response);
+        Alert.alert("구글 로그인 실패", "인증 토큰을 받지 못했습니다.");
       }
-
-      const credential = GoogleAuthProvider.credential(id_token);
-
-      setGoogleLoading(true);
-      signInWithCredential(auth, credential)
-        .then(async (userCredential) => {
-          console.log("✅ Firebase Login Success:", userCredential.user.email);
-
-          // 구글 로그인 사용자의 Firestore 프로필 생성/업데이트
-          const user = userCredential.user;
-          const userDocRef = doc(db, "users", user.uid);
-
-          // 기존 프로필이 있는지 확인
-          const userDoc = await getDoc(userDocRef);
-
-          if (!userDoc.exists()) {
-            // 신규 구글 로그인 사용자 - 프로필 생성
-            await setDoc(userDocRef, {
-              uid: user.uid,
-              email: user.email,
-              name: user.displayName || null,
-              displayName: user.displayName || user.email.split("@")[0],
-              photoURL: user.photoURL || null,
-              city: null,
-              district: null,
-              apartment: null,
-              profileCompleted: false,
-              createdAt: serverTimestamp(),
-              provider: "google",
-            });
-
-            // notificationSettings 초기화
-            await setDoc(doc(db, "notificationSettings", user.uid), {
-              userId: user.uid,
-              nearbyItems: false,
-              favorites: true,
-              reviews: true,
-              chat: true,
-              adminAlerts: true,
-            });
-
-            console.log("✅ 구글 로그인 신규 사용자 프로필 생성 완료");
-          } else {
-            console.log("✅ 기존 구글 로그인 사용자");
-          }
-
-          Alert.alert(
-            "로그인 성공! ✅",
-            `환영합니다, ${user.displayName || "회원"}님!`,
-            [{ text: "확인", onPress: () => navigation.goBack() }]
-          );
-        })
-        .catch((error) => {
-          console.error("❌ Firebase Login Error:", error);
-          let errorMessage = "로그인에 실패했습니다.";
-          if (error.code === "auth/account-exists-with-different-credential") {
-            errorMessage =
-              "이 이메일은 다른 로그인 방법으로 가입되어 있습니다.";
-          } else if (error.code === "auth/invalid-credential") {
-            errorMessage = "인증 정보가 유효하지 않습니다.";
-          } else if (error.code === "auth/network-request-failed") {
-            errorMessage = "네트워크 연결을 확인해주세요.";
-          }
-          Alert.alert("로그인 실패", errorMessage);
-        })
-        .finally(() => setGoogleLoading(false));
     } else if (response?.type === "error") {
       setGoogleLoading(false);
-      console.error("❌ Google Auth Error:", response.error);
-      Alert.alert(
-        "로그인 오류",
-        "구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요."
-      );
-    } else if (response?.type === "cancel") {
+      console.error("Google login error:", response.error);
+      Alert.alert("구글 로그인 실패", "구글 로그인에 실패했습니다.");
+    } else if (response?.type === "dismiss" || response?.type === "cancel") {
       setGoogleLoading(false);
-      console.log("⚠️ User cancelled Google login");
-      // 사용자가 취소한 경우는 알림 표시하지 않음
     }
   }, [response]);
+
+  const handleGoogleLogin = async (idToken) => {
+    setGoogleLoading(true);
+    const result = await googleLogin(idToken);
+    setGoogleLoading(false);
+
+    if (result.success) {
+      Alert.alert("로그인 성공! ✅", "환영합니다!", [
+        {
+          text: "확인",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } else {
+      Alert.alert("구글 로그인 실패", result.error);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -165,24 +94,37 @@ export default function LoginScreen({ navigation }) {
     setLoading(false);
 
     if (!result.success) {
-      Alert.alert("로그인 실패", result.error);
+      if (result.error.includes("비밀번호")) {
+        Alert.alert(
+          "로그인 실패",
+          result.error + "\n\n비밀번호를 잊으셨나요?",
+          [
+            { text: "취소", style: "cancel" },
+            {
+              text: "비밀번호 찾기",
+              onPress: () => navigation.navigate("비밀번호찾기"),
+            },
+          ]
+        );
+      } else {
+        Alert.alert("로그인 실패", result.error);
+      }
     } else {
-      // 로그인 성공!
       Alert.alert("로그인 성공! ✅", "환영합니다!", [
         {
           text: "확인",
-          onPress: () => navigation.goBack(), // 이전 페이지로 복귀
+          onPress: () => navigation.goBack(),
         },
       ]);
     }
   };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <View style={styles.content}>
-        {/* 로고 영역 */}
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Ionicons name="newspaper" size={40} color="#FF6B35" />
@@ -191,7 +133,6 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.subtitle}>한국 내 베트남 커뮤니티</Text>
         </View>
 
-        {/* 입력 폼 */}
         <View style={styles.formContainer}>
           <View style={styles.inputGroup}>
             <Ionicons
@@ -252,42 +193,26 @@ export default function LoginScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
-          {/* 구글 로그인 버튼 */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>또는</Text>
+            <View style={styles.divider} />
+          </View>
+
           <TouchableOpacity
-            style={[
-              styles.loginButton,
-              {
-                backgroundColor: "#fff",
-                borderWidth: 1,
-                borderColor: "#ddd",
-                marginTop: 12,
-                flexDirection: "row",
-                justifyContent: "center",
-                opacity: googleLoading ? 0.6 : 1,
-              },
-            ]}
-            onPress={async () => {
-              if (!googleLoading) {
-                setGoogleLoading(true);
-                console.log("🚀 Starting Google login...");
-                await promptAsync();
-              }
+            style={styles.googleButton}
+            onPress={() => {
+              setGoogleLoading(true);
+              promptAsync();
             }}
-            disabled={googleLoading}
+            disabled={googleLoading || !request}
           >
             {googleLoading ? (
-              <ActivityIndicator color="#333" size="small" />
+              <ActivityIndicator color="#333" />
             ) : (
               <>
-                <Ionicons
-                  name="logo-google"
-                  size={20}
-                  color="#333"
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={[styles.loginButtonText, { color: "#333" }]}>
-                  Google로 계속하기
-                </Text>
+                <Ionicons name="logo-google" size={20} color="#333" />
+                <Text style={styles.googleButtonText}>구글로 로그인</Text>
               </>
             )}
           </TouchableOpacity>
@@ -413,5 +338,37 @@ const styles = StyleSheet.create({
   findDivider: {
     color: "#ddd",
     marginHorizontal: 12,
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e0e0e0",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 14,
+    color: "#999",
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    marginBottom: 16,
+  },
+  googleButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
   },
 });

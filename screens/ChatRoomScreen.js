@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useIsFocused } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -56,6 +57,7 @@ export default function ChatRoomScreen({ route, navigation }) {
     sellerId,
   } = route.params;
 
+  const isFocused = useIsFocused(); // 현재 화면이 활성화되어 있는지 확인
   const [chatRoomId, setChatRoomId] = useState(initialChatRoomId);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
@@ -67,6 +69,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const currentUserName = auth.currentUser?.email?.split("@")[0] || "사용자";
   const flatListRef = useRef(null);
   const prevMessageCountRef = useRef(0);
+  const sentMessageIdsRef = useRef(new Set()); // 발신자가 보낸 메시지 ID 추적
 
   // 알림 권한 요청
   useEffect(() => {
@@ -229,17 +232,9 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       console.log("📨 받은 메시지:", msgs.length, "개");
 
-      // ✅ 새 메시지 알림 (상대방이 보낸 경우만)
-      if (
-        prevMessageCountRef.current > 0 &&
-        msgs.length > prevMessageCountRef.current
-      ) {
-        const newMessage = msgs[msgs.length - 1];
-        if (newMessage.senderId !== currentUserId) {
-          console.log("🔔 새 메시지 도착!", newMessage.text);
-          playNotification(newMessage.text);
-        }
-      }
+      // ⚠️ 로컬 알림 완전히 비활성화 - Firebase Functions가 알림을 보내므로
+      // 로컬 알림은 발신자에게도 알림이 가는 문제가 발생하므로 제거
+      // Firebase Functions만 사용하여 수신자에게만 알림 전송
 
       prevMessageCountRef.current = msgs.length;
       setMessages(msgs);
@@ -308,6 +303,12 @@ export default function ChatRoomScreen({ route, navigation }) {
       );
 
       console.log("✅ 메시지 저장 성공!", docRef.id);
+
+      // 🔒 발신자가 보낸 메시지 ID를 추적하여 알림이 발생하지 않도록 함
+      sentMessageIdsRef.current.add(docRef.id);
+
+      // 발신자가 메시지를 보낼 때 prevMessageCountRef를 미리 증가시켜 알림이 발생하지 않도록 함
+      prevMessageCountRef.current = messages.length + 1;
 
       // 4. Update ChatRoom
       const chatRoomRef = doc(db, "chatRooms", chatRoomId);
