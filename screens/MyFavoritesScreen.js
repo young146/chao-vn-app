@@ -5,10 +5,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
@@ -134,7 +134,13 @@ export default function MyFavoritesScreen({ navigation }) {
       {/* 물품 이미지 */}
       <View style={styles.imageContainer}>
         {item.itemImage ? (
-          <Image source={{ uri: item.itemImage }} style={styles.itemImage} />
+          <Image
+            source={{ uri: item.itemImage }}
+            style={styles.itemImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <View style={styles.noImage}>
             <Ionicons name="image-outline" size={40} color="#ccc" />

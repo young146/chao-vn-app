@@ -5,9 +5,9 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import {
   collection,
   query,
@@ -97,7 +97,13 @@ export default function ChatListScreen({ navigation }) {
         {/* 상품 이미지 */}
         <View style={styles.imageContainer}>
           {item.itemImage ? (
-            <Image source={{ uri: item.itemImage }} style={styles.itemImage} />
+            <Image
+              source={{ uri: item.itemImage }}
+              style={styles.itemImage}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={styles.noImage}>
               <Ionicons name="image-outline" size={30} color="#ccc" />

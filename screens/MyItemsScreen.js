@@ -5,10 +5,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
@@ -129,12 +129,24 @@ export default function MyItemsScreen({ navigation }) {
       activeOpacity={0.7}
     >
       {/* 물품 이미지 */}
-<View style={styles.imageContainer}>
-  {item.images && item.images.length > 0 ? (
-    <Image source={{ uri: item.images[0] }} style={styles.itemImage} />
-  ) : item.imageUri ? (
-    <Image source={{ uri: item.imageUri }} style={styles.itemImage} />
-  ) : (
+      <View style={styles.imageContainer}>
+        {item.images && item.images.length > 0 ? (
+          <Image
+            source={{ uri: item.images[0] }}
+            style={styles.itemImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
+        ) : item.imageUri ? (
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.itemImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
+        ) : (
     <View style={styles.noImage}>
       <Ionicons name="image-outline" size={40} color="#ccc" />
     </View>

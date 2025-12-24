@@ -9,12 +9,12 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Keyboard,
   Vibration,
   Modal,
   Dimensions,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -379,7 +379,9 @@ export default function ChatRoomScreen({ route, navigation }) {
               <Image
                 source={{ uri: item.image }}
                 style={{ width: 200, height: 200, borderRadius: 12 }}
-                resizeMode="cover"
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
               />
             </TouchableOpacity>
           ) : (
@@ -406,7 +408,13 @@ export default function ChatRoomScreen({ route, navigation }) {
     >
       <View style={styles.itemHeader}>
         {itemImage && (
-          <Image source={{ uri: itemImage }} style={styles.headerImage} />
+          <Image
+            source={{ uri: itemImage }}
+            style={styles.headerImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         )}
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -440,7 +448,11 @@ export default function ChatRoomScreen({ route, navigation }) {
       >
         {previewImage && (
           <View style={styles.previewContainer}>
-            <Image source={{ uri: previewImage }} style={styles.previewImage} />
+            <Image
+              source={{ uri: previewImage }}
+              style={styles.previewImage}
+              contentFit="cover"
+            />
             <TouchableOpacity
               style={styles.previewCloseButton}
               onPress={() => setPreviewImage(null)}
@@ -495,7 +507,7 @@ export default function ChatRoomScreen({ route, navigation }) {
           <Image
             source={{ uri: selectedImage }}
             style={styles.fullImage}
-            resizeMode="contain"
+            contentFit="contain"
           />
         </View>
       </Modal>
