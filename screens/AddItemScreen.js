@@ -173,8 +173,8 @@ export default function AddItemScreen({ navigation, route }) {
     try {
       const manipResult = await ImageManipulator.manipulateAsync(
         uri,
-        [{ resize: { width: 1080 } }], // 가로 1080px로 리사이징 (비율 유지)
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 압축률 0.7
+        [{ resize: { width: 800 } }], // 가로 800px로 대폭 축소 (원본 업로드 부하 방지)
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // 품질 0.7로 최적화
       );
       return manipResult.uri;
     } catch (error) {
@@ -189,7 +189,9 @@ export default function AddItemScreen({ navigation, route }) {
         return uri;
       }
 
-      const response = await fetch(uri);
+      // 🔥 업로드 전 휴대폰에서 1차 리사이징 및 압축 강제 실행 (가로 800px)
+      const resizedUri = await resizeImage(uri);
+      const response = await fetch(resizedUri);
       const blob = await response.blob();
 
       const filename = `items/${user.uid}_${Date.now()}_${Math.random()

@@ -1,10 +1,67 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
-// ... (existing imports)
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  FlatList,
+  Alert,
+  RefreshControl,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { useAuth } from "../contexts/AuthContext";
+import { db } from "../firebase/config";
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  startAfter,
+  getDoc,
+  doc,
+} from "firebase/firestore";
+import {
+  getDistrictsByCity,
+  getApartmentsByDistrict,
+} from "../utils/vietnamLocations";
 
 // 별도 컴포넌트로 분리하여 메모이제이션 적용
-const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor }) => {
+const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) => {
   const status = item.status || "판매중";
-  const imageSource = item.images?.[0] || item.imageUri;
+  const originalImage = item.images?.[0] || item.imageUri;
+
+  // 🔥 Firebase Resize Images 확장 프로그램 규칙에 따른 썸네일 URL 생성
+  // 200x200 설정 기준: 원본파일명_200x200.확장자
+  const getThumbnail = (url) => {
+    if (!url || !url.includes("firebasestorage")) return url;
+    
+    try {
+      // URL에서 경로 부분만 추출 (쿼리 파라미터 제외)
+      const baseUrl = url.split("?")[0];
+      const params = url.split("?")[1] || "alt=media";
+      
+      // 파일 경로와 확장자 분리
+      const lastDotIndex = baseUrl.lastIndexOf(".");
+      if (lastDotIndex === -1) return url;
+      
+      const pathWithoutExt = baseUrl.substring(0, lastDotIndex);
+      const extension = baseUrl.substring(lastDotIndex);
+      
+      // 썸네일 경로 조합 (_200x200 접미사 추가)
+      return `${pathWithoutExt}_200x200${extension}?${params}`;
+    } catch (e) {
+      return url;
+    }
+  };
+
+  const imageSource = getThumbnail(originalImage);
 
   return (
     <TouchableOpacity style={styles.itemCard} onPress={() => onPress(item)}>
@@ -14,9 +71,10 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor }) => {
             source={{ uri: imageSource }}
             style={styles.itemImage}
             contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-            priority="high"
+            transition={index < 10 ? 0 : 150}
+            cachePolicy="disk"
+            priority={index < 10 ? "high" : "low"}
+            recyclingKey={item.id}
           />
         ) : (
           <Ionicons name="image-outline" size={40} color="#ccc" />
@@ -49,6 +107,12 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const [userProfile, setUserProfile] = useState(null);
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
 
+  // 페이지네이션 관련 state
+  const [lastVisible, setLastVisible] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 10;
+
   const categories = [
     "전체",
     "무료나눔",
@@ -66,21 +130,17 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "기타",
   ];
 
-  // 사용자 프로필 로드
+  // 사용자 프로필 로드 (비차단 방식으로 수정)
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            setUserProfile(userDoc.data());
-          }
-        } catch (error) {
-          console.error("❌ 프로필 로드 실패:", error);
+    if (user) {
+      getDoc(doc(db, "users", user.uid)).then(userDoc => {
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data());
         }
-      }
-    };
-    loadUserProfile();
+      }).catch(error => {
+        console.error("❌ 프로필 로드 실패:", error);
+      });
+    }
   }, [user]);
 
   // 지역 필터 사용 시 프로필 미작성 확인
@@ -93,58 +153,93 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
   }, [user, userProfile, selectedCity]);
 
-  useEffect(() => {
-    let q = query(
-      collection(db, "XinChaoDanggn"),
-      orderBy("createdAt", "desc")
-    );
+  // 데이터 페칭 함수
+  const fetchItems = async (isFirstFetch = true) => {
+    if (!isFirstFetch && (loadingMore || !hasMore)) return;
 
-    if (!user) {
-      q = query(q, limit(12));
+    if (isFirstFetch) {
+      setRefreshing(true);
+      setLastVisible(null);
+      setHasMore(true);
+    } else {
+      setLoadingMore(true);
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const itemsData = snapshot.docs.map((doc) => ({
+    try {
+      let q = query(
+        collection(db, "XinChaoDanggn"),
+        orderBy("createdAt", "desc"),
+        limit(ITEMS_PER_PAGE)
+      );
+
+      if (!isFirstFetch && lastVisible) {
+        q = query(q, startAfter(lastVisible));
+      }
+
+      const snapshot = await getDocs(q);
+      
+      const newItems = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setItems(itemsData);
-      setRefreshing(false);
-    });
 
-    return () => unsubscribe();
+      if (isFirstFetch) {
+        setItems(newItems);
+      } else {
+        setItems(prev => [...prev, ...newItems]);
+      }
+
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error("❌ 데이터 페칭 실패:", error);
+    } finally {
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems(true);
   }, [user]);
 
   const onRefresh = () => {
-    setRefreshing(true);
+    fetchItems(true);
   };
 
-  const filteredItems = items.filter((item) => {
-    const matchesSearch = item.title
-      ?.toLowerCase()
-      .includes(searchText.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "전체" || item.category === selectedCategory;
-    const matchesCity = selectedCity === "전체" || item.city === selectedCity;
-    const matchesDistrict =
-      selectedDistrict === "전체" || item.district === selectedDistrict;
-    const matchesApartment =
-      selectedApartment === "전체" || item.apartment === selectedApartment;
+  const loadMore = () => {
+    fetchItems(false);
+  };
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesCity &&
-      matchesDistrict &&
-      matchesApartment
-    );
-  });
+  // 필터링 로직에 useMemo 적용 (성능 최적화)
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesSearch = !searchText || item.title
+        ?.toLowerCase()
+        .includes(searchText.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "전체" || item.category === selectedCategory;
+      const matchesCity = selectedCity === "전체" || item.city === selectedCity;
+      const matchesDistrict =
+        selectedDistrict === "전체" || item.district === selectedDistrict;
+      const matchesApartment =
+        selectedApartment === "전체" || item.apartment === selectedApartment;
 
-  const formatPrice = (price) => {
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesCity &&
+        matchesDistrict &&
+        matchesApartment
+      );
+    });
+  }, [items, searchText, selectedCategory, selectedCity, selectedDistrict, selectedApartment]);
+
+  const formatPrice = useCallback((price) => {
     return new Intl.NumberFormat("ko-KR").format(price) + "₫";
-  };
+  }, []);
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case "판매중":
         return "#4CAF50";
@@ -155,7 +250,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       default:
         return "#4CAF50";
     }
-  };
+  }, []);
 
   const handleAddItem = useCallback(() => {
     if (!user) {
@@ -189,10 +284,17 @@ export default function XinChaoDanggnScreen({ navigation }) {
     );
   }, [navigation]);
 
-  const districts = getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity);
-  const apartments = selectedDistrict && selectedDistrict !== "전체"
-    ? getApartmentsByDistrict(selectedCity === "전체" ? "호치민" : selectedCity, selectedDistrict)
-    : [];
+  const districts = useMemo(() => 
+    getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity),
+    [selectedCity]
+  );
+
+  const apartments = useMemo(() => 
+    selectedDistrict && selectedDistrict !== "전체"
+      ? getApartmentsByDistrict(selectedCity === "전체" ? "호치민" : selectedCity, selectedDistrict)
+      : [],
+    [selectedCity, selectedDistrict]
+  );
 
   const handleItemPress = useCallback((item) => {
     const serializableItem = {
@@ -202,17 +304,28 @@ export default function XinChaoDanggnScreen({ navigation }) {
     navigation.navigate("물품 상세", { item: serializableItem });
   }, [navigation]);
 
-  const renderItem = useCallback(({ item }) => (
+  const renderItem = useCallback(({ item, index }) => (
     <ItemCard
       item={item}
       onPress={handleItemPress}
       formatPrice={formatPrice}
       getStatusColor={getStatusColor}
+      index={index}
     />
-  ), [handleItemPress]);
+  ), [handleItemPress, formatPrice, getStatusColor]);
 
-  const renderHeader = useCallback(() => (
-    <View>
+  const renderFooter = useCallback(() => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loaderFooter}>
+        <ActivityIndicator size="small" color="#FF6B35" />
+      </View>
+    );
+  }, [loadingMore]);
+
+  const renderHeader = useCallback(() => {
+    return (
+      <View>
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
           <Ionicons name="lock-closed" size={20} color="#FF6B35" />
@@ -286,7 +399,8 @@ export default function XinChaoDanggnScreen({ navigation }) {
         </ScrollView>
       </View>
     </View>
-  );
+    );
+  }, [user, navigation, showProfilePrompt, handleProfilePrompt, searchText, selectedCity, selectedDistrict, districts, apartments, selectedApartment, categories, selectedCategory]);
 
   return (
     <View style={styles.container}>
@@ -296,20 +410,35 @@ export default function XinChaoDanggnScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         numColumns={2}
         ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#FF6B35"]} />
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.2}
+        // 🔥 아이템 높이를 미리 알려주어 스크롤 성능을 획기적으로 개선
+        getItemLayout={(data, index) => ({
+          length: 220, // 아이템 카드 대략의 높이
+          offset: 220 * Math.floor(index / 2),
+          index,
+        })}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cart-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>등록된 물품이 없습니다</Text>
-          </View>
+          !refreshing && (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cart-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>등록된 물품이 없습니다</Text>
+            </View>
+          )
         }
-        removeClippedSubviews={true}
-        initialNumToRender={6}
-        maxToRenderPerBatch={10}
-        windowSize={5}
+        // 성능 최적화 옵션들 (극한의 튜닝)
+        removeClippedSubviews={Platform.OS === "android"}
+        initialNumToRender={8} // 4줄 정도 미리 로드
+        maxToRenderPerBatch={2} // 한 줄씩만 추가 (CPU 부하 분산)
+        windowSize={5} // 메모리 점유 최소화
+        updateCellsBatchingPeriod={100} 
+        scrollEventThrottle={16}
+        legacyImplementation={false}
       />
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={28} color="#fff" />
@@ -499,6 +628,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: "#999",
+  },
+  loaderFooter: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
   floatingButton: {
     position: "absolute",
