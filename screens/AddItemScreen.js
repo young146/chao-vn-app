@@ -9,10 +9,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
 import {
   VIETNAM_LOCATIONS,
@@ -594,7 +594,12 @@ export default function AddItemScreen({ navigation, route }) {
 
             {images.map((uri, index) => (
               <View key={index} style={styles.imageWrapper}>
-                <Image source={{ uri }} style={styles.imagePreview} />
+                <Image
+                  source={{ uri }}
+                  style={styles.imagePreview}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
                 <TouchableOpacity
                   style={styles.removeButton}
                   onPress={() => removeImage(index)}

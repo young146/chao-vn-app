@@ -6,9 +6,9 @@ import {
     ScrollView,
     TouchableOpacity,
     TextInput,
-    Image,
     ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { CITIES, INTEREST_OPTIONS } from "../../utils/constants";
@@ -55,7 +55,13 @@ export default function ProfileEditForm({
                             <ActivityIndicator size="large" color="#fff" />
                         </View>
                     ) : profileImage ? (
-                        <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+                        <Image
+                            source={{ uri: profileImage }}
+                            style={styles.avatarImage}
+                            contentFit="cover"
+                            transition={200}
+                            cachePolicy="memory-disk"
+                        />
                     ) : (
                         <View style={styles.avatar}>
                             <Ionicons name="person" size={40} color="#fff" />

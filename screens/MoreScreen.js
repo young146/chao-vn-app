@@ -8,15 +8,35 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import * as Updates from "expo-updates";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 export default function MoreScreen({ navigation }) {
   const { user, logout } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            setProfileImage(userDoc.data().profileImage);
+          }
+        } catch (error) {
+          console.error("프로필 이미지 로드 실패:", error);
+        }
+      }
+    };
+    loadProfileImage();
+  }, [user]);
 
   // ✅ 관리자 확인
   useEffect(() => {
@@ -130,7 +150,16 @@ export default function MoreScreen({ navigation }) {
       {/* 사용자 정보 */}
       <View style={styles.userSection}>
         <View style={styles.avatarContainer}>
-          <Ionicons name="person-circle" size={60} color="#FF6B35" />
+          {profileImage ? (
+            <Image
+              source={{ uri: profileImage }}
+              style={styles.avatarImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <Ionicons name="person-circle" size={60} color="#FF6B35" />
+          )}
         </View>
         {user ? (
           <>
@@ -274,6 +303,11 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     marginBottom: 12,
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   userName: {
     fontSize: 20,

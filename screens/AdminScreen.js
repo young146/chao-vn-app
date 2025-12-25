@@ -6,9 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  Image,
   RefreshControl,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -162,7 +162,12 @@ export default function AdminScreen({ navigation }) {
       >
         <View style={styles.itemImageContainer}>
           {item.images && item.images.length > 0 ? (
-            <Image source={{ uri: item.images[0] }} style={styles.itemImage} />
+            <Image
+              source={{ uri: item.images[0] }}
+              style={styles.itemImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
           ) : (
             <View style={styles.noImage}>
               <Ionicons name="image-outline" size={32} color="#ccc" />

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,31 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 export default function MyPageScreen({ navigation }) {
   const { user } = useAuth();
+  const [profileImage, setProfileImage] = useState(null);
+
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            setProfileImage(userDoc.data().profileImage);
+          }
+        } catch (error) {
+          console.error("프로필 이미지 로드 실패:", error);
+        }
+      }
+    };
+    loadProfileImage();
+  }, [user]);
 
   const myPageItems = [
     {
@@ -59,7 +79,16 @@ export default function MyPageScreen({ navigation }) {
       {/* 사용자 정보 헤더 */}
       <View style={styles.userHeader}>
         <View style={styles.avatarContainer}>
-          <Ionicons name="person-circle" size={80} color="#FF6B35" />
+          {profileImage ? (
+            <Image
+              source={{ uri: profileImage }}
+              style={styles.avatarImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <Ionicons name="person-circle" size={80} color="#FF6B35" />
+          )}
         </View>
         <Text style={styles.userName}>
           {user?.email ? user.email.split("@")[0] : "사용자"}
@@ -126,6 +155,11 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     marginBottom: 12,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   userName: {
     fontSize: 22,

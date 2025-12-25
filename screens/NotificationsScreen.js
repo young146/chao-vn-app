@@ -5,10 +5,10 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Image,
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -224,7 +224,12 @@ export default function NotificationsScreen({ navigation }) {
 
           {/* 물품 이미지 */}
           {item.itemImage && (
-            <Image source={{ uri: item.itemImage }} style={styles.itemImage} />
+            <Image
+              source={{ uri: item.itemImage }}
+              style={styles.itemImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
           )}
         </View>
       </TouchableOpacity>

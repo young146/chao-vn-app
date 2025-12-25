@@ -5,9 +5,9 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Image,
     ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ProfileView({
@@ -45,7 +45,13 @@ export default function ProfileView({
                             <ActivityIndicator size="large" color="#fff" />
                         </View>
                     ) : profileImage ? (
-                        <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+                        <Image
+                            source={{ uri: profileImage }}
+                            style={styles.avatarImage}
+                            contentFit="cover"
+                            transition={200}
+                            cachePolicy="memory-disk"
+                        />
                     ) : (
                         <View style={styles.avatar}>
                             <Ionicons name="person" size={40} color="#fff" />
