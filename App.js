@@ -1,7 +1,8 @@
 import { LogBox } from "react-native";
-// LogBox.ignoreAllLogs(true); // ⚠️ 디버깅을 위해 일시적으로 로그 활성화
+// LogBox.ignoreAllLogs(true);
 import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
+import { Image as ExpoImage } from "expo-image"; // 프리페치용 추가
 import {
   StyleSheet,
   View,
@@ -19,11 +20,20 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db, auth } from "./firebase/config";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+  limit,
+  getDocs,
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true, // ← 추가!
@@ -685,6 +695,96 @@ const GlobalChatNotificationListener = () => {
 // ------------------------------------------------------------------
 export default function App() {
   // 채널은 setupNotificationChannels()에서 이미 생성되므로 여기서는 제거
+
+  // 앱 시작 시 당근 데이터 및 이미지 프리페치
+  useEffect(() => {
+    const prefetchDanggnData = async () => {
+      try {
+        console.log("🚚 [Prefetch] 당근 데이터 및 이미지 프리페치 시작...");
+        const q = query(
+          collection(db, "XinChaoDanggn"),
+          orderBy("createdAt", "desc"),
+          limit(10)
+        );
+        const snapshot = await getDocs(q);
+        const items = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          // Firestore 타임스탬프를 직렬화 가능한 문자열로 변환
+          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+        }));
+
+        if (items.length > 0) {
+          // 중복 방지를 위해 Map 사용
+          const uniqueItems = Array.from(new Map(items.map(item => [item.id, item])).values());
+          // 데이터 저장
+          await AsyncStorage.setItem("prefetched_danggn_items", JSON.stringify(uniqueItems));
+
+          // 이미지 프리페치 (상위 6개)
+          const imageUrls = uniqueItems
+            .map((item) => item.images?.[0] || item.imageUri)
+            .filter((url) => !!url && typeof url === "string")
+            .slice(0, 6);
+
+          if (imageUrls.length > 0) {
+            console.log(`🖼️ [Prefetch] 이미지 ${imageUrls.length}개 프리페치 중...`);
+            await ExpoImage.prefetch(imageUrls);
+          }
+          console.log("✅ [Prefetch] 프리페치 및 이미지 캐싱 완료");
+        }
+      } catch (error) {
+        console.error("❌ [Prefetch] 프리페치 실패:", error);
+      }
+    };
+
+    // 앱 실행 후 약간의 지연을 두어 메인 화면 로딩 방해 금지
+    const timer = setTimeout(prefetchDanggnData, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 채팅방 목록 프리페치 (로그인 상태일 때)
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        const prefetchChatRooms = async () => {
+          try {
+            console.log("💬 [Prefetch] 채팅방 목록 프리페치 시작...");
+            const q = query(
+              collection(db, "chatRooms"),
+              where("participants", "array-contains", user.uid),
+              limit(20)
+            );
+            const snapshot = await getDocs(q);
+            const rooms = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+              // 직렬화 가능한 형태로 변환
+              lastMessageAt: doc.data().lastMessageAt?.toDate?.()?.toISOString() || doc.data().lastMessageAt,
+            }));
+
+            if (rooms.length > 0) {
+              // 중복 방지를 위해 Map 사용
+              const uniqueRooms = Array.from(new Map(rooms.map(room => [room.id, room])).values());
+
+              // 클라이언트 사이드에서 정렬 (복합 인덱스 오류 방지)
+              uniqueRooms.sort((a, b) => {
+                const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+                const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+                return timeB - timeA;
+              });
+
+              await AsyncStorage.setItem("prefetched_chat_rooms", JSON.stringify(uniqueRooms));
+              console.log("✅ [Prefetch] 채팅방 목록 캐싱 완료 (인덱스 없이)");
+            }
+          } catch (error) {
+            console.error("❌ [Prefetch] 채팅 프리페치 실패:", error);
+          }
+        };
+        prefetchChatRooms();
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   return (
     <AuthProvider>

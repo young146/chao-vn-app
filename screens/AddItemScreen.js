@@ -656,7 +656,6 @@ export default function AddItemScreen({ navigation, route }) {
             <Picker.Item label="도서/문구" value="도서/문구" />
             <Picker.Item label="유아용품" value="유아용품" />
             <Picker.Item label="펫 용품" value="펫 용품" />
-
             <Picker.Item label="기타" value="기타" />
           </Picker>
         </View>

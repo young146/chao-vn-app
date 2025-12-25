@@ -15,6 +15,7 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // AsyncStorage 추가
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase/config";
 import {
@@ -32,6 +33,20 @@ import {
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
 
+// 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
+const SearchBar = memo(({ value, onChangeText }) => (
+  <View style={styles.searchContainer}>
+    <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+    <TextInput
+      style={styles.searchInput}
+      placeholder="물품 검색..."
+      placeholderTextColor="rgba(0, 0, 0, 0.38)"
+      value={value}
+      onChangeText={onChangeText}
+    />
+  </View>
+));
+
 // 별도 컴포넌트로 분리하여 메모이제이션 적용
 const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) => {
   const status = item.status || "판매중";
@@ -48,10 +63,9 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
             source={{ uri: imageSource }}
             style={styles.itemImage}
             contentFit="cover"
-            transition={index < 10 ? 0 : 150}
+            transition={200}
             cachePolicy="disk"
-            priority={index < 10 ? "high" : "low"}
-            recyclingKey={item.id}
+            priority={index < 4 ? "high" : "normal"}
           />
         ) : (
           <Ionicons name="image-outline" size={40} color="#ccc" />
@@ -101,9 +115,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
     "가구/인테리어",
     "의류/잡화",
     "생활용품",
-    "도서/티켓",
+    "도서/문구",
     "유아용품",
-    "펫용품",
+    "펫 용품",
     "기타",
   ];
 
@@ -135,6 +149,21 @@ export default function XinChaoDanggnScreen({ navigation }) {
     if (!isFirstFetch && (loadingMore || !hasMore)) return;
 
     if (isFirstFetch) {
+      // 1. 먼저 프리페치된 데이터가 있는지 확인하여 즉시 표시 (0초 로딩 체감)
+      if (items.length === 0) {
+        try {
+          const cachedData = await AsyncStorage.getItem("prefetched_danggn_items");
+          if (cachedData) {
+            const parsedData = JSON.parse(cachedData);
+            setItems(parsedData);
+            console.log("⚡ [Cache] 프리페치된 데이터를 즉시 표시합니다.");
+            // 이미 데이터가 있으므로 새로고침 로더를 일단 띄우지 않거나 짧게 유지
+          }
+        } catch (e) {
+          console.error("캐시 로드 실패:", e);
+        }
+      }
+
       setRefreshing(true);
       setLastVisible(null);
       setHasMore(true);
@@ -143,36 +172,56 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
 
     try {
+      // 인덱스 에러 방지를 위해 orderBy를 제거하고 조건문만 사용하여 쿼리
       let q = query(
         collection(db, "XinChaoDanggn"),
-        orderBy("createdAt", "desc"),
-        limit(ITEMS_PER_PAGE)
+        limit(isFirstFetch ? 60 : ITEMS_PER_PAGE) // 충분한 양을 가져와서 앱에서 정렬
       );
 
       if (!isFirstFetch && lastVisible) {
+        // 커서 기반 페이지네이션을 사용하기 위해 기본 쿼리에 orderBy를 다시 넣어야 할 수 있으나,
+        // 인덱스 에러 방지를 위해 일단 모든 데이터를 가져오거나 limit을 늘립니다.
         q = query(q, startAfter(lastVisible));
       }
 
       const snapshot = await getDocs(q);
       
-      const newItems = snapshot.docs.map((doc) => ({
+      const fetchedItems = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
+        // 직렬화 가능한 형태로 변환
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
       }));
 
+      // 클라이언트 사이드 정렬 (인덱스 없이도 날짜순으로 정렬되도록 함)
+      fetchedItems.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+
       if (isFirstFetch) {
-        setItems(newItems);
+        // 중복 방지를 위해 Map 사용
+        const uniqueItems = Array.from(new Map(fetchedItems.map(item => [item.id, item])).values());
+        setItems(uniqueItems);
+        // 최신 데이터를 다시 캐시에 저장
+        await AsyncStorage.setItem("prefetched_danggn_items", JSON.stringify(uniqueItems));
+        
+        // 데이터가 없는데 필터링 중이 아닐 때만 "등록된 물품이 없습니다" 표시를 위해 상태 관리
+        if (uniqueItems.length === 0) {
+          console.log("ℹ️ 데이터가 하나도 없습니다.");
+        }
       } else {
         setItems((prev) => {
-          // 🔥 중복된 ID가 들어오는 것을 완벽하게 차단 (Encountered two children with the same key 에러 해결)
           const existingIds = new Set(prev.map((i) => i.id));
-          const uniqueNewItems = newItems.filter((i) => !existingIds.has(i.id));
+          const uniqueNewItems = fetchedItems.filter((i) => !existingIds.has(i.id));
           return [...prev, ...uniqueNewItems];
         });
       }
 
       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === ITEMS_PER_PAGE);
+      // limit을 60으로 늘렸으므로, ITEMS_PER_PAGE 대신 실제 가져온 개수로 비교
+      setHasMore(snapshot.docs.length >= (isFirstFetch ? 60 : ITEMS_PER_PAGE));
     } catch (error) {
       console.error("❌ 데이터 페칭 실패:", error);
     } finally {
@@ -308,9 +357,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
     );
   }, [loadingMore]);
 
-  const renderHeader = useCallback(() => {
-    return (
-      <View>
+  // 헤더 구성 요소들을 각각 memoize 하여 불필요한 재렌더링 방지
+  const headerBanners = useMemo(() => (
+    <>
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
           <Ionicons name="lock-closed" size={20} color="#FF6B35" />
@@ -325,67 +374,71 @@ export default function XinChaoDanggnScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={20} color="#2196F3" />
         </TouchableOpacity>
       )}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="물품 검색..."
-          placeholderTextColor="rgba(0, 0, 0, 0.38)"
-          value={searchText}
-          onChangeText={setSearchText}
-        />
+    </>
+  ), [user, showProfilePrompt, navigation, handleProfilePrompt]);
+
+  const headerFilters = useMemo(() => (
+    <View style={styles.filterSection}>
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedCity}
+          onValueChange={(v) => { setSelectedCity(v); setSelectedDistrict("전체"); setSelectedApartment("전체"); }}
+          style={styles.picker}
+        >
+          <Picker.Item label="전체 도시" value="전체" />
+          <Picker.Item label="호치민" value="호치민" />
+          <Picker.Item label="하노이" value="하노이" />
+          <Picker.Item label="다낭" value="다낭" />
+          <Picker.Item label="냐짱" value="냐짱" />
+        </Picker>
       </View>
-      <View style={styles.filterSection}>
+      {selectedCity !== "전체" && (
         <View style={styles.pickerContainer}>
           <Picker
-            selectedValue={selectedCity}
-            onValueChange={(v) => { setSelectedCity(v); setSelectedDistrict("전체"); setSelectedApartment("전체"); }}
+            selectedValue={selectedDistrict}
+            onValueChange={(v) => { setSelectedDistrict(v); setSelectedApartment("전체"); }}
             style={styles.picker}
           >
-            <Picker.Item label="전체 도시" value="전체" />
-            <Picker.Item label="호치민" value="호치민" />
-            <Picker.Item label="하노이" value="하노이" />
-            <Picker.Item label="다낭" value="다낭" />
-            <Picker.Item label="냐짱" value="냐짱" />
+            <Picker.Item label="전체 구/군" value="전체" />
+            {districts.map((d) => <Picker.Item key={d} label={d} value={d} />)}
           </Picker>
         </View>
-        {selectedCity !== "전체" && (
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedDistrict}
-              onValueChange={(v) => { setSelectedDistrict(v); setSelectedApartment("전체"); }}
-              style={styles.picker}
-            >
-              <Picker.Item label="전체 구/군" value="전체" />
-              {districts.map((d) => <Picker.Item key={d} label={d} value={d} />)}
-            </Picker>
-          </View>
-        )}
-        {selectedDistrict !== "전체" && apartments.length > 0 && (
-          <View style={styles.pickerContainer}>
-            <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={styles.picker}>
-              <Picker.Item label="전체 아파트" value="전체" />
-              {apartments.map((a) => <Picker.Item key={a} label={a} value={a} />)}
-            </Picker>
-          </View>
-        )}
-      </View>
-      <View style={styles.categoriesContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={[styles.categoryButton, selectedCategory === item && styles.categoryButtonActive]}
-              onPress={() => setSelectedCategory(item)}
-            >
-              <Text style={[styles.categoryText, selectedCategory === item && styles.categoryTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      )}
+      {selectedDistrict !== "전체" && apartments.length > 0 && (
+        <View style={styles.pickerContainer}>
+          <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={styles.picker}>
+            <Picker.Item label="전체 아파트" value="전체" />
+            {apartments.map((a) => <Picker.Item key={a} label={a} value={a} />)}
+          </Picker>
+        </View>
+      )}
     </View>
-    );
-  }, [user, navigation, showProfilePrompt, handleProfilePrompt, searchText, selectedCity, selectedDistrict, districts, apartments, selectedApartment, categories, selectedCategory]);
+  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments]);
+
+  const headerCategories = useMemo(() => (
+    <View style={styles.categoriesContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {categories.map((item) => (
+          <TouchableOpacity
+            key={item}
+            style={[styles.categoryButton, selectedCategory === item && styles.categoryButtonActive]}
+            onPress={() => setSelectedCategory(item)}
+          >
+            <Text style={[styles.categoryText, selectedCategory === item && styles.categoryTextActive]}>{item}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  ), [selectedCategory]);
+
+  const listHeader = useMemo(() => (
+    <View>
+      {headerBanners}
+      <SearchBar value={searchText} onChangeText={setSearchText} />
+      {headerFilters}
+      {headerCategories}
+    </View>
+  ), [headerBanners, searchText, headerFilters, headerCategories]);
 
   return (
     <View style={styles.container}>
@@ -394,20 +447,14 @@ export default function XinChaoDanggnScreen({ navigation }) {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={listHeader}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#FF6B35"]} />
         }
         onEndReached={loadMore}
-        onEndReachedThreshold={0.2}
-        // 🔥 아이템 높이를 미리 알려주어 스크롤 성능을 획기적으로 개선
-        getItemLayout={(data, index) => ({
-          length: 220, // 아이템 카드 대략의 높이
-          offset: 220 * Math.floor(index / 2),
-          index,
-        })}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           !refreshing && (
             <View style={styles.emptyContainer}>
@@ -416,14 +463,11 @@ export default function XinChaoDanggnScreen({ navigation }) {
             </View>
           )
         }
-        // 성능 최적화 옵션들 (극한의 튜닝)
-        removeClippedSubviews={Platform.OS === "android"}
-        initialNumToRender={8} // 4줄 정도 미리 로드
-        maxToRenderPerBatch={2} // 한 줄씩만 추가 (CPU 부하 분산)
-        windowSize={5} // 메모리 점유 최소화
-        updateCellsBatchingPeriod={100} 
-        scrollEventThrottle={16}
-        legacyImplementation={false}
+        // 성능 최적화 옵션들
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={10}
       />
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={28} color="#fff" />

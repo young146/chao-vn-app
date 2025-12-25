@@ -13,9 +13,12 @@ import {
   query,
   where,
   onSnapshot,
+  orderBy, // 추가
+  limit,   // 추가
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // 추가
 
 export default function ChatListScreen({ navigation }) {
   const { user } = useAuth();
@@ -24,9 +27,28 @@ export default function ChatListScreen({ navigation }) {
   useEffect(() => {
     if (!user) return;
 
+    // 1. 프리페치된 데이터 먼저 로드 (0초 로딩)
+    const loadCachedRooms = async () => {
+      if (chatRooms.length === 0) {
+        try {
+          const cachedData = await AsyncStorage.getItem("prefetched_chat_rooms");
+          if (cachedData) {
+            const parsedData = JSON.parse(cachedData);
+            setChatRooms(parsedData);
+            console.log("⚡ [Cache] 프리페치된 채팅방 목록을 즉시 표시합니다.");
+          }
+        } catch (e) {
+          console.error("채팅 캐시 로드 실패:", e);
+        }
+      }
+    };
+    loadCachedRooms();
+
     const q = query(
       collection(db, "chatRooms"),
-      where("participants", "array-contains", user.uid)
+      where("participants", "array-contains", user.uid),
+      orderBy("lastMessageAt", "desc"),
+      limit(20)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -35,14 +57,12 @@ export default function ChatListScreen({ navigation }) {
         ...doc.data(),
       }));
 
-      // 클라이언트에서 최신순 정렬
-      rooms.sort((a, b) => {
-        const timeA = a.lastMessageAt?.toMillis?.() || 0;
-        const timeB = b.lastMessageAt?.toMillis?.() || 0;
-        return timeB - timeA;
-      });
+      // 중복 방지를 위해 Map을 사용하여 ID 기준 유일값 추출
+      const uniqueRooms = Array.from(new Map(rooms.map(room => [room.id, room])).values());
 
-      setChatRooms(rooms);
+      setChatRooms(uniqueRooms);
+      // 최신 데이터 캐시 업데이트
+      AsyncStorage.setItem("prefetched_chat_rooms", JSON.stringify(uniqueRooms));
     });
 
     return () => unsubscribe();
@@ -50,7 +70,16 @@ export default function ChatListScreen({ navigation }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
+    let date;
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === "string") {
+      date = new Date(timestamp);
+    } else if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);

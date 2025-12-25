@@ -33,6 +33,7 @@ import {
   serverTimestamp,
   getDoc,
   setDoc,
+  limitToLast, // 추가
 } from "firebase/firestore";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -219,9 +220,11 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     console.log("👂 메시지 수신 대기:", chatRoomId);
 
+    // 최근 50개의 메시지만 가져오도록 제한 (성능 최적화)
     const q = query(
       collection(db, "chatRooms", chatRoomId, "messages"),
-      orderBy("timestamp", "asc")
+      orderBy("timestamp", "asc"),
+      limitToLast(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -356,8 +359,18 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const renderMessage = ({ item }) => {
     const isMyMessage = item.senderId === currentUserId;
-    const messageTime = item.timestamp
-      ? format(item.timestamp.toDate(), "HH:mm", { locale: ko })
+    
+    let messageDate = null;
+    if (item.timestamp) {
+      if (item.timestamp.toDate) {
+        messageDate = item.timestamp.toDate();
+      } else {
+        messageDate = new Date(item.timestamp);
+      }
+    }
+    
+    const messageTime = messageDate
+      ? format(messageDate, "HH:mm", { locale: ko })
       : "";
 
     return (
