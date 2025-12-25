@@ -37,31 +37,8 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
   const status = item.status || "판매중";
   const originalImage = item.images?.[0] || item.imageUri;
 
-  // 🔥 Firebase Resize Images 확장 프로그램 규칙에 따른 썸네일 URL 생성
-  // 200x200 설정 기준: 원본파일명_200x200.확장자
-  const getThumbnail = (url) => {
-    if (!url || !url.includes("firebasestorage")) return url;
-    
-    try {
-      // URL에서 경로 부분만 추출 (쿼리 파라미터 제외)
-      const baseUrl = url.split("?")[0];
-      const params = url.split("?")[1] || "alt=media";
-      
-      // 파일 경로와 확장자 분리
-      const lastDotIndex = baseUrl.lastIndexOf(".");
-      if (lastDotIndex === -1) return url;
-      
-      const pathWithoutExt = baseUrl.substring(0, lastDotIndex);
-      const extension = baseUrl.substring(lastDotIndex);
-      
-      // 썸네일 경로 조합 (_200x200 접미사 추가)
-      return `${pathWithoutExt}_200x200${extension}?${params}`;
-    } catch (e) {
-      return url;
-    }
-  };
-
-  const imageSource = getThumbnail(originalImage);
+  // const getThumbnail = (url) => { ... } // 일단 비활성화
+  const imageSource = originalImage; // 안전한 원본 이미지 사용 (사진 안 나오는 문제 해결)
 
   return (
     <TouchableOpacity style={styles.itemCard} onPress={() => onPress(item)}>
@@ -186,7 +163,12 @@ export default function XinChaoDanggnScreen({ navigation }) {
       if (isFirstFetch) {
         setItems(newItems);
       } else {
-        setItems(prev => [...prev, ...newItems]);
+        setItems((prev) => {
+          // 🔥 중복된 ID가 들어오는 것을 완벽하게 차단 (Encountered two children with the same key 에러 해결)
+          const existingIds = new Set(prev.map((i) => i.id));
+          const uniqueNewItems = newItems.filter((i) => !existingIds.has(i.id));
+          return [...prev, ...uniqueNewItems];
+        });
       }
 
       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
@@ -214,6 +196,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
   // 필터링 로직에 useMemo 적용 (성능 최적화)
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      // ✅ 판매완료된 물품은 리스트에서 제외
+      if (item.status === "판매완료") return false;
+
       const matchesSearch = !searchText || item.title
         ?.toLowerCase()
         .includes(searchText.toLowerCase());
