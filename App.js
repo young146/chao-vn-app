@@ -1,5 +1,5 @@
 import { LogBox } from "react-native";
-LogBox.ignoreAllLogs(true);
+// LogBox.ignoreAllLogs(true); // ⚠️ 디버깅을 위해 일시적으로 로그 활성화
 import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
 import {

@@ -1,34 +1,41 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  Alert,
-  RefreshControl,
-} from "react-native";
-import { Image } from "expo-image"; // 고성능 이미지 컴포넌트 적용
-import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  limit,
-  doc,
-  getDoc,
-} from "firebase/firestore";
-import { db } from "../firebase/config";
-import {
-  VIETNAM_LOCATIONS,
-  getDistrictsByCity,
-  getApartmentsByDistrict,
-} from "../utils/vietnamLocations";
-import { useAuth } from "../contexts/AuthContext";
+import React, { useState, useEffect, useCallback, memo } from "react";
+// ... (existing imports)
+
+// 별도 컴포넌트로 분리하여 메모이제이션 적용
+const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor }) => {
+  const status = item.status || "판매중";
+  const imageSource = item.images?.[0] || item.imageUri;
+
+  return (
+    <TouchableOpacity style={styles.itemCard} onPress={() => onPress(item)}>
+      <View style={styles.imagePlaceholder}>
+        {imageSource ? (
+          <Image
+            source={{ uri: imageSource }}
+            style={styles.itemImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+            priority="high"
+          />
+        ) : (
+          <Ionicons name="image-outline" size={40} color="#ccc" />
+        )}
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
+          <Text style={styles.statusText}>{status}</Text>
+        </View>
+      </View>
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+        <View style={styles.locationContainer}>
+          <Ionicons name="location-outline" size={12} color="#999" />
+          <Text style={styles.itemLocation} numberOfLines={1}>{item.city} · {item.district}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
@@ -150,15 +157,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
   };
 
-  const handleItemPress = (item) => {
-    const serializableItem = {
-      ...item,
-      createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
-    };
-    navigation.navigate("물품 상세", { item: serializableItem });
-  };
-
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     if (!user) {
       Alert.alert(
         "로그인 필요 🔒",
@@ -171,9 +170,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
     } else {
       navigation.navigate("물품 등록");
     }
-  };
+  }, [user, navigation]);
 
-  const handleProfilePrompt = () => {
+  const handleProfilePrompt = useCallback(() => {
     Alert.alert(
       "프로필 작성 📝",
       "주소를 등록하면 내 주변 새 상품이 등록될 때마다 자동으로 알림을 받을 수 있습니다.\n\n지금 프로필을 작성하시겠어요?",
@@ -188,48 +187,31 @@ export default function XinChaoDanggnScreen({ navigation }) {
         },
       ]
     );
-  };
+  }, [navigation]);
 
   const districts = getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity);
   const apartments = selectedDistrict && selectedDistrict !== "전체"
     ? getApartmentsByDistrict(selectedCity === "전체" ? "호치민" : selectedCity, selectedDistrict)
     : [];
 
-  const renderItem = ({ item }) => {
-    const status = item.status || "판매중";
-    const imageSource = item.images?.[0] || item.imageUri;
+  const handleItemPress = useCallback((item) => {
+    const serializableItem = {
+      ...item,
+      createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
+    };
+    navigation.navigate("물품 상세", { item: serializableItem });
+  }, [navigation]);
 
-    return (
-      <TouchableOpacity style={styles.itemCard} onPress={() => handleItemPress(item)}>
-        <View style={styles.imagePlaceholder}>
-          {imageSource ? (
-            <Image
-              source={{ uri: imageSource }}
-              style={styles.itemImage}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-            />
-          ) : (
-            <Ionicons name="image-outline" size={40} color="#ccc" />
-          )}
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
-            <Text style={styles.statusText}>{status}</Text>
-          </View>
-        </View>
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
-          <View style={styles.locationContainer}>
-            <Ionicons name="location-outline" size={12} color="#999" />
-            <Text style={styles.itemLocation} numberOfLines={1}>{item.city} · {item.district}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const renderItem = useCallback(({ item }) => (
+    <ItemCard
+      item={item}
+      onPress={handleItemPress}
+      formatPrice={formatPrice}
+      getStatusColor={getStatusColor}
+    />
+  ), [handleItemPress]);
 
-  const renderHeader = () => (
+  const renderHeader = useCallback(() => (
     <View>
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
