@@ -13,8 +13,7 @@ import {
   query,
   where,
   onSnapshot,
-  orderBy, // 추가
-  limit,   // 추가
+  limit,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
@@ -44,11 +43,11 @@ export default function ChatListScreen({ navigation }) {
     };
     loadCachedRooms();
 
+    // 복합 인덱스 오류 방지: orderBy 제거하고 클라이언트에서 정렬
     const q = query(
       collection(db, "chatRooms"),
       where("participants", "array-contains", user.uid),
-      orderBy("lastMessageAt", "desc"),
-      limit(20)
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -60,9 +59,19 @@ export default function ChatListScreen({ navigation }) {
       // 중복 방지를 위해 Map을 사용하여 ID 기준 유일값 추출
       const uniqueRooms = Array.from(new Map(rooms.map(room => [room.id, room])).values());
 
+      // 클라이언트 사이드 정렬 (lastMessageAt 기준 내림차순)
+      uniqueRooms.sort((a, b) => {
+        const timeA = a.lastMessageAt?.toDate?.() || new Date(a.lastMessageAt || 0);
+        const timeB = b.lastMessageAt?.toDate?.() || new Date(b.lastMessageAt || 0);
+        return timeB - timeA;
+      });
+
       setChatRooms(uniqueRooms);
       // 최신 데이터 캐시 업데이트
       AsyncStorage.setItem("prefetched_chat_rooms", JSON.stringify(uniqueRooms));
+    }, (error) => {
+      // 에러 발생 시 조용히 처리 (새 사용자 또는 권한 문제)
+      console.log("채팅방 로드 중 에러 (무시됨):", error.code);
     });
 
     return () => unsubscribe();

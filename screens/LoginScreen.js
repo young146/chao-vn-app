@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,12 +12,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
-import { makeRedirectUri } from "expo-auth-session";
-
-// WebBrowser 완료 후 자동 닫기
-WebBrowser.maybeCompleteAuthSession();
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -27,47 +25,69 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const { login, googleLogin } = useAuth();
 
-  // 구글 로그인 설정 (makeRedirectUri로 자동 생성)
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: "249390849714-ttacsttt5tv2lhqc7vv0g5t7e27lqmfr.apps.googleusercontent.com",
-    webClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-    responseType: "id_token",
-  });
+  // Google Sign-In 초기화
+  useEffect(() => {
+    GoogleSignin.configure({
+      // google-services.json에서 가져온 웹 클라이언트 ID
+      webClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+      offlineAccess: true,
+    });
+  }, []);
 
-  // 구글 로그인 응답 처리
-  React.useEffect(() => {
-    if (response?.type === "success") {
-      const idToken = response.params?.id_token || response.authentication?.idToken;
+  const handleGoogleSignIn = async () => {
+    try {
+      setGoogleLoading(true);
+      
+      // Google Play Services 확인
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      
+      // 기존 로그인 세션 초기화 (매번 계정 선택 화면 표시)
+      try {
+        await GoogleSignin.signOut();
+      } catch (e) {
+        // 로그아웃 실패해도 계속 진행
+      }
+      
+      // 구글 로그인 실행
+      const userInfo = await GoogleSignin.signIn();
+      console.log("Google Sign-In 성공:", userInfo);
+      
+      // idToken 가져오기
+      const idToken = userInfo.data?.idToken || userInfo.idToken;
+      
       if (idToken) {
-        handleGoogleLogin(idToken);
+        const result = await googleLogin(idToken, null);
+        setGoogleLoading(false);
+        
+        if (result.success) {
+          Alert.alert("로그인 성공! ✅", "환영합니다!", [
+            {
+              text: "확인",
+              onPress: () => navigation.goBack(),
+            },
+          ]);
+        } else {
+          Alert.alert("구글 로그인 실패", result.error);
+        }
       } else {
         setGoogleLoading(false);
-        console.error("ID Token not found in response:", response);
-        Alert.alert("구글 로그인 실패", "인증 토큰을 받지 못했습니다.");
+        console.log("userInfo 전체:", JSON.stringify(userInfo, null, 2));
+        Alert.alert("구글 로그인 실패", "ID Token을 받지 못했습니다.");
       }
-    } else if (response?.type === "error") {
+    } catch (error) {
       setGoogleLoading(false);
-      console.error("Google login error:", response.error);
-      Alert.alert("구글 로그인 실패", "구글 로그인 중 오류가 발생했습니다.");
-    } else if (response?.type === "dismiss" || response?.type === "cancel") {
-      setGoogleLoading(false);
-    }
-  }, [response]);
-
-  const handleGoogleLogin = async (idToken) => {
-    setGoogleLoading(true);
-    const result = await googleLogin(idToken);
-    setGoogleLoading(false);
-
-    if (result.success) {
-      Alert.alert("로그인 성공! ✅", "환영합니다!", [
-        {
-          text: "확인",
-          onPress: () => navigation.goBack(),
-        },
-      ]);
-    } else {
-      Alert.alert("구글 로그인 실패", result.error);
+      console.error("Google Sign-In 에러:", error);
+      
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // 사용자가 로그인 취소
+        console.log("사용자가 로그인을 취소했습니다.");
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert("알림", "로그인이 이미 진행 중입니다.");
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert("오류", "Google Play Services를 사용할 수 없습니다.");
+      } else {
+        Alert.alert("구글 로그인 실패", error.message || "알 수 없는 오류가 발생했습니다.");
+      }
     }
   };
 
@@ -149,19 +169,21 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <TouchableOpacity
-            style={[styles.googleButton, (googleLoading || !request) && { opacity: 0.7 }]}
-            onPress={() => {
-              setGoogleLoading(true);
-              promptAsync();
-            }}
-            disabled={googleLoading || !request}
+            style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading}
           >
             {googleLoading ? (
-              <ActivityIndicator color="#333" />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ActivityIndicator color="#fff" />
+                <Text style={{ marginLeft: 10, color: '#fff', fontSize: 14 }}>
+                  구글 로그인 중...
+                </Text>
+              </View>
             ) : (
               <>
-                <Ionicons name="logo-google" size={20} color="#333" />
-                <Text style={styles.googleButtonText}>구글로 로그인</Text>
+                <Ionicons name="logo-google" size={20} color="#fff" />
+                <Text style={styles.googleButtonText}>Google로 로그인</Text>
               </>
             )}
           </TouchableOpacity>
@@ -211,6 +233,6 @@ const styles = StyleSheet.create({
   dividerContainer: { flexDirection: "row", alignItems: "center", marginVertical: 24 },
   divider: { flex: 1, height: 1, backgroundColor: "#e0e0e0" },
   dividerText: { marginHorizontal: 12, fontSize: 14, color: "#999" },
-  googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderRadius: 8, paddingVertical: 14, borderWidth: 1, borderColor: "#e0e0e0", marginBottom: 16 },
-  googleButtonText: { marginLeft: 8, fontSize: 16, fontWeight: "600", color: "#333" },
+  googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000", borderRadius: 8, paddingVertical: 14, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  googleButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "600", color: "#fff" },
 });

@@ -257,10 +257,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 구글 로그인
-  const googleLogin = async (idToken) => {
+  // 구글 로그인 (idToken 또는 accessToken 모두 지원)
+  const googleLogin = async (idToken, accessToken = null) => {
     try {
-      const credential = GoogleAuthProvider.credential(idToken);
+      // idToken이 있으면 사용하고, 없으면 accessToken을 사용하여 인증 정보를 만듭니다.
+      const credential = GoogleAuthProvider.credential(idToken, accessToken);
       const userCredential = await signInWithCredential(auth, credential);
       const googleUser = userCredential.user;
 

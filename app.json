@@ -2,6 +2,7 @@
   "expo": {
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
+    "owner": "young146",
     "version": "2.0.1",
     "scheme": "com.yourname.chaovnapp",
     "orientation": "portrait",
@@ -33,7 +34,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 39,
+      "versionCode": 40,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -58,7 +59,8 @@
           "color": "#FF6B35"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

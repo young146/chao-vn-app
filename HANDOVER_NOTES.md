@@ -1,45 +1,48 @@
 # 프로젝트 인계 및 현재 상태 명세서 (Handover Notes)
 
-본 문서는 현재 발생하고 있는 앱의 불안정성과 성능 저하 문제를 해결하기 위해, 차후 작업자가 즉시 파악해야 할 핵심 기술 정보와 현재 상태를 기록한 문서입니다.
+본 문서는 앱의 주요 기능 개선 사항과 현재 해결 중인 구글 로그인 이슈의 상세 과정을 기록한 문서입니다. 다음 작업자가 현재의 맥락을 즉시 파악하고 이어서 작업할 수 있도록 작성되었습니다.
 
-## 1. 현재 핵심 문제 (Critical Issues)
-- **이미지 로딩 지연 (최대 20초):** `expo-image` 도입 후 특정 환경에서 네트워크/CPU 병목 현상 발생. `WebView`까지 영향을 주고 있음.
-- **스크롤 먹통:** `FlatList`의 `numColumns={2}` 환경에서 잘못된 `getItemLayout` 속성 사용으로 인해 스크롤이 중간에 멈춤.
-- **앱 불안정성:** 네이티브 모듈(`expo-image`)과 자바스크립트 코드 간의 설정 충돌, 혹은 중복 키(Duplicate Key) 에러로 인한 크래시 발생 가능성.
-- **구글 로그인:** `app.json`의 `scheme` 및 `redirectUri` 설정은 완료되었으나, 빌드된 APK와 설정값의 일치 여부 재검토 필요.
+## 1. 최근 완료된 주요 개선 사항 (성공 사례)
 
-## 2. 주요 수정 내역 (최근 작업)
+### 1.1 초기 로딩 속도 최적화 (0초 로딩 구현)
+- **배경:** 당근 메뉴 진입 시 데이터 로딩에 15초 이상 소요되어 사용자 이탈 위험이 컸음.
+- **조치:** 
+    - `App.js`에서 앱 실행 즉시 배경에서 당근 데이터와 상위 6개 이미지를 프리페치(Prefetch)하여 `AsyncStorage` 및 이미지 캐시에 저장.
+    - `XinChaoDanggnScreen.js`에서 서버 데이터를 기다리지 않고 캐시 데이터를 즉시 표시하도록 수정.
+- **결과:** 메뉴 진입 시 체감 로딩 속도 0초 달성.
 
-### 2.1 이미지 최적화 (`expo-image`)
-- **기존:** `react-native` 기본 `Image` 사용.
-- **변경:** 앱 전반에 `expo-image` 도입. `cachePolicy="disk"`, `transition={200}` 적용.
-- **주의:** `priority="high"`나 `recyclingKey` 같은 과도한 옵션이 현재 병목을 유발했을 가능성이 있어 최신 로컬 코드에서 제거됨.
+### 1.2 채팅 성능 및 리스트 최적화
+- **채팅방 목록:** 프리페치 로직을 적용하고, 중복 키 에러를 방지하기 위해 `Map` 객체를 이용한 유니크 필터링 적용.
+- **메시지 로딩:** `limitToLast(50)`을 적용하여 최신 메시지 위주로 로딩 속도 개선.
+- **중복 에러 해결:** `FlatList`에서 발생하던 `Encountered two children with the same key` 에러를 모든 주요 리스트(당근, 채팅목록)에서 로직적으로 차단함.
 
-### 2.2 리스트 성능 개선 (`XinChaoDanggnScreen.js`)
-- **데이터 중복 방지:** `fetchItems` 로직에 `Set`을 사용하여 중복 ID(Key) 유입 차단.
-- **메모이제이션:** `ItemCard` 컴포넌트를 `memo`로 분리하여 불필요한 재렌더링 방지.
-- **페이지네이션:** 10개 단위로 끊어 읽기(`startAfter`) 적용 완료.
+### 1.3 데이터 필터링 및 인덱스 에러 대응
+- **클라이언트 사이드 정렬:** Firestore의 복합 인덱스 생성 부담을 줄이기 위해 서버 측 `orderBy`를 제거하고, 클라이언트에서 데이터를 받아온 후 정렬하는 방식으로 변경하여 인덱스 에러 발생 차단.
+- **카테고리 불일치 수정:** 아이템 등록(`AddItemScreen`)과 목록 조회(`XinChaoDanggnScreen`) 간의 카테고리 텍스트 불일치 문제 해결.
 
-### 2.3 구글 로그인 및 앱 설정
-- **정식 명칭 고정:** `app.json` 내 `scheme`, `package`, `bundleIdentifier`를 `com.yourname.chaovnapp`으로 통일.
-- **Redirect URI:** `AuthSession.makeRedirectUri`를 사용하여 동적 생성하도록 `LoginScreen.js` 수정.
+## 2. 현재 진행 중인 핵심 이슈: 구글 로그인 실패
 
-## 3. 다음 작업자를 위한 기술적 조언 (Next Steps)
+### 2.1 증상 및 에러 메시지
+- **에러 내용:** `Error 400: invalid_request`, `Custom scheme URIs are not allowed for 'WEB' client type`.
+- **상황:** 구글 로그인 버튼 클릭 시 계정 선택 창으로 넘어가지 못하고 입구에서 차단됨. (이전에는 계정 선택까지는 되었으나 돌아오는 길에 `Something went wrong` 발생)
 
-### 3.1 `XinChaoDanggnScreen.js` 집중 수정 필요
-- **`renderHeader` 최적화:** 현재 `useCallback`의 의존성 배열이 너무 많아 검색어 입력 시 헤더 전체가 무한 렌더링됨. 이를 단순화하거나 `useMemo`로 래핑하여 리소스 낭비를 막아야 함.
-- **`FlatList` 속성 제거:** `getItemLayout`은 2열 리스트에서 계산 오류를 일으키므로 절대 사용 금지.
-- **이미지 우선순위:** 모든 이미지에 `priority="high"`를 주지 말 것. 화면에 보이는 첫 4~6개만 높게 설정할 것.
+### 2.2 시도된 조치 및 분석
+- **clientId 설정:** 웹 클라이언트 ID를 사용하여 `useProxy: true` 환경에서 HTTPS 리디렉션을 시도함.
+- **원인 추정:** 현재 앱이 **'개발 빌드(Development Build)'** 환경에서 실행 중이며, `AuthSession`이 생성하는 `redirect_uri`가 구글 웹 클라이언트가 허용하지 않는 커스텀 스키마(`exp+...` 또는 `com.yourname...`)로 생성되고 있음.
+- **실패한 시도들:**
+    - `makeRedirectUri`를 이용해 수동으로 주소를 고정하려 했으나 실패.
+    - `app.json`에 `owner` 정보를 추가하여 Expo 프록시 서버와의 정체성 일치를 시도했으나 효과 없음.
+    - `responseType`을 `token`과 `id_token`으로 번갈아 시도함.
 
-### 3.2 디버깅 환경
-- **LogBox:** 현재 성능 저하를 막기 위해 `App.js`에서 `LogBox.ignoreAllLogs(true)`로 설정됨. 원인 파악 시에만 일시적으로 해제할 것.
-- **네트워크 모니터링:** 사진 로딩 20초 지연은 Firebase Storage 응답 문제인지, 클라이언트 캐싱 엔진의 충돌인지 확인 필요.
+### 2.3 차기 작업자를 위한 권장 사항
+1. **Redirect URI 강제 확인:** `promptAsync` 실행 직전 `request.redirectUri` 값이 정확히 `https://auth.expo.io/@young146/chao-vn-app`으로 나오는지 로그 확인 필수.
+2. **구글 콘솔 재설정:** 웹 클라이언트 ID의 '승인된 리디렉션 URI'에 위 주소가 정확히 등록되어 있는지 확인.
+3. **네이티브 모듈 검토:** 개발 빌드에서는 `expo-auth-session`이 아닌 `react-native-google-signin` 같은 순수 네이티브 라이브러리 도입을 고려해야 할 수도 있음 (현재 Expo 프록시 방식이 개발 빌드와 충돌 가능성 높음).
 
-## 4. 아직 푸시되지 않은 로컬 수정 사항
-- `App.js`: 로그 차단 설정 (`ignoreAllLogs(true)`)
-- `XinChaoDanggnScreen.js`: `getItemLayout` 제거, 이미지 옵션 단순화, `renderHeader` 최적화 시도 코드 포함.
+## 3. 남은 작업 (Pending Tasks)
+- [ ] **구글 로그인 정상화:** 현재의 입구 차단 에러 해결 및 로그인 후 앱 복귀 로직 완성.
+- [ ] **안정성 테스트:** 성능 개선 사항이 실제 사용자 기기에서 메모리 누수 없이 작동하는지 모니터링.
 
 ---
-**작업 주의사항:** 
-사용자는 현재 잦은 빌드와 실패에 매우 민감한 상태임. 모든 수정은 철저히 검토 후 한 번에 완벽하게 반영되어야 하며, 불필요한 `git push`는 자제할 것.
-
+**최종 업데이트 일자:** 2025년 12월 26일
+**작업 상태:** 성능 최적화 완료, 구글 로그인 이슈로 인해 작업 일시 중단 상태.

@@ -80,6 +80,7 @@ import AdminScreen from "./screens/AdminScreen";
 const siteURLs = {
   magazine: "https://chaovietnam.co.kr/",
   board: "https://vnkorlife.com/xinchao-board/",
+  dailyNews: "https://chaovietnam.co.kr/daily-news-terminal/",
 };
 
 // ------------------------------------------------------------------
@@ -116,6 +117,7 @@ const SiteWebView = ({ url }) => {
   const webViewRef = React.useRef(null);
   const [canGoBack, setCanGoBack] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadProgress, setLoadProgress] = React.useState(0);
   const [hasError, setHasError] = React.useState(false);
   const [currentUrl, setCurrentUrl] = React.useState(url);
   const [currentTitle, setCurrentTitle] = React.useState("");
@@ -234,11 +236,41 @@ const SiteWebView = ({ url }) => {
         </View>
       ) : (
         <>
+          {/* 진행률 바 */}
+          {isLoading && loadProgress < 1 && (
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  { width: `${loadProgress * 100}%` },
+                ]}
+              />
+            </View>
+          )}
+
+          {/* 로딩 오버레이 */}
+          {isLoading && loadProgress < 0.9 && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#FF6B35" />
+              <Text style={styles.loadingText}>페이지 로딩 중...</Text>
+              <Text style={styles.loadingPercent}>
+                {Math.round(loadProgress * 100)}%
+              </Text>
+            </View>
+          )}
+
           <WebView
             ref={webViewRef}
             source={{ uri: url }}
             style={styles.webview}
             onNavigationStateChange={onNavigationStateChange}
+            onLoadProgress={({ nativeEvent }) =>
+              setLoadProgress(nativeEvent.progress)
+            }
+            onLoadEnd={() => {
+              setIsLoading(false);
+              setLoadProgress(1);
+            }}
             onError={handleError}
             onHttpError={handleError}
             userAgent="Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
@@ -247,6 +279,7 @@ const SiteWebView = ({ url }) => {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             cacheEnabled={true}
+            cacheMode="LOAD_CACHE_ELSE_NETWORK"
             injectedJavaScript={injectedJavaScript}
             setSupportMultipleWindows={false}
             originWhitelist={["https://*", "http://*"]}
@@ -294,25 +327,29 @@ function ChatStack() {
 function BottomTabNavigator() {
   return (
     <Tab.Navigator
-      initialRouteName={Platform.OS === "ios" ? "씬짜오당근" : "매거진"}
+      initialRouteName={Platform.OS === "ios" ? "당근" : "홈"}
       screenOptions={({ route }) => ({
         headerShown: false,
+        lazy: false, // 앱 시작 시 모든 탭을 미리 로드 (뉴스 프리로딩)
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === "매거진") {
-            iconName = focused ? "book" : "book-outline";
+          if (route.name === "홈") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "뉴스") {
+            iconName = focused ? "newspaper" : "newspaper-outline";
           } else if (route.name === "게시판") {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
-          } else if (route.name === "씬짜오당근") {
+          } else if (route.name === "당근") {
             iconName = focused ? "cart" : "cart-outline";
-          } else if (route.name === "Menu") {
-            // Changed from "메뉴" to "Menu"
-            iconName = focused ? "menu" : "menu-outline";
+          } else if (route.name === "메뉴") {
+            iconName = focused ? "apps" : "apps-outline";
           }
-          // Chat tab icon is handled directly in Tab.Screen
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          // 메뉴 탭은 강조 색상
+          const iconColor =
+            route.name === "메뉴" && !focused ? "#FF6B35" : color;
+          return <Ionicons name={iconName} size={size} color={iconColor} />;
         },
         tabBarActiveTintColor: "#FF6B35",
         tabBarInactiveTintColor: "#999",
@@ -321,8 +358,11 @@ function BottomTabNavigator() {
     >
       {Platform.OS !== "ios" && (
         <>
-          <Tab.Screen name="매거진" options={{ title: "매거진" }}>
+          <Tab.Screen name="홈" options={{ title: "홈" }}>
             {() => <SiteWebView url={siteURLs.magazine} />}
+          </Tab.Screen>
+          <Tab.Screen name="뉴스" options={{ title: "뉴스" }}>
+            {() => <SiteWebView url={siteURLs.dailyNews} />}
           </Tab.Screen>
           <Tab.Screen name="게시판" options={{ title: "게시판" }}>
             {() => <SiteWebView url={siteURLs.board} />}
@@ -330,28 +370,17 @@ function BottomTabNavigator() {
         </>
       )}
       <Tab.Screen
-        name="씬짜오당근"
+        name="당근"
         component={DanggnStack}
         options={{ title: "당근" }}
       />
       <Tab.Screen
-        name="Chat"
-        component={ChatStack}
+        name="메뉴"
+        component={MenuStack}
         options={{
-          title: "채팅",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name="chatbox-ellipses-outline"
-              size={size}
-              color={color}
-            />
-          ),
+          title: "메뉴",
+          tabBarLabelStyle: { fontSize: 11, fontWeight: "bold" },
         }}
-      />
-      <Tab.Screen
-        name="Menu" // Changed from "메뉴" to "Menu"
-        component={MenuStack} // Changed from MoreStack to MenuStack
-        options={{ title: "메뉴" }}
       />
     </Tab.Navigator>
   );
@@ -711,14 +740,21 @@ export default function App() {
           id: doc.id,
           ...doc.data(),
           // Firestore 타임스탬프를 직렬화 가능한 문자열로 변환
-          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+          createdAt:
+            doc.data().createdAt?.toDate?.()?.toISOString() ||
+            doc.data().createdAt,
         }));
 
         if (items.length > 0) {
           // 중복 방지를 위해 Map 사용
-          const uniqueItems = Array.from(new Map(items.map(item => [item.id, item])).values());
+          const uniqueItems = Array.from(
+            new Map(items.map((item) => [item.id, item])).values()
+          );
           // 데이터 저장
-          await AsyncStorage.setItem("prefetched_danggn_items", JSON.stringify(uniqueItems));
+          await AsyncStorage.setItem(
+            "prefetched_danggn_items",
+            JSON.stringify(uniqueItems)
+          );
 
           // 이미지 프리페치 (상위 6개)
           const imageUrls = uniqueItems
@@ -727,7 +763,9 @@ export default function App() {
             .slice(0, 6);
 
           if (imageUrls.length > 0) {
-            console.log(`🖼️ [Prefetch] 이미지 ${imageUrls.length}개 프리페치 중...`);
+            console.log(
+              `🖼️ [Prefetch] 이미지 ${imageUrls.length}개 프리페치 중...`
+            );
             await ExpoImage.prefetch(imageUrls);
           }
           console.log("✅ [Prefetch] 프리페치 및 이미지 캐싱 완료");
@@ -759,25 +797,36 @@ export default function App() {
               id: doc.id,
               ...doc.data(),
               // 직렬화 가능한 형태로 변환
-              lastMessageAt: doc.data().lastMessageAt?.toDate?.()?.toISOString() || doc.data().lastMessageAt,
+              lastMessageAt:
+                doc.data().lastMessageAt?.toDate?.()?.toISOString() ||
+                doc.data().lastMessageAt,
             }));
 
             if (rooms.length > 0) {
               // 중복 방지를 위해 Map 사용
-              const uniqueRooms = Array.from(new Map(rooms.map(room => [room.id, room])).values());
+              const uniqueRooms = Array.from(
+                new Map(rooms.map((room) => [room.id, room])).values()
+              );
 
               // 클라이언트 사이드에서 정렬 (복합 인덱스 오류 방지)
               uniqueRooms.sort((a, b) => {
-                const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-                const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+                const timeA = a.lastMessageAt
+                  ? new Date(a.lastMessageAt).getTime()
+                  : 0;
+                const timeB = b.lastMessageAt
+                  ? new Date(b.lastMessageAt).getTime()
+                  : 0;
                 return timeB - timeA;
               });
 
-              await AsyncStorage.setItem("prefetched_chat_rooms", JSON.stringify(uniqueRooms));
+              await AsyncStorage.setItem(
+                "prefetched_chat_rooms",
+                JSON.stringify(uniqueRooms)
+              );
               console.log("✅ [Prefetch] 채팅방 목록 캐싱 완료 (인덱스 없이)");
             }
           } catch (error) {
-            console.error("❌ [Prefetch] 채팅 프리페치 실패:", error);
+            // 에러 무시 (새 사용자, 권한 문제, 인덱스 문제 등)
           }
         };
         prefetchChatRooms();
@@ -855,6 +904,38 @@ const styles = StyleSheet.create({
   loadingContainer: {
     marginLeft: "auto",
     paddingHorizontal: 12,
+  },
+  progressBarContainer: {
+    height: 3,
+    backgroundColor: "#eee",
+    width: "100%",
+  },
+  progressBar: {
+    height: 3,
+    backgroundColor: "#FF6B35",
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
+  },
+  loadingPercent: {
+    marginTop: 8,
+    fontSize: 24,
+    color: "#FF6B35",
+    fontWeight: "bold",
   },
   webview: {
     flex: 1,
