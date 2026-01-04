@@ -207,6 +207,9 @@ export default function ChatRoomScreen({ route, navigation }) {
       });
 
       // 진동
+      if (Platform.OS === "android") {
+        Vibration.vibrate([0, 250, 250, 250]);
+      }
 
       console.log("🔔 알림 재생 완료!", selectedSound.id);
     } catch (error) {
