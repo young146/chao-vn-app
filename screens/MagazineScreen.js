@@ -158,7 +158,11 @@ const MagazineCard = ({ item, onPress, type }) => {
           />
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={40} color="#ccc" />
+            <Image
+              source={require('../assets/icon.png')}
+              style={styles.placeholderLogo}
+              contentFit="contain"
+            />
           </View>
         )}
       </View>
@@ -309,15 +313,15 @@ export default function MagazineScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <SearchHeader onSearch={handleSearch} />
+      
       <FlatList
         data={type === 'home' && !searchQuery ? [] : posts}
         renderItem={({ item }) => <MagazineCard item={item} onPress={handlePostPress} type={type} />}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            <SearchHeader onSearch={handleSearch} />
-            
             {type === 'news' && (
               <View style={styles.dateFilterContainer}>
                 <TouchableOpacity 
@@ -424,7 +428,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   searchHeaderContainer: {
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: '#f8f9fa',
+    zIndex: 10,
   },
   searchBarWrapper: {
     flexDirection: 'row',
@@ -591,6 +599,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff', // 기본 로고가 잘 보이도록 흰색 배경
+  },
+  placeholderLogo: {
+    width: 100,
+    height: 100,
+    opacity: 0.6,
   },
   contentContainer: {
     padding: 16,

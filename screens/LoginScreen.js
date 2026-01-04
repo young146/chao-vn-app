@@ -80,16 +80,27 @@ export default function LoginScreen({ navigation }) {
   const handleGoogleSignIn = async () => {
     try {
       setGoogleLoading(true);
+      console.log('🚀 구글 로그인 시작...');
+      const startTime = Date.now();
+      
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      
+      // 🔄 매번 계정 선택 화면을 보여주기 위해 signOut 호출 (빠름)
       try {
         await GoogleSignin.signOut();
-      } catch (e) {}
+      } catch (e) {
+        // signOut 실패해도 무시
+      }
       
       const userInfo = await GoogleSignin.signIn();
+      console.log(`⏱️ 구글 계정 선택 완료: ${Date.now() - startTime}ms`);
+      
       const idToken = userInfo.data?.idToken || userInfo.idToken;
       
       if (idToken) {
         const result = await googleLogin(idToken, null);
+        console.log(`⏱️ 전체 로그인 완료: ${Date.now() - startTime}ms`);
+        
         if (result.success) {
           Alert.alert("로그인 성공! ✅", "환영합니다!", [
             { text: "확인", onPress: () => navigation.goBack() },
@@ -191,7 +202,10 @@ export default function LoginScreen({ navigation }) {
             disabled={googleLoading || appleLoading}
           >
             {googleLoading ? (
-              <ActivityIndicator color="#fff" />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ActivityIndicator color="#fff" />
+                <Text style={[styles.googleButtonText, { marginLeft: 10 }]}>로그인 중...</Text>
+              </View>
             ) : (
               <>
                 <Ionicons name="logo-google" size={20} color="#fff" />

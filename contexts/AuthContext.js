@@ -6,7 +6,6 @@ import {
   signOut,
   sendPasswordResetEmail,
   GoogleAuthProvider,
-  OAuthProvider,
   signInWithCredential,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
@@ -301,65 +300,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 애플 로그인
-  const appleLogin = async (identityToken, nonce = null) => {
-    try {
-      const provider = new OAuthProvider("apple.com");
-      const credential = provider.credential({
-        idToken: identityToken,
-        rawNonce: nonce,
-      });
-      const userCredential = await signInWithCredential(auth, credential);
-      const appleUser = userCredential.user;
-
-      // 사용자 프로필이 없으면 생성
-      const userDoc = await getDoc(doc(db, "users", appleUser.uid));
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", appleUser.uid), {
-          uid: appleUser.uid,
-          email: appleUser.email,
-          name: appleUser.displayName || appleUser.email?.split("@")[0] || "Apple User",
-          displayName: appleUser.displayName || appleUser.email?.split("@")[0] || "Apple User",
-          profileCompleted: false,
-          createdAt: serverTimestamp(),
-        });
-
-        // notificationSettings 초기화
-        await setDoc(doc(db, "notificationSettings", appleUser.uid), {
-          userId: appleUser.uid,
-          nearbyItems: false,
-          favorites: true,
-          reviews: true,
-          chat: true,
-          adminAlerts: true,
-        });
-      }
-
-      return { success: true, user: appleUser };
-    } catch (error) {
-      console.error("애플 로그인 오류:", error);
-      let message = "애플 로그인에 실패했습니다.";
-      if (error.code === "auth/account-exists-with-different-credential") {
-        message = "이미 다른 방법으로 가입된 이메일입니다.";
-      }
-      return { success: false, error: message };
-    }
-  };
-
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        isAdmin,
-        signup,
-        login,
-        logout,
-        findId,
-        findPassword,
-        googleLogin,
-        appleLogin,
-      }}
+      value={{ user, loading, isAdmin, signup, login, logout, findId, findPassword, googleLogin }}
     >
       {children}
     </AuthContext.Provider>

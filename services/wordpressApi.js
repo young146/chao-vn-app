@@ -1,11 +1,132 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MAGAZINE_BASE_URL = 'https://chaovietnam.co.kr/wp-json/wp/v2';
 const BOARD_BASE_URL = 'https://vnkorlife.com/wp-json/wp/v2';
 
+// 캐시 설정
+const CACHE_KEY = 'HOME_DATA_CACHE';
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
+
 const api = axios.create({
-  timeout: 10000,
+  timeout: 8000, // 10초 → 8초로 단축
 });
+
+// 홈 화면 섹션 정의 (공통으로 사용)
+const HOME_SECTIONS = [
+  { id: 32, name: '교민소식' },
+  { id: 445, name: 'Xinchao BIZ' },
+  { id: 382, name: '컬럼' },
+  { id: 427, name: 'F&R' },
+  { id: 413, name: 'Golf & Sports' }
+];
+
+// 🚀 최적화된 홈 데이터 로드 함수 (캐시 + 단일 API 호출)
+export const getHomeDataCached = async (forceRefresh = false) => {
+  try {
+    // 1. 캐시 확인 (강제 갱신이 아닌 경우)
+    if (!forceRefresh) {
+      const cached = await AsyncStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
+        
+        if (!isExpired) {
+          console.log('📦 캐시 사용 (유효)');
+          return data;
+        }
+        console.log('⏰ 캐시 만료, 새 데이터 로드');
+      }
+    }
+
+    // 2. 단일 API 호출로 모든 카테고리 데이터 가져오기
+    const categoryIds = HOME_SECTIONS.map(s => s.id).join(',');
+    
+    console.log('🌐 API 호출 시작...');
+    const startTime = Date.now();
+    
+    const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
+      params: {
+        categories: categoryIds,
+        per_page: 25, // 5개 섹션 × 5개 = 25개면 충분
+        _embed: 1,
+      },
+    });
+    
+    console.log(`✅ API 응답 완료: ${Date.now() - startTime}ms`);
+
+    // 3. 카테고리별로 그룹핑
+    const groupedData = {};
+    HOME_SECTIONS.forEach(section => {
+      groupedData[section.id] = {
+        ...section,
+        posts: []
+      };
+    });
+
+    response.data.forEach(post => {
+      // 포스트가 속한 카테고리 찾기
+      const postCategories = post.categories || [];
+      for (const catId of postCategories) {
+        if (groupedData[catId] && groupedData[catId].posts.length < 4) {
+          groupedData[catId].posts.push({
+            ...post,
+            id: `sec-${catId}-${post.id}`
+          });
+          break; // 하나의 섹션에만 추가
+        }
+      }
+    });
+
+    const homeSections = Object.values(groupedData);
+    
+    // 4. 슬라이드쇼: 각 섹션의 첫 번째 포스트
+    const slideshowPosts = homeSections
+      .map(section => section.posts[0])
+      .filter(Boolean)
+      .map((post, idx) => ({ 
+        ...post, 
+        id: `slide-${idx}-${post.id.replace('sec-', '')}` 
+      }));
+
+    const result = { homeSections, slideshowPosts };
+
+    // 5. 캐시 저장
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
+      data: result,
+      timestamp: Date.now()
+    }));
+
+    console.log('💾 새 데이터 캐시 저장 완료');
+    return result;
+
+  } catch (error) {
+    console.error('getHomeDataCached error:', error.message);
+    
+    // 에러 시 만료된 캐시라도 사용
+    try {
+      const cached = await AsyncStorage.getItem(CACHE_KEY);
+      if (cached) {
+        console.log('⚠️ 에러 발생, 이전 캐시 사용');
+        return JSON.parse(cached).data;
+      }
+    } catch (cacheError) {
+      console.error('캐시 읽기 실패:', cacheError);
+    }
+    
+    return { homeSections: [], slideshowPosts: [] };
+  }
+};
+
+// 캐시 존재 여부 확인 함수
+export const hasHomeDataCache = async () => {
+  try {
+    const cached = await AsyncStorage.getItem(CACHE_KEY);
+    return !!cached;
+  } catch {
+    return false;
+  }
+};
 
 export const wordpressApi = {
   // 매거진 포스트 가져오기
@@ -15,10 +136,10 @@ export const wordpressApi = {
         params: {
           page,
           per_page: perPage,
-          _embed: 1, // 특성 이미지 등을 포함하기 위해 필요
+          _embed: 1,
         },
       });
-      return response.data;
+      return response.data.map(post => ({ ...post, id: `mag-${post.id}` }));
     } catch (error) {
       console.error('getMagazinePosts error:', error);
       throw error;
@@ -36,8 +157,6 @@ export const wordpressApi = {
       };
 
       if (date) {
-        // WordPress REST API는 ISO8601 형식을 사용 (YYYY-MM-DDTHH:MM:SS)
-        // 특정 날짜의 시작과 끝을 지정
         const startDate = `${date}T00:00:00`;
         const endDate = `${date}T23:59:59`;
         params.after = startDate;
@@ -45,7 +164,7 @@ export const wordpressApi = {
       }
 
       const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, { params });
-      return response.data;
+      return response.data.map(post => ({ ...post, id: `cat-${categoryId}-${post.id}` }));
     } catch (error) {
       console.error('getPostsByCategory error:', error);
       throw error;
@@ -67,7 +186,7 @@ export const wordpressApi = {
       const items = rssData.split('<item>');
       items.shift(); // 첫 번째 요소는 채널 정보이므로 제거
 
-      const posts = items.map(item => {
+      const posts = items.map((item, index) => {
         const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] || 
                      item.match(/<title>(.*?)<\/title>/)?.[1] || '제목 없음';
         const link = item.match(/<link><!\[CDATA\[(.*?)\]\]><\/link>/)?.[1] ||
@@ -81,9 +200,14 @@ export const wordpressApi = {
         const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
         const imageUrl = imgMatch ? imgMatch[1] : null;
 
+        // 고유 ID 생성 (링크에서 숫자 추출 시도, 실패 시 인덱스 활용)
+        const linkId = link.match(/redirect=(\d+)/)?.[1] || 
+                      link.match(/content_redirect=(\d+)/)?.[1] || 
+                      `rss-item-${index}`;
+
         // WordPress 포스트 형식과 유사하게 변환
         return {
-          id: link.match(/redirect=(\d+)/)?.[1] || Math.random().toString(),
+          id: `kb-${linkId}`,
           title: { rendered: title },
           content: { rendered: description },
           date: pubDate,
@@ -105,62 +229,22 @@ export const wordpressApi = {
     }
   },
 
-  // 슬라이드쇼 포스트 가져오기 (특정 섹션들의 최신 기사를 하나씩 조합)
+  // 🚀 슬라이드쇼 포스트 가져오기 (캐시 활용)
   getSlideshowPosts: async () => {
-    const sections = [
-      { id: 32, name: '교민소식' },
-      { id: 445, name: 'Xinchao BIZ' },
-      { id: 382, name: '컬럼' },
-      { id: 427, name: 'F&R' },
-      { id: 413, name: 'Golf & Sports' }
-    ];
-
     try {
-      // 각 섹션에서 가장 최신 기사 1개씩만 가져옴 (데일리 뉴스 제외)
-      const results = await Promise.all(
-        sections.map(async (section) => {
-          const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
-            params: {
-              categories: section.id,
-              per_page: 1,
-              _embed: 1,
-            },
-          });
-          return response.data[0];
-        })
-      );
-      // 데이터가 있는 것만 필터링
-      return results.filter(post => !!post);
+      const data = await getHomeDataCached();
+      return data.slideshowPosts || [];
     } catch (error) {
       console.error('getSlideshowPosts error:', error);
       return [];
     }
   },
 
-  // 특정 카테고리들의 최신 포스트들을 가져와서 홈 섹션 구성용으로 반환
+  // 🚀 홈 섹션 가져오기 (캐시 활용)
   getHomeSections: async () => {
-    const sections = [
-      { id: 32, name: '교민소식' },
-      { id: 445, name: 'Xinchao BIZ' },
-      { id: 382, name: '컬럼' },
-      { id: 427, name: 'F&R' },
-      { id: 413, name: 'Golf & Sports' }
-    ];
-
     try {
-      const results = await Promise.all(
-        sections.map(async (section) => {
-          const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
-            params: {
-              categories: section.id,
-              per_page: 4, 
-              _embed: 1,
-            },
-          });
-          return { ...section, posts: response.data };
-        })
-      );
-      return results;
+      const data = await getHomeDataCached();
+      return data.homeSections || [];
     } catch (error) {
       console.error('getHomeSections error:', error);
       return [];
@@ -193,7 +277,7 @@ export const wordpressApi = {
           _embed: 1,
         },
       });
-      return response.data;
+      return response.data.map(post => ({ ...post, id: `search-${post.id}` }));
     } catch (error) {
       console.error('searchPosts error:', error);
       throw error;

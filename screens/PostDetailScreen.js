@@ -69,7 +69,7 @@ export default function PostDetailScreen({ route }) {
           </View>
         </View>
 
-        {featuredImage && (
+        {featuredImage ? (
           <Image
             source={{ uri: featuredImage }}
             style={styles.featuredImage}
@@ -77,6 +77,14 @@ export default function PostDetailScreen({ route }) {
             transition={200}
             cachePolicy="disk"
           />
+        ) : (
+          <View style={styles.placeholderContainer}>
+            <Image
+              source={require('../assets/icon.png')}
+              style={styles.placeholderLogo}
+              contentFit="contain"
+            />
+          </View>
         )}
 
         <View style={styles.content}>
@@ -136,6 +144,22 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 8,
     marginBottom: 20,
+  },
+  placeholderContainer: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  placeholderLogo: {
+    width: 120,
+    height: 120,
+    opacity: 0.5,
   },
   content: {
     paddingBottom: 40,

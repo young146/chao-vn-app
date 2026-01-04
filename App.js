@@ -1,8 +1,8 @@
 import { LogBox } from "react-native";
 // LogBox.ignoreAllLogs(true);
 import "react-native-gesture-handler";
-import React, { useEffect, useState } from "react";
-import { Image as ExpoImage } from "expo-image"; // 프리페치용 추가
+import React, { useEffect, useState, useRef } from "react";
+import { Image as ExpoImage } from "expo-image";
 import {
   StyleSheet,
   View,
@@ -11,49 +11,69 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
-  Alert,
 } from "react-native";
-import { WebView } from "react-native-webview";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { db, auth } from "./firebase/config";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  orderBy,
-  limit,
-  getDocs,
-  doc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { getHomeDataCached, hasHomeDataCache } from "./services/wordpressApi";
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true, // ← 추가!
-    shouldShowBanner: true, // iOS용
-    shouldShowList: true, // iOS용
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
 });
 
-// AuthContext
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+// 🔔 앱 시작 시 알림 채널 생성 (Android)
+const setupNotificationChannels = async () => {
+  if (Platform.OS === "android") {
+    try {
+      // 기본 채널
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "기본 알림",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
+      });
 
-// 인증 화면
+      // 채팅 알림 채널 (강제 알람용 - 최고 우선순위)
+      await Notifications.setNotificationChannelAsync("chat", {
+        name: "채팅 알림",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF6B35",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
+        lockscreenVisibility:
+          Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true,
+      });
+
+      console.log("✅ 알림 채널 생성 완료!");
+    } catch (error) {
+      console.error("❌ 알림 채널 생성 실패:", error);
+    }
+  }
+};
+
+// 앱 로드 시 즉시 채널 생성
+setupNotificationChannels();
+
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
-
-// 네이티브 화면들
 import MagazineScreen from "./screens/MagazineScreen";
 import PostDetailScreen from "./screens/PostDetailScreen";
 import MoreScreen from "./screens/MoreScreen";
@@ -69,266 +89,125 @@ import ReviewScreen from "./screens/ReviewScreen";
 import MyItemsScreen from "./screens/MyItemsScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
-
-// 씬짜오당근 화면들
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
 import AdminScreen from "./screens/AdminScreen";
 
-// ------------------------------------------------------------------
-// ** 1. URL 구조 **
-// ------------------------------------------------------------------
-const siteURLs = {
-  magazine: "https://chaovietnam.co.kr/",
-  board: "https://vnkorlife.com/xinchao-board/",
-  dailyNews: "https://chaovietnam.co.kr/daily-news-terminal/",
-};
+export default function App() {
+  const [isReady, setIsReady] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
 
-// ------------------------------------------------------------------
-// ** 2. 자동 로그인 토큰 생성 (현재 사용 안 함 - 웹사이트와 당근 메뉴 로그인 분리) **
-// ------------------------------------------------------------------
-// 웹사이트는 자체 로그인 시스템 사용, 당근 메뉴는 Firebase Authentication 사용
-// 필요시 주석 해제하여 사용 가능
-/*
-const generateAutoLoginToken = (email) => {
-  const secret = "chaovietnam_firebase_2025"; // WordPress 플러그인과 동일
-  const timestamp = Math.floor(Date.now() / (3600 * 1000)); // 1시간 단위
+  // 🚀 캐시 우선 로딩 전략
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        console.log("🚀 앱 초기화 시작...");
+        const startTime = Date.now();
 
-  // 간단한 해시 생성
-  const text = email + secret + timestamp;
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    const char = text.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
+        // 1. 캐시 확인 - 있으면 즉시 진입!
+        const hasCache = await hasHomeDataCache();
 
-  // SHA256 흉내 (더 강력한 해시)
-  const hashStr = Math.abs(hash).toString(16);
-  const extendedHash = hashStr + text.length.toString(16);
+        if (hasCache) {
+          console.log("✅ 캐시 발견! 즉시 진입 (0초 로딩)");
+          setIsReady(true);
 
-  return extendedHash.padStart(64, "0").substring(0, 64);
-};
-*/
+          // 백그라운드에서 조용히 데이터 갱신 (사용자는 모름)
+          getHomeDataCached(true); // forceRefresh = true
+          console.log(`⏱️ 총 소요시간: ${Date.now() - startTime}ms`);
+          return;
+        }
 
-// ------------------------------------------------------------------
-// ** 3. WebView 컴포넌트 **
-// ------------------------------------------------------------------
-const SiteWebView = ({ url }) => {
-  const webViewRef = React.useRef(null);
-  const [canGoBack, setCanGoBack] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [loadProgress, setLoadProgress] = React.useState(0);
-  const [hasError, setHasError] = React.useState(false);
-  const [currentUrl, setCurrentUrl] = React.useState(url);
-  const [currentTitle, setCurrentTitle] = React.useState("");
-  const { user } = useAuth(); // 북마크 기능을 위해만 사용
+        // 2. 캐시 없음 (첫 설치) → 로딩 화면 표시
+        console.log("⏳ 첫 실행, 데이터 로딩 중...");
 
-  // 웹사이트는 자체 로그인 시스템 사용, 당근 메뉴는 Firebase Authentication 사용
+        let progress = 0;
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 20;
+            if (progress > 90) progress = 90;
+            setLoadProgress(progress);
+          }
+        }, 150);
 
-  const onNavigationStateChange = (navState) => {
-    setCanGoBack(navState.canGoBack);
-    setIsLoading(navState.loading);
+        // 최적화된 단일 API 호출
+        await getHomeDataCached();
 
-    if (navState.url) {
-      setCurrentUrl(navState.url);
-    }
-    // 항상 제목 업데이트 (제목이 없으면 URL을 fallback으로 사용)
-    setCurrentTitle(navState.title || navState.url);
+        clearInterval(interval);
+        setLoadProgress(100);
 
-    // 페이지가 다시 로딩되면 에러 상태는 해제
-    setHasError(false);
-  };
+        console.log(`⏱️ 첫 로딩 완료: ${Date.now() - startTime}ms`);
+        setTimeout(() => setIsReady(true), 100);
+      } catch (error) {
+        console.log("초기화 에러:", error);
+        setIsReady(true); // 에러 시에도 진입
+      }
+    };
 
-  const handleBack = () => {
-    if (canGoBack && webViewRef.current) {
-      webViewRef.current.goBack();
-    }
-  };
-
-  const handleRefresh = () => {
-    // 에러 상태/로딩 상태 초기화 후 새로고침
-    setHasError(false);
-    setIsLoading(true);
-
-    if (webViewRef.current) {
-      webViewRef.current.reload();
-    }
-  };
-
-  const handleError = () => {
-    setHasError(true);
-    setIsLoading(false);
-  };
-
-  const handleBookmark = async () => {
-    try {
-      const { addDoc, collection, serverTimestamp } = await import(
-        "firebase/firestore"
-      );
-      const { db } = await import("./firebase/config");
-
-      await addDoc(collection(db, "bookmarks"), {
-        userId: user?.uid || "demo-user",
-        url: currentUrl,
-        title: currentTitle,
-        savedAt: serverTimestamp(),
-      });
-
-      Alert.alert("✅ 북마크 저장", "북마크에 저장되었습니다!", [
-        { text: "확인" },
-      ]);
-    } catch (error) {
-      console.error("북마크 저장 실패:", error);
-      Alert.alert("오류", "북마크 저장에 실패했습니다.");
-    }
-  };
-
-  const statusBarHeight =
-    Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0;
-
-  const injectedJavaScript = `
-    (function() {
-      const style = document.createElement('style');
-      style.textContent = 'body{padding-bottom:70px!important}';
-      document.head.appendChild(style);
-      window.open = function(url){window.location.href=url;return window};
-    })();
-    true;
-  `;
+    initializeApp();
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.statusBarBackground, { height: statusBarHeight }]} />
-
-      {(canGoBack || isLoading) && (
-        <View style={styles.header}>
-          {canGoBack && (
-            <TouchableOpacity onPress={handleBack} style={styles.navButton}>
-              <Ionicons name="arrow-back" size={24} color="#333" />
-              <Text style={styles.navButtonText}>이전</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity onPress={handleRefresh} style={styles.navButton}>
-            <Ionicons name="refresh" size={24} color="#333" />
-            <Text style={styles.navButtonText}>새로고침</Text>
-          </TouchableOpacity>
-
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#FF6B35" />
+    <AuthProvider>
+      {!isReady ? (
+        <View style={styles.loadingOverlay}>
+          <ExpoImage
+            source={require("./assets/icon.png")}
+            style={{ width: 150, height: 150, marginBottom: 50 }}
+            contentFit="contain"
+          />
+          <View style={styles.progressBottomContainer}>
+            <ActivityIndicator size="large" color="#FF6B35" />
+            <Text style={styles.loadingPercentText}>
+              첫 실행 데이터 준비 중...
+            </Text>
+            <View style={styles.progressBarBg}>
+              <View
+                style={[styles.progressBarFill, { width: `${loadProgress}%` }]}
+              />
             </View>
-          )}
-        </View>
-      )}
-
-      {hasError ? (
-        <View style={styles.errorContainer}>
-          <Ionicons name="cloud-offline-outline" size={64} color="#999" />
-          <Text style={styles.errorTitle}>페이지를 불러올 수 없습니다</Text>
-          <Text style={styles.errorMessage}>
-            인터넷 연결을 확인하거나{"\n"}잠시 후 다시 시도해주세요
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-            <Ionicons name="reload" size={20} color="#fff" />
-            <Text style={styles.retryButtonText}>다시 시도</Text>
-          </TouchableOpacity>
+            <Text style={styles.loadingPercent}>
+              {Math.round(loadProgress)}%
+            </Text>
+          </View>
         </View>
       ) : (
         <>
-          {/* 진행률 바 */}
-          {isLoading && loadProgress < 1 && (
-            <View style={styles.progressBarContainer}>
-              <View
-                style={[
-                  styles.progressBar,
-                  { width: `${loadProgress * 100}%` },
-                ]}
-              />
-            </View>
-          )}
-
-          {/* 로딩 오버레이 */}
-          {isLoading && loadProgress < 0.9 && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#FF6B35" />
-              <Text style={styles.loadingText}>페이지 로딩 중...</Text>
-              <Text style={styles.loadingPercent}>
-                {Math.round(loadProgress * 100)}%
-              </Text>
-            </View>
-          )}
-
-          <WebView
-            ref={webViewRef}
-            source={{ uri: url }}
-            style={styles.webview}
-            onNavigationStateChange={onNavigationStateChange}
-            onLoadProgress={({ nativeEvent }) =>
-              setLoadProgress(nativeEvent.progress)
-            }
-            onLoadEnd={() => {
-              setIsLoading(false);
-              setLoadProgress(1);
+          <GlobalChatNotificationListener />
+          <NavigationContainer
+            linking={{
+              prefixes: [
+                "com.yourname.chaovnapp://",
+                "exp+chao-vn-app://",
+                "https://auth.expo.io/@young146/chao-vn-app",
+              ],
+              config: {
+                screens: {
+                  MainApp: {
+                    screens: {
+                      씬짜오당근: "danggn",
+                      Chat: "chat",
+                      Menu: "menu",
+                    },
+                  },
+                  로그인: "login",
+                },
+              },
             }}
-            onError={handleError}
-            onHttpError={handleError}
-            userAgent="Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-            sharedCookiesEnabled={true}
-            thirdPartyCookiesEnabled={true}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            cacheEnabled={true}
-            cacheMode="LOAD_CACHE_ELSE_NETWORK"
-            injectedJavaScript={injectedJavaScript}
-            setSupportMultipleWindows={false}
-            originWhitelist={["https://*", "http://*"]}
-            androidHardwareAccelerationDisabled={false}
-            androidLayerType="hardware"
-          />
-
-          <TouchableOpacity
-            style={styles.floatingBookmarkButton}
-            onPress={handleBookmark}
-            activeOpacity={0.8}
           >
-            <Ionicons name="bookmark" size={24} color="#fff" />
-          </TouchableOpacity>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+            <RootNavigator />
+          </NavigationContainer>
         </>
       )}
-    </View>
-  );
-};
-
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-// ** 4. Bottom Tab Navigator **
-// ------------------------------------------------------------------
-const Tab = createBottomTabNavigator();
-
-// 채팅 스택
-function ChatStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="ChatList"
-        component={ChatListScreen}
-        options={{ title: "채팅 목록" }}
-      />
-      <Stack.Screen
-        name="ChatRoom"
-        component={ChatRoomScreen}
-        options={{ title: "채팅방" }}
-      />
-    </Stack.Navigator>
+    </AuthProvider>
   );
 }
 
-// ------------------------------------------------------------------
-// ** 4. 각 탭별 Stack Navigator **
-// ------------------------------------------------------------------
+// 스택 및 탭 정의
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
 function HomeStack() {
   return (
     <Stack.Navigator>
@@ -407,121 +286,6 @@ function BoardStack() {
   );
 }
 
-function BottomTabNavigator() {
-  return (
-    <Tab.Navigator
-      initialRouteName={Platform.OS === "ios" ? "당근" : "홈"}
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        lazy: false, // 앱 시작 시 모든 탭을 미리 로드 (뉴스 프리로딩)
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === "홈") {
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "뉴스") {
-            iconName = focused ? "newspaper" : "newspaper-outline";
-          } else if (route.name === "게시판") {
-            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
-          } else if (route.name === "당근") {
-            iconName = focused ? "cart" : "cart-outline";
-          } else if (route.name === "메뉴") {
-            iconName = focused ? "apps" : "apps-outline";
-          }
-
-          // 메뉴 탭은 강조 색상
-          const iconColor =
-            route.name === "메뉴" && !focused ? "#FF6B35" : color;
-          return <Ionicons name={iconName} size={size} color={iconColor} />;
-        },
-        tabBarActiveTintColor: "#FF6B35",
-        tabBarInactiveTintColor: "#999",
-        tabBarLabelStyle: { fontSize: 11 },
-      })}
-    >
-      <Tab.Screen
-        name="홈"
-        component={HomeStack}
-        options={{ title: "홈", headerShown: false }}
-      />
-      <Tab.Screen
-        name="뉴스"
-        component={NewsStack}
-        options={{ title: "뉴스", headerShown: false }}
-      />
-      <Tab.Screen
-        name="게시판"
-        component={BoardStack}
-        options={{ title: "게시판", headerShown: false }}
-      />
-      <Tab.Screen
-        name="당근"
-        component={DanggnStack}
-        options={{ title: "당근", headerShown: false }}
-      />
-      <Tab.Screen
-        name="메뉴"
-        component={MenuStack}
-        options={{
-          title: "메뉴",
-          headerShown: false,
-          tabBarLabelStyle: { fontSize: 11, fontWeight: "bold" },
-        }}
-      />
-    </Tab.Navigator>
-  );
-}
-
-// ------------------------------------------------------------------
-// ** 5. 씬짜오당근 Stack Navigator **
-// ------------------------------------------------------------------
-const Stack = createNativeStackNavigator();
-
-// 헤더 우측 버튼 컴포넌트
-function DanggnHeaderRight({ navigation }) {
-  const { user } = useAuth();
-
-  return (
-    <View
-      style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}
-    >
-      {user ? (
-        <TouchableOpacity
-          style={{ padding: 8 }}
-          onPress={() => navigation.navigate("Menu")}
-        >
-          <Ionicons name="person-circle" size={28} color="#fff" />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "rgba(255,255,255,0.2)",
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 16,
-            marginLeft: 8,
-          }}
-          onPress={() => navigation.navigate("로그인")}
-        >
-          <Ionicons name="log-in-outline" size={18} color="#fff" />
-          <Text
-            style={{
-              marginLeft: 4,
-              fontSize: 13,
-              fontWeight: "600",
-              color: "#fff",
-            }}
-          >
-            로그인
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 function DanggnStack() {
   return (
     <Stack.Navigator>
@@ -583,9 +347,7 @@ function DanggnStack() {
     </Stack.Navigator>
   );
 }
-// ------------------------------------------------------------------
-// ** 6. 더보기 Stack Navigator **
-// ------------------------------------------------------------------
+
 function MenuStack() {
   return (
     <Stack.Navigator>
@@ -643,7 +405,6 @@ function MenuStack() {
           headerTintColor: "#fff",
         }}
       />
-
       <Stack.Screen
         name="알림 설정"
         component={NotificationSettingScreen}
@@ -727,26 +488,84 @@ function MenuStack() {
     </Stack.Navigator>
   );
 }
-// ------------------------------------------------------------------
-// ** 7. Auth Stack Navigator **
-// ------------------------------------------------------------------
-function AuthStack() {
+
+function DanggnHeaderRight({ navigation }) {
+  const { user } = useAuth();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="로그인" component={LoginScreen} />
-      <Stack.Screen name="회원가입" component={SignupScreen} />
-      <Stack.Screen name="아이디찾기" component={FindIdScreen} />
-      <Stack.Screen name="비밀번호찾기" component={FindPasswordScreen} />
-    </Stack.Navigator>
+    <View
+      style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}
+    >
+      {user ? (
+        <TouchableOpacity
+          style={{ padding: 8 }}
+          onPress={() => navigation.navigate("Menu")}
+        >
+          <Ionicons name="person-circle" size={28} color="#fff" />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(255,255,255,0.2)",
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 16,
+            marginLeft: 8,
+          }}
+          onPress={() => navigation.navigate("로그인")}
+        >
+          <Ionicons name="log-in-outline" size={18} color="#fff" />
+          <Text
+            style={{
+              marginLeft: 4,
+              fontSize: 13,
+              fontWeight: "600",
+              color: "#fff",
+            }}
+          >
+            로그인
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
-// ------------------------------------------------------------------
-// ** 8. 메인 Navigator **
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-// ** 8. 메인 Navigator **
-// ------------------------------------------------------------------
+function BottomTabNavigator() {
+  return (
+    <Tab.Navigator
+      initialRouteName={Platform.OS === "ios" ? "당근" : "홈"}
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        lazy: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === "홈") iconName = focused ? "home" : "home-outline";
+          else if (route.name === "뉴스")
+            iconName = focused ? "newspaper" : "newspaper-outline";
+          else if (route.name === "게시판")
+            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
+          else if (route.name === "당근")
+            iconName = focused ? "cart" : "cart-outline";
+          else if (route.name === "메뉴")
+            iconName = focused ? "apps" : "apps-outline";
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: "#FF6B35",
+        tabBarInactiveTintColor: "#999",
+        tabBarLabelStyle: { fontSize: 11 },
+      })}
+    >
+      <Tab.Screen name="홈" component={HomeStack} />
+      <Tab.Screen name="뉴스" component={NewsStack} />
+      <Tab.Screen name="게시판" component={BoardStack} />
+      <Tab.Screen name="당근" component={DanggnStack} />
+      <Tab.Screen name="메뉴" component={MenuStack} />
+    </Tab.Navigator>
+  );
+}
+
 function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ presentation: "modal" }}>
@@ -758,323 +577,69 @@ function RootNavigator() {
       <Stack.Screen
         name="로그인"
         component={LoginScreen}
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="회원가입"
         component={SignupScreen}
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="아이디찾기"
         component={FindIdScreen}
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="비밀번호찾기"
         component={FindPasswordScreen}
-        options={{
-          headerShown: false,
-          presentation: "modal",
-        }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
 }
-// ------------------------------------------------------------------
-// ** 9. 전역 채팅 알림 리스너 **
-// ------------------------------------------------------------------
-const GlobalChatNotificationListener = () => {
-  // ⚠️ 완전히 비활성화 - Firebase Functions가 알림을 보내므로 로컬 알림은 중복이고 발신자에게도 알림이 가는 문제 발생
-  // Firebase Functions만 사용하여 수신자에게만 알림 전송
-  useEffect(() => {
-    console.log(
-      "🔇 GlobalChatNotificationListener 비활성화됨 - Firebase Functions가 알림 처리"
-    );
-  }, []);
 
+const GlobalChatNotificationListener = () => {
+  useEffect(() => {
+    console.log("🔇 GlobalChatNotificationListener 비활성화됨");
+  }, []);
   return null;
 };
 
-// ------------------------------------------------------------------
-// ** 10. App 컴포넌트 **
-// ------------------------------------------------------------------
-export default function App() {
-  // 채널은 setupNotificationChannels()에서 이미 생성되므로 여기서는 제거
-
-  // 앱 시작 시 당근 데이터 및 이미지 프리페치
-  useEffect(() => {
-    const prefetchDanggnData = async () => {
-      try {
-        console.log("🚚 [Prefetch] 당근 데이터 및 이미지 프리페치 시작...");
-        const q = query(
-          collection(db, "XinChaoDanggn"),
-          orderBy("createdAt", "desc"),
-          limit(10)
-        );
-        const snapshot = await getDocs(q);
-        const items = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          // Firestore 타임스탬프를 직렬화 가능한 문자열로 변환
-          createdAt:
-            doc.data().createdAt?.toDate?.()?.toISOString() ||
-            doc.data().createdAt,
-        }));
-
-        if (items.length > 0) {
-          // 중복 방지를 위해 Map 사용
-          const uniqueItems = Array.from(
-            new Map(items.map((item) => [item.id, item])).values()
-          );
-          // 데이터 저장
-          await AsyncStorage.setItem(
-            "prefetched_danggn_items",
-            JSON.stringify(uniqueItems)
-          );
-
-          // 이미지 프리페치 (상위 6개)
-          const imageUrls = uniqueItems
-            .map((item) => item.images?.[0] || item.imageUri)
-            .filter((url) => !!url && typeof url === "string")
-            .slice(0, 6);
-
-          if (imageUrls.length > 0) {
-            console.log(
-              `🖼️ [Prefetch] 이미지 ${imageUrls.length}개 프리페치 중...`
-            );
-            await ExpoImage.prefetch(imageUrls);
-          }
-          console.log("✅ [Prefetch] 프리페치 및 이미지 캐싱 완료");
-        }
-      } catch (error) {
-        console.error("❌ [Prefetch] 프리페치 실패:", error);
-      }
-    };
-
-    // 앱 실행 후 약간의 지연을 두어 메인 화면 로딩 방해 금지
-    const timer = setTimeout(prefetchDanggnData, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // 채팅방 목록 프리페치 (로그인 상태일 때)
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        const prefetchChatRooms = async () => {
-          try {
-            console.log("💬 [Prefetch] 채팅방 목록 프리페치 시작...");
-            const q = query(
-              collection(db, "chatRooms"),
-              where("participants", "array-contains", user.uid),
-              limit(20)
-            );
-            const snapshot = await getDocs(q);
-            const rooms = snapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-              // 직렬화 가능한 형태로 변환
-              lastMessageAt:
-                doc.data().lastMessageAt?.toDate?.()?.toISOString() ||
-                doc.data().lastMessageAt,
-            }));
-
-            if (rooms.length > 0) {
-              // 중복 방지를 위해 Map 사용
-              const uniqueRooms = Array.from(
-                new Map(rooms.map((room) => [room.id, room])).values()
-              );
-
-              // 클라이언트 사이드에서 정렬 (복합 인덱스 오류 방지)
-              uniqueRooms.sort((a, b) => {
-                const timeA = a.lastMessageAt
-                  ? new Date(a.lastMessageAt).getTime()
-                  : 0;
-                const timeB = b.lastMessageAt
-                  ? new Date(b.lastMessageAt).getTime()
-                  : 0;
-                return timeB - timeA;
-              });
-
-              await AsyncStorage.setItem(
-                "prefetched_chat_rooms",
-                JSON.stringify(uniqueRooms)
-              );
-              console.log("✅ [Prefetch] 채팅방 목록 캐싱 완료 (인덱스 없이)");
-            }
-          } catch (error) {
-            // 에러 무시 (새 사용자, 권한 문제, 인덱스 문제 등)
-          }
-        };
-        prefetchChatRooms();
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  return (
-    <AuthProvider>
-      <GlobalChatNotificationListener />
-      <NavigationContainer
-        linking={{
-          prefixes: [
-            "com.yourname.chaovnapp://",
-            "exp+chao-vn-app://",
-            "https://auth.expo.io/@young146/chao-vn-app",
-          ],
-          config: {
-            screens: {
-              MainApp: {
-                screens: {
-                  씬짜오당근: "danggn",
-                  Chat: "chat",
-                  Menu: "menu",
-                },
-              },
-              로그인: "login",
-            },
-          },
-        }}
-        onStateChange={(state) => {
-          console.log("🔗 Navigation state changed:", state);
-        }}
-      >
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        <RootNavigator />
-      </NavigationContainer>
-    </AuthProvider>
-  );
-}
-
-// ------------------------------------------------------------------
-// ** 11. Styles **
-// ------------------------------------------------------------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  statusBarBackground: {
-    backgroundColor: "#fff",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  navButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-  },
-  navButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: "#333",
-  },
-  loadingContainer: {
-    marginLeft: "auto",
-    paddingHorizontal: 12,
-  },
-  progressBarContainer: {
-    height: 3,
-    backgroundColor: "#eee",
-    width: "100%",
-  },
-  progressBar: {
-    height: 3,
-    backgroundColor: "#FF6B35",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  statusBarBackground: { backgroundColor: "#fff" },
   loadingOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
+    paddingHorizontal: 30,
   },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "500",
-  },
-  loadingPercent: {
-    marginTop: 8,
-    fontSize: 24,
-    color: "#FF6B35",
-    fontWeight: "bold",
-  },
-  webview: {
-    flex: 1,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
+  progressBottomContainer: {
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    padding: 20,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  retryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FF6B35",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 24,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  floatingBookmarkButton: {
+    width: "100%",
     position: "absolute",
-    bottom: 80,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FF6B35",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
+    bottom: 100,
   },
+  loadingPercentText: {
+    marginBottom: 20,
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "600",
+  },
+  progressBarBg: {
+    width: "80%",
+    height: 6,
+    backgroundColor: "#eee",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 15,
+  },
+  progressBarFill: { height: "100%", backgroundColor: "#FF6B35" },
+  loadingPercent: { fontSize: 24, color: "#FF6B35", fontWeight: "bold" },
 });
