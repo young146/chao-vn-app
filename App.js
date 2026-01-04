@@ -54,6 +54,8 @@ import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
 
 // 네이티브 화면들
+import MagazineScreen from "./screens/MagazineScreen";
+import PostDetailScreen from "./screens/PostDetailScreen";
 import MoreScreen from "./screens/MoreScreen";
 import MyPageScreen from "./screens/MyPageScreen";
 import MyFavoritesScreen from "./screens/MyFavoritesScreen";
@@ -324,6 +326,87 @@ function ChatStack() {
   );
 }
 
+// ------------------------------------------------------------------
+// ** 4. 각 탭별 Stack Navigator **
+// ------------------------------------------------------------------
+function HomeStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="홈메인"
+        component={MagazineScreen}
+        initialParams={{ type: "home" }}
+        options={{
+          title: "씬짜오베트남",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{
+          title: "상세보기",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function NewsStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="뉴스메인"
+        component={MagazineScreen}
+        initialParams={{ type: "news", categoryId: 31 }}
+        options={{
+          title: "데일리 뉴스",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{
+          title: "상세보기",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function BoardStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="게시판메인"
+        component={MagazineScreen}
+        initialParams={{ type: "board" }}
+        options={{
+          title: "커뮤니티 게시판",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{
+          title: "상세보기",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function BottomTabNavigator() {
   return (
     <Tab.Navigator
@@ -356,29 +439,32 @@ function BottomTabNavigator() {
         tabBarLabelStyle: { fontSize: 11 },
       })}
     >
-      {Platform.OS !== "ios" && (
-        <>
-          <Tab.Screen name="홈" options={{ title: "홈" }}>
-            {() => <SiteWebView url={siteURLs.magazine} />}
-          </Tab.Screen>
-          <Tab.Screen name="뉴스" options={{ title: "뉴스" }}>
-            {() => <SiteWebView url={siteURLs.dailyNews} />}
-          </Tab.Screen>
-          <Tab.Screen name="게시판" options={{ title: "게시판" }}>
-            {() => <SiteWebView url={siteURLs.board} />}
-          </Tab.Screen>
-        </>
-      )}
+      <Tab.Screen
+        name="홈"
+        component={HomeStack}
+        options={{ title: "홈", headerShown: false }}
+      />
+      <Tab.Screen
+        name="뉴스"
+        component={NewsStack}
+        options={{ title: "뉴스", headerShown: false }}
+      />
+      <Tab.Screen
+        name="게시판"
+        component={BoardStack}
+        options={{ title: "게시판", headerShown: false }}
+      />
       <Tab.Screen
         name="당근"
         component={DanggnStack}
-        options={{ title: "당근" }}
+        options={{ title: "당근", headerShown: false }}
       />
       <Tab.Screen
         name="메뉴"
         component={MenuStack}
         options={{
           title: "메뉴",
+          headerShown: false,
           tabBarLabelStyle: { fontSize: 11, fontWeight: "bold" },
         }}
       />

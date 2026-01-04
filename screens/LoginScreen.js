@@ -16,78 +16,95 @@ import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, googleLogin } = useAuth();
+  const { login, googleLogin, appleLogin } = useAuth();
 
   // Google Sign-In 초기화
   useEffect(() => {
     GoogleSignin.configure({
-      // google-services.json에서 가져온 웹 클라이언트 ID
       webClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
       offlineAccess: true,
     });
   }, []);
 
+  const handleAppleSignIn = async () => {
+    try {
+      setAppleLoading(true);
+      
+      // rawNonce 생성을 위한 랜덤 문자열
+      const rawNonce = Math.random().toString(36).substring(2, 10);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (credential.identityToken) {
+        const result = await appleLogin(credential.identityToken, rawNonce);
+        if (result.success) {
+          Alert.alert("로그인 성공! ✅", "환영합니다!", [
+            { text: "확인", onPress: () => navigation.goBack() },
+          ]);
+        } else {
+          Alert.alert("애플 로그인 실패", result.error);
+        }
+      }
+    } catch (error) {
+      if (error.code === 'ERR_CANCELED') {
+        console.log("애플 로그인을 취소했습니다.");
+      } else {
+        console.error("애플 로그인 에러:", error);
+        Alert.alert("오류", "애플 로그인에 실패했습니다.");
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setGoogleLoading(true);
-      
-      // Google Play Services 확인
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      
-      // 기존 로그인 세션 초기화 (매번 계정 선택 화면 표시)
       try {
         await GoogleSignin.signOut();
-      } catch (e) {
-        // 로그아웃 실패해도 계속 진행
-      }
+      } catch (e) {}
       
-      // 구글 로그인 실행
       const userInfo = await GoogleSignin.signIn();
-      console.log("Google Sign-In 성공:", userInfo);
-      
-      // idToken 가져오기
       const idToken = userInfo.data?.idToken || userInfo.idToken;
       
       if (idToken) {
         const result = await googleLogin(idToken, null);
-        setGoogleLoading(false);
-        
         if (result.success) {
           Alert.alert("로그인 성공! ✅", "환영합니다!", [
-            {
-              text: "확인",
-              onPress: () => navigation.goBack(),
-            },
+            { text: "확인", onPress: () => navigation.goBack() },
           ]);
         } else {
           Alert.alert("구글 로그인 실패", result.error);
         }
-      } else {
-        setGoogleLoading(false);
-        console.log("userInfo 전체:", JSON.stringify(userInfo, null, 2));
-        Alert.alert("구글 로그인 실패", "ID Token을 받지 못했습니다.");
       }
     } catch (error) {
-      setGoogleLoading(false);
       console.error("Google Sign-In 에러:", error);
-      
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // 사용자가 로그인 취소
-        console.log("사용자가 로그인을 취소했습니다.");
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        Alert.alert("알림", "로그인이 이미 진행 중입니다.");
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert("오류", "Google Play Services를 사용할 수 없습니다.");
-      } else {
+      if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
         Alert.alert("구글 로그인 실패", error.message || "알 수 없는 오류가 발생했습니다.");
       }
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -171,15 +188,10 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity
             style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
             onPress={handleGoogleSignIn}
-            disabled={googleLoading}
+            disabled={googleLoading || appleLoading}
           >
             {googleLoading ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ActivityIndicator color="#fff" />
-                <Text style={{ marginLeft: 10, color: '#fff', fontSize: 14 }}>
-                  구글 로그인 중...
-                </Text>
-              </View>
+              <ActivityIndicator color="#fff" />
             ) : (
               <>
                 <Ionicons name="logo-google" size={20} color="#fff" />
@@ -187,6 +199,16 @@ export default function LoginScreen({ navigation }) {
               </>
             )}
           </TouchableOpacity>
+
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={8}
+              style={styles.appleButton}
+              onPress={handleAppleSignIn}
+            />
+          )}
 
           <View style={styles.findContainer}>
             <TouchableOpacity onPress={() => navigation.navigate("아이디찾기")}>
@@ -235,4 +257,5 @@ const styles = StyleSheet.create({
   dividerText: { marginHorizontal: 12, fontSize: 14, color: "#999" },
   googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000", borderRadius: 8, paddingVertical: 14, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
   googleButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "600", color: "#fff" },
+  appleButton: { width: '100%', height: 50, marginBottom: 16 },
 });
