@@ -28,12 +28,14 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const { login, googleLogin, appleLogin } = useAuth();
 
-  // Google Sign-In 초기화
+  // Google Sign-In 초기화 (안드로이드에서만 활성화)
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
-      offlineAccess: true,
-    });
+    if (Platform.OS === 'android') {
+      GoogleSignin.configure({
+        webClientId: "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+        offlineAccess: true,
+      });
+    }
   }, []);
 
   const handleAppleSignIn = async () => {
@@ -190,30 +192,37 @@ export default function LoginScreen({ navigation }) {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>로그인</Text>}
           </TouchableOpacity>
 
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>또는</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
-            onPress={handleGoogleSignIn}
-            disabled={googleLoading || appleLoading}
-          >
-            {googleLoading ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ActivityIndicator color="#fff" />
-                <Text style={[styles.googleButtonText, { marginLeft: 10 }]}>로그인 중...</Text>
+          {/* 안드로이드에서만 제3자 로그인(구글) 표시 */}
+          {Platform.OS === 'android' && (
+            <>
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>또는</Text>
+                <View style={styles.divider} />
               </View>
-            ) : (
-              <>
-                <Ionicons name="logo-google" size={20} color="#fff" />
-                <Text style={styles.googleButtonText}>Google로 로그인</Text>
-              </>
-            )}
-          </TouchableOpacity>
 
+              <TouchableOpacity
+                style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
+                onPress={handleGoogleSignIn}
+                disabled={googleLoading || appleLoading}
+              >
+                {googleLoading ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <ActivityIndicator color="#fff" />
+                    <Text style={[styles.googleButtonText, { marginLeft: 10 }]}>로그인 중...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={20} color="#fff" />
+                    <Text style={styles.googleButtonText}>Google로 로그인</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* iOS 전용 애플 로그인은 현재 기획상 숨김 처리 (주석 처리) */}
+          {/* 
           {Platform.OS === 'ios' && (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -222,7 +231,8 @@ export default function LoginScreen({ navigation }) {
               style={styles.appleButton}
               onPress={handleAppleSignIn}
             />
-          )}
+          )} 
+          */}
 
           <View style={styles.findContainer}>
             <TouchableOpacity onPress={() => navigation.navigate("아이디찾기")}>
