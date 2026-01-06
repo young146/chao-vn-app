@@ -17,6 +17,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
+import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getHomeDataCached, hasHomeDataCache } from "./services/wordpressApi";
 
@@ -104,6 +105,22 @@ export default function App() {
       try {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
+
+        // 0. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
+        if (!__DEV__ && Updates.isEnabled) {
+          try {
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+              console.log("📦 새 업데이트 발견, 다운로드 중...");
+              await Updates.fetchUpdateAsync();
+              console.log("✅ 업데이트 다운로드 완료, 다음 실행 시 적용됩니다");
+              // 자동 재시작은 사용자 경험을 해칠 수 있으므로 다음 실행 시 적용
+            }
+          } catch (updateError) {
+            console.log("⚠️ 업데이트 체크 실패:", updateError);
+            // 업데이트 실패해도 앱은 정상 작동
+          }
+        }
 
         // 1. 캐시 확인 - 있으면 즉시 진입!
         const hasCache = await hasHomeDataCache();
