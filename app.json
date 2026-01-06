@@ -61,7 +61,6 @@
       ],
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
-      "expo-tracking-transparency",
       "@react-native-community/datetimepicker"
     ],
     "runtimeVersion": {
