@@ -238,7 +238,12 @@ export default function MagazineScreen({ navigation, route }) {
       if (pageNum === 1) {
         setPosts(newPosts);
       } else {
-        setPosts(prev => [...prev, ...newPosts]);
+        // 중복 제거: 기존 posts에 없는 항목만 추가
+        setPosts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
+          return [...prev, ...uniqueNewPosts];
+        });
       }
     } catch (error) {
       console.error('Fetch posts error:', error);
@@ -318,7 +323,17 @@ export default function MagazineScreen({ navigation, route }) {
       <FlatList
         data={type === 'home' && !searchQuery ? [] : posts}
         renderItem={({ item }) => <MagazineCard item={item} onPress={handlePostPress} type={type} />}
-        keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
+        keyExtractor={(item, index) => {
+          // 고유 키 생성: id가 있으면 사용, 없으면 index와 link 조합
+          if (item.id) {
+            return item.id.toString();
+          }
+          // link가 있으면 link + index 조합 사용
+          if (item.link) {
+            return `item-${item.link}-${index}`;
+          }
+          return `item-${index}`;
+        }}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
@@ -364,27 +379,36 @@ export default function MagazineScreen({ navigation, route }) {
                         <Text style={styles.seeMore}>더보기 ></Text>
                       </TouchableOpacity>
                     </View>
-                    <FlatList
-                      data={section.posts}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      keyExtractor={(item) => `section-${section.id}-${item.id}`}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity 
-                          style={styles.sectionCard} 
-                          onPress={() => handlePostPress(item)}
-                        >
-                          <Image
-                            source={{ uri: item._embedded?.['wp:featuredmedia']?.[0]?.source_url }}
-                            style={styles.sectionCardImage}
-                            contentFit="cover"
-                          />
-                          <Text style={styles.sectionCardTitle} numberOfLines={2}>
-                            {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    />
+                    <View style={styles.gridContainer}>
+                      {[...Array(4)].map((_, index) => {
+                        const post = section.posts[index];
+                        return (
+                          <TouchableOpacity
+                            key={`section-${section.id}-${index}`}
+                            style={styles.gridCard}
+                            onPress={() => post && handlePostPress(post)}
+                            activeOpacity={post ? 0.7 : 1}
+                          >
+                            {post ? (
+                              <>
+                                <Image
+                                  source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url }}
+                                  style={styles.gridCardImage}
+                                  contentFit="cover"
+                                />
+                                <Text style={styles.gridCardTitle} numberOfLines={2}>
+                                  {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
+                                </Text>
+                              </>
+                            ) : (
+                              <View style={styles.emptyCard}>
+                                <View style={styles.emptyCardPlaceholder} />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                   </View>
                 ))}
               </View>
@@ -408,9 +432,23 @@ export default function MagazineScreen({ navigation, route }) {
         }
         ListEmptyComponent={
           !loading && (
-            <View style={styles.centerContainer}>
-              <Text style={styles.emptyText}>게시글이 없습니다.</Text>
-            </View>
+            type === 'home' && !searchQuery ? (
+              <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>더 많은 기사를 보고 싶으시면</Text>
+                <Text style={styles.emptySubtext}>검색창에 키워드를 넣어서 찾아보세요</Text>
+              </View>
+            ) : type !== 'home' ? (
+              <View style={styles.centerContainer}>
+                {searchQuery.length > 0 ? (
+                  <>
+                    <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
+                    <Text style={styles.emptySubtext}>다른 키워드로 검색해보세요</Text>
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
+                )}
+              </View>
+            ) : null
           )
         }
       />
@@ -558,6 +596,46 @@ const styles = StyleSheet.create({
   homeSection: {
     marginBottom: 30,
   },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  gridCard: {
+    width: '48%',
+    marginBottom: 16,
+  },
+  gridCardImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#eee',
+  },
+  gridCardTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    lineHeight: 18,
+    minHeight: 36,
+  },
+  emptyCard: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyCardPlaceholder: {
+    width: '80%',
+    height: '60%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    opacity: 0.5,
+  },
+  // 기존 가로 스크롤용 스타일 유지 (호환성)
   sectionCard: {
     width: 160,
     marginRight: 15,
@@ -645,6 +723,13 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#999',
     fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: '#ccc',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 

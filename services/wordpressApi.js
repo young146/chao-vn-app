@@ -9,19 +9,125 @@ const CACHE_KEY = 'HOME_DATA_CACHE';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
 
 const api = axios.create({
-  timeout: 8000, // 10초 → 8초로 단축
+  timeout: 8000,
 });
 
-// 홈 화면 섹션 정의 (공통으로 사용)
-const HOME_SECTIONS = [
-  { id: 32, name: '교민소식' },
-  { id: 445, name: 'Xinchao BIZ' },
-  { id: 382, name: '컬럼' },
-  { id: 427, name: 'F&R' },
-  { id: 413, name: 'Golf & Sports' }
+// 홈 화면 섹션 정의 (ID 우선, 없으면 이름으로 매칭)
+const HOME_SECTIONS_CONFIG = [
+  { id: 32, name: '교민소식', searchNames: ['교민 소식', '교민소식'] }, // 기존 ID
+  { id: 445, name: '비즈니스&사회', searchNames: ['Xinchao BIZ', 'XINCHO BIZ', '비즈니스', '사회'] }, // 기존 ID
+  { id: 382, name: '칼럼&오피니언', searchNames: ['CHAO COLUMN', '컬럼', '칼럼', 'COLUMN'] }, // 기존 ID
+  { id: 124, name: '교육&자녀', searchNames: ['Xinchao Edu', 'XINCHAO EDU', '교육', 'EDU'] }, // Xinchao Edu
+  { id: 427, name: 'F&R', searchNames: ['F&R', 'F&amp;R', 'Food & Restaurant', 'FOOD & RESTAURANT'] }, // 기존 ID
+  { id: 453, name: 'Health Section', searchNames: ['Health Section', 'Health', '헬스'] },
+  { id: 413, name: '골프&스포츠', searchNames: ['GOLF & SPORTS', 'GOLF &amp; SPORTS', '골프', '스포츠'] }, // 기존 ID
+  { id: 29, name: '라이프&조이&트래블', searchNames: ['TRAVEL', '트래블', '라이프', 'LIFE', '조이', 'JOY'] }, // TRAVEL
+  { id: 456, name: 'Pet World', searchNames: ['Pet World', 'pet World', 'PET WORLD', '펫'] }
 ];
 
-// 🚀 최적화된 홈 데이터 로드 함수 (캐시 + 단일 API 호출)
+// 3개월 이내 날짜 계산
+const getThreeMonthsAgoDate = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 3);
+  return date.toISOString().split('T')[0];
+};
+
+// 카테고리 ID 또는 이름으로 찾기 및 하위 카테고리 포함
+const findCategoryWithChildren = async (config) => {
+  try {
+    // 모든 카테고리 가져오기 (한 번만 호출)
+    const response = await api.get(`${MAGAZINE_BASE_URL}/categories`, {
+      params: {
+        per_page: 100,
+      },
+    });
+
+    const allCategories = response.data;
+    let category = null;
+
+    // 1. ID로 직접 찾기
+    if (config.id) {
+      category = allCategories.find(cat => cat.id === config.id);
+    }
+
+    // 2. ID로 못 찾았거나 ID가 없으면 이름으로 찾기
+    if (!category && config.searchNames) {
+      for (const searchName of config.searchNames) {
+        // 정확히 일치하는 것 찾기
+        category = allCategories.find(cat => 
+          cat.name === searchName ||
+          cat.name.toLowerCase() === searchName.toLowerCase()
+        );
+        
+        if (category) break;
+
+        // 부분 일치 찾기
+        category = allCategories.find(cat => 
+          cat.name.includes(searchName) ||
+          searchName.includes(cat.name) ||
+          cat.name.toLowerCase().includes(searchName.toLowerCase()) ||
+          searchName.toLowerCase().includes(cat.name.toLowerCase())
+        );
+        
+        if (category) break;
+      }
+    }
+
+    if (!category) {
+      console.warn(`카테고리 "${config.name}" (ID: ${config.id})을 찾을 수 없습니다.`);
+      return { id: null, name: config.name, childIds: [] };
+    }
+
+    // 하위 카테고리 찾기 (parent가 현재 카테고리 ID인 것들)
+    const childCategories = allCategories.filter(cat => 
+      cat.parent === category.id
+    );
+
+    const childIds = childCategories.map(cat => cat.id);
+
+    console.log(`✅ 카테고리 찾음: "${category.name}" (ID: ${category.id}, 하위: ${childIds.length}개)`);
+
+    return {
+      id: category.id,
+      name: config.name, // 사용자에게 보여줄 이름
+      displayName: category.name, // 실제 카테고리 이름
+      childIds: childIds
+    };
+  } catch (error) {
+    console.error(`카테고리 "${config.name}" 조회 실패:`, error);
+    return { id: null, name: config.name, childIds: [] };
+  }
+};
+
+// 각 섹션별 포스트 가져오기 (부모+하위 카테고리 포함, 3개월 이내, 최신순, 최대 4개)
+const getPostsForSection = async (section) => {
+  if (!section.id) {
+    return [];
+  }
+
+  try {
+    const threeMonthsAgo = getThreeMonthsAgoDate();
+    const allCategoryIds = [section.id, ...(section.childIds || [])].join(',');
+    
+    const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
+      params: {
+        categories: allCategoryIds,
+        per_page: 4, // 2x2 그리드용
+        after: `${threeMonthsAgo}T00:00:00`,
+        orderby: 'date',
+        order: 'desc',
+        _embed: 1,
+      },
+    });
+    
+    return response.data.slice(0, 4); // 최대 4개
+  } catch (error) {
+    console.error(`섹션 "${section.name}" 포스트 로드 실패:`, error);
+    return [];
+  }
+};
+
+// 🚀 최적화된 홈 데이터 로드 함수 (캐시 + 동적 카테고리 로드 + 병렬 처리)
 export const getHomeDataCached = async (forceRefresh = false) => {
   try {
     // 1. 캐시 확인 (강제 갱신이 아닌 경우)
@@ -39,54 +145,45 @@ export const getHomeDataCached = async (forceRefresh = false) => {
       }
     }
 
-    // 2. 단일 API 호출로 모든 카테고리 데이터 가져오기
-    const categoryIds = HOME_SECTIONS.map(s => s.id).join(',');
-    
     console.log('🌐 API 호출 시작...');
     const startTime = Date.now();
     
-    const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
-      params: {
-        categories: categoryIds,
-        per_page: 25, // 5개 섹션 × 5개 = 25개면 충분
-        _embed: 1,
-      },
-    });
+    // 2. 카테고리 ID 또는 이름으로 찾기 및 하위 카테고리 포함 (병렬 처리)
+    const categoryPromises = HOME_SECTIONS_CONFIG.map(config => findCategoryWithChildren(config));
+    const sections = await Promise.all(categoryPromises);
     
-    console.log(`✅ API 응답 완료: ${Date.now() - startTime}ms`);
+    // 유효한 카테고리만 필터링
+    const validSections = sections.filter(section => section.id !== null);
+    
+    console.log(`📋 ${validSections.length}개 섹션 발견`);
 
-    // 3. 카테고리별로 그룹핑
-    const groupedData = {};
-    HOME_SECTIONS.forEach(section => {
-      groupedData[section.id] = {
+    // 3. 각 섹션별 포스트 가져오기 (병렬 처리)
+    const sectionDataPromises = validSections.map(section =>
+      getPostsForSection(section).then(posts => ({
         ...section,
-        posts: []
-      };
-    });
+        posts: posts.map((post, idx) => ({
+          ...post,
+          id: `sec-${section.id}-${post.id}-${idx}`
+        }))
+      })).catch(error => {
+        console.error(`섹션 ${section.name} 로드 실패:`, error);
+        return { ...section, posts: [] };
+      })
+    );
 
-    response.data.forEach(post => {
-      // 포스트가 속한 카테고리 찾기
-      const postCategories = post.categories || [];
-      for (const catId of postCategories) {
-        if (groupedData[catId] && groupedData[catId].posts.length < 4) {
-          groupedData[catId].posts.push({
-            ...post,
-            id: `sec-${catId}-${post.id}`
-          });
-          break; // 하나의 섹션에만 추가
-        }
-      }
-    });
-
-    const homeSections = Object.values(groupedData);
+    const homeSections = await Promise.all(sectionDataPromises);
     
-    // 4. 슬라이드쇼: 각 섹션의 첫 번째 포스트
+    console.log(`✅ ${homeSections.length}개 섹션 로드 완료: ${Date.now() - startTime}ms`);
+
+    // 4. 슬라이드쇼: 각 섹션의 첫 번째 포스트 (최대 10개)
     const slideshowPosts = homeSections
+      .filter(section => section.posts.length > 0)
+      .slice(0, 10)
       .map(section => section.posts[0])
       .filter(Boolean)
       .map((post, idx) => ({ 
         ...post, 
-        id: `slide-${idx}-${post.id.replace('sec-', '')}` 
+        id: `slide-${idx}-${post.id}` 
       }));
 
     const result = { homeSections, slideshowPosts };
@@ -174,8 +271,6 @@ export const wordpressApi = {
   // 게시판 포스트 가져오기 (KBoard RSS 사용)
   getBoardPosts: async (page = 1, perPage = 10) => {
     try {
-      // KBoard RSS 피드 URL (vnkorlife.com)
-      // RSS는 페이지네이션을 지원하지 않을 수 있지만, 최신 글을 가져오기에 적합함
       const response = await api.get(`https://vnkorlife.com/wp-content/plugins/kboard/rss.php`, {
         params: {
           per_page: perPage,
@@ -184,7 +279,7 @@ export const wordpressApi = {
       
       const rssData = response.data;
       const items = rssData.split('<item>');
-      items.shift(); // 첫 번째 요소는 채널 정보이므로 제거
+      items.shift();
 
       const posts = items.map((item, index) => {
         const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] || 
@@ -196,18 +291,22 @@ export const wordpressApi = {
         const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
         const category = item.match(/<category domain=\".*?\"><!\[CDATA\[(.*?)\]\]><\/category>/)?.[1] || '';
         
-        // 이미지 추출 (description 내의 첫 번째 img 태그)
         const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
         const imageUrl = imgMatch ? imgMatch[1] : null;
 
-        // 고유 ID 생성 (링크에서 숫자 추출 시도, 실패 시 인덱스 활용)
+        // 고유 ID 생성: linkId + index 조합으로 중복 방지
         const linkId = link.match(/redirect=(\d+)/)?.[1] || 
                       link.match(/content_redirect=(\d+)/)?.[1] || 
-                      `rss-item-${index}`;
+                      null;
+        
+        // 고유 ID 생성 (linkId가 있으면 사용, 없으면 index 사용)
+        // index를 포함하여 같은 linkId라도 고유하게 만듦
+        const uniqueId = linkId 
+          ? `kb-${linkId}-${index}` 
+          : `kb-rss-${index}`;
 
-        // WordPress 포스트 형식과 유사하게 변환
         return {
-          id: `kb-${linkId}`,
+          id: uniqueId,
           title: { rendered: title },
           content: { rendered: description },
           date: pubDate,
@@ -222,7 +321,12 @@ export const wordpressApi = {
         };
       });
 
-      return posts;
+      // 중복 제거 (같은 link를 가진 항목 제거)
+      const uniquePosts = posts.filter((post, index, self) => 
+        index === self.findIndex(p => p.link === post.link)
+      );
+
+      return uniquePosts;
     } catch (error) {
       console.error('getBoardPosts error:', error);
       return [];
@@ -301,4 +405,3 @@ export const wordpressApi = {
 };
 
 export { MAGAZINE_BASE_URL, BOARD_BASE_URL };
-
