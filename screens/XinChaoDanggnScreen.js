@@ -39,7 +39,7 @@ const SearchBar = memo(({ value, onChangeText }) => (
     <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
     <TextInput
       style={styles.searchInput}
-      placeholder="물품 검색..."
+      placeholder="내 아파트 나눔을 찾아보세요"
       placeholderTextColor="rgba(0, 0, 0, 0.38)"
       value={value}
       onChangeText={onChangeText}

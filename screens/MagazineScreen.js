@@ -136,8 +136,46 @@ const MagazineCard = ({ item, onPress, type }) => {
     console.log('Date parse error:', e);
   }
 
-  const getCategoryName = () => {
-    if (item.category_name) return item.category_name;
+  // 카테고리와 출처 추출
+  const getCategoryAndSource = () => {
+    // 1. WordPress 카테고리 가져오기
+    let category = '';
+    const terms = item._embedded?.['wp:term'];
+    if (terms && terms[0] && terms[0].length > 0) {
+      // '뉴스'가 아닌 더 구체적인 카테고리 찾기
+      const specificCategory = terms[0].find(t => t.name !== '뉴스' && t.name !== 'News');
+      category = specificCategory?.name || terms[0][0]?.name || '';
+    }
+    if (!category && item.category_name) {
+      category = item.category_name;
+    }
+    
+    // 2. 출처 추출 (본문에서 VnExpress, Thanh Nien 등 찾기)
+    let source = '';
+    const content = item.content?.rendered || item.excerpt?.rendered || '';
+    const sourcePatterns = [
+      /VnExpress/i, /Thanh Niên/i, /Tuổi Trẻ/i, /Zing/i, 
+      /VietnamNet/i, /Dân Trí/i, /Báo Mới/i, /VOV/i,
+      /Người Lao Động/i, /Pháp Luật/i, /Công An/i
+    ];
+    for (const pattern of sourcePatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        source = match[0];
+        break;
+      }
+    }
+    
+    // 3. 결과 조합
+    if (category && source) {
+      return `${category} / ${source}`;
+    } else if (category) {
+      return category;
+    } else if (source) {
+      return source;
+    }
+    
+    // 기본값
     switch(type) {
       case 'news': return '뉴스';
       case 'board': return '게시판';
@@ -173,7 +211,7 @@ const MagazineCard = ({ item, onPress, type }) => {
         <View style={styles.footer}>
           <Text style={styles.date}>{dateStr}</Text>
           <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{getCategoryName()}</Text>
+            <Text style={styles.categoryText}>{getCategoryAndSource()}</Text>
           </View>
         </View>
       </View>
@@ -223,15 +261,24 @@ export default function MagazineScreen({ navigation, route }) {
         newPosts = await wordpressApi.searchPosts(query, pageNum);
       } else if (type === 'board') {
         newPosts = await wordpressApi.getBoardPosts(pageNum);
-      } else if (categoryId) {
-        // 날짜 필터 적용 (뉴스 탭 전용)
-        const dateStr = date ? date.toISOString().split('T')[0] : null;
+      } else if (categoryId || type === 'news') {
+        // 뉴스 탭: 날짜 필터가 없으면 오늘 날짜로 자동 필터링
+        let filterDate = date;
+        if (type === 'news' && !date && !isFilteredByDate) {
+          filterDate = new Date(); // 오늘 날짜
+        }
+        const dateStr = filterDate ? filterDate.toISOString().split('T')[0] : null;
         newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, dateStr);
       } else {
         newPosts = await wordpressApi.getMagazinePosts(pageNum);
       }
       
       if (newPosts.length < 10) {
+        setHasMore(false);
+      }
+      
+      // 뉴스 탭: 오늘 날짜 뉴스가 더 이상 없으면 종료
+      if (type === 'news' && newPosts.length === 0 && pageNum === 1) {
         setHasMore(false);
       }
 
@@ -425,11 +472,25 @@ export default function MagazineScreen({ navigation, route }) {
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
-        ListFooterComponent={() => 
-          loadingMore ? (
-            <ActivityIndicator style={{ marginVertical: 20 }} color="#FF6B35" />
-          ) : null
-        }
+        ListFooterComponent={() => {
+          if (loadingMore) {
+            return <ActivityIndicator style={{ marginVertical: 20 }} color="#FF6B35" />;
+          }
+          // 뉴스 탭에서 더 이상 뉴스가 없을 때 마지막 멘트 표시
+          if (type === 'news' && !hasMore && posts.length > 0) {
+            return (
+              <View style={styles.endMessageContainer}>
+                <Text style={styles.endMessageText}>
+                  ✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨
+                </Text>
+                <Text style={styles.endMessageSubText}>
+                  지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
+                </Text>
+              </View>
+            );
+          }
+          return null;
+        }}
         ListEmptyComponent={
           !loading && (
             type === 'home' && !searchQuery ? (
@@ -713,6 +774,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FF6B35',
     fontWeight: '600',
+  },
+  endMessageContainer: {
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: '#FFF8F5',
+    marginHorizontal: 16,
+    marginVertical: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFE0D0',
+  },
+  endMessageText: {
+    fontSize: 15,
+    color: '#FF6B35',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  endMessageSubText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
   },
   centerContainer: {
     flex: 1,
