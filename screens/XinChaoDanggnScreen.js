@@ -78,8 +78,11 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
         <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
         <View style={styles.locationContainer}>
-          <Ionicons name="location-outline" size={12} color="#999" />
-          <Text style={styles.itemLocation} numberOfLines={1}>{item.city} · {item.district}</Text>
+          <Ionicons name="location-outline" size={14} color="#666" />
+          <Text style={styles.itemLocation} numberOfLines={2}>
+            {item.city} · {item.district}
+            {item.apartment ? `\n${item.apartment}` : ''}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -599,7 +602,7 @@ const styles = StyleSheet.create({
   },
   imagePlaceholder: {
     width: "100%",
-    height: 140,
+    height: 210,
     backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
@@ -640,12 +643,16 @@ const styles = StyleSheet.create({
   },
   locationContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    marginTop: 4,
   },
   itemLocation: {
-    fontSize: 11,
-    color: "#999",
-    marginLeft: 2,
+    fontSize: 12,
+    color: "#333",
+    fontWeight: "600",
+    marginLeft: 4,
+    lineHeight: 18,
+    flex: 1,
   },
   emptyContainer: {
     flex: 1,

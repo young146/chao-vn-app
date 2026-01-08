@@ -481,11 +481,11 @@ export default function AddItemScreen({ navigation, route }) {
           {
             text: "확인",
             onPress: () => {
-              // 스택 리셋: 씬짜오당근메인 → 물품 상세
+              // 스택 리셋: 씬짜오나눔메인 → 물품 상세
               navigation.reset({
                 index: 1,
                 routes: [
-                  { name: "씬짜오당근메인" },
+                  { name: "씬짜오나눔메인" },
                   { name: "물품 상세", params: { item: resultItem } },
                 ],
               });

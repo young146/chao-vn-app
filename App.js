@@ -202,7 +202,7 @@ export default function App() {
                 screens: {
                   MainApp: {
                     screens: {
-                      씬짜오당근: "danggn",
+                      씬짜오나눔: "danggn",
                       Chat: "chat",
                       Menu: "menu",
                     },
@@ -307,10 +307,10 @@ function DanggnStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="씬짜오당근메인"
+        name="씬짜오나눔메인"
         component={XinChaoDanggnScreen}
         options={({ navigation }) => ({
-          title: "씬짜오당근",
+          title: "씬짜오나눔",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
           headerRight: () => <DanggnHeaderRight navigation={navigation} />,
@@ -552,7 +552,7 @@ function DanggnHeaderRight({ navigation }) {
 function BottomTabNavigator() {
   return (
     <Tab.Navigator
-      initialRouteName={Platform.OS === "ios" ? "당근" : "홈"}
+      initialRouteName="홈"
       screenOptions={({ route }) => ({
         headerShown: false,
         lazy: false,
@@ -563,21 +563,25 @@ function BottomTabNavigator() {
             iconName = focused ? "newspaper" : "newspaper-outline";
           else if (route.name === "게시판")
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
-          else if (route.name === "당근")
-            iconName = focused ? "cart" : "cart-outline";
+          else if (route.name === "나눔")
+            iconName = focused ? "gift" : "gift-outline";
           else if (route.name === "메뉴")
             iconName = focused ? "apps" : "apps-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#FF6B35",
-        tabBarInactiveTintColor: "#999",
-        tabBarLabelStyle: { fontSize: 11 },
+        tabBarInactiveTintColor: "#555",
+        tabBarLabelStyle: { 
+          fontSize: 12, 
+          fontWeight: "700",
+          marginBottom: 2,
+        },
       })}
     >
       <Tab.Screen name="홈" component={HomeStack} />
       <Tab.Screen name="뉴스" component={NewsStack} />
       <Tab.Screen name="게시판" component={BoardStack} />
-      <Tab.Screen name="당근" component={DanggnStack} />
+      <Tab.Screen name="나눔" component={DanggnStack} />
       <Tab.Screen name="메뉴" component={MenuStack} />
     </Tab.Navigator>
   );

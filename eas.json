@@ -24,13 +24,5 @@
         "buildType": "apk"
       }
     }
-  },
-  "update": {
-    "production": {
-      "channel": "production"
-    },
-    "development": {
-      "channel": "development"
-    }
   }
 }

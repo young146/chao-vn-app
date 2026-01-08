@@ -267,9 +267,9 @@ export default function NotificationSettingScreen() {
         </View>
       </View>
 
-      {/* 당근마켓 알림 */}
+      {/* 씬짜오나눔 알림 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🥕 당근마켓 알림</Text>
+        <Text style={styles.sectionTitle}>🎁 씬짜오나눔 알림</Text>
 
         {/* 🆕 내 주변 상품 알림 */}
         <View style={styles.settingItem}>
