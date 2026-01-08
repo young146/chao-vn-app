@@ -81,7 +81,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
           <Ionicons name="location-outline" size={14} color="#666" />
           <Text style={styles.itemLocation} numberOfLines={2}>
             {item.city} · {item.district}
-            {item.apartment ? `\n${item.apartment}` : ''}
+            {item.apartment && item.apartment !== "기타" ? `\n${item.apartment}` : ''}
           </Text>
         </View>
       </View>

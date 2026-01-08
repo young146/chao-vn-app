@@ -530,11 +530,10 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Text style={styles.sectionTitle}>거래 지역</Text>
             </View>
             <View style={styles.locationDetails}>
-              <Text style={styles.locationText}>📍 {item.city}</Text>
-              <Text style={styles.locationText}> {item.district}</Text>
-              {item.apartment && item.apartment !== "기타" && (
-                <Text style={styles.locationText}> {item.apartment}</Text>
-              )}
+              <Text style={styles.locationText}>
+                📍 {item.city} · {item.district}
+                {item.apartment && item.apartment !== "기타" ? ` · ${item.apartment}` : ''}
+              </Text>
             </View>
           </View>
 
@@ -917,8 +916,10 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   locationText: {
-    fontSize: 15,
-    color: "#333",
+    fontSize: 16,
+    color: "#222",
+    fontWeight: "600",
+    lineHeight: 24,
   },
   description: {
     fontSize: 15,

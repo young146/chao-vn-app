@@ -698,13 +698,14 @@ export default function AddItemScreen({ navigation, route }) {
         {apartments.length > 0 && (
           <>
             <Text style={styles.label}>아파트/지역 *</Text>
+            <Text style={styles.helperText}>💡 아파트명을 선택하면 같은 아파트 주민에게 알림이 갑니다!</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
                 style={styles.picker}
               >
-                <Picker.Item label="선택하세요" value="" />
+                <Picker.Item label="🏠 아파트를 선택하세요" value="" />
                 {apartments.map((apartment) => (
                   <Picker.Item
                     key={apartment}
@@ -861,6 +862,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 10,
     marginBottom: 5,
+  },
+  helperText: {
+    fontSize: 13,
+    color: "#FF6B35",
+    marginBottom: 8,
+    fontWeight: "500",
   },
   input: {
     borderWidth: 1,

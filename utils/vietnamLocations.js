@@ -1,29 +1,29 @@
 export const VIETNAM_LOCATIONS = {
   호치민: {
     districts: [
-      "District 1 (Quận 1)",
-      "District 2 (Quận 2 / Thủ Đức)",
-      "District 3 (Quận 3)",
-      "District 4 (Quận 4)",
-      "District 5 (Quận 5)",
-      "District 6 (Quận 6)",
-      "District 7 (Quận 7)",
-      "District 8 (Quận 8)",
-      "District 9 (Quận 9)",
-      "District 10 (Quận 10)",
-      "District 11 (Quận 11)",
-      "District 12 (Quận 12)",
-      "Bình Thạnh (빈탄)",
-      "Phú Nhuận (푸누언)",
-      "Tân Bình (떤빈)",
-      "Tân Phú (떤푸)",
-      "Gò Vấp (고밥)",
-      "Bình Tân (빈딴)",
-      "Thủ Đức (투득)",
-      "기타 지역",
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4",
+      "Q5",
+      "Q6",
+      "Q7",
+      "Q8",
+      "Q9",
+      "Q10",
+      "Q11",
+      "Q12",
+      "Bình Thạnh",
+      "Phú Nhuận",
+      "Tân Bình",
+      "Tân Phú",
+      "Gò Vấp",
+      "Bình Tân",
+      "Thủ Đức",
+      "기타",
     ],
     apartmentsByDistrict: {
-      "District 1 (Quận 1)": [
+      "Q1": [
         "Vinhomes Golden River",
         "Saigon Royal",
         "Grand Riverside",
@@ -33,7 +33,7 @@ export const VIETNAM_LOCATIONS = {
         "Central Garden",
         "기타",
       ],
-      "District 2 (Quận 2 / Thủ Đức)": [
+      "Q2": [
         "Vinhomes Central Park",
         "The Sun Avenue",
         "Masteri Thảo Điền",
@@ -52,20 +52,22 @@ export const VIETNAM_LOCATIONS = {
         "Palm Heights",
         "기타",
       ],
-      "District 3 (Quận 3)": [
+      "Q3": [
         "Vinhomes Bason",
         "Saigon Pavillon",
         "Botanic Tower",
         "Khánh Hội",
         "기타",
       ],
-      "District 4 (Quận 4)": [
+      "Q4": [
         "Rivergate Residence",
         "Saigon Pearl",
         "Sailing Tower",
         "기타",
       ],
-      "District 7 (Quận 7)": [
+      "Q5": ["기타"],
+      "Q6": ["기타"],
+      "Q7": [
         "Vinhomes Tan Cang",
         "Sunrise City",
         "Scenic Valley",
@@ -78,12 +80,16 @@ export const VIETNAM_LOCATIONS = {
         "Jamila Khang Điền",
         "기타",
       ],
-      "District 8 (Quận 8)": [
+      "Q8": [
         "Saigon South Residences",
         "Richmond City",
         "기타",
       ],
-      "Bình Thạnh (빈탄)": [
+      "Q9": ["기타"],
+      "Q10": ["기타"],
+      "Q11": ["기타"],
+      "Q12": ["기타"],
+      "Bình Thạnh": [
         "Vinhomes Grand Park",
         "The Gold View",
         "Masteri Millennium",
@@ -94,13 +100,13 @@ export const VIETNAM_LOCATIONS = {
         "Saigon Gateway",
         "기타",
       ],
-      "Tân Bình (떤빈)": [
+      "Tân Bình": [
         "Saigon Airport Plaza",
         "Hoa Sen",
         "Samland Riverside",
         "기타",
       ],
-      "Thủ Đức (투득)": [
+      "Thủ Đức": [
         "Vinhomes Grand Park",
         "Akari City",
         "Mizuki Park",
@@ -110,40 +116,44 @@ export const VIETNAM_LOCATIONS = {
         "Q7 Saigon Riverside",
         "기타",
       ],
-      "기타 지역": ["기타"],
+      "Phú Nhuận": ["기타"],
+      "Tân Phú": ["기타"],
+      "Gò Vấp": ["기타"],
+      "Bình Tân": ["기타"],
+      "기타": ["기타"],
     },
   },
   하노이: {
     districts: [
-      "Ba Đình (바딘)",
-      "Hoàn Kiếm (환끼엠)",
-      "Đống Đa (동다)",
-      "Cầu Giấy (까우저이)",
-      "Hai Bà Trưng (하이바쭝)",
-      "Hoàng Mai (황마이)",
-      "Thanh Xuân (탄쑤언)",
-      "Tây Hồ (따이호)",
-      "Long Biên (롱비엔)",
-      "Nam Từ Liêm (남뜨리엠)",
-      "Bắc Từ Liêm (박뜨리엠)",
-      "Hà Đông (하동)",
-      "기타 지역",
+      "Ba Đình",
+      "Hoàn Kiếm",
+      "Đống Đa",
+      "Cầu Giấy",
+      "Hai Bà Trưng",
+      "Hoàng Mai",
+      "Thanh Xuân",
+      "Tây Hồ",
+      "Long Biên",
+      "Nam Từ Liêm",
+      "Bắc Từ Liêm",
+      "Hà Đông",
+      "기타",
     ],
     apartmentsByDistrict: {
-      "Ba Đình (바딘)": [
+      "Ba Đình": [
         "Diplomatic Compound",
         "D'. Le Roi Soleil",
         "Lotte Center",
         "기타",
       ],
-      "Hoàn Kiếm (환끼엠)": ["Vincom Ba Trieu", "Indochina Plaza", "기타"],
-      "Đống Đa (동다)": [
+      "Hoàn Kiếm": ["Vincom Ba Trieu", "Indochina Plaza", "기타"],
+      "Đống Đa": [
         "The Garden",
         "170 De La Thanh",
         "Golden Palace",
         "기타",
       ],
-      "Cầu Giấy (까우저이)": [
+      "Cầu Giấy": [
         "Vinhomes Metropolis",
         "Starlake",
         "Sun Grand City",
@@ -152,63 +162,66 @@ export const VIETNAM_LOCATIONS = {
         "Ciputra Hanoi",
         "기타",
       ],
-      "Hai Bà Trưng (하이바쭝)": [
+      "Hai Bà Trưng": [
         "Times City",
         "Park Hill",
         "Vincom Center",
         "기타",
       ],
-      "Thanh Xuân (탄쑤언)": [
+      "Thanh Xuân": [
         "Royal City",
         "The Manor Central Park",
         "Park View Residence",
         "N01T1 Ngoại Giao Đoàn",
         "기타",
       ],
-      "Tây Hồ (따이호)": [
+      "Tây Hồ": [
         "Vinhomes Riverside",
         "Watermark",
         "Tay Ho Residence",
         "Xuan Dieu Street Area",
         "기타",
       ],
-      "Nam Từ Liêm (남뜨리엠)": [
+      "Nam Từ Liêm": [
         "Vinhomes Smart City",
         "Ecopark",
         "The K Park",
         "Home City",
         "기타",
       ],
-      "Long Biên (롱비엔)": ["Vinhomes Ocean Park", "Sài Đồng", "기타"],
-      "기타 지역": ["기타"],
+      "Long Biên": ["Vinhomes Ocean Park", "Sài Đồng", "기타"],
+      "Hoàng Mai": ["기타"],
+      "Bắc Từ Liêm": ["기타"],
+      "Hà Đông": ["기타"],
+      "기타": ["기타"],
     },
   },
   다낭: {
     districts: [
-      "Hải Châu (하이쩌우)",
-      "Thanh Khê (탄케)",
-      "Sơn Trà (손짜)",
-      "Ngũ Hành Sơn (응우항선)",
-      "Liên Chiểu (리엔찌에우)",
-      "Cẩm Lệ (깜레)",
-      "Hòa Vang (화방)",
-      "기타 지역",
+      "Hải Châu",
+      "Thanh Khê",
+      "Sơn Trà",
+      "Ngũ Hành Sơn",
+      "Liên Chiểu",
+      "Cẩm Lệ",
+      "Hòa Vang",
+      "기타",
     ],
     apartmentsByDistrict: {
-      "Hải Châu (하이쩌우)": [
+      "Hải Châu": [
         "Azura Da Nang",
         "The Peak",
         "Vincom Center",
         "Indochina Riverside",
         "기타",
       ],
-      "Thanh Khê (탄케)": [
+      "Thanh Khê": [
         "Monarchy Riverside",
         "Luxury Apartment",
         "Four Points by Sheraton",
         "기타",
       ],
-      "Sơn Trà (손짜)": [
+      "Sơn Trà": [
         "Vinhomes Ocean Park",
         "Đà Nẵng Golden Bay",
         "Naman Residence",
@@ -216,55 +229,62 @@ export const VIETNAM_LOCATIONS = {
         "Olalani Resort & Condotel",
         "기타",
       ],
-      "Ngũ Hành Sơn (응우항선)": [
+      "Ngũ Hành Sơn": [
         "Furama Resort",
         "Ariyana Smart Condotel",
         "Non Nuoc Beach Resort",
         "기타",
       ],
-      "기타 지역": ["기타"],
+      "Liên Chiểu": ["기타"],
+      "Cẩm Lệ": ["기타"],
+      "Hòa Vang": ["기타"],
+      "기타": ["기타"],
     },
   },
   냐짱: {
     districts: [
-      "Vĩnh Hải (빈하이)",
-      "Vĩnh Phước (빈푹)",
-      "Phước Long (푹롱)",
-      "Lộc Thọ (록토)",
-      "Vĩnh Nguyên (빈응우옌)",
-      "Phước Tân (푹딴)",
-      "Phước Hòa (푹화)",
-      "Vạn Thạnh (반탄)",
-      "기타 지역",
+      "Vĩnh Hải",
+      "Vĩnh Phước",
+      "Phước Long",
+      "Lộc Thọ",
+      "Vĩnh Nguyên",
+      "Phước Tân",
+      "Phước Hòa",
+      "Vạn Thạnh",
+      "기타",
     ],
     apartmentsByDistrict: {
-      "Vĩnh Hải (빈하이)": [
+      "Vĩnh Hải": [
         "Vinhomes Marina",
         "Diamond Bay",
         "Condotel Nha Trang",
         "Charm Resort",
         "기타",
       ],
-      "Vĩnh Phước (빈푹)": [
+      "Vĩnh Phước": [
         "Muong Thanh Viễn Triều",
         "Golden Holiday",
         "Gold Coast",
         "기타",
       ],
-      "Phước Long (푹롱)": [
+      "Phước Long": [
         "Grand Torana",
         "The Anam",
         "Sheraton Nha Trang",
         "기타",
       ],
-      "Lộc Thọ (록토)": ["Ana Marina", "Nha Trang Pearl", "기타"],
-      "기타 지역": ["기타"],
+      "Lộc Thọ": ["Ana Marina", "Nha Trang Pearl", "기타"],
+      "Vĩnh Nguyên": ["기타"],
+      "Phước Tân": ["기타"],
+      "Phước Hòa": ["기타"],
+      "Vạn Thạnh": ["기타"],
+      "기타": ["기타"],
     },
   },
   기타: {
-    districts: ["기타 지역"],
+    districts: ["기타"],
     apartmentsByDistrict: {
-      "기타 지역": ["기타"],
+      "기타": ["기타"],
     },
   },
 };
