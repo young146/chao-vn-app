@@ -136,43 +136,57 @@ const MagazineCard = ({ item, onPress, type }) => {
     console.log('Date parse error:', e);
   }
 
-  // 카테고리와 출처 추출
+  // 카테고리와 출처 추출 (WordPress meta 필드 사용)
   const getCategoryAndSource = () => {
-    // 1. WordPress 카테고리 가져오기
-    let category = '';
-    const terms = item._embedded?.['wp:term'];
-    if (terms && terms[0] && terms[0].length > 0) {
-      // '뉴스'가 아닌 더 구체적인 카테고리 찾기
-      const specificCategory = terms[0].find(t => t.name !== '뉴스' && t.name !== 'News');
-      category = specificCategory?.name || terms[0][0]?.name || '';
-    }
-    if (!category && item.category_name) {
-      category = item.category_name;
-    }
+    // 영어 카테고리 → 한글 변환 (12개 카테고리)
+    const categoryMap = {
+      'Society': '사회',
+      'Economy': '경제',
+      'Culture': '문화',
+      'Politics': '정치',
+      'International': '국제',
+      'Korea-Vietnam': '한-베',
+      'Community': '교민',
+      'Travel': '여행',
+      'Health': '건강',
+      'Food': '음식',
+      'Other': '기타',
+      // 추가 카테고리
+      'Sports': '스포츠',
+      'Technology': '기술',
+      'Education': '교육',
+      'Entertainment': '연예',
+      'Business': '비즈니스',
+      'World': '국제',
+      'Life': '생활',
+      'Pet': '펫',
+      'Weather': '날씨',
+      'Opinion': '오피니언',
+      'Real Estate': '부동산',
+      'Lifestyle': '라이프',
+      'Wellness': '웰니스',
+      'Recipe': '레시피',
+    };
     
-    // 2. 출처 추출 (본문에서 VnExpress, Thanh Nien 등 찾기)
-    let source = '';
-    const content = item.content?.rendered || item.excerpt?.rendered || '';
-    const sourcePatterns = [
-      /VnExpress/i, /Thanh Niên/i, /Tuổi Trẻ/i, /Zing/i, 
-      /VietnamNet/i, /Dân Trí/i, /Báo Mới/i, /VOV/i,
-      /Người Lao Động/i, /Pháp Luật/i, /Công An/i
-    ];
-    for (const pattern of sourcePatterns) {
-      const match = content.match(pattern);
-      if (match) {
-        source = match[0];
-        break;
-      }
-    }
+    // 1. meta 필드에서 카테고리와 출처 가져오기
+    const newsCategory = item.meta?.news_category || '';
+    const newsSource = item.meta?.news_source || '';
     
-    // 3. 결과 조합
-    if (category && source) {
-      return `${category} / ${source}`;
+    // 카테고리 한글 변환
+    const category = categoryMap[newsCategory] || newsCategory;
+    
+    // 2. 결과 조합
+    if (category && newsSource) {
+      return `${category} / ${newsSource}`;
     } else if (category) {
       return category;
-    } else if (source) {
-      return source;
+    } else if (newsSource) {
+      return newsSource;
+    }
+    
+    // 3. meta가 없으면 기존 방식 시도
+    if (item.category_name) {
+      return item.category_name;
     }
     
     // 기본값
