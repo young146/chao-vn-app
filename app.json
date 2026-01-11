@@ -20,6 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
       "buildNumber": "11",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "ITSAppUsesNonExemptEncryption": false,
@@ -60,6 +61,8 @@
       }
     },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/remote-config",
       "expo-font",
       "expo-asset",
       [
