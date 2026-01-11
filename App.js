@@ -15,7 +15,7 @@ import {
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
@@ -171,6 +171,7 @@ export default function App() {
   }, []);
 
   return (
+    <SafeAreaProvider>
     <AuthProvider>
       {!isReady ? (
         <View style={styles.loadingOverlay}>
@@ -224,6 +225,7 @@ export default function App() {
         </>
       )}
     </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
