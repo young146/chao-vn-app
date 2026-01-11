@@ -12,6 +12,7 @@ import RenderHtml from 'react-native-render-html';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import CommentsSection from '../components/commentsSection';
+import AdBanner, { InlineAdBanner } from '../components/AdBanner';
 
 export default function PostDetailScreen({ route }) {
   const { post } = route.params;
@@ -95,6 +96,9 @@ export default function PostDetailScreen({ route }) {
             enableExperimentalMarginCollapsing={true}
           />
         </View>
+
+        {/* 🔥 기사 본문 아래 광고 */}
+        <InlineAdBanner style={{ marginBottom: 20 }} />
 
         <CommentsSection articleId={post.id} />
       </ScrollView>

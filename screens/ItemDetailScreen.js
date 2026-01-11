@@ -30,6 +30,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import AdBanner from "../components/AdBanner";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -496,6 +497,9 @@ export default function ItemDetailScreen({ route, navigation }) {
             </View>
           )}
         </View>
+
+        {/* 🔥 물품 상세 광고 */}
+        <AdBanner style={{ marginHorizontal: 16, marginVertical: 12, borderRadius: 8 }} />
 
         {/* 물품 정보 */}
         <View style={styles.contentContainer}>

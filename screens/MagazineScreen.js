@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -12,16 +12,24 @@ import {
   TextInput,
   Keyboard,
   Platform,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL } from '../services/wordpressApi';
+} from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import {
+  wordpressApi,
+  MAGAZINE_BASE_URL,
+  BOARD_BASE_URL,
+} from "../services/wordpressApi";
+import AdBanner, {
+  SectionAdBanner,
+  InlineAdBanner,
+} from "../components/AdBanner";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const SearchHeader = ({ onSearch }) => {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
 
   const handleSubmit = () => {
     onSearch(text);
@@ -31,7 +39,12 @@ const SearchHeader = ({ onSearch }) => {
   return (
     <View style={styles.searchHeaderContainer}>
       <View style={styles.searchBarWrapper}>
-        <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
+        <Ionicons
+          name="search-outline"
+          size={20}
+          color="#999"
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchTextInput}
           placeholder="궁금한 소식을 검색해보세요"
@@ -42,7 +55,7 @@ const SearchHeader = ({ onSearch }) => {
           returnKeyType="search"
         />
         {text.length > 0 && (
-          <TouchableOpacity onPress={() => setText('')}>
+          <TouchableOpacity onPress={() => setText("")}>
             <Ionicons name="close-circle" size={20} color="#ccc" />
           </TouchableOpacity>
         )}
@@ -81,16 +94,19 @@ const HomeSlider = ({ posts, onPress }) => {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => {
-          const newIndex = Math.round(e.nativeEvent.contentOffset.x / (width - 32));
+          const newIndex = Math.round(
+            e.nativeEvent.contentOffset.x / (width - 32)
+          );
           setActiveIndex(newIndex);
         }}
         keyExtractor={(item) => `slide-${item.id}`}
         renderItem={({ item }) => {
-          const featuredImage = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+          const featuredImage =
+            item._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
           return (
-            <TouchableOpacity 
-              activeOpacity={0.9} 
-              style={styles.slide} 
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.slide}
               onPress={() => onPress(item)}
             >
               <Image
@@ -100,7 +116,9 @@ const HomeSlider = ({ posts, onPress }) => {
               />
               <View style={styles.slideOverlay}>
                 <Text style={styles.slideTitle} numberOfLines={2}>
-                  {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
+                  {item.title.rendered.replace(/&#[0-9]+;/g, (match) =>
+                    String.fromCharCode(match.match(/[0-9]+/))
+                  )}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -109,9 +127,12 @@ const HomeSlider = ({ posts, onPress }) => {
       />
       <View style={styles.pagination}>
         {posts.map((_, index) => (
-          <View 
-            key={index} 
-            style={[styles.paginationDot, activeIndex === index && styles.paginationDotActive]} 
+          <View
+            key={index}
+            style={[
+              styles.paginationDot,
+              activeIndex === index && styles.paginationDotActive,
+            ]}
           />
         ))}
       </View>
@@ -121,10 +142,10 @@ const HomeSlider = ({ posts, onPress }) => {
 
 const MagazineCard = ({ item, onPress, type }) => {
   // WordPress API에서 특성 이미지 가져오기 (_embed: 1 필요)
-  const featuredImage = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-  
+  const featuredImage = item._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
-  let dateStr = '날짜 정보 없음';
+  let dateStr = "날짜 정보 없음";
   try {
     if (item.date) {
       const dateObj = new Date(item.date);
@@ -133,48 +154,48 @@ const MagazineCard = ({ item, onPress, type }) => {
       }
     }
   } catch (e) {
-    console.log('Date parse error:', e);
+    console.log("Date parse error:", e);
   }
 
   // 카테고리와 출처 추출 (WordPress meta 필드 사용)
   const getCategoryAndSource = () => {
     // 영어 카테고리 → 한글 변환 (12개 카테고리)
     const categoryMap = {
-      'Society': '사회',
-      'Economy': '경제',
-      'Culture': '문화',
-      'Politics': '정치',
-      'International': '국제',
-      'Korea-Vietnam': '한-베',
-      'Community': '교민',
-      'Travel': '여행',
-      'Health': '건강',
-      'Food': '음식',
-      'Other': '기타',
+      Society: "사회",
+      Economy: "경제",
+      Culture: "문화",
+      Politics: "정치",
+      International: "국제",
+      "Korea-Vietnam": "한-베",
+      Community: "교민",
+      Travel: "여행",
+      Health: "건강",
+      Food: "음식",
+      Other: "기타",
       // 추가 카테고리
-      'Sports': '스포츠',
-      'Technology': '기술',
-      'Education': '교육',
-      'Entertainment': '연예',
-      'Business': '비즈니스',
-      'World': '국제',
-      'Life': '생활',
-      'Pet': '펫',
-      'Weather': '날씨',
-      'Opinion': '오피니언',
-      'Real Estate': '부동산',
-      'Lifestyle': '라이프',
-      'Wellness': '웰니스',
-      'Recipe': '레시피',
+      Sports: "스포츠",
+      Technology: "기술",
+      Education: "교육",
+      Entertainment: "연예",
+      Business: "비즈니스",
+      World: "국제",
+      Life: "생활",
+      Pet: "펫",
+      Weather: "날씨",
+      Opinion: "오피니언",
+      "Real Estate": "부동산",
+      Lifestyle: "라이프",
+      Wellness: "웰니스",
+      Recipe: "레시피",
     };
-    
+
     // 1. meta 필드에서 카테고리와 출처 가져오기
-    const newsCategory = item.meta?.news_category || '';
-    const newsSource = item.meta?.news_source || '';
-    
+    const newsCategory = item.meta?.news_category || "";
+    const newsSource = item.meta?.news_source || "";
+
     // 카테고리 한글 변환
     const category = categoryMap[newsCategory] || newsCategory;
-    
+
     // 2. 결과 조합
     if (category && newsSource) {
       return `${category} / ${newsSource}`;
@@ -183,17 +204,20 @@ const MagazineCard = ({ item, onPress, type }) => {
     } else if (newsSource) {
       return newsSource;
     }
-    
+
     // 3. meta가 없으면 기존 방식 시도
     if (item.category_name) {
       return item.category_name;
     }
-    
+
     // 기본값
-    switch(type) {
-      case 'news': return '뉴스';
-      case 'board': return '게시판';
-      default: return '매거진';
+    switch (type) {
+      case "news":
+        return "뉴스";
+      case "board":
+        return "게시판";
+      default:
+        return "매거진";
     }
   };
 
@@ -211,7 +235,7 @@ const MagazineCard = ({ item, onPress, type }) => {
         ) : (
           <View style={styles.imagePlaceholder}>
             <Image
-              source={require('../assets/icon.png')}
+              source={require("../assets/icon.png")}
               style={styles.placeholderLogo}
               contentFit="contain"
             />
@@ -220,7 +244,9 @@ const MagazineCard = ({ item, onPress, type }) => {
       </View>
       <View style={styles.contentContainer}>
         <Text style={styles.title} numberOfLines={2}>
-          {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
+          {item.title.rendered.replace(/&#[0-9]+;/g, (match) =>
+            String.fromCharCode(match.match(/[0-9]+/))
+          )}
         </Text>
         <View style={styles.footer}>
           <Text style={styles.date}>{dateStr}</Text>
@@ -234,7 +260,7 @@ const MagazineCard = ({ item, onPress, type }) => {
 };
 
 export default function MagazineScreen({ navigation, route }) {
-  const { type = 'magazine', categoryId } = route.params || {};
+  const { type = "magazine", categoryId } = route.params || {};
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
@@ -243,22 +269,27 @@ export default function MagazineScreen({ navigation, route }) {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
   // 날짜 선택 관련 state
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
 
-  const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
+  const fetchPosts = async (
+    pageNum = 1,
+    isRefresh = false,
+    query = searchQuery,
+    date = null
+  ) => {
     try {
       if (pageNum === 1) {
         if (!isRefresh) setLoading(true);
         // 홈 화면이고 검색어가 없을 때만 슬라이더 및 섹션 데이터 가져옴
-        if (type === 'home' && !query) {
+        if (type === "home" && !query) {
           const [slideshowPosts, sectionsData] = await Promise.all([
             wordpressApi.getSlideshowPosts(),
-            wordpressApi.getHomeSections()
+            wordpressApi.getHomeSections(),
           ]);
           setSlides(slideshowPosts);
           setHomeSections(sectionsData);
@@ -266,33 +297,40 @@ export default function MagazineScreen({ navigation, route }) {
           return;
         }
       } else {
-        if (type === 'home' && !query) return;
+        if (type === "home" && !query) return;
         setLoadingMore(true);
       }
 
       let newPosts = [];
       if (query) {
         newPosts = await wordpressApi.searchPosts(query, pageNum);
-      } else if (type === 'board') {
+      } else if (type === "board") {
         newPosts = await wordpressApi.getBoardPosts(pageNum);
-      } else if (categoryId || type === 'news') {
+      } else if (categoryId || type === "news") {
         // 뉴스 탭: 날짜 필터가 없으면 오늘 날짜로 자동 필터링
         let filterDate = date;
-        if (type === 'news' && !date && !isFilteredByDate) {
+        if (type === "news" && !date && !isFilteredByDate) {
           filterDate = new Date(); // 오늘 날짜
         }
-        const dateStr = filterDate ? filterDate.toISOString().split('T')[0] : null;
-        newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, dateStr);
+        const dateStr = filterDate
+          ? filterDate.toISOString().split("T")[0]
+          : null;
+        newPosts = await wordpressApi.getPostsByCategory(
+          categoryId,
+          pageNum,
+          10,
+          dateStr
+        );
       } else {
         newPosts = await wordpressApi.getMagazinePosts(pageNum);
       }
-      
+
       if (newPosts.length < 10) {
         setHasMore(false);
       }
-      
+
       // 뉴스 탭: 오늘 날짜 뉴스가 더 이상 없으면 종료
-      if (type === 'news' && newPosts.length === 0 && pageNum === 1) {
+      if (type === "news" && newPosts.length === 0 && pageNum === 1) {
         setHasMore(false);
       }
 
@@ -300,14 +338,14 @@ export default function MagazineScreen({ navigation, route }) {
         setPosts(newPosts);
       } else {
         // 중복 제거: 기존 posts에 없는 항목만 추가
-        setPosts(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const uniqueNewPosts = newPosts.filter((p) => !existingIds.has(p.id));
           return [...prev, ...uniqueNewPosts];
         });
       }
     } catch (error) {
-      console.error('Fetch posts error:', error);
+      console.error("Fetch posts error:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -339,10 +377,10 @@ export default function MagazineScreen({ navigation, route }) {
     if (date) {
       setSelectedDate(date);
       setIsFilteredByDate(true);
-      setSearchQuery(''); // 날짜 선택 시 검색어 해제
+      setSearchQuery(""); // 날짜 선택 시 검색어 해제
       setPage(1);
       setHasMore(true);
-      fetchPosts(1, false, '', date);
+      fetchPosts(1, false, "", date);
     }
   };
 
@@ -363,9 +401,9 @@ export default function MagazineScreen({ navigation, route }) {
   };
 
   const handlePostPress = (post) => {
-    navigation.navigate('PostDetail', { 
-      post, 
-      baseUrl: type === 'board' ? BOARD_BASE_URL : MAGAZINE_BASE_URL 
+    navigation.navigate("PostDetail", {
+      post,
+      baseUrl: type === "board" ? BOARD_BASE_URL : MAGAZINE_BASE_URL,
     });
   };
 
@@ -380,10 +418,21 @@ export default function MagazineScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <SearchHeader onSearch={handleSearch} />
-      
+
+      {/* 🔥 모든 화면 메인 헤더 광고 */}
+      <AdBanner style={styles.headerAd} />
+
       <FlatList
-        data={type === 'home' && !searchQuery ? [] : posts}
-        renderItem={({ item }) => <MagazineCard item={item} onPress={handlePostPress} type={type} />}
+        data={type === "home" && !searchQuery ? [] : posts}
+        renderItem={({ item, index }) => (
+          <View>
+            <MagazineCard item={item} onPress={handlePostPress} type={type} />
+            {/* 뉴스/게시판: 4개 기사마다 광고 삽입 (4, 8, 12...) */}
+            {(type === "news" || type === "board") && (index + 1) % 4 === 0 && (
+              <InlineAdBanner key={`inline-ad-${index}`} />
+            )}
+          </View>
+        )}
         keyExtractor={(item, index) => {
           // 고유 키 생성: id가 있으면 사용, 없으면 index와 link 조합
           if (item.id) {
@@ -398,19 +447,36 @@ export default function MagazineScreen({ navigation, route }) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            {type === 'news' && (
+            {type === "news" && (
               <View style={styles.dateFilterContainer}>
-                <TouchableOpacity 
-                  style={[styles.dateButton, isFilteredByDate && styles.dateButtonActive]} 
+                <TouchableOpacity
+                  style={[
+                    styles.dateButton,
+                    isFilteredByDate && styles.dateButtonActive,
+                  ]}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Ionicons name="calendar-outline" size={20} color={isFilteredByDate ? "#fff" : "#FF6B35"} />
-                  <Text style={[styles.dateButtonText, isFilteredByDate && styles.dateButtonTextActive]}>
-                    {isFilteredByDate ? selectedDate.toLocaleDateString() : '날짜별 뉴스 보기'}
+                  <Ionicons
+                    name="calendar-outline"
+                    size={20}
+                    color={isFilteredByDate ? "#fff" : "#FF6B35"}
+                  />
+                  <Text
+                    style={[
+                      styles.dateButtonText,
+                      isFilteredByDate && styles.dateButtonTextActive,
+                    ]}
+                  >
+                    {isFilteredByDate
+                      ? selectedDate.toLocaleDateString()
+                      : "날짜별 뉴스 보기"}
                   </Text>
                 </TouchableOpacity>
                 {isFilteredByDate && (
-                  <TouchableOpacity style={styles.resetButton} onPress={resetDateFilter}>
+                  <TouchableOpacity
+                    style={styles.resetButton}
+                    onPress={resetDateFilter}
+                  >
                     <Ionicons name="refresh-circle" size={24} color="#999" />
                   </TouchableOpacity>
                 )}
@@ -426,49 +492,80 @@ export default function MagazineScreen({ navigation, route }) {
               </View>
             )}
 
-            {type === 'home' && !searchQuery && (
+            {type === "home" && !searchQuery && (
               <View>
                 {slides.length > 0 && (
                   <HomeSlider posts={slides} onPress={handlePostPress} />
                 )}
-                
-                {homeSections.map((section) => (
-                  <View key={section.id} style={styles.homeSection}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>{section.name}</Text>
-                      <TouchableOpacity onPress={() => navigation.navigate(type === 'home' ? 'HomeStack' : route.name, { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
-                        <Text style={styles.seeMore}>더보기 ></Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.gridContainer}>
-                      {[...Array(4)].map((_, index) => {
-                        const post = section.posts[index];
-                        return (
-                          <TouchableOpacity
-                            key={`section-${section.id}-${index}`}
-                            style={styles.gridCard}
-                            onPress={() => post && handlePostPress(post)}
-                            activeOpacity={post ? 0.7 : 1}
-                          >
-                            {post ? (
-                              <>
-                                <Image
-                                  source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url }}
-                                  style={styles.gridCardImage}
-                                  contentFit="cover"
-                                />
-                                <Text style={styles.gridCardTitle} numberOfLines={2}>
-                                  {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
-                                </Text>
-                              </>
-                            ) : (
-                              <View style={styles.emptyCard}>
-                                <View style={styles.emptyCardPlaceholder} />
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
+
+                {homeSections.map((section, sectionIndex) => (
+                  <View key={section.id}>
+                    {/* 🔥 각 섹션 위에 광고 배치 */}
+                    <SectionAdBanner key={`ad-section-${sectionIndex}`} />
+
+                    <View style={styles.homeSection}>
+                      <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>{section.name}</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            navigation.navigate(
+                              type === "home" ? "HomeStack" : route.name,
+                              {
+                                screen: "홈메인",
+                                params: {
+                                  categoryId: section.id,
+                                  type: "category",
+                                },
+                              }
+                            )
+                          }
+                        >
+                          <Text style={styles.seeMore}>더보기 &gt;</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.gridContainer}>
+                        {[...Array(4)].map((_, index) => {
+                          const post = section.posts[index];
+                          return (
+                            <TouchableOpacity
+                              key={`section-${section.id}-${index}`}
+                              style={styles.gridCard}
+                              onPress={() => post && handlePostPress(post)}
+                              activeOpacity={post ? 0.7 : 1}
+                            >
+                              {post ? (
+                                <>
+                                  <Image
+                                    source={{
+                                      uri: post._embedded?.[
+                                        "wp:featuredmedia"
+                                      ]?.[0]?.source_url,
+                                    }}
+                                    style={styles.gridCardImage}
+                                    contentFit="cover"
+                                  />
+                                  <Text
+                                    style={styles.gridCardTitle}
+                                    numberOfLines={2}
+                                  >
+                                    {post.title.rendered.replace(
+                                      /&#[0-9]+;/g,
+                                      (match) =>
+                                        String.fromCharCode(
+                                          match.match(/[0-9]+/)
+                                        )
+                                    )}
+                                  </Text>
+                                </>
+                              ) : (
+                                <View style={styles.emptyCard}>
+                                  <View style={styles.emptyCardPlaceholder} />
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
                     </View>
                   </View>
                 ))}
@@ -476,22 +573,33 @@ export default function MagazineScreen({ navigation, route }) {
             )}
             {searchQuery.length > 0 && (
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>'{searchQuery}' 검색 결과</Text>
+                <Text style={styles.sectionTitle}>
+                  '{searchQuery}' 검색 결과
+                </Text>
               </View>
             )}
           </View>
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#FF6B35"]}
+          />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => {
           if (loadingMore) {
-            return <ActivityIndicator style={{ marginVertical: 20 }} color="#FF6B35" />;
+            return (
+              <ActivityIndicator
+                style={{ marginVertical: 20 }}
+                color="#FF6B35"
+              />
+            );
           }
           // 뉴스 탭에서 더 이상 뉴스가 없을 때 마지막 멘트 표시
-          if (type === 'news' && !hasMore && posts.length > 0) {
+          if (type === "news" && !hasMore && posts.length > 0) {
             return (
               <View style={styles.endMessageContainer}>
                 <Text style={styles.endMessageText}>
@@ -506,36 +614,44 @@ export default function MagazineScreen({ navigation, route }) {
           return null;
         }}
         ListEmptyComponent={
-          !loading && (
-            type === 'home' && !searchQuery ? (
-              <View style={styles.centerContainer}>
-                <Text style={styles.emptyText}>더 많은 기사를 보고 싶으시면</Text>
-                <Text style={styles.emptySubtext}>검색창에 키워드를 넣어서 찾아보세요</Text>
-              </View>
-            ) : type !== 'home' ? (
-              <View style={styles.centerContainer}>
-                {searchQuery.length > 0 ? (
-                  <>
-                    <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
-                    <Text style={styles.emptySubtext}>다른 키워드로 검색해보세요</Text>
-                  </>
-                ) : (
-                  <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
-                )}
-              </View>
-            ) : null
-          )
+          !loading &&
+          (type === "home" && !searchQuery ? (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>더 많은 기사를 보고 싶으시면</Text>
+              <Text style={styles.emptySubtext}>
+                검색창에 키워드를 넣어서 찾아보세요
+              </Text>
+            </View>
+          ) : type !== "home" ? (
+            <View style={styles.centerContainer}>
+              {searchQuery.length > 0 ? (
+                <>
+                  <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
+                  <Text style={styles.emptySubtext}>
+                    다른 키워드로 검색해보세요
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
+              )}
+            </View>
+          ) : null)
         }
       />
     </SafeAreaView>
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
+  },
+  headerAd: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+    overflow: "hidden",
   },
   listContent: {
     padding: 16,
@@ -544,23 +660,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     zIndex: 10,
   },
   searchBarWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 25,
     paddingHorizontal: 15,
     height: 50,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   searchIcon: {
     marginRight: 10,
@@ -568,40 +684,40 @@ const styles = StyleSheet.create({
   searchTextInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   dateFilterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
     paddingHorizontal: 4,
   },
   dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: "#FF6B35",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
   dateButtonActive: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: "#FF6B35",
   },
   dateButtonText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#FF6B35',
-    fontWeight: '600',
+    color: "#FF6B35",
+    fontWeight: "600",
   },
   dateButtonTextActive: {
-    color: '#fff',
+    color: "#fff",
   },
   resetButton: {
     marginLeft: 10,
@@ -610,103 +726,103 @@ const styles = StyleSheet.create({
     width: width - 32,
     height: 220,
     borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#eee',
-    position: 'relative',
+    overflow: "hidden",
+    backgroundColor: "#eee",
+    position: "relative",
   },
   slide: {
     width: width - 32,
     height: 220,
   },
   slideImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   slideOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: "rgba(0,0,0,0.4)",
     padding: 15,
   },
   slideTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   pagination: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
-    flexDirection: 'row',
-    alignSelf: 'center',
+    flexDirection: "row",
+    alignSelf: "center",
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: "rgba(255,255,255,0.5)",
     marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     width: 20,
   },
   sectionHeader: {
     marginTop: 24,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B35',
+    borderLeftColor: "#FF6B35",
     paddingLeft: 10,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   seeMore: {
     fontSize: 14,
-    color: '#999',
+    color: "#999",
   },
   homeSection: {
     marginBottom: 30,
   },
   gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginTop: 12,
   },
   gridCard: {
-    width: '48%',
+    width: "48%",
     marginBottom: 16,
   },
   gridCardImage: {
-    width: '100%',
+    width: "100%",
     height: 120,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
   },
   gridCardTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     lineHeight: 18,
     minHeight: 36,
   },
   emptyCard: {
-    width: '100%',
+    width: "100%",
     height: 120,
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyCardPlaceholder: {
-    width: '80%',
-    height: '60%',
-    backgroundColor: '#e0e0e0',
+    width: "80%",
+    height: "60%",
+    backgroundColor: "#e0e0e0",
     borderRadius: 4,
     opacity: 0.5,
   },
@@ -720,39 +836,39 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
   },
   sectionCardTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     lineHeight: 20,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     marginBottom: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   imageContainer: {
-    width: '100%',
+    width: "100%",
     height: 180,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   imagePlaceholder: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff', // 기본 로고가 잘 보이도록 흰색 배경
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff", // 기본 로고가 잘 보이도록 흰색 배경
   },
   placeholderLogo: {
     width: 100,
@@ -764,69 +880,68 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: "700",
+    color: "#333",
     lineHeight: 24,
     marginBottom: 12,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   date: {
     fontSize: 13,
-    color: '#999',
+    color: "#999",
   },
   categoryBadge: {
-    backgroundColor: '#FFF0E6',
+    backgroundColor: "#FFF0E6",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   categoryText: {
     fontSize: 11,
-    color: '#FF6B35',
-    fontWeight: '600',
+    color: "#FF6B35",
+    fontWeight: "600",
   },
   endMessageContainer: {
     padding: 24,
-    alignItems: 'center',
-    backgroundColor: '#FFF8F5',
+    alignItems: "center",
+    backgroundColor: "#FFF8F5",
     marginHorizontal: 16,
     marginVertical: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFE0D0',
+    borderColor: "#FFE0D0",
   },
   endMessageText: {
     fontSize: 15,
-    color: '#FF6B35',
-    fontWeight: '700',
-    textAlign: 'center',
+    color: "#FF6B35",
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 8,
   },
   endMessageSubText: {
     fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
+    color: "#999",
+    textAlign: "center",
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   emptyText: {
-    color: '#999',
+    color: "#999",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 8,
   },
   emptySubtext: {
-    color: '#ccc',
+    color: "#ccc",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
-

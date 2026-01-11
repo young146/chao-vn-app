@@ -46,30 +46,60 @@ export default function MoreScreen({ navigation }) {
     }
   }, [user]);
 
-  // ✅ 업데이트 정보 확인
+  // ✅ 업데이트 정보 확인 (개선된 에러 핸들링)
   const checkUpdateInfo = async () => {
+    // 개발 모드에서는 업데이트 체크 불가
+    if (__DEV__) {
+      Alert.alert("알림", "개발 모드에서는 업데이트 확인이 불가능합니다.");
+      return;
+    }
+
+    // Updates가 활성화되지 않은 경우
+    if (!Updates.isEnabled) {
+      Alert.alert("알림", "이 빌드에서는 OTA 업데이트가 비활성화되어 있습니다.");
+      return;
+    }
+
     try {
       setCheckingUpdate(true);
       const update = await Updates.checkForUpdateAsync();
       
       if (update.isAvailable) {
-        const manifest = await Updates.fetchUpdateAsync();
-        setUpdateInfo({
-          isAvailable: true,
-          manifest: manifest.manifest,
-          message: "새 업데이트가 있습니다! 앱을 재시작하면 적용됩니다.",
-        });
-        Alert.alert(
-          "업데이트 확인",
-          "새 업데이트가 있습니다.\n앱을 재시작하면 적용됩니다.",
-          [
-            { text: "나중에", style: "cancel" },
-            {
-              text: "지금 재시작",
-              onPress: () => Updates.reloadAsync(),
-            },
-          ]
-        );
+        try {
+          const manifest = await Updates.fetchUpdateAsync();
+          setUpdateInfo({
+            isAvailable: true,
+            manifest: manifest.manifest,
+            message: "새 업데이트가 있습니다! 앱을 재시작하면 적용됩니다.",
+          });
+          Alert.alert(
+            "업데이트 확인",
+            "새 업데이트가 있습니다.\n앱을 재시작하면 적용됩니다.",
+            [
+              { text: "나중에", style: "cancel" },
+              {
+                text: "지금 재시작",
+                onPress: async () => {
+                  try {
+                    await Updates.reloadAsync();
+                  } catch (reloadError) {
+                    console.error("앱 재시작 실패:", reloadError);
+                    Alert.alert(
+                      "재시작 실패",
+                      "앱 재시작에 실패했습니다. 앱을 수동으로 종료 후 다시 시작해주세요."
+                    );
+                  }
+                },
+              },
+            ]
+          );
+        } catch (fetchError) {
+          console.error("업데이트 다운로드 실패:", fetchError);
+          Alert.alert(
+            "다운로드 실패",
+            "업데이트 다운로드에 실패했습니다.\n네트워크 연결을 확인해주세요."
+          );
+        }
       } else {
         setUpdateInfo({
           isAvailable: false,
@@ -79,7 +109,11 @@ export default function MoreScreen({ navigation }) {
       }
     } catch (error) {
       console.error("업데이트 확인 실패:", error);
-      Alert.alert("오류", "업데이트 확인에 실패했습니다.");
+      // 에러 메시지를 더 구체적으로 표시
+      const errorMessage = error.message?.includes("fingerprint") 
+        ? "앱 버전이 일치하지 않습니다.\n앱 스토어에서 최신 버전을 다운로드해주세요."
+        : "업데이트 확인에 실패했습니다.\n네트워크 연결을 확인해주세요.";
+      Alert.alert("오류", errorMessage);
     } finally {
       setCheckingUpdate(false);
     }

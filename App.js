@@ -15,6 +15,7 @@ import {
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
@@ -106,20 +107,25 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // 0. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
+        // 0. 프로덕션 빌드에서만 업데이트 체크 (백그라운드, 논블로킹)
+        // 앱 시작 시에는 업데이트 체크를 블로킹하지 않고 백그라운드에서 처리
         if (!__DEV__ && Updates.isEnabled) {
-          try {
-            const update = await Updates.checkForUpdateAsync();
-            if (update.isAvailable) {
-              console.log("📦 새 업데이트 발견, 다운로드 중...");
-              await Updates.fetchUpdateAsync();
-              console.log("✅ 업데이트 다운로드 완료, 다음 실행 시 적용됩니다");
-              // 자동 재시작은 사용자 경험을 해칠 수 있으므로 다음 실행 시 적용
+          // 업데이트 체크를 비동기로 실행 (앱 시작을 블로킹하지 않음)
+          (async () => {
+            try {
+              const update = await Updates.checkForUpdateAsync();
+              if (update.isAvailable) {
+                console.log("📦 새 업데이트 발견, 백그라운드 다운로드 중...");
+                await Updates.fetchUpdateAsync();
+                console.log("✅ 업데이트 다운로드 완료, 다음 실행 시 적용됩니다");
+                // 자동 재시작하지 않음 - 사용자가 메뉴에서 수동으로 확인
+              }
+            } catch (updateError) {
+              // fingerprint 불일치 등의 에러는 무시 (앱 스토어 업데이트 필요)
+              console.log("⚠️ 업데이트 체크 스킵:", updateError.message || updateError);
+              // 업데이트 실패해도 앱은 정상 작동
             }
-          } catch (updateError) {
-            console.log("⚠️ 업데이트 체크 실패:", updateError);
-            // 업데이트 실패해도 앱은 정상 작동
-          }
+          })();
         }
 
         // 1. 캐시 확인 - 있으면 즉시 진입!
@@ -550,6 +556,8 @@ function DanggnHeaderRight({ navigation }) {
 }
 
 function BottomTabNavigator() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       initialRouteName="홈"
@@ -575,6 +583,14 @@ function BottomTabNavigator() {
           fontSize: 12, 
           fontWeight: "700",
           marginBottom: 2,
+        },
+        // 시스템 영역을 감안한 하단 탭 스타일
+        tabBarStyle: {
+          paddingBottom: insets.bottom,
+          height: 56 + insets.bottom,
+          backgroundColor: "#fff",
+          borderTopWidth: 1,
+          borderTopColor: "#e0e0e0",
         },
       })}
     >
