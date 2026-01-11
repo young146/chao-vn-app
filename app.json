@@ -62,7 +62,6 @@
     },
     "plugins": [
       "@react-native-firebase/app",
-      "@react-native-firebase/remote-config",
       "expo-font",
       "expo-asset",
       [
