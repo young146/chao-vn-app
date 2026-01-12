@@ -20,7 +20,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
       "buildNumber": "13",
-      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
@@ -84,12 +83,14 @@
           "iosAppId": "ca-app-pub-7944314901202352~9182981091"
         }
       ],
-      "@react-native-firebase/app",
       [
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static"
+            "newArchEnabled": false
+          },
+          "android": {
+            "newArchEnabled": false
           }
         }
       ]
