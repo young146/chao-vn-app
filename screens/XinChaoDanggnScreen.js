@@ -32,6 +32,7 @@ import {
   getDistrictsByCity,
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
+import AdBanner from "../components/AdBanner";
 
 // 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
 const SearchBar = memo(({ value, onChangeText }) => (
@@ -436,6 +437,8 @@ export default function XinChaoDanggnScreen({ navigation }) {
 
   const listHeader = useMemo(() => (
     <View>
+      {/* 🔥 메인 헤더 광고 */}
+      <AdBanner style={{ marginHorizontal: 12, marginTop: 8, borderRadius: 8 }} />
       {headerBanners}
       <SearchBar value={searchText} onChangeText={setSearchText} />
       {headerFilters}

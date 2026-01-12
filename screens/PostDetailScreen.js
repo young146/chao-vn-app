@@ -32,8 +32,17 @@ export default function PostDetailScreen({ route }) {
     console.log('Date parse error:', e);
   }
 
+  // 🔧 본문에서 첫 번째 이미지 제거 (featuredImage와 중복 방지)
+  let contentHtml = post.content.rendered;
+  if (featuredImage) {
+    // 본문 맨 앞의 공백 제거 후 <img> 또는 <figure> 태그 제거
+    contentHtml = contentHtml.trim()
+      .replace(/^(<p>\s*)?<figure[^>]*>[\s\S]*?<\/figure>(\s*<\/p>)?/i, '')
+      .replace(/^(<p>\s*)?<img[^>]*\/?>\s*(<\/p>)?/i, '');
+  }
+  
   const source = {
-    html: post.content.rendered
+    html: contentHtml
   };
 
   const tagsStyles = {

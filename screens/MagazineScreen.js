@@ -16,16 +16,25 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL } from '../services/wordpressApi';
+import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached } from '../services/wordpressApi';
+import AdBanner, { SectionAdBanner, InlineAdBanner } from '../components/AdBanner';
 
 const { width } = Dimensions.get('window');
 
-const SearchHeader = ({ onSearch }) => {
+const SearchHeader = ({ onSearch, onClear, isSearching }) => {
   const [text, setText] = useState('');
 
   const handleSubmit = () => {
     onSearch(text);
     Keyboard.dismiss();
+  };
+
+  // 검색 취소 및 홈으로 복귀
+  const handleClear = () => {
+    setText('');
+    if (onClear) {
+      onClear();
+    }
   };
 
   return (
@@ -41,9 +50,10 @@ const SearchHeader = ({ onSearch }) => {
           onSubmitEditing={handleSubmit}
           returnKeyType="search"
         />
-        {text.length > 0 && (
-          <TouchableOpacity onPress={() => setText('')}>
-            <Ionicons name="close-circle" size={20} color="#ccc" />
+        {/* 검색어 입력 중이거나 검색 결과 표시 중일 때 X 버튼 표시 */}
+        {(text.length > 0 || isSearching) && (
+          <TouchableOpacity onPress={handleClear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close-circle" size={22} color="#FF6B35" />
           </TouchableOpacity>
         )}
       </View>
@@ -234,7 +244,7 @@ const MagazineCard = ({ item, onPress, type }) => {
 };
 
 export default function MagazineScreen({ navigation, route }) {
-  const { type = 'magazine', categoryId } = route.params || {};
+  const { type = 'magazine', categoryId, resetSearch } = route.params || {};
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
@@ -256,12 +266,10 @@ export default function MagazineScreen({ navigation, route }) {
         if (!isRefresh) setLoading(true);
         // 홈 화면이고 검색어가 없을 때만 슬라이더 및 섹션 데이터 가져옴
         if (type === 'home' && !query) {
-          const [slideshowPosts, sectionsData] = await Promise.all([
-            wordpressApi.getSlideshowPosts(),
-            wordpressApi.getHomeSections()
-          ]);
-          setSlides(slideshowPosts);
-          setHomeSections(sectionsData);
+          // 🚀 최적화: getHomeDataCached()를 1번만 호출 (중복 호출 제거)
+          const homeData = await getHomeDataCached(isRefresh);
+          setSlides(homeData.slideshowPosts || []);
+          setHomeSections(homeData.homeSections || []);
           setLoading(false);
           return;
         }
@@ -319,6 +327,16 @@ export default function MagazineScreen({ navigation, route }) {
     fetchPosts();
   }, [type, categoryId]);
 
+  // 🔙 홈 탭을 누르면 검색 초기화
+  useEffect(() => {
+    if (resetSearch && type === 'home') {
+      setSearchQuery('');
+      setPage(1);
+      setHasMore(true);
+      fetchPosts(1, false, '');
+    }
+  }, [resetSearch]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(1);
@@ -332,6 +350,14 @@ export default function MagazineScreen({ navigation, route }) {
     setPage(1);
     setHasMore(true);
     fetchPosts(1, false, query);
+  };
+
+  // 🔙 검색 취소 및 홈으로 복귀
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setPage(1);
+    setHasMore(true);
+    fetchPosts(1, false, ''); // 홈 화면 데이터 다시 로드
   };
 
   const onDateChange = (event, date) => {
@@ -379,11 +405,23 @@ export default function MagazineScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SearchHeader onSearch={handleSearch} />
+      <SearchHeader 
+        onSearch={handleSearch} 
+        onClear={handleClearSearch}
+        isSearching={searchQuery.length > 0}
+      />
       
       <FlatList
         data={type === 'home' && !searchQuery ? [] : posts}
-        renderItem={({ item }) => <MagazineCard item={item} onPress={handlePostPress} type={type} />}
+        renderItem={({ item, index }) => (
+          <View>
+            <MagazineCard item={item} onPress={handlePostPress} type={type} />
+            {/* 뉴스/게시판: 4개 기사마다 광고 삽입 (4, 8, 12...) */}
+            {(type === 'news' || type === 'board') && (index + 1) % 4 === 0 && (
+              <InlineAdBanner />
+            )}
+          </View>
+        )}
         keyExtractor={(item, index) => {
           // 고유 키 생성: id가 있으면 사용, 없으면 index와 link 조합
           if (item.id) {
@@ -398,6 +436,9 @@ export default function MagazineScreen({ navigation, route }) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
+            {/* 🔥 메인 헤더 광고 */}
+            <AdBanner style={{ marginHorizontal: 16, marginBottom: 8, borderRadius: 8 }} />
+
             {type === 'news' && (
               <View style={styles.dateFilterContainer}>
                 <TouchableOpacity 
@@ -432,11 +473,15 @@ export default function MagazineScreen({ navigation, route }) {
                   <HomeSlider posts={slides} onPress={handlePostPress} />
                 )}
                 
-                {homeSections.map((section) => (
-                  <View key={section.id} style={styles.homeSection}>
+                {homeSections.map((section, sectionIndex) => (
+                  <View key={section.id}>
+                    {/* 🔥 각 섹션 위에 광고 배치 */}
+                    <SectionAdBanner />
+                    
+                    <View style={styles.homeSection}>
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>{section.name}</Text>
-                      <TouchableOpacity onPress={() => navigation.navigate(type === 'home' ? 'HomeStack' : route.name, { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
+                      <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
                         <Text style={styles.seeMore}>더보기 ></Text>
                       </TouchableOpacity>
                     </View>
@@ -469,6 +514,7 @@ export default function MagazineScreen({ navigation, route }) {
                           </TouchableOpacity>
                         );
                       })}
+                    </View>
                     </View>
                   </View>
                 ))}

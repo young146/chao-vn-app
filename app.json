@@ -3,7 +3,7 @@
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
     "owner": "young146",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "scheme": "com.yourname.chaovnapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,16 +13,28 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "10",
+      "buildNumber": "12",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 선택하기 위해 사진 라이브러리에 접근합니다. 예: 프로필 사진을 업로드하거나 중고거래 물품 사진을 등록할 때 사용합니다.",
-        "NSCameraUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 촬영하기 위해 카메라에 접근합니다. 예: 중고거래 물품을 직접 촬영하여 등록하거나 채팅에서 사진을 전송할 때 사용합니다."
+        "NSCameraUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 촬영하기 위해 카메라에 접근합니다. 예: 중고거래 물품을 직접 촬영하여 등록하거나 채팅에서 사진을 전송할 때 사용합니다.",
+        "GADApplicationIdentifier": "ca-app-pub-7944314901202352~9182981091",
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
+          }
+        ],
+        "NSUserTrackingUsageDescription": "맞춤형 광고를 제공하기 위해 사용됩니다."
       }
     },
     "android": {
@@ -36,12 +48,13 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 42,
+      "versionCode": 44,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.WAKE_LOCK",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json"
@@ -63,7 +76,15 @@
       ],
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-7944314901202352~3025832510",
+          "iosAppId": "ca-app-pub-7944314901202352~9182981091"
+        }
+      ],
+      "@react-native-firebase/app"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

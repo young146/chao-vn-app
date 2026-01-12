@@ -32,17 +32,42 @@ const getThreeMonthsAgoDate = () => {
   return date.toISOString().split('T')[0];
 };
 
-// 카테고리 ID 또는 이름으로 찾기 및 하위 카테고리 포함
-const findCategoryWithChildren = async (config) => {
-  try {
-    // 모든 카테고리 가져오기 (한 번만 호출)
-    const response = await api.get(`${MAGAZINE_BASE_URL}/categories`, {
-      params: {
-        per_page: 100,
-      },
-    });
+// 🚀 카테고리 목록 캐시 (한 번만 가져오기)
+let cachedCategories = null;
+let categoriesFetchPromise = null;
 
-    const allCategories = response.data;
+// 카테고리 목록 가져오기 (1번만 호출, 캐시 사용)
+const getAllCategories = async () => {
+  // 이미 캐시에 있으면 반환
+  if (cachedCategories) {
+    return cachedCategories;
+  }
+  
+  // 이미 가져오는 중이면 기다림 (중복 호출 방지)
+  if (categoriesFetchPromise) {
+    return categoriesFetchPromise;
+  }
+  
+  // 새로 가져오기
+  categoriesFetchPromise = api.get(`${MAGAZINE_BASE_URL}/categories`, {
+    params: { per_page: 100 },
+  }).then(response => {
+    cachedCategories = response.data;
+    categoriesFetchPromise = null;
+    console.log(`📂 카테고리 ${cachedCategories.length}개 로드 완료`);
+    return cachedCategories;
+  }).catch(error => {
+    categoriesFetchPromise = null;
+    console.error('카테고리 로드 실패:', error);
+    return [];
+  });
+  
+  return categoriesFetchPromise;
+};
+
+// 카테고리 ID 또는 이름으로 찾기 및 하위 카테고리 포함 (캐시된 목록 사용)
+const findCategoryWithChildren = (config, allCategories) => {
+  try {
     let category = null;
 
     // 1. ID로 직접 찾기
@@ -74,7 +99,6 @@ const findCategoryWithChildren = async (config) => {
     }
 
     if (!category) {
-      console.warn(`카테고리 "${config.name}" (ID: ${config.id})을 찾을 수 없습니다.`);
       return { id: null, name: config.name, childIds: [] };
     }
 
@@ -85,12 +109,10 @@ const findCategoryWithChildren = async (config) => {
 
     const childIds = childCategories.map(cat => cat.id);
 
-    console.log(`✅ 카테고리 찾음: "${category.name}" (ID: ${category.id}, 하위: ${childIds.length}개)`);
-
     return {
       id: category.id,
-      name: config.name, // 사용자에게 보여줄 이름
-      displayName: category.name, // 실제 카테고리 이름
+      name: config.name,
+      displayName: category.name,
       childIds: childIds
     };
   } catch (error) {
@@ -148,9 +170,13 @@ export const getHomeDataCached = async (forceRefresh = false) => {
     console.log('🌐 API 호출 시작...');
     const startTime = Date.now();
     
-    // 2. 카테고리 ID 또는 이름으로 찾기 및 하위 카테고리 포함 (병렬 처리)
-    const categoryPromises = HOME_SECTIONS_CONFIG.map(config => findCategoryWithChildren(config));
-    const sections = await Promise.all(categoryPromises);
+    // 2. 🚀 카테고리 목록을 한 번만 가져오기 (9번 → 1번으로 최적화!)
+    const allCategories = await getAllCategories();
+    
+    // 3. 각 섹션 설정에서 카테고리 찾기 (API 호출 없이 메모리에서 처리)
+    const sections = HOME_SECTIONS_CONFIG.map(config => 
+      findCategoryWithChildren(config, allCategories)
+    );
     
     // 유효한 카테고리만 필터링
     const validSections = sections.filter(section => section.id !== null);

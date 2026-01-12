@@ -15,6 +15,7 @@ import {
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
@@ -191,30 +192,32 @@ export default function App() {
       ) : (
         <>
           <GlobalChatNotificationListener />
-          <NavigationContainer
-            linking={{
-              prefixes: [
-                "com.yourname.chaovnapp://",
-                "exp+chao-vn-app://",
-                "https://auth.expo.io/@young146/chao-vn-app",
-              ],
-              config: {
-                screens: {
-                  MainApp: {
-                    screens: {
-                      씬짜오나눔: "danggn",
-                      Chat: "chat",
-                      Menu: "menu",
+          <SafeAreaProvider>
+            <NavigationContainer
+              linking={{
+                prefixes: [
+                  "com.yourname.chaovnapp://",
+                  "exp+chao-vn-app://",
+                  "https://auth.expo.io/@young146/chao-vn-app",
+                ],
+                config: {
+                  screens: {
+                    MainApp: {
+                      screens: {
+                        씬짜오나눔: "danggn",
+                        Chat: "chat",
+                        Menu: "menu",
+                      },
                     },
+                    로그인: "login",
                   },
-                  로그인: "login",
                 },
-              },
-            }}
-          >
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-            <RootNavigator />
-          </NavigationContainer>
+              }}
+            >
+              <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+              <RootNavigator />
+            </NavigationContainer>
+          </SafeAreaProvider>
         </>
       )}
     </AuthProvider>
@@ -550,6 +553,8 @@ function DanggnHeaderRight({ navigation }) {
 }
 
 function BottomTabNavigator() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       initialRouteName="홈"
@@ -576,9 +581,26 @@ function BottomTabNavigator() {
           fontWeight: "700",
           marginBottom: 2,
         },
+        // 🔥 시스템 영역(제스처 바) 위로 탭바 올리기
+        tabBarStyle: {
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+          height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
+        },
       })}
     >
-      <Tab.Screen name="홈" component={HomeStack} />
+      <Tab.Screen 
+        name="홈" 
+        component={HomeStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // 홈 탭을 누르면 스택을 초기화하고 홈메인으로 이동
+            navigation.navigate('홈', { 
+              screen: '홈메인', 
+              params: { type: 'home', categoryId: null, resetSearch: Date.now() }
+            });
+          },
+        })}
+      />
       <Tab.Screen name="뉴스" component={NewsStack} />
       <Tab.Screen name="게시판" component={BoardStack} />
       <Tab.Screen name="나눔" component={DanggnStack} />
