@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -48,7 +48,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 44,
+      "versionCode": 45,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
