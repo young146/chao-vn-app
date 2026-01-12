@@ -18,20 +18,70 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached } from '../services/wordpressApi';
 import AdBanner, { SectionAdBanner, InlineAdBanner } from '../components/AdBanner';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
+const SEARCH_HISTORY_KEY = 'search_history';
+const MAX_HISTORY = 5;
+
 const SearchHeader = ({ onSearch, onClear, isSearching }) => {
   const [text, setText] = useState('');
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // 검색 히스토리 로드
+  useEffect(() => {
+    loadSearchHistory();
+  }, []);
+
+  const loadSearchHistory = async () => {
+    try {
+      const history = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
+      if (history) {
+        setSearchHistory(JSON.parse(history));
+      }
+    } catch (error) {
+      console.log('검색 히스토리 로드 실패:', error);
+    }
+  };
+
+  const saveSearchHistory = async (newHistory) => {
+    try {
+      await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+      setSearchHistory(newHistory);
+    } catch (error) {
+      console.log('검색 히스토리 저장 실패:', error);
+    }
+  };
 
   const handleSubmit = () => {
-    onSearch(text);
+    if (text.trim()) {
+      // 검색 히스토리에 추가 (중복 제거, 최대 5개)
+      const newHistory = [text.trim(), ...searchHistory.filter(h => h !== text.trim())].slice(0, MAX_HISTORY);
+      saveSearchHistory(newHistory);
+      onSearch(text.trim());
+      setShowHistory(false);
+    }
     Keyboard.dismiss();
+  };
+
+  const handleHistoryClick = (query) => {
+    setText(query);
+    onSearch(query);
+    setShowHistory(false);
+    Keyboard.dismiss();
+  };
+
+  const removeHistoryItem = async (query) => {
+    const newHistory = searchHistory.filter(h => h !== query);
+    saveSearchHistory(newHistory);
   };
 
   // 검색 취소 및 홈으로 복귀
   const handleClear = () => {
     setText('');
+    setShowHistory(false);
     if (onClear) {
       onClear();
     }
@@ -48,6 +98,7 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
           value={text}
           onChangeText={setText}
           onSubmitEditing={handleSubmit}
+          onFocus={() => setShowHistory(true)}
           returnKeyType="search"
         />
         {/* 검색어 입력 중이거나 검색 결과 표시 중일 때 X 버튼 표시 */}
@@ -57,6 +108,27 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
           </TouchableOpacity>
         )}
       </View>
+      
+      {/* 🔍 최근 검색어 */}
+      {showHistory && searchHistory.length > 0 && !isSearching && (
+        <View style={styles.historyContainer}>
+          <Text style={styles.historyTitle}>최근 검색어</Text>
+          {searchHistory.map((query, index) => (
+            <View key={index} style={styles.historyItem}>
+              <TouchableOpacity 
+                style={styles.historyTextWrapper}
+                onPress={() => handleHistoryClick(query)}
+              >
+                <Ionicons name="time-outline" size={16} color="#999" />
+                <Text style={styles.historyText}>{query}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => removeHistoryItem(query)}>
+                <Ionicons name="close" size={18} color="#ccc" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -316,6 +388,8 @@ export default function MagazineScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Fetch posts error:', error);
+      // 🔧 에러 시 무한 루프 방지
+      setHasMore(false);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -528,7 +602,7 @@ export default function MagazineScreen({ navigation, route }) {
           </View>
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} tintColor="#FF6B35" />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
@@ -552,25 +626,16 @@ export default function MagazineScreen({ navigation, route }) {
           return null;
         }}
         ListEmptyComponent={
-          !loading && (
-            type === 'home' && !searchQuery ? (
-              <View style={styles.centerContainer}>
-                <Text style={styles.emptyText}>더 많은 기사를 보고 싶으시면</Text>
-                <Text style={styles.emptySubtext}>검색창에 키워드를 넣어서 찾아보세요</Text>
-              </View>
-            ) : type !== 'home' ? (
-              <View style={styles.centerContainer}>
-                {searchQuery.length > 0 ? (
-                  <>
-                    <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
-                    <Text style={styles.emptySubtext}>다른 키워드로 검색해보세요</Text>
-                  </>
-                ) : (
-                  <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
-                )}
-              </View>
-            ) : null
-          )
+          !loading && searchQuery.length > 0 ? (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
+              <Text style={styles.emptySubtext}>다른 키워드로 검색해보세요</Text>
+            </View>
+          ) : !loading && type !== 'home' && posts.length === 0 ? (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
+            </View>
+          ) : null
         }
       />
     </SafeAreaView>
@@ -615,6 +680,42 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#333',
+  },
+  // 🔍 검색 히스토리 스타일
+  historyContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginTop: 8,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  historyTitle: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  historyTextWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  historyText: {
+    fontSize: 15,
+    color: '#333',
+    marginLeft: 8,
   },
   dateFilterContainer: {
     flexDirection: 'row',

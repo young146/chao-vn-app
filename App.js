@@ -1,5 +1,15 @@
 import { LogBox } from "react-native";
 // LogBox.ignoreAllLogs(true);
+
+// Firebase Remote Config deprecated 경고 무시 (기능은 정상 작동)
+LogBox.ignoreLogs([
+  'This method is deprecated',
+  'Please use `getApp()` instead',
+  'Please use `getValue()` instead',
+  'Please use `setConfigSettings()` instead',
+  'Please use `setDefaults()` instead',
+  'Please use `fetchAndActivate()` instead',
+]);
 import "react-native-gesture-handler";
 import React, { useEffect, useState, useRef } from "react";
 import { Image as ExpoImage } from "expo-image";
@@ -235,11 +245,21 @@ function HomeStack() {
         name="홈메인"
         component={MagazineScreen}
         initialParams={{ type: "home" }}
-        options={{
-          title: "씬짜오베트남",
-          headerStyle: { backgroundColor: "#FF6B35" },
+        options={({ navigation }) => ({
+          headerTitle: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('홈메인', { type: 'home', categoryId: null, resetSearch: Date.now() })}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>씬짜오베트남</Text>
+              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+                2002년부터 격주 발행, 베트남 교민사회의 길잡이
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-        }}
+        })}
       />
       <Stack.Screen
         name="PostDetail"
@@ -261,11 +281,21 @@ function NewsStack() {
         name="뉴스메인"
         component={MagazineScreen}
         initialParams={{ type: "news", categoryId: 31 }}
-        options={{
-          title: "데일리 뉴스",
-          headerStyle: { backgroundColor: "#FF6B35" },
+        options={({ navigation }) => ({
+          headerTitle: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('뉴스메인', { type: 'news', categoryId: 31, resetSearch: Date.now() })}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>데일리 뉴스</Text>
+              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+                매일 아침 발행되는 온라인 베트남 뉴스
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-        }}
+        })}
       />
       <Stack.Screen
         name="PostDetail"
@@ -287,11 +317,21 @@ function BoardStack() {
         name="게시판메인"
         component={MagazineScreen}
         initialParams={{ type: "board" }}
-        options={{
-          title: "커뮤니티 게시판",
-          headerStyle: { backgroundColor: "#FF6B35" },
+        options={({ navigation }) => ({
+          headerTitle: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('게시판메인', { type: 'board', resetSearch: Date.now() })}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>게시판</Text>
+              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+                우리 이웃들의 소리가 담긴 베트남 교민 커뮤니티
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-        }}
+        })}
       />
       <Stack.Screen
         name="PostDetail"
@@ -313,8 +353,18 @@ function DanggnStack() {
         name="씬짜오나눔메인"
         component={XinChaoDanggnScreen}
         options={({ navigation }) => ({
-          title: "씬짜오나눔",
-          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTitle: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('씬짜오나눔메인')}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>나눔</Text>
+              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+                무료 나눔, 중고 거래소. 내 아파트 주변 물품 찾기
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
           headerRight: () => <DanggnHeaderRight navigation={navigation} />,
         })}
@@ -593,7 +643,6 @@ function BottomTabNavigator() {
         component={HomeStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // 홈 탭을 누르면 스택을 초기화하고 홈메인으로 이동
             navigation.navigate('홈', { 
               screen: '홈메인', 
               params: { type: 'home', categoryId: null, resetSearch: Date.now() }
@@ -601,9 +650,41 @@ function BottomTabNavigator() {
           },
         })}
       />
-      <Tab.Screen name="뉴스" component={NewsStack} />
-      <Tab.Screen name="게시판" component={BoardStack} />
-      <Tab.Screen name="나눔" component={DanggnStack} />
+      <Tab.Screen 
+        name="뉴스" 
+        component={NewsStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.navigate('뉴스', { 
+              screen: '뉴스메인', 
+              params: { type: 'news', resetSearch: Date.now() }
+            });
+          },
+        })}
+      />
+      <Tab.Screen 
+        name="게시판" 
+        component={BoardStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.navigate('게시판', { 
+              screen: '게시판메인', 
+              params: { type: 'board', resetSearch: Date.now() }
+            });
+          },
+        })}
+      />
+      <Tab.Screen 
+        name="나눔" 
+        component={DanggnStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.navigate('나눔', { 
+              screen: '씬짜오나눔메인'
+            });
+          },
+        })}
+      />
       <Tab.Screen name="메뉴" component={MenuStack} />
     </Tab.Navigator>
   );

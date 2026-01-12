@@ -7,10 +7,14 @@ import {
   useWindowDimensions,
   SafeAreaView,
   Platform,
+  Share,
+  Linking,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import CommentsSection from '../components/commentsSection';
 
 export default function PostDetailScreen({ route }) {
@@ -18,6 +22,67 @@ export default function PostDetailScreen({ route }) {
   const { width } = useWindowDimensions();
 
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+  
+  // 📤 공유할 URL과 제목 생성
+  const shareUrl = post.link || `https://chaovietnam.co.kr/?p=${post.id}`;
+  const shareTitle = post.title?.rendered?.replace(/&#[0-9]+;/g, (match) => 
+    String.fromCharCode(match.match(/[0-9]+/))
+  ) || '씬짜오베트남 기사';
+  const shareMessage = `${shareTitle}\n\n${shareUrl}`;
+
+  // 📤 SNS별 공유 처리
+  const handleShare = async (platform) => {
+    try {
+      switch (platform) {
+        case 'kakao':
+          // 카카오톡 - 일반 공유 시트 사용 (SDK 없이)
+          await Share.share({ message: shareMessage, title: shareTitle });
+          break;
+          
+        case 'facebook':
+          // 페이스북 웹 공유
+          const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+          await Linking.openURL(fbUrl);
+          break;
+          
+        case 'threads':
+          // 스레드 앱 열기 시도
+          const threadsUrl = `https://www.threads.net/intent/post?text=${encodeURIComponent(shareMessage)}`;
+          await Linking.openURL(threadsUrl);
+          break;
+          
+        case 'zalo':
+          // Zalo 앱으로 공유 시도
+          const zaloInstalled = await Linking.canOpenURL('zalo://');
+          if (zaloInstalled) {
+            await Share.share({ message: shareMessage, title: shareTitle });
+          } else {
+            Alert.alert('Zalo', 'Zalo 앱이 설치되어 있지 않습니다.\n일반 공유를 사용해주세요.');
+          }
+          break;
+          
+        case 'sms':
+          // 문자 메시지
+          const smsUrl = Platform.OS === 'ios' 
+            ? `sms:&body=${encodeURIComponent(shareMessage)}`
+            : `sms:?body=${encodeURIComponent(shareMessage)}`;
+          await Linking.openURL(smsUrl);
+          break;
+          
+        case 'more':
+        default:
+          // 기본 공유 시트
+          await Share.share({ 
+            message: shareMessage, 
+            title: shareTitle,
+            url: shareUrl // iOS only
+          });
+          break;
+      }
+    } catch (error) {
+      console.log('공유 실패:', error);
+    }
+  };
   
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
   let dateStr = '날짜 정보 없음';
@@ -105,6 +170,60 @@ export default function PostDetailScreen({ route }) {
           />
         </View>
 
+        {/* 📤 SNS 공유 섹션 */}
+        <View style={styles.shareSection}>
+          <Text style={styles.shareTitle}>📤 이 기사 공유하기</Text>
+          <View style={styles.shareButtons}>
+            {/* 카카오톡 */}
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#FEE500' }]}
+              onPress={() => handleShare('kakao')}
+            >
+              <Text style={styles.kakaoIcon}>💬</Text>
+            </TouchableOpacity>
+            
+            {/* 페이스북 */}
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#1877F2' }]}
+              onPress={() => handleShare('facebook')}
+            >
+              <FontAwesome name="facebook" size={24} color="#fff" />
+            </TouchableOpacity>
+            
+            {/* 스레드 */}
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#000' }]}
+              onPress={() => handleShare('threads')}
+            >
+              <Text style={styles.threadsIcon}>@</Text>
+            </TouchableOpacity>
+            
+            {/* Zalo */}
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#0068FF' }]}
+              onPress={() => handleShare('zalo')}
+            >
+              <Text style={styles.zaloIcon}>Z</Text>
+            </TouchableOpacity>
+            
+            {/* 문자 */}
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#34C759' }]}
+              onPress={() => handleShare('sms')}
+            >
+              <Ionicons name="chatbubble" size={22} color="#fff" />
+            </TouchableOpacity>
+            
+            {/* 더보기 (기본 공유) */}
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#FF6B35' }]}
+              onPress={() => handleShare('more')}
+            >
+              <Ionicons name="share-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <CommentsSection articleId={post.id} />
       </ScrollView>
     </SafeAreaView>
@@ -171,7 +290,53 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 20,
+  },
+  // 📤 공유 섹션 스타일
+  shareSection: {
+    marginTop: 10,
+    marginBottom: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  shareTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  shareButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  shareButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  kakaoIcon: {
+    fontSize: 24,
+  },
+  threadsIcon: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  zaloIcon: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#fff',
   },
 });
 

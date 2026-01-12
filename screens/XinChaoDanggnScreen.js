@@ -457,7 +457,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#FF6B35"]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#FF6B35"]} tintColor="#FF6B35" />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}

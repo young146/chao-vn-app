@@ -15,30 +15,52 @@ const BANNER_AD_UNIT_ID = __DEV__
       ios: "ca-app-pub-7944314901202352/7518491734",
     });
 
-// Remote Config에서 자체 광고 표시 여부 확인
+// 🚀 Remote Config 캐시 (한 번만 호출)
+let cachedShowInHouseAds = null;
+let configFetchPromise = null;
+
+// Remote Config에서 자체 광고 표시 여부 확인 (캐시 사용)
 const checkShowInHouseAds = async () => {
-  try {
-    // 캐시 만료 시간 설정 (개발: 0초, 프로덕션: 1시간)
-    await remoteConfig().setConfigSettings({
-      minimumFetchIntervalMillis: __DEV__ ? 0 : 3600000,
-    });
-
-    // 기본값 설정 (false = AdMob 광고 표시)
-    await remoteConfig().setDefaults({
-      show_in_house_ads: false,
-    });
-
-    // 서버에서 값 가져오기 및 활성화
-    await remoteConfig().fetchAndActivate();
-
-    // 값 읽기
-    const showInHouse = remoteConfig().getValue("show_in_house_ads").asBoolean();
-    console.log("📢 Remote Config - show_in_house_ads:", showInHouse);
-    return showInHouse;
-  } catch (error) {
-    console.log("Remote Config 오류 (기본값 사용):", error.message);
-    return false; // 오류 시 기본값 (AdMob 광고 표시)
+  // 이미 캐시에 있으면 반환
+  if (cachedShowInHouseAds !== null) {
+    return cachedShowInHouseAds;
   }
+  
+  // 이미 가져오는 중이면 기다림 (중복 호출 방지)
+  if (configFetchPromise) {
+    return configFetchPromise;
+  }
+  
+  configFetchPromise = (async () => {
+    try {
+      // 캐시 만료 시간 설정 (개발: 0초, 프로덕션: 1시간)
+      await remoteConfig().setConfigSettings({
+        minimumFetchIntervalMillis: __DEV__ ? 0 : 3600000,
+      });
+
+      // 기본값 설정 (false = AdMob 광고 표시)
+      await remoteConfig().setDefaults({
+        show_in_house_ads: false,
+      });
+
+      // 서버에서 값 가져오기 및 활성화
+      await remoteConfig().fetchAndActivate();
+
+      // 값 읽기
+      const showInHouse = remoteConfig().getValue("show_in_house_ads").asBoolean();
+      console.log("📢 Remote Config - show_in_house_ads:", showInHouse);
+      cachedShowInHouseAds = showInHouse;
+      configFetchPromise = null;
+      return showInHouse;
+    } catch (error) {
+      console.log("Remote Config 오류 (기본값 사용):", error.message);
+      cachedShowInHouseAds = false;
+      configFetchPromise = null;
+      return false; // 오류 시 기본값 (AdMob 광고 표시)
+    }
+  })();
+  
+  return configFetchPromise;
 };
 
 /**

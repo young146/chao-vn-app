@@ -399,9 +399,14 @@ export const wordpressApi = {
   // 검색어로 포스트 가져오기
   searchPosts: async (searchTerm, page = 1, perPage = 10) => {
     try {
+      // 검색어가 비어있으면 빈 배열 반환
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return [];
+      }
+      
       const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
         params: {
-          search: searchTerm,
+          search: searchTerm.trim(),
           page,
           per_page: perPage,
           _embed: 1,
@@ -410,7 +415,8 @@ export const wordpressApi = {
       return response.data.map(post => ({ ...post, id: `search-${post.id}` }));
     } catch (error) {
       console.error('searchPosts error:', error);
-      throw error;
+      // 🔧 에러 시 빈 배열 반환 (무한 루프 방지)
+      return [];
     }
   },
 
