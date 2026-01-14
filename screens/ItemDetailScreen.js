@@ -499,7 +499,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         </View>
 
         {/* 🔥 물품 상세 광고 */}
-        <AdBanner style={{ marginHorizontal: 16, marginVertical: 12, borderRadius: 8 }} />
+        <AdBanner position="item_detail" style={{ marginHorizontal: 16, marginVertical: 12, borderRadius: 8 }} />
 
         {/* 물품 정보 */}
         <View style={styles.contentContainer}>

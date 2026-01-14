@@ -331,6 +331,24 @@ export default function MagazineScreen({ navigation, route }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
+  const [showingYesterdayNews, setShowingYesterdayNews] = useState(false);
+
+  // 뉴스 카테고리 정렬 순서 (기타는 맨 뒤)
+  const CATEGORY_ORDER = ['경제', '사회', '문화', '정치', '국제', '한-베', '여행', '건강', '음식'];
+  
+  // 카테고리 순서로 뉴스 정렬
+  const sortNewsByCategory = (posts) => {
+    return [...posts].sort((a, b) => {
+      const catA = a.meta?.news_category || '기타';
+      const catB = b.meta?.news_category || '기타';
+      const orderA = CATEGORY_ORDER.indexOf(catA);
+      const orderB = CATEGORY_ORDER.indexOf(catB);
+      // 목록에 없는 카테고리(기타 포함)는 맨 뒤로
+      const priorityA = orderA === -1 ? 999 : orderA;
+      const priorityB = orderB === -1 ? 999 : orderB;
+      return priorityA - priorityB;
+    });
+  };
 
   const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
     try {
@@ -358,11 +376,31 @@ export default function MagazineScreen({ navigation, route }) {
       } else if (categoryId || type === 'news') {
         // 뉴스 탭: 날짜 필터가 없으면 오늘 날짜로 자동 필터링
         let filterDate = date;
+        let isShowingYesterday = false;
+        
         if (type === 'news' && !date && !isFilteredByDate) {
           filterDate = new Date(); // 오늘 날짜
         }
+        
         const dateStr = filterDate ? filterDate.toISOString().split('T')[0] : null;
         newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, dateStr);
+        
+        // 🔄 오늘 뉴스가 없으면 어제 뉴스 표시
+        if (type === 'news' && newPosts.length === 0 && pageNum === 1 && !isFilteredByDate) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, yesterdayStr);
+          isShowingYesterday = true;
+          setSelectedDate(yesterday); // 어제 날짜로 설정 (마지막 멘트 표시용)
+        }
+        
+        setShowingYesterdayNews(isShowingYesterday);
+        
+        // 📰 뉴스 카테고리 순서로 정렬
+        if (type === 'news' && newPosts.length > 0) {
+          newPosts = sortNewsByCategory(newPosts);
+        }
       } else {
         newPosts = await wordpressApi.getMagazinePosts(pageNum);
       }
@@ -371,7 +409,7 @@ export default function MagazineScreen({ navigation, route }) {
         setHasMore(false);
       }
       
-      // 뉴스 탭: 오늘 날짜 뉴스가 더 이상 없으면 종료
+      // 뉴스 탭: 뉴스가 더 이상 없으면 종료
       if (type === 'news' && newPosts.length === 0 && pageNum === 1) {
         setHasMore(false);
       }
@@ -401,13 +439,16 @@ export default function MagazineScreen({ navigation, route }) {
     fetchPosts();
   }, [type, categoryId]);
 
-  // 🔙 홈 탭을 누르면 검색 초기화
+  // 🔙 탭을 누르면 검색 초기화 및 데이터 새로고침
   useEffect(() => {
-    if (resetSearch && type === 'home') {
+    if (resetSearch) {
       setSearchQuery('');
+      setIsFilteredByDate(false);
+      setShowingYesterdayNews(false);
+      setSelectedDate(new Date());
       setPage(1);
       setHasMore(true);
-      fetchPosts(1, false, '');
+      fetchPosts(1, false, '', null);
     }
   }, [resetSearch]);
 
@@ -492,7 +533,7 @@ export default function MagazineScreen({ navigation, route }) {
             <MagazineCard item={item} onPress={handlePostPress} type={type} />
             {/* 뉴스/게시판: 4개 기사마다 광고 삽입 (4, 8, 12...) */}
             {(type === 'news' || type === 'board') && (index + 1) % 4 === 0 && (
-              <InlineAdBanner />
+              <InlineAdBanner position={type === 'news' ? 'news_inline' : 'board_inline'} />
             )}
           </View>
         )}
@@ -511,7 +552,10 @@ export default function MagazineScreen({ navigation, route }) {
         ListHeaderComponent={
           <View>
             {/* 🔥 메인 헤더 광고 */}
-            <AdBanner style={{ marginHorizontal: 16, marginBottom: 8, borderRadius: 8 }} />
+            <AdBanner 
+              position={type === 'home' ? 'home_header' : type === 'news' ? 'news_header' : 'board_header'} 
+              style={{ marginHorizontal: 16, marginBottom: 8, borderRadius: 8 }} 
+            />
 
             {type === 'news' && (
               <View style={styles.dateFilterContainer}>
@@ -550,7 +594,7 @@ export default function MagazineScreen({ navigation, route }) {
                 {homeSections.map((section, sectionIndex) => (
                   <View key={section.id}>
                     {/* 🔥 각 섹션 위에 광고 배치 */}
-                    <SectionAdBanner />
+                    <SectionAdBanner position="home_section" />
                     
                     <View style={styles.homeSection}>
                     <View style={styles.sectionHeader}>
@@ -612,14 +656,31 @@ export default function MagazineScreen({ navigation, route }) {
           }
           // 뉴스 탭에서 더 이상 뉴스가 없을 때 마지막 멘트 표시
           if (type === 'news' && !hasMore && posts.length > 0) {
+            // 오늘 날짜인지 확인 (어제 뉴스 자동 표시 중이면 오늘이 아님)
+            const today = new Date();
+            const isToday = !showingYesterdayNews && !isFilteredByDate && 
+              (selectedDate.getFullYear() === today.getFullYear() &&
+               selectedDate.getMonth() === today.getMonth() &&
+               selectedDate.getDate() === today.getDate());
+            
+            // 날짜 포맷 함수
+            const formatDate = (date) => {
+              return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+            };
+            
             return (
               <View style={styles.endMessageContainer}>
                 <Text style={styles.endMessageText}>
-                  ✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨
+                  {isToday 
+                    ? '✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨'
+                    : `✨ 이상, ${formatDate(selectedDate)} 베트남 뉴스입니다 ✨`
+                  }
                 </Text>
-                <Text style={styles.endMessageSubText}>
-                  지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
-                </Text>
+                {isToday && (
+                  <Text style={styles.endMessageSubText}>
+                    지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
+                  </Text>
+                )}
               </View>
             );
           }

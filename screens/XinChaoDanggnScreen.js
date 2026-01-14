@@ -438,7 +438,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const listHeader = useMemo(() => (
     <View>
       {/* 🔥 메인 헤더 광고 */}
-      <AdBanner style={{ marginHorizontal: 12, marginTop: 8, borderRadius: 8 }} />
+      <AdBanner position="nanum_header" style={{ marginHorizontal: 12, marginTop: 8, borderRadius: 8 }} />
       {headerBanners}
       <SearchBar value={searchText} onChangeText={setSearchText} />
       {headerFilters}
