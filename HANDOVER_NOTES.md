@@ -1,6 +1,76 @@
-# 프로젝트 인계 및 현재 상태 명세서 (Handover Notes)
+# 🚀 씬짜오베트남 (XinChao Vietnam) 앱 - 프로젝트 문서
 
-본 문서는 앱의 주요 기능 개선 사항과 현재 해결 중인 구글 로그인 이슈의 상세 과정을 기록한 문서입니다. 다음 작업자가 현재의 맥락을 즉시 파악하고 이어서 작업할 수 있도록 작성되었습니다.
+본 문서는 앱의 기술 개요, 주요 기능, 작업 내역을 통합 관리하는 문서입니다.
+다음 작업자가 현재의 맥락을 즉시 파악하고 이어서 작업할 수 있도록 작성되었습니다.
+
+---
+
+## 📋 프로젝트 개요
+
+- **앱 정식 명칭**: 씬짜오베트남 (XinChao Vietnam)
+- **목표**: WebView 제거를 통한 성능 최적화, iOS App Store 가이드라인(4.2) 준수, 통합 로그인 및 푸시 알림 강화
+- **현재 버전**: v2.1.0 (Build 7, VC 41)
+
+---
+
+## 🛠 기술 스택
+
+| 구분 | 기술 |
+|------|------|
+| **Framework** | Expo (SDK 54), React Native |
+| **Backend** | Firebase (Firestore, Storage, Auth, Functions) |
+| **Data Source** | `chaovietnam.co.kr` (WP REST API), `vnkorlife.com` (WP REST API & KBoard RSS) |
+| **빌드** | EAS Build |
+
+---
+
+## 🏗 주요 구현 사항
+
+### A. UI/UX 네이티브 전환
+- **홈 화면**: 대형 검색창 (구글 스타일), WordPress REST API 연동, 5개 주요 섹션, 3초 자동 회전 슬라이더
+- **뉴스 탭**: 데일리 뉴스 리스트, 날짜별 필터링 (DatePicker)
+- **게시판 탭**: K-Board RSS 파싱 → 네이티브 카드 리스트
+- **상세 페이지**: `react-native-render-html`, `expo-image` 캐싱
+
+### B. 통합 로그인
+- **Firebase Authentication** 연동
+- **구글 로그인**: `@react-native-google-signin/google-signin`
+- **애플 로그인**: `expo-apple-authentication` (iOS 심사 필수)
+- Firestore `users` 컬렉션에 프로필 및 푸시 토큰 자동 등록
+
+### C. 커뮤니티 (댓글)
+- Firebase Firestore 기반 **실시간 댓글**
+- 갤러리/카메라 이미지 첨부 → Firebase Storage 업로드
+
+### D. 푸시 알림
+- `expo-notifications`, Firebase Cloud Functions
+- FCM/APNS 토큰 직접 활용 (앱 종료 상태에서도 수신)
+- Android 최고 우선순위 채널 (Importance.MAX)
+
+---
+
+## 📁 유지보수 가이드
+
+### API 엔드포인트
+`services/wordpressApi.js`에서 관리:
+- `MAGAZINE_BASE_URL`: 매거진 데이터
+- `BOARD_BASE_URL`: 게시판 데이터
+
+### 게시판 연동 (KBoard)
+K-Board는 일반 API 미지원 → `getBoardPosts` 함수 내 RSS 파싱 로직 참고
+
+### 빌드 및 배포
+```bash
+# 안드로이드
+eas build --platform android
+
+# iOS
+eas build --platform ios
+```
+
+---
+
+## 📝 작업 내역
 
 ## 1. 최근 완료된 주요 개선 사항 (성공 사례)
 
@@ -416,20 +486,51 @@ contentHtml = contentHtml
 
 ---
 
-## 7. 2026년 1월 14일 업데이트
+## 7. 2026년 1월 13일 - iOS App Store 리젝트 발생
 
-### 7.1 Firebase Remote Config 완전 복구
+### 7.1 🚨 iOS 2.2.0 (Build 13) 리젝트
 
-#### 이전 문제
-- iOS 빌드 크래시로 인해 Firebase 패키지 임시 제거
-- 광고 스위칭 기능 불가 상태
+#### 리젝트 상세
+| 항목 | 내용 |
+|------|------|
+| **버전** | 2.2.0 (Build 13) |
+| **리젝트 사유** | `Performance: App Completeness` |
+| **발생 시점** | 2026-01-13 06:01:12 (앱 시작 후 **0.15초** 만에 크래시) |
+| **테스트 기기** | iPhone 18,2 (iPhone OS 26.2) |
 
-#### 해결
+#### 크래시 에러 메시지
+```
+NSInvalidArgumentException
+*** -[__NSPlaceholderDictionary initWithObjects:forKeys:count:]: 
+    attempt to insert nil object from objects[0]
+```
+
+#### 원인 분석
+- NSDictionary 생성 시 **nil 값**을 넣으려고 해서 크래시
+- 앱 시작 직후 발생 → **초기화 코드 문제**
+- 크래시 로그에서 `com.google.admob.n.sql-storage-write` 큐 활성화 확인
+- **AdMob / Firebase 초기화 과정에서 문제 발생 추정**
+
+#### 임시 조치 (리젝트 전)
+- `@react-native-firebase/app`, `@react-native-firebase/remote-config` 패키지 제거
+- 광고 스위칭 기능 비활성화
+
+---
+
+## 8. 2026년 1월 14일 업데이트
+
+### 8.1 Firebase Remote Config 복구 시도
+
+#### 이전 문제 (7.1 참조)
+- iOS 빌드 크래시로 App Store 리젝트
+- Firebase 패키지 임시 제거로 광고 스위칭 불가
+
+#### 해결 시도
 - `@react-native-firebase/app` 및 `@react-native-firebase/remote-config` 패키지 재설치
 - `GoogleService-Info.plist`의 `IS_ADS_ENABLED`: false → **true** 수정
 - `app.json`에 iOS `googleServicesFile` 설정 추가
 
-### 7.2 위치별 광고 스위칭 구현
+### 8.2 위치별 광고 스위칭 구현
 
 #### AdBanner.js 리팩토링
 - Firebase Remote Config 연동
@@ -462,7 +563,7 @@ contentHtml = contentHtml
 }
 ```
 
-### 7.3 뉴스 기능 개선
+### 8.3 뉴스 기능 개선
 
 #### 탭 전환 시 새로고침
 - **이전:** 홈 탭만 `resetSearch` 처리
@@ -481,7 +582,7 @@ contentHtml = contentHtml
 - **오늘:** "✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨"
 - **과거:** "✨ 이상, 2026년 1월 13일 베트남 뉴스입니다 ✨"
 
-### 7.4 수정된 파일 목록
+### 8.4 수정된 파일 목록
 
 | 파일 | 주요 변경 |
 |------|----------|
@@ -495,7 +596,118 @@ contentHtml = contentHtml
 
 ---
 
-**최종 업데이트 일자:** 2026년 1월 14일
+## 9. 2026년 1월 14일 (저녁) - Firebase 보안 및 Google Maps 설정
+
+### 9.1 Firebase App Check 설정
+
+#### 목적
+- Firebase 백엔드 서비스(Firestore, Storage, Auth)에 대한 무단 접근 방지
+- "확인된 요청" 비율 증가
+
+#### 작업 내역
+1. **Apple Developer Console** - DeviceCheck 키 생성 (.p8 파일)
+2. **Firebase Console** - App Check 등록
+   - Android: Play Integrity 설정
+   - iOS: DeviceCheck + App Attest 설정
+3. **앱 코드** - App Check SDK 설치 및 초기화
+   ```bash
+   npm install @react-native-firebase/app-check@^21.6.1
+   ```
+4. **App.js** - `initializeAppCheck()` 함수 추가
+
+### 9.2 iOS Google + Apple 로그인 통합
+
+#### 이전 상태
+- Android: Google 로그인만
+- iOS: Apple 로그인만 (Google 로그인 비활성화)
+
+#### 변경 후
+- Android: Google 로그인
+- iOS: **Google 로그인 + Apple 로그인 둘 다!**
+
+#### 수정 파일
+- `screens/LoginScreen.js`
+  - `GoogleSignin.configure()`에 `iosClientId` 추가
+  - iOS에서도 Google 로그인 버튼 표시
+  - Apple 로그인 버튼 활성화
+
+#### app.json 추가 설정
+```json
+"ios": {
+  "infoPlist": {
+    "CFBundleURLTypes": [{
+      "CFBundleURLSchemes": ["com.googleusercontent.apps.249390849714-tl1s8pn1pr1e76ebnunu86eagjm98sm8"]
+    }]
+  }
+}
+```
+
+### 9.3 Google Maps SDK 설정
+
+#### 문제 상황
+- Google Cloud Console에서 Maps SDK 활성화 시 무한 루프 발생
+- "사용" 버튼 클릭 → 새 프로젝트/계정 생성 → 다시 "사용" 버튼... (무한 반복)
+
+#### 해결 방법: Google Cloud Shell로 직접 활성화
+```bash
+gcloud config set project chaovietnam-login
+gcloud services enable maps-android-backend.googleapis.com
+gcloud services enable maps-ios-backend.googleapis.com
+gcloud services api-keys create --display-name="Maps API Key for ChaoVN App"
+```
+
+#### 생성된 API 키
+- **키 이름**: Maps API Key for ChaoVN App
+- **제한사항**: Maps SDK for Android + Maps SDK for iOS (2개만)
+
+#### 패키지 설치
+```bash
+npm install react-native-maps
+```
+
+#### app.json 설정
+```json
+"ios": {
+  "config": {
+    "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
+  }
+},
+"android": {
+  "config": {
+    "googleMaps": {
+      "apiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
+    }
+  },
+  "permissions": [
+    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.ACCESS_COARSE_LOCATION"
+  ]
+},
+"plugins": [
+  "react-native-maps",
+  ...
+]
+```
+
+### 9.4 수정된 파일 목록
+
+| 파일 | 주요 변경 |
+|------|----------|
+| `App.js` | App Check import 및 초기화 코드 추가 |
+| `components/AdBanner.js` | Firebase 초기화 확인 로직 강화 |
+| `screens/LoginScreen.js` | iOS Google 로그인 활성화, Apple 로그인 버튼 표시 |
+| `app.json` | Google Maps 설정, iOS URL Scheme, 위치 권한 추가 |
+| `package.json` | @react-native-firebase/app-check, react-native-maps 추가 |
+
+### 9.5 다음 작업 (TODO)
+
+- [ ] iOS 빌드 테스트 - 크래시 문제 해결 확인
+- [ ] 지도 화면 구현 (필요시)
+- [ ] Android 업데이트 빌드
+
+---
+
+**최종 업데이트 일자:** 2026년 1월 14일 (저녁)
 **작업 상태:** 
 - ✅ 로딩/로그인 최적화 성공
 - ✅ UI/UX 대규모 개선 완료
@@ -508,5 +720,8 @@ contentHtml = contentHtml
 - ✅ 더보기 버튼 수정
 - ✅ 뉴스 이미지 중복 제거
 - ✅ 뉴스 카테고리순 정렬 및 어제 뉴스 fallback
+- ✅ Firebase App Check 설정 완료
+- ✅ iOS Google + Apple 로그인 통합
+- ✅ Google Maps SDK 설정 완료
 - ⚠️ 개발 빌드에서 알람 불안정 (FCM 토큰 충돌 - 출시 앱과 동시 테스트 시 발생)
 - ✅ 출시 앱은 완전 정상 작동

@@ -5,6 +5,7 @@ import {
   BannerAdSize,
   TestIds,
 } from "react-native-google-mobile-ads";
+import firebase from "@react-native-firebase/app";
 import remoteConfig from "@react-native-firebase/remote-config";
 
 // AdMob 광고 단위 ID
@@ -26,6 +27,12 @@ const fetchRemoteConfig = async () => {
   }
 
   try {
+    // Firebase 초기화 확인
+    if (!firebase.apps.length) {
+      console.log("⚠️ Firebase가 아직 초기화되지 않았습니다");
+      return { showAdMob: true, adsConfig: {} };
+    }
+
     // 캐시 시간 설정 (개발: 0초, 프로덕션: 1시간)
     await remoteConfig().setConfigSettings({
       minimumFetchIntervalMillis: __DEV__ ? 0 : 3600000,
@@ -68,11 +75,22 @@ const fetchRemoteConfig = async () => {
     console.log("✅ Remote Config 로드 성공:", cachedConfig);
     return cachedConfig;
   } catch (error) {
-    console.log("❌ Remote Config 로드 실패:", error);
-    // 실패 시 기본값 (AdMob 표시)
+    console.log("❌ Remote Config 로드 실패:", error?.message || error);
+    // 실패 시 기본값 (AdMob 표시) - 절대 크래시 안 남
     cachedConfig = { showAdMob: true, adsConfig: {} };
     configFetched = true;
     return cachedConfig;
+  }
+};
+
+// Firebase 앱 초기화 상태 확인 (더 엄격한 체크)
+const isFirebaseInitialized = () => {
+  try {
+    const app = firebase.app();
+    return app && app.name === "[DEFAULT]";
+  } catch (e) {
+    console.log("⚠️ Firebase 앱 확인 실패:", e?.message);
+    return false;
   }
 };
 
@@ -98,18 +116,35 @@ export default function AdBanner({
 
   const loadConfig = async () => {
     try {
+      // Firebase 초기화 확인 (크래시 방지)
+      if (!isFirebaseInitialized()) {
+        console.log("⚠️ Firebase 미초기화 - AdMob 기본값 사용");
+        setShowAdMob(true);
+        setIsLoading(false);
+        return;
+      }
+
       const config = await fetchRemoteConfig();
-      setShowAdMob(config.showAdMob);
+      
+      // null/undefined 체크
+      if (!config) {
+        setShowAdMob(true);
+        setIsLoading(false);
+        return;
+      }
+
+      setShowAdMob(config.showAdMob !== false); // 기본값 true
 
       // 위치별 자체 광고 설정
       if (!config.showAdMob && config.adsConfig && config.adsConfig[position]) {
         const ad = config.adsConfig[position];
-        if (ad.image && ad.link) {
+        if (ad && ad.image && ad.link) {
           setInHouseAd(ad);
         }
       }
     } catch (error) {
-      console.log("광고 설정 로드 실패:", error);
+      console.log("광고 설정 로드 실패:", error?.message || error);
+      setShowAdMob(true); // 에러 시 AdMob 기본값
     } finally {
       setIsLoading(false);
     }

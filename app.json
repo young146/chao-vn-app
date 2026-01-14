@@ -21,11 +21,21 @@
       "bundleIdentifier": "com.yourname.chaovnapp",
       "buildNumber": "14",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "config": {
+        "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.249390849714-tl1s8pn1pr1e76ebnunu86eagjm98sm8"
+            ]
+          }
+        ],
         "NSPhotoLibraryUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 선택하기 위해 사진 라이브러리에 접근합니다. 예: 프로필 사진을 업로드하거나 중고거래 물품 사진을 등록할 때 사용합니다.",
         "NSCameraUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 촬영하기 위해 카메라에 접근합니다. 예: 중고거래 물품을 직접 촬영하여 등록하거나 채팅에서 사진을 전송할 때 사용합니다.",
         "GADApplicationIdentifier": "ca-app-pub-7944314901202352~9182981091",
@@ -61,10 +71,17 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.WAKE_LOCK",
         "android.permission.VIBRATE",
-        "com.google.android.gms.permission.AD_ID"
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "softwareKeyboardLayoutMode": "pan",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
+        }
+      }
     },
     "extra": {
       "eas": {
@@ -75,6 +92,7 @@
       "@react-native-firebase/app",
       "expo-font",
       "expo-asset",
+      "react-native-maps",
       [
         "expo-notifications",
         {

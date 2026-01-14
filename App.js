@@ -10,6 +10,59 @@ LogBox.ignoreLogs([
   'Please use `setDefaults()` instead',
   'Please use `fetchAndActivate()` instead',
 ]);
+
+// Firebase 초기화 (앱 시작 시 바로 실행)
+import firebase from "@react-native-firebase/app";
+import appCheck from "@react-native-firebase/app-check";
+
+// App Check 초기화 (앱 시작 시 바로 실행)
+const initializeAppCheck = async () => {
+  try {
+    // App Check 활성화 (iOS: DeviceCheck/AppAttest, Android: Play Integrity)
+    const rnfbProvider = appCheck().newReactNativeFirebaseAppCheckProvider();
+    rnfbProvider.configure({
+      android: {
+        provider: __DEV__ ? 'debug' : 'playIntegrity',
+      },
+      apple: {
+        provider: __DEV__ ? 'debug' : 'deviceCheck',
+      },
+    });
+    
+    await appCheck().initializeAppCheck({
+      provider: rnfbProvider,
+      isTokenAutoRefreshEnabled: true,
+    });
+    
+    console.log("✅ Firebase App Check 초기화 완료");
+    return true;
+  } catch (error) {
+    console.log("⚠️ App Check 초기화 실패:", error?.message);
+    return false;
+  }
+};
+
+// Firebase 초기화 상태 확인 함수
+const waitForFirebase = async (timeout = 5000) => {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    try {
+      const app = firebase.app();
+      if (app && app.name === "[DEFAULT]") {
+        console.log("✅ Firebase 초기화 완료");
+        return true;
+      }
+    } catch (e) {
+      // 아직 초기화 안됨
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  console.log("⚠️ Firebase 초기화 타임아웃 (기본값으로 진행)");
+  return false;
+};
+
 import "react-native-gesture-handler";
 import React, { useEffect, useState, useRef } from "react";
 import { Image as ExpoImage } from "expo-image";
@@ -117,7 +170,13 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // 0. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
+        // 0. Firebase 초기화 완료 대기 (iOS 크래시 방지)
+        await waitForFirebase(3000);
+        
+        // 0.5 App Check 초기화 (Firebase 백엔드 보안)
+        await initializeAppCheck();
+
+        // 1. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
         if (!__DEV__ && Updates.isEnabled) {
           try {
             const update = await Updates.checkForUpdateAsync();
@@ -133,11 +192,11 @@ export default function App() {
           }
         }
 
-        // 1. 캐시 확인 - 있으면 즉시 진입!
+        // 2. 캐시 확인 - 있으면 즉시 진입!
         const hasCache = await hasHomeDataCache();
 
         if (hasCache) {
-          console.log("✅ 캐시 발견! 즉시 진입 (0초 로딩)");
+          console.log("✅ 캐시 발견! 즉시 진입");
           setIsReady(true);
 
           // 백그라운드에서 조용히 데이터 갱신 (사용자는 모름)
@@ -146,7 +205,7 @@ export default function App() {
           return;
         }
 
-        // 2. 캐시 없음 (첫 설치) → 로딩 화면 표시
+        // 3. 캐시 없음 (첫 설치) → 로딩 화면 표시
         console.log("⏳ 첫 실행, 데이터 로딩 중...");
 
         let progress = 0;
