@@ -415,16 +415,98 @@ contentHtml = contentHtml
 | `GoogleService-Info.plist` | 🆕 iOS Firebase 설정 (신규) |
 
 ---
-**최종 업데이트 일자:** 2026년 1월 12일
+
+## 7. 2026년 1월 14일 업데이트
+
+### 7.1 Firebase Remote Config 완전 복구
+
+#### 이전 문제
+- iOS 빌드 크래시로 인해 Firebase 패키지 임시 제거
+- 광고 스위칭 기능 불가 상태
+
+#### 해결
+- `@react-native-firebase/app` 및 `@react-native-firebase/remote-config` 패키지 재설치
+- `GoogleService-Info.plist`의 `IS_ADS_ENABLED`: false → **true** 수정
+- `app.json`에 iOS `googleServicesFile` 설정 추가
+
+### 7.2 위치별 광고 스위칭 구현
+
+#### AdBanner.js 리팩토링
+- Firebase Remote Config 연동
+- `position` 파라미터로 위치별 다른 광고 지원
+- 8개 광고 위치 정의:
+
+| position | 사용 위치 |
+|----------|----------|
+| `home_header` | 홈 화면 상단 |
+| `home_section` | 홈 화면 섹션 사이 |
+| `news_header` | 뉴스 화면 상단 |
+| `news_inline` | 뉴스 리스트 중간 (4개마다) |
+| `board_header` | 게시판 화면 상단 |
+| `board_inline` | 게시판 리스트 중간 |
+| `nanum_header` | 나눔 화면 상단 |
+| `item_detail` | 물품 상세 페이지 |
+
+#### Firebase Remote Config 설정
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `show_admob` | Boolean | true = AdMob, false = 자체광고 |
+| `ads_config` | JSON | 위치별 이미지 URL 및 링크 |
+
+#### ads_config JSON 구조
+```json
+{
+  "home_header": { "image": "https://...", "link": "https://..." },
+  "news_header": { "image": "https://...", "link": "https://..." },
+  ...
+}
+```
+
+### 7.3 뉴스 기능 개선
+
+#### 탭 전환 시 새로고침
+- **이전:** 홈 탭만 `resetSearch` 처리
+- **변경:** 모든 탭에서 `resetSearch` 처리
+- 날짜 필터, 검색어 초기화 포함
+
+#### 오늘 뉴스 없으면 어제 뉴스 자동 표시
+- 자정 ~ 새 뉴스 업로드 전까지 빈 화면 방지
+- `showingYesterdayNews` 상태로 어제 뉴스 표시 여부 추적
+
+#### 뉴스 카테고리순 정렬
+- 정렬 순서: 경제 → 사회 → 문화 → 정치 → 국제 → 한-베 → 여행 → 건강 → 음식 → 기타
+- `sortNewsByCategory()` 함수 추가
+
+#### 과거 날짜 멘트 개선
+- **오늘:** "✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨"
+- **과거:** "✨ 이상, 2026년 1월 13일 베트남 뉴스입니다 ✨"
+
+### 7.4 수정된 파일 목록
+
+| 파일 | 주요 변경 |
+|------|----------|
+| `GoogleService-Info.plist` | IS_ADS_ENABLED: true |
+| `app.json` | iOS googleServicesFile 추가, Firebase 플러그인 추가 |
+| `package.json` | @react-native-firebase/app, remote-config 추가 |
+| `components/AdBanner.js` | Remote Config 연동, position 기반 스위칭 |
+| `screens/MagazineScreen.js` | 탭 새로고침, 어제 뉴스 fallback, 카테고리 정렬 |
+| `screens/XinChaoDanggnScreen.js` | position 파라미터 추가 |
+| `screens/ItemDetailScreen.js` | position 파라미터 추가 |
+
+---
+
+**최종 업데이트 일자:** 2026년 1월 14일
 **작업 상태:** 
 - ✅ 로딩/로그인 최적화 성공
 - ✅ UI/UX 대규모 개선 완료
 - ✅ 지역명 간소화 및 Firebase 데이터 마이그레이션 완료
 - ✅ AdMob 광고 통합 완료
+- ✅ Firebase Remote Config 복구 및 위치별 광고 스위칭 구현
 - ✅ 홈 화면 로딩 최적화 완료 (9번→1번 API 호출)
 - ✅ 검색 복귀 기능 추가
 - ✅ 하단 탭바 SafeArea 적용
 - ✅ 더보기 버튼 수정
 - ✅ 뉴스 이미지 중복 제거
+- ✅ 뉴스 카테고리순 정렬 및 어제 뉴스 fallback
 - ⚠️ 개발 빌드에서 알람 불안정 (FCM 토큰 충돌 - 출시 앱과 동시 테스트 시 발생)
 - ✅ 출시 앱은 완전 정상 작동
