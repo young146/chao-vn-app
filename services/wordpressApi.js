@@ -12,6 +12,19 @@ const api = axios.create({
   timeout: 8000,
 });
 
+// 뉴스 카테고리 섹션 정의 (WordPress 사이트와 동일한 순서)
+const NEWS_SECTIONS_CONFIG = [
+  { id: null, name: '경제', categoryKey: 'Economy' },
+  { id: null, name: '사회', categoryKey: 'Society' },
+  { id: null, name: '문화', categoryKey: 'Culture' },
+  { id: null, name: '정치', categoryKey: 'Politics' },
+  { id: null, name: '국제', categoryKey: 'International' },
+  { id: null, name: '한-베', categoryKey: 'Korea-Vietnam' },
+  { id: null, name: '여행', categoryKey: 'Travel' },
+  { id: null, name: '건강', categoryKey: 'Health' },
+  { id: null, name: '음식', categoryKey: 'Food' },
+];
+
 // 홈 화면 섹션 정의 (ID 우선, 없으면 이름으로 매칭)
 const HOME_SECTIONS_CONFIG = [
   { id: 32, name: '교민소식', searchNames: ['교민 소식', '교민소식'] }, // 기존 ID
@@ -248,6 +261,119 @@ export const hasHomeDataCache = async () => {
     return !!cached;
   } catch {
     return false;
+  }
+};
+
+// 🗞️ 뉴스 카테고리별 섹션 데이터 가져오기 (오늘 날짜 기준)
+const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE';
+
+export const getNewsSectionsCached = async (forceRefresh = false, targetDate = null) => {
+  try {
+    const dateStr = targetDate 
+      ? targetDate.toISOString().split('T')[0] 
+      : new Date().toISOString().split('T')[0];
+    
+    const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}`;
+    
+    // 1. 캐시 확인
+    if (!forceRefresh) {
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
+        if (!isExpired) {
+          console.log('📦 뉴스 캐시 사용');
+          return data;
+        }
+      }
+    }
+    
+    console.log(`🗞️ ${dateStr} 뉴스 로딩 시작...`);
+    
+    // 2. 각 카테고리별 뉴스 가져오기 (병렬 처리)
+    const sectionPromises = NEWS_SECTIONS_CONFIG.map(async (config) => {
+      try {
+        // meta.news_category로 필터링
+        const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
+          params: {
+            per_page: 10,
+            _embed: 1,
+            after: `${dateStr}T00:00:00`,
+            before: `${dateStr}T23:59:59`,
+            // meta_key와 meta_value는 WordPress REST API 기본 지원 안 함
+            // 대신 모든 뉴스를 가져와서 필터링
+          },
+        });
+        
+        // 해당 카테고리만 필터링
+        const filteredPosts = response.data.filter(
+          post => post.meta?.news_category === config.categoryKey
+        );
+        
+        return {
+          name: config.name,
+          categoryKey: config.categoryKey,
+          posts: filteredPosts.slice(0, 4).map((post, idx) => ({
+            ...post,
+            id: `news-${config.categoryKey}-${post.id}-${idx}`
+          }))
+        };
+      } catch (error) {
+        console.error(`뉴스 섹션 ${config.name} 로드 실패:`, error.message);
+        return { name: config.name, categoryKey: config.categoryKey, posts: [] };
+      }
+    });
+    
+    // 모든 뉴스를 한 번에 가져와서 카테고리별로 분류 (더 효율적)
+    let allTodayNews = [];
+    try {
+      const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
+        params: {
+          per_page: 100, // 오늘 뉴스 최대 100개
+          _embed: 1,
+          after: `${dateStr}T00:00:00`,
+          before: `${dateStr}T23:59:59`,
+        },
+      });
+      allTodayNews = response.data;
+      console.log(`📰 ${dateStr} 뉴스 ${allTodayNews.length}개 로드`);
+    } catch (error) {
+      console.error('뉴스 로드 실패:', error.message);
+    }
+    
+    // 카테고리별로 분류 (모든 뉴스 표시, 제한 없음)
+    const newsSections = NEWS_SECTIONS_CONFIG.map(config => {
+      const categoryPosts = allTodayNews.filter(
+        post => post.meta?.news_category === config.categoryKey
+      );
+      return {
+        name: config.name,
+        categoryKey: config.categoryKey,
+        posts: categoryPosts.map((post, idx) => ({
+          ...post,
+          id: `news-${config.categoryKey}-${post.id}-${idx}`
+        }))
+      };
+    }).filter(section => section.posts.length > 0); // 뉴스가 있는 섹션만
+    
+    const result = { 
+      newsSections, 
+      totalCount: allTodayNews.length,
+      date: dateStr 
+    };
+    
+    // 3. 캐시 저장
+    await AsyncStorage.setItem(cacheKey, JSON.stringify({
+      data: result,
+      timestamp: Date.now()
+    }));
+    
+    console.log(`✅ ${newsSections.length}개 뉴스 섹션 로드 완료`);
+    return result;
+    
+  } catch (error) {
+    console.error('getNewsSectionsCached error:', error.message);
+    return { newsSections: [], totalCount: 0, date: null };
   }
 };
 

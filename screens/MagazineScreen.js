@@ -16,7 +16,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached } from '../services/wordpressApi';
+import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
 import AdBanner, { SectionAdBanner, InlineAdBanner } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -320,6 +320,7 @@ export default function MagazineScreen({ navigation, route }) {
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
+  const [newsSections, setNewsSections] = useState([]); // 🗞️ 뉴스 카테고리별 섹션
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
@@ -333,38 +334,47 @@ export default function MagazineScreen({ navigation, route }) {
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
   const [showingYesterdayNews, setShowingYesterdayNews] = useState(false);
 
-  // 뉴스 카테고리 정렬 순서 (기타는 맨 뒤)
-  const CATEGORY_ORDER = ['경제', '사회', '문화', '정치', '국제', '한-베', '여행', '건강', '음식'];
-  
-  // 카테고리 순서로 뉴스 정렬
-  const sortNewsByCategory = (posts) => {
-    return [...posts].sort((a, b) => {
-      const catA = a.meta?.news_category || '기타';
-      const catB = b.meta?.news_category || '기타';
-      const orderA = CATEGORY_ORDER.indexOf(catA);
-      const orderB = CATEGORY_ORDER.indexOf(catB);
-      // 목록에 없는 카테고리(기타 포함)는 맨 뒤로
-      const priorityA = orderA === -1 ? 999 : orderA;
-      const priorityB = orderB === -1 ? 999 : orderB;
-      return priorityA - priorityB;
-    });
-  };
-
   const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
     try {
       if (pageNum === 1) {
         if (!isRefresh) setLoading(true);
         // 홈 화면이고 검색어가 없을 때만 슬라이더 및 섹션 데이터 가져옴
         if (type === 'home' && !query) {
-          // 🚀 최적화: getHomeDataCached()를 1번만 호출 (중복 호출 제거)
           const homeData = await getHomeDataCached(isRefresh);
           setSlides(homeData.slideshowPosts || []);
           setHomeSections(homeData.homeSections || []);
           setLoading(false);
           return;
         }
+        
+        // 🗞️ 뉴스 탭: 카테고리별 섹션으로 표시 (WordPress 사이트와 동일)
+        if (type === 'news' && !query) {
+          let targetDate = date || selectedDate;
+          if (!isFilteredByDate) {
+            targetDate = new Date(); // 오늘 날짜
+          }
+          
+          let newsData = await getNewsSectionsCached(isRefresh, targetDate);
+          
+          // 오늘 뉴스가 없으면 어제 뉴스 표시
+          if (newsData.newsSections.length === 0 && !isFilteredByDate) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            newsData = await getNewsSectionsCached(isRefresh, yesterday);
+            setSelectedDate(yesterday);
+            setShowingYesterdayNews(true);
+          } else {
+            setShowingYesterdayNews(false);
+          }
+          
+          setNewsSections(newsData.newsSections || []);
+          setHasMore(false); // 섹션 뷰에서는 무한 스크롤 없음
+          setLoading(false);
+          return;
+        }
       } else {
         if (type === 'home' && !query) return;
+        if (type === 'news' && !query) return; // 뉴스 섹션 뷰에서는 추가 로딩 없음
         setLoadingMore(true);
       }
 
@@ -373,34 +383,10 @@ export default function MagazineScreen({ navigation, route }) {
         newPosts = await wordpressApi.searchPosts(query, pageNum);
       } else if (type === 'board') {
         newPosts = await wordpressApi.getBoardPosts(pageNum);
-      } else if (categoryId || type === 'news') {
-        // 뉴스 탭: 날짜 필터가 없으면 오늘 날짜로 자동 필터링
-        let filterDate = date;
-        let isShowingYesterday = false;
-        
-        if (type === 'news' && !date && !isFilteredByDate) {
-          filterDate = new Date(); // 오늘 날짜
-        }
-        
-        const dateStr = filterDate ? filterDate.toISOString().split('T')[0] : null;
+      } else if (categoryId) {
+        // 카테고리별 포스트 (뉴스 외)
+        const dateStr = date ? date.toISOString().split('T')[0] : null;
         newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, dateStr);
-        
-        // 🔄 오늘 뉴스가 없으면 어제 뉴스 표시
-        if (type === 'news' && newPosts.length === 0 && pageNum === 1 && !isFilteredByDate) {
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
-          newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, yesterdayStr);
-          isShowingYesterday = true;
-          setSelectedDate(yesterday); // 어제 날짜로 설정 (마지막 멘트 표시용)
-        }
-        
-        setShowingYesterdayNews(isShowingYesterday);
-        
-        // 📰 뉴스 카테고리 순서로 정렬
-        if (type === 'news' && newPosts.length > 0) {
-          newPosts = sortNewsByCategory(newPosts);
-        }
       } else {
         newPosts = await wordpressApi.getMagazinePosts(pageNum);
       }
@@ -499,7 +485,7 @@ export default function MagazineScreen({ navigation, route }) {
     if (!loadingMore && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchPosts(nextPage);
+      fetchPosts(nextPage, false, searchQuery, isFilteredByDate ? selectedDate : null);
     }
   };
 
@@ -593,14 +579,12 @@ export default function MagazineScreen({ navigation, route }) {
                 
                 {homeSections.map((section, sectionIndex) => (
                   <View key={section.id}>
-                    {/* 🔥 각 섹션 위에 광고 배치 */}
                     <SectionAdBanner position="home_section" />
-                    
                     <View style={styles.homeSection}>
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>{section.name}</Text>
                       <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
-                        <Text style={styles.seeMore}>더보기 ></Text>
+                        <Text style={styles.seeMore}>더보기 {'>'}</Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.gridContainer}>
@@ -636,6 +620,46 @@ export default function MagazineScreen({ navigation, route }) {
                     </View>
                   </View>
                 ))}
+              </View>
+            )}
+
+            {/* 🗞️ 뉴스 탭: 카테고리별 섹션 (WordPress 사이트와 동일) */}
+            {type === 'news' && !searchQuery && newsSections.length > 0 && (
+              <View>
+                {newsSections.map((section, sectionIndex) => (
+                  <View key={`news-section-${section.categoryKey}`}>
+                    {sectionIndex > 0 && <SectionAdBanner position="news_inline" />}
+                    <View style={styles.homeSection}>
+                      <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>{section.name} ({section.posts.length})</Text>
+                      </View>
+                      {/* 모든 뉴스 표시 (제한 없음) */}
+                      {section.posts.map((post, index) => (
+                        <MagazineCard 
+                          key={`news-${section.categoryKey}-${index}`}
+                          item={post} 
+                          onPress={handlePostPress} 
+                          type="news" 
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))}
+                
+                {/* 마지막 멘트 */}
+                <View style={styles.endMessageContainer}>
+                  <Text style={styles.endMessageText}>
+                    {(isFilteredByDate || showingYesterdayNews)
+                      ? `✨ 이상, ${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 베트남 뉴스입니다 ✨`
+                      : '✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨'
+                    }
+                  </Text>
+                  {!isFilteredByDate && !showingYesterdayNews && (
+                    <Text style={styles.endMessageSubText}>
+                      지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
+                    </Text>
+                  )}
+                </View>
               </View>
             )}
             {searchQuery.length > 0 && (
@@ -692,7 +716,7 @@ export default function MagazineScreen({ navigation, route }) {
               <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
               <Text style={styles.emptySubtext}>다른 키워드로 검색해보세요</Text>
             </View>
-          ) : !loading && type !== 'home' && posts.length === 0 ? (
+          ) : !loading && type !== 'home' && type !== 'news' && posts.length === 0 ? (
             <View style={styles.centerContainer}>
               <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
             </View>
