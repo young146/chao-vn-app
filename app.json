@@ -92,7 +92,6 @@
       "@react-native-firebase/app",
       "expo-font",
       "expo-asset",
-      "react-native-maps",
       [
         "expo-notifications",
         {

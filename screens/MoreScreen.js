@@ -273,7 +273,7 @@ export default function MoreScreen({ navigation }) {
 
       {/* 앱 정보 */}
       <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>씬짜오나눔 v2.1.0</Text>
+        <Text style={styles.appInfoText}>씬짜오나눔 v2.2.0</Text>
         <Text style={styles.appInfoText}>베트남 한인 중고거래</Text>
         {__DEV__ ? (
           <Text style={[styles.appInfoText, { color: "#FF6B35" }]}>

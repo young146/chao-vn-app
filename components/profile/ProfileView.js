@@ -217,7 +217,7 @@ export default function ProfileView({
             </View>
 
             <View style={styles.versionContainer}>
-                <Text style={styles.versionText}>씬짜오 베트남 v1.0.0</Text>
+                <Text style={styles.versionText}>씬짜오 베트남 v2.2.0</Text>
             </View>
         </ScrollView>
     );
