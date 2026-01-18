@@ -2,7 +2,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { db, auth } from "../firebase/config";
+import { db, auth, getDb, getAuthInstance, initializeFirebase } from "../firebase/config";
 import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from "firebase/firestore";
 import Constants from "expo-constants";
 
@@ -219,6 +219,7 @@ class NotificationService {
       }
 
       // Firestore에 저장
+      const dbInstance = await getDb();
       const tokenData = {
         expoPushToken: expoPushToken || null,
         ...(fcmToken && {
@@ -229,7 +230,7 @@ class NotificationService {
         pushTokenUpdatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, "users", user.uid), tokenData, { merge: true });
+      await setDoc(doc(dbInstance, "users", user.uid), tokenData, { merge: true });
       console.log("✅ 푸시 토큰 저장 완료");
       console.log("  - Expo Token:", expoPushToken ? "있음" : "없음");
       console.log("  - FCM Token:", fcmToken ? "있음" : "없음");
@@ -275,12 +276,16 @@ class NotificationService {
       // 채팅방으로 이동
       if (data?.screen === "ChatRoom" && data?.roomId && navigationRef?.isReady()) {
         try {
-          // 채팅방 정보 가져오기
-          const chatRoomDoc = await db.collection("chatRooms").doc(data.roomId).get();
+          // Firebase 초기화 보장
+          const dbInstance = await getDb();
+          const authInstance = await getAuthInstance();
           
-          if (chatRoomDoc.exists) {
+          // 채팅방 정보 가져오기
+          const chatRoomDoc = await getDoc(doc(dbInstance, "chatRooms", data.roomId));
+          
+          if (chatRoomDoc.exists()) {
             const chatRoomData = chatRoomDoc.data();
-            const currentUserId = auth.currentUser?.uid;
+            const currentUserId = authInstance.currentUser?.uid;
             
             if (currentUserId) {
               // 상대방 정보 찾기
@@ -312,7 +317,7 @@ class NotificationService {
   /**
    * 전역 채팅 알림 리스너 시작 (Firestore 실시간 감지)
    */
-  startChatRoomsListener(userId) {
+  async startChatRoomsListener(userId) {
     // 기존 리스너가 있으면 제거
     if (this.chatRoomsUnsubscribe) {
       this.chatRoomsUnsubscribe();
@@ -322,10 +327,13 @@ class NotificationService {
 
     console.log("🔔 전역 채팅 알림 리스너 시작:", userId);
 
-    const chatRoomsRef = collection(db, "chatRooms");
-    const q = query(chatRoomsRef, where("participants", "array-contains", userId));
+    try {
+      // Firebase 초기화 보장
+      const dbInstance = await getDb();
+      const chatRoomsRef = collection(dbInstance, "chatRooms");
+      const q = query(chatRoomsRef, where("participants", "array-contains", userId));
 
-    this.chatRoomsUnsubscribe = onSnapshot(q, (snapshot) => {
+      this.chatRoomsUnsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "modified") {
           const chatData = change.doc.data();
@@ -356,7 +364,9 @@ class NotificationService {
           }
         }
       });
-    });
+    } catch (error) {
+      console.error("❌ 채팅 리스너 시작 실패:", error);
+    }
   }
 
   /**
@@ -431,14 +441,24 @@ class NotificationService {
       const responseListener = this.setupNotificationResponseListener();
 
       // 5. 사용자 로그인 상태 감지하여 채팅 리스너 시작
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          this.registerTokens(user);
-          this.startChatRoomsListener(user.uid);
-        } else {
-          this.stopChatRoomsListener();
+      // Firebase 초기화 보장
+      (async () => {
+        try {
+          await initializeFirebase();
+          const authInstance = await getAuthInstance();
+          
+          authInstance.onAuthStateChanged(async (user) => {
+            if (user) {
+              this.registerTokens(user);
+              await this.startChatRoomsListener(user.uid);
+            } else {
+              this.stopChatRoomsListener();
+            }
+          });
+        } catch (error) {
+          console.error("❌ Firebase 초기화 실패 (NotificationService):", error);
         }
-      });
+      })();
 
       this.isInitialized = true;
       console.log("✅ NotificationService 초기화 완료");

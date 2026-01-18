@@ -10,7 +10,7 @@ import {
   signInWithCredential,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
-import { auth, db } from "../firebase/config";
+import { auth, db, initializeFirebase, getAuthInstance, getDb } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthContext = createContext({});
@@ -21,22 +21,84 @@ const ADMIN_EMAILS = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseReady, setFirebaseReady] = useState(false);
+
+  // ✅ Firebase 초기화 대기
+  useEffect(() => {
+    const waitForFirebase = async () => {
+      try {
+        // Firebase가 이미 초기화되어 있으면 즉시 진행
+        if (auth) {
+          setFirebaseReady(true);
+          return;
+        }
+        
+        // Firebase 초기화 대기 (최대 5초)
+        const timeout = setTimeout(() => {
+          console.warn("⚠️ Firebase 초기화 타임아웃, 계속 진행...");
+          setFirebaseReady(true);
+        }, 5000);
+
+        await initializeFirebase();
+        clearTimeout(timeout);
+        setFirebaseReady(true);
+        console.log("✅ AuthContext: Firebase 초기화 완료");
+      } catch (error) {
+        console.error("❌ AuthContext: Firebase 초기화 실패:", error);
+        setFirebaseReady(true); // 실패해도 계속 진행
+      }
+    };
+
+    waitForFirebase();
+  }, []);
 
   useEffect(() => {
-    // Firebase Auth 상태 변화 감지
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await AsyncStorage.setItem("@user_id", currentUser.uid);
-        // 🔔 알림 토큰 등록은 NotificationService에서 전담하므로 여기서 중복 호출하지 않음
-      } else {
-        await AsyncStorage.removeItem("@user_id");
+    // Firebase가 준비될 때까지 대기
+    if (!firebaseReady) {
+      return;
+    }
+
+    // ✅ getAuthInstance()를 사용하여 초기화 보장
+    const setupAuthListener = async () => {
+      try {
+        const authInstance = await getAuthInstance();
+        
+        if (!authInstance) {
+          console.error("❌ AuthContext: authInstance가 null입니다");
+          setLoading(false);
+          return null;
+        }
+
+        const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
+          setUser(currentUser);
+          if (currentUser) {
+            await AsyncStorage.setItem("@user_id", currentUser.uid);
+            // 🔔 알림 토큰 등록은 NotificationService에서 전담하므로 여기서 중복 호출하지 않음
+          } else {
+            await AsyncStorage.removeItem("@user_id");
+          }
+          setLoading(false);
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.error("❌ AuthContext: onAuthStateChanged 설정 실패:", error);
+        setLoading(false);
+        return null;
       }
-      setLoading(false);
+    };
+
+    let unsubscribe = null;
+    setupAuthListener().then(unsub => {
+      unsubscribe = unsub;
     });
 
-    return unsubscribe;
-  }, []);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [firebaseReady]);
 
   // Admin 권한 확인
   const isAdmin = () => {
@@ -47,9 +109,13 @@ export const AuthProvider = ({ children }) => {
   // 회원가입 (프로필 정보 포함)
   const signup = async (email, password, profileData = {}) => {
     try {
+      // Firebase 초기화 보장
+      const authInstance = await getAuthInstance();
+      const dbInstance = await getDb();
+      
       // 1. Firebase Authentication 계정 생성
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        authInstance,
         email,
         password
       );
@@ -58,7 +124,7 @@ export const AuthProvider = ({ children }) => {
       // 2. users 컬렉션에 프로필 저장
       const profileCompleted = !!(profileData.city && profileData.district);
 
-      await setDoc(doc(db, "users", newUser.uid), {
+      await setDoc(doc(dbInstance, "users", newUser.uid), {
         uid: newUser.uid,
         email: newUser.email,
         name: profileData.name || null,
@@ -71,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       // 3. notificationSettings 초기화
-      await setDoc(doc(db, "notificationSettings", newUser.uid), {
+      await setDoc(doc(dbInstance, "notificationSettings", newUser.uid), {
         userId: newUser.uid,
         nearbyItems: profileCompleted ? true : false,
         favorites: true,
@@ -98,8 +164,9 @@ export const AuthProvider = ({ children }) => {
   // 로그인
   const login = async (email, password) => {
     try {
+      const authInstance = await getAuthInstance();
       const userCredential = await signInWithEmailAndPassword(
-        auth,
+        authInstance,
         email,
         password
       );
@@ -120,7 +187,8 @@ export const AuthProvider = ({ children }) => {
   // 로그아웃
   const logout = async () => {
     try {
-      await signOut(auth);
+      const authInstance = await getAuthInstance();
+      await signOut(authInstance);
       await AsyncStorage.removeItem("@user_id");
       return { success: true };
     } catch (error) {
@@ -131,8 +199,9 @@ export const AuthProvider = ({ children }) => {
   // 아이디 찾기
   const findId = async (type, value) => {
     try {
+      const dbInstance = await getDb();
       const field = type === 'name' ? 'name' : 'displayName';
-      const q = query(collection(db, "users"), where(field, "==", value));
+      const q = query(collection(dbInstance, "users"), where(field, "==", value));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -157,7 +226,8 @@ export const AuthProvider = ({ children }) => {
   // 비밀번호 찾기
   const findPassword = async (email) => {
     try {
-      await sendPasswordResetEmail(auth, email);
+      const authInstance = await getAuthInstance();
+      await sendPasswordResetEmail(authInstance, email);
       return { success: true };
     } catch (error) {
       console.error("비밀번호 찾기 오류:", error);
@@ -174,13 +244,16 @@ export const AuthProvider = ({ children }) => {
   // 구글 로그인
   const googleLogin = async (idToken, accessToken = null) => {
     try {
+      const authInstance = await getAuthInstance();
+      const dbInstance = await getDb();
+      
       const credential = GoogleAuthProvider.credential(idToken, accessToken);
-      const userCredential = await signInWithCredential(auth, credential);
+      const userCredential = await signInWithCredential(authInstance, credential);
       const googleUser = userCredential.user;
 
-      const userDoc = await getDoc(doc(db, "users", googleUser.uid));
+      const userDoc = await getDoc(doc(dbInstance, "users", googleUser.uid));
       if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", googleUser.uid), {
+        await setDoc(doc(dbInstance, "users", googleUser.uid), {
           uid: googleUser.uid,
           email: googleUser.email,
           name: googleUser.displayName || googleUser.email?.split("@")[0] || "",
@@ -190,7 +263,7 @@ export const AuthProvider = ({ children }) => {
           createdAt: serverTimestamp(),
         });
 
-        await setDoc(doc(db, "notificationSettings", googleUser.uid), {
+        await setDoc(doc(dbInstance, "notificationSettings", googleUser.uid), {
           userId: googleUser.uid,
           nearbyItems: false,
           favorites: true,
@@ -214,18 +287,21 @@ export const AuthProvider = ({ children }) => {
   // 애플 로그인
   const appleLogin = async (identityToken, rawNonce) => {
     try {
+      const authInstance = await getAuthInstance();
+      const dbInstance = await getDb();
+      
       const provider = new OAuthProvider('apple.com');
       const credential = provider.credential({
         idToken: identityToken,
         rawNonce: rawNonce,
       });
 
-      const userCredential = await signInWithCredential(auth, credential);
+      const userCredential = await signInWithCredential(authInstance, credential);
       const appleUser = userCredential.user;
 
-      const userDoc = await getDoc(doc(db, "users", appleUser.uid));
+      const userDoc = await getDoc(doc(dbInstance, "users", appleUser.uid));
       if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", appleUser.uid), {
+        await setDoc(doc(dbInstance, "users", appleUser.uid), {
           uid: appleUser.uid,
           email: appleUser.email || null,
           name: appleUser.displayName || appleUser.email?.split("@")[0] || "Apple 사용자",
@@ -235,7 +311,7 @@ export const AuthProvider = ({ children }) => {
           createdAt: serverTimestamp(),
         });
 
-        await setDoc(doc(db, "notificationSettings", appleUser.uid), {
+        await setDoc(doc(dbInstance, "notificationSettings", appleUser.uid), {
           userId: appleUser.uid,
           nearbyItems: false,
           favorites: true,
