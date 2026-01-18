@@ -446,16 +446,9 @@ export const wordpressApi = {
         const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
         const imageUrl = imgMatch ? imgMatch[1] : null;
 
-        // 고유 ID 생성: linkId + index 조합으로 중복 방지
-        const linkId = link.match(/redirect=(\d+)/)?.[1] || 
-                      link.match(/content_redirect=(\d+)/)?.[1] || 
-                      null;
-        
-        // 고유 ID 생성 (linkId가 있으면 사용, 없으면 index 사용)
-        // index를 포함하여 같은 linkId라도 고유하게 만듦
-        const uniqueId = linkId 
-          ? `kb-${linkId}-${index}` 
-          : `kb-rss-${index}`;
+        // 고유 ID 생성 (안전하게 추출)
+        const linkId = link ? (link.match(/redirect=(\d+)/)?.[1] || link.match(/content_redirect=(\d+)/)?.[1]) : null;
+        const uniqueId = linkId ? `kb-${linkId}-${index}` : `kb-rss-${index}`;
 
         return {
           id: uniqueId,

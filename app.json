@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
@@ -35,7 +35,6 @@
         "NSPhotoLibraryUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 선택하기 위해 사진 라이브러리에 접근합니다. 예: 프로필 사진을 업로드하거나 중고거래 물품 사진을 등록할 때 사용합니다.",
         "NSCameraUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 촬영하기 위해 카메라에 접근합니다. 예: 중고거래 물품을 직접 촬영하여 등록하거나 채팅에서 사진을 전송할 때 사용합니다.",
         "NSLocationWhenInUseUsageDescription": "주변 중고거래 물품을 찾고 거래 위치를 지도에서 확인하기 위해 위치 정보에 접근합니다.",
-        "GADApplicationIdentifier": "ca-app-pub-7944314901202352~9182981091",
         "SKAdNetworkItems": [
           { "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork" },
           { "SKAdNetworkIdentifier": "4fzdc2evr5.skadnetwork" },
@@ -99,6 +98,7 @@
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
       "@react-native-community/datetimepicker",
+      "react-native-maps",
       [
         "react-native-google-mobile-ads",
         {

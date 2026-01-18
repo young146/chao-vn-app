@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import RenderHtml from 'react-native-render-html';
+import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import { Ionicons, FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import CommentsSection from '../components/commentsSection';
@@ -128,6 +129,23 @@ export default function PostDetailScreen({ route }) {
     }
   };
 
+  // iframe 커스텀 렌더러 정의
+  const renderers = {
+    iframe: (props) => {
+      const { src, width: contentWidth, height: contentHeight } = props.tnode.attributes;
+      return (
+        <View style={{ width: width - 32, height: (width - 32) * 0.5625, marginVertical: 10 }}>
+          <WebView
+            source={{ uri: src }}
+            style={{ flex: 1 }}
+            allowsFullscreenVideo
+            scrollEnabled={false}
+          />
+        </View>
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -157,6 +175,7 @@ export default function PostDetailScreen({ route }) {
               source={require('../assets/icon.png')}
               style={styles.placeholderLogo}
               contentFit="contain"
+              transition={200}
             />
           </View>
         )}
@@ -166,6 +185,7 @@ export default function PostDetailScreen({ route }) {
             contentWidth={width - 32}
             source={source}
             tagsStyles={tagsStyles}
+            renderers={renderers}
             enableExperimentalMarginCollapsing={true}
           />
         </View>

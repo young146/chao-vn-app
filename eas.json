@@ -24,5 +24,13 @@
         "buildType": "apk"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "xinchao.id@gmail.com",
+        "ascAppId": "6480538597"
+      }
+    }
   }
 }

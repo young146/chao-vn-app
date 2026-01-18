@@ -3,12 +3,12 @@ import { LogBox } from "react-native";
 
 // Firebase Remote Config deprecated 경고 무시 (기능은 정상 작동)
 LogBox.ignoreLogs([
-  'This method is deprecated',
-  'Please use `getApp()` instead',
-  'Please use `getValue()` instead',
-  'Please use `setConfigSettings()` instead',
-  'Please use `setDefaults()` instead',
-  'Please use `fetchAndActivate()` instead',
+  "This method is deprecated",
+  "Please use `getApp()` instead",
+  "Please use `getValue()` instead",
+  "Please use `setConfigSettings()` instead",
+  "Please use `setDefaults()` instead",
+  "Please use `fetchAndActivate()` instead",
 ]);
 
 // Firebase 초기화 (앱 시작 시 바로 실행)
@@ -18,22 +18,36 @@ import appCheck from "@react-native-firebase/app-check";
 // App Check 초기화 (앱 시작 시 바로 실행)
 const initializeAppCheck = async () => {
   try {
+    // Firebase 앱 초기화 확인
+    let app;
+    try {
+      app = firebase.app();
+    } catch (e) {
+      console.log("⚠️ Firebase 앱이 아직 로드되지 않았습니다.");
+      return false;
+    }
+
+    if (!app || app.name !== "[DEFAULT]") {
+      console.log("⚠️ 기본 Firebase 앱이 없습니다.");
+      return false;
+    }
+
     // App Check 활성화 (iOS: DeviceCheck/AppAttest, Android: Play Integrity)
     const rnfbProvider = appCheck().newReactNativeFirebaseAppCheckProvider();
     rnfbProvider.configure({
       android: {
-        provider: __DEV__ ? 'debug' : 'playIntegrity',
+        provider: __DEV__ ? "debug" : "playIntegrity",
       },
       apple: {
-        provider: __DEV__ ? 'debug' : 'deviceCheck',
+        provider: __DEV__ ? "debug" : "deviceCheck",
       },
     });
-    
+
     await appCheck().initializeAppCheck({
       provider: rnfbProvider,
       isTokenAutoRefreshEnabled: true,
     });
-    
+
     console.log("✅ Firebase App Check 초기화 완료");
     return true;
   } catch (error) {
@@ -45,7 +59,7 @@ const initializeAppCheck = async () => {
 // Firebase 초기화 상태 확인 함수
 const waitForFirebase = async (timeout = 5000) => {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeout) {
     try {
       const app = firebase.app();
@@ -56,9 +70,9 @@ const waitForFirebase = async (timeout = 5000) => {
     } catch (e) {
       // 아직 초기화 안됨
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
+
   console.log("⚠️ Firebase 초기화 타임아웃 (기본값으로 진행)");
   return false;
 };
@@ -78,12 +92,16 @@ import {
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getHomeDataCached, hasHomeDataCache } from "./services/wordpressApi";
+import notificationService from "./services/NotificationService";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -172,9 +190,10 @@ export default function App() {
 
         // 0. Firebase 초기화 완료 대기 (iOS 크래시 방지)
         await waitForFirebase(3000);
-        
+
         // 0.5 App Check 초기화 (Firebase 백엔드 보안)
-        await initializeAppCheck();
+        // TODO: App Check 설정 완료 후 다시 활성화
+        // await initializeAppCheck();
 
         // 1. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
         if (!__DEV__ && Updates.isEnabled) {
@@ -306,12 +325,20 @@ function HomeStack() {
         initialParams={{ type: "home" }}
         options={({ navigation }) => ({
           headerTitle: () => (
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('홈메인', { type: 'home', categoryId: null, resetSearch: Date.now() })}
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("홈메인", {
+                  type: "home",
+                  categoryId: null,
+                  resetSearch: Date.now(),
+                })
+              }
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>씬짜오베트남</Text>
-              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                씬짜오베트남
+              </Text>
+              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
                 2002년부터 격주 발행, 베트남 교민사회의 길잡이
               </Text>
             </TouchableOpacity>
@@ -342,12 +369,20 @@ function NewsStack() {
         initialParams={{ type: "news", categoryId: 31 }}
         options={({ navigation }) => ({
           headerTitle: () => (
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('뉴스메인', { type: 'news', categoryId: 31, resetSearch: Date.now() })}
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("뉴스메인", {
+                  type: "news",
+                  categoryId: 31,
+                  resetSearch: Date.now(),
+                })
+              }
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>데일리 뉴스</Text>
-              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                데일리 뉴스
+              </Text>
+              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
                 매일 아침 발행되는 온라인 베트남 뉴스
               </Text>
             </TouchableOpacity>
@@ -378,12 +413,19 @@ function BoardStack() {
         initialParams={{ type: "board" }}
         options={({ navigation }) => ({
           headerTitle: () => (
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('게시판메인', { type: 'board', resetSearch: Date.now() })}
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("게시판메인", {
+                  type: "board",
+                  resetSearch: Date.now(),
+                })
+              }
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>게시판</Text>
-              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                게시판
+              </Text>
+              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
                 우리 이웃들의 소리가 담긴 베트남 교민 커뮤니티
               </Text>
             </TouchableOpacity>
@@ -413,12 +455,14 @@ function DanggnStack() {
         component={XinChaoDanggnScreen}
         options={({ navigation }) => ({
           headerTitle: () => (
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('씬짜오나눔메인')}
+            <TouchableOpacity
+              onPress={() => navigation.navigate("씬짜오나눔메인")}
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>나눔</Text>
-              <Text style={{ color: '#333', fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                나눔
+              </Text>
+              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
                 무료 나눔, 중고 거래소. 내 아파트 주변 물품 찾기
               </Text>
             </TouchableOpacity>
@@ -663,7 +707,7 @@ function DanggnHeaderRight({ navigation }) {
 
 function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tab.Navigator
       initialRouteName="홈"
@@ -685,8 +729,8 @@ function BottomTabNavigator() {
         },
         tabBarActiveTintColor: "#FF6B35",
         tabBarInactiveTintColor: "#555",
-        tabBarLabelStyle: { 
-          fontSize: 12, 
+        tabBarLabelStyle: {
+          fontSize: 12,
           fontWeight: "700",
           marginBottom: 2,
         },
@@ -697,49 +741,53 @@ function BottomTabNavigator() {
         },
       })}
     >
-      <Tab.Screen 
-        name="홈" 
+      <Tab.Screen
+        name="홈"
         component={HomeStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            navigation.navigate('홈', { 
-              screen: '홈메인', 
-              params: { type: 'home', categoryId: null, resetSearch: Date.now() }
+            navigation.navigate("홈", {
+              screen: "홈메인",
+              params: {
+                type: "home",
+                categoryId: null,
+                resetSearch: Date.now(),
+              },
             });
           },
         })}
       />
-      <Tab.Screen 
-        name="뉴스" 
+      <Tab.Screen
+        name="뉴스"
         component={NewsStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            navigation.navigate('뉴스', { 
-              screen: '뉴스메인', 
-              params: { type: 'news', resetSearch: Date.now() }
+            navigation.navigate("뉴스", {
+              screen: "뉴스메인",
+              params: { type: "news", resetSearch: Date.now() },
             });
           },
         })}
       />
-      <Tab.Screen 
-        name="게시판" 
+      <Tab.Screen
+        name="게시판"
         component={BoardStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            navigation.navigate('게시판', { 
-              screen: '게시판메인', 
-              params: { type: 'board', resetSearch: Date.now() }
+            navigation.navigate("게시판", {
+              screen: "게시판메인",
+              params: { type: "board", resetSearch: Date.now() },
             });
           },
         })}
       />
-      <Tab.Screen 
-        name="나눔" 
+      <Tab.Screen
+        name="나눔"
         component={DanggnStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            navigation.navigate('나눔', { 
-              screen: '씬짜오나눔메인'
+            navigation.navigate("나눔", {
+              screen: "씬짜오나눔메인",
             });
           },
         })}
@@ -783,7 +831,9 @@ function RootNavigator() {
 
 const GlobalChatNotificationListener = () => {
   useEffect(() => {
-    console.log("🔇 GlobalChatNotificationListener 비활성화됨");
+    // NotificationService 초기화 (알림 핸들러, 리스너, 토큰 등록 통합 관리)
+    notificationService.initialize();
+    console.log("🔔 Global Notification Service 활성화됨");
   }, []);
   return null;
 };

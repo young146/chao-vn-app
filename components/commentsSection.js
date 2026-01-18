@@ -41,8 +41,7 @@ export default function CommentsSection({ articleId }) {
     // 인덱스 생성이 완료되면(Enabled) orderBy가 정상 작동합니다.
     const q = query(
       collection(db, "comments"),
-      where("articleId", "==", articleId.toString()),
-      orderBy("createdAt", "asc")
+      where("articleId", "==", articleId.toString())
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -50,6 +49,14 @@ export default function CommentsSection({ articleId }) {
         id: doc.id,
         ...doc.data(),
       }));
+      
+      // 클라이언트 사이드 정렬: 작성 시간 오름차순
+      commentsData.sort((a, b) => {
+        const timeA = a.createdAt?.toDate?.() || new Date(0);
+        const timeB = b.createdAt?.toDate?.() || new Date(0);
+        return timeA - timeB;
+      });
+
       setComments(commentsData);
       setFetching(false);
     }, (error) => {

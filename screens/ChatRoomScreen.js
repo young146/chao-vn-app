@@ -136,6 +136,14 @@ export default function ChatRoomScreen({ route, navigation }) {
     const initChatRoom = async () => {
       if (chatRoomId) return;
 
+      // 🛡️ 무결성 체크: 필수 값이 없으면 생성 중단
+      if (!sellerId || !currentUserId || !itemId) {
+        console.error("❌ 채팅방 생성 불가: 필수 정보 누락", { sellerId, currentUserId, itemId });
+        alert("채팅방 정보를 불러올 수 없습니다.");
+        navigation.goBack();
+        return;
+      }
+
       const userIds = [sellerId, currentUserId].sort();
       const newChatRoomId = `${itemId}_${userIds[0]}_${userIds[1]}`;
 
