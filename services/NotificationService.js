@@ -334,35 +334,36 @@ class NotificationService {
       const q = query(chatRoomsRef, where("participants", "array-contains", userId));
 
       this.chatRoomsUnsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "modified") {
-          const chatData = change.doc.data();
-          const chatRoomId = change.doc.id;
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "modified") {
+            const chatData = change.doc.data();
+            const chatRoomId = change.doc.id;
 
-          // 새 메시지가 있고, 내가 보낸 메시지가 아닌 경우
-          if (
-            chatData.lastMessageSenderId &&
-            chatData.lastMessageSenderId !== userId
-          ) {
-            // 현재 보고 있는 채팅방이면 로컬 알림 재생 안 함 (ChatRoomScreen에서 처리)
-            if (this.currentChatRoomId === chatRoomId) {
-              console.log("🔇 현재 채팅방이므로 전역 알림 스킵");
-              return;
-            }
+            // 새 메시지가 있고, 내가 보낸 메시지가 아닌 경우
+            if (
+              chatData.lastMessageSenderId &&
+              chatData.lastMessageSenderId !== userId
+            ) {
+              // 현재 보고 있는 채팅방이면 로컬 알림 재생 안 함 (ChatRoomScreen에서 처리)
+              if (this.currentChatRoomId === chatRoomId) {
+                console.log("🔇 현재 채팅방이므로 전역 알림 스킵");
+                return;
+              }
 
-            const isSeller = userId === chatData.sellerId;
-            const hasUnread = isSeller ? !chatData.sellerRead : !chatData.buyerRead;
+              const isSeller = userId === chatData.sellerId;
+              const hasUnread = isSeller ? !chatData.sellerRead : !chatData.buyerRead;
 
-            if (hasUnread) {
-              console.log("🔔 새 메시지 감지! (전역 리스너)", chatData.lastMessage);
-              // 포그라운드에서만 로컬 알림 재생 (백그라운드/종료 상태는 FCM이 처리)
-              this.playLocalNotification(
-                chatData.lastMessage,
-                chatData.itemTitle
-              );
+              if (hasUnread) {
+                console.log("🔔 새 메시지 감지! (전역 리스너)", chatData.lastMessage);
+                // 포그라운드에서만 로컬 알림 재생 (백그라운드/종료 상태는 FCM이 처리)
+                this.playLocalNotification(
+                  chatData.lastMessage,
+                  chatData.itemTitle
+                );
+              }
             }
           }
-        }
+        });
       });
     } catch (error) {
       console.error("❌ 채팅 리스너 시작 실패:", error);
