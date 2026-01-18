@@ -57,24 +57,27 @@ const initializeAppCheck = async () => {
   }
 };
 
-// Firebase 초기화 상태 확인 함수
+// Firebase 초기화 상태 확인 함수 (네이티브 Firebase)
 const waitForFirebase = async (timeout = 5000) => {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
     try {
-      const app = firebase.app();
-      if (app && app.name === "[DEFAULT]") {
-        console.log("✅ Firebase 초기화 완료");
-        return true;
+      const apps = firebase.apps;
+      if (apps && apps.length > 0) {
+        const app = firebase.app();
+        if (app && app.name === "[DEFAULT]") {
+          console.log("✅ 네이티브 Firebase 초기화 완료");
+          return true;
+        }
       }
     } catch (e) {
-      // 아직 초기화 안됨
+      // 아직 초기화 안됨 - 계속 대기
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  console.log("⚠️ Firebase 초기화 타임아웃 (기본값으로 진행)");
+  console.log("⚠️ 네이티브 Firebase 초기화 타임아웃 (기본값으로 진행)");
   return false;
 };
 
@@ -188,12 +191,23 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // 0. Firebase 초기화 완료 대기 (iOS 크래시 방지)
-        await waitForFirebase(3000);
+        // 0. 네이티브 Firebase 초기화 완료 대기 (iOS 크래시 방지)
+        // 웹 Firebase는 firebase/config.js에서 이미 초기화됨
+        // 네이티브 Firebase만 대기
+        const firebaseReady = await waitForFirebase(5000);
+        if (!firebaseReady) {
+          console.log("⚠️ Firebase 초기화 지연, 계속 진행...");
+        }
 
         // 0.5 App Check 초기화 (Firebase 백엔드 보안)
-        // TODO: App Check 설정 완료 후 다시 활성화
-        // await initializeAppCheck();
+        // 프로덕션에서만 활성화 (개발 빌드에서는 주석 처리)
+        if (!__DEV__) {
+          try {
+            await initializeAppCheck();
+          } catch (appCheckError) {
+            console.log("⚠️ App Check 초기화 실패 (계속 진행):", appCheckError?.message);
+          }
+        }
 
         // 1. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
         if (!__DEV__ && Updates.isEnabled) {

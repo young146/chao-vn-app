@@ -27,8 +27,8 @@ const fetchRemoteConfig = async () => {
   }
 
   try {
-    // Firebase 초기화 확인
-    if (!firebase.apps.length) {
+    // Firebase 초기화 확인 (안전한 체크)
+    if (!isFirebaseInitialized()) {
       console.log("⚠️ Firebase가 아직 초기화되지 않았습니다");
       return { showAdMob: true, adsConfig: {} };
     }
@@ -86,6 +86,10 @@ const fetchRemoteConfig = async () => {
 // Firebase 앱 초기화 상태 확인 (더 엄격한 체크)
 const isFirebaseInitialized = () => {
   try {
+    const apps = firebase.apps;
+    if (!apps || apps.length === 0) {
+      return false;
+    }
     const app = firebase.app();
     return app && app.name === "[DEFAULT]";
   } catch (e) {

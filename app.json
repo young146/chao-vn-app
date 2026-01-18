@@ -4,6 +4,7 @@
     "slug": "chao-vn-app",
     "owner": "young146",
     "version": "2.2.0",
+    "newArchEnabled": false,
     "scheme": "com.yourname.chaovnapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -85,6 +86,7 @@
       }
     },
     "plugins": [
+      "./app.plugin.js",
       "@react-native-firebase/app",
       "expo-font",
       "expo-asset",
@@ -109,11 +111,12 @@
         "expo-build-properties",
         {
           "ios": {
-            "newArchEnabled": false,
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "deploymentTarget": "15.1",
+            "hermesEnabled": true
           },
           "android": {
-            "newArchEnabled": false
+            "hermesEnabled": true
           }
         }
       ]

@@ -7,7 +7,10 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "prebuild:ios": "node scripts/prebuild-and-verify.js",
+    "verify:plugin": "node scripts/verify-plugin.js",
+    "verify:codegen": "node scripts/verify-codegen-exclusion.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -57,5 +60,14 @@
     "@babel/core": "^7.20.0",
     "babel-preset-expo": "^54.0.9"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "@react-native-async-storage/async-storage": "~1.23.1",
+    "firebase": {
+      "@react-native-async-storage/async-storage": "~1.23.1"
+    },
+    "@firebase/auth": {
+      "@react-native-async-storage/async-storage": "~1.23.1"
+    }
+  }
 }
