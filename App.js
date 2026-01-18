@@ -1,3 +1,4 @@
+import "react-native-gesture-handler";
 import { LogBox } from "react-native";
 // LogBox.ignoreAllLogs(true);
 
@@ -77,7 +78,6 @@ const waitForFirebase = async (timeout = 5000) => {
   return false;
 };
 
-import "react-native-gesture-handler";
 import React, { useEffect, useState, useRef } from "react";
 import { Image as ExpoImage } from "expo-image";
 import {

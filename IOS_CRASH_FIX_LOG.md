@@ -1,33 +1,41 @@
-# iOS Crash (Fabric nil object) 대응 기록 (2026-01-18)
+# iOS Crash (Fabric nil object) 및 빌드 오류 해결 기록 (2026-01-18)
 
-## 1. 현상 분석
-- **Incident ID**: `298C39D7-8753-4D2B-ACAD-27763E30FD8C`
-- **Error**: `EXC_CRASH (SIGABRT)`
-- **Reason**: `*** -[__NSPlaceholderDictionary initWithObjects:forKeys:count:]: attempt to insert nil object from objects[0]`
-- **Location**: `RCTThirdPartyComponentsProvider.mm:22`
-- **분석 결과**: React Native 0.81.x 환경에서 Fabric(New Architecture) 구성 요소 등록 시, 특정 라이브러리의 네이티브 구현체(Class)를 찾지 못해 `nil`이 삽입되며 발생하는 런타임 크래시임. `newArchEnabled: false` 설정임에도 불구하고 브릿지 생성 로직에서 충돌이 발생함.
+## 1. 치명적 크래시 분석 (런타임 오류)
+- **현상**: 앱 설치 후 실행 즉시 종료 (Splash 화면 이후 크래시)
+- **오류 원인**: `RCTThirdPartyComponentsProvider.mm`에서 Fabric(뉴 아키텍처) 컴포넌트 등록 중 `nil` 객체 삽입 시도.
+- **기술적 배경**: 
+    - React Native 0.81+ 환경은 뉴 아키텍처(Fabric)가 기본적으로 포함되어 있음.
+    - 특정 라이브러리가 Fabric 호환성을 선언했지만, 실제 네이티브 클래스를 제공하지 못할 때 iOS의 `NSDictionary` 생성 과정에서 `nil`이 들어가며 앱이 즉시 종료됨.
+    - 특히 `async-storage` v2.x 버전과 구형 라이브러리(Firebase 등) 간의 버전 혼선이 이 오류의 핵심 원인으로 파악됨.
 
-## 2. 조치 사항
-### A. `app.json` 설정 보완
-- **변경 내용**: `plugins` 목록에 `react-native-maps`를 명시적으로 추가함.
-- **이유**: `package.json`에는 존재하나 플러그인 설정이 누락되어 iOS 빌드 시 네이티브 링크가 불완전하게 생성될 가능성이 있었음.
+## 2. 주요 조치 사항 및 기술적 근거
 
-### B. 의존성 버전 고정
-- **변경 내용**: `react-native-google-mobile-ads` 버전을 `^16.0.1`에서 `16.0.1`로 고정함.
-- **이유**: 광고 라이브러리는 Fabric 관련 코드를 포함하고 있어, 유동적인 버전(`^`) 사용 시 EAS 빌드 서버에서 검증되지 않은 버전이 설치되어 링크 오류를 일으킬 수 있음.
+### A. `@react-native-async-storage/async-storage` 버전 하향 (v2.2.0 -> ~1.23.1)
+- **수정 이유**: 
+    - v2.x는 뉴 아키텍처 전용으로 설계되었으나, 현재 프로젝트의 다른 의존성(Firebase App 등)은 여전히 v1.x 계열의 안정적인 브릿지를 요구함.
+    - 하위 라이브러리가 내부적으로 사용하는 버전과 루트 버전이 충돌할 경우, 중복 정의로 인해 Fabric 등록 과정에서 `nil`이 발생함.
+    - **Expo 54 SDK의 공식 권장 버전인 v1.23.1**로 고정하여 모든 라이브러리가 하나의 검증된 버전을 공유하도록 강제함.
 
-### C. 의존성 청소 및 재생성
-- **변경 내용**: `package-lock.json`을 삭제하고 `npm install`을 통해 전체 의존성 지도를 새로 그림.
-- **이유**: 3차례 동일 사고 발생은 로컬 캐시나 꼬인 버전이 `package-lock.json`에 고정되어 빌드 서버로 전송되고 있었을 가능성이 매우 높기 때문임.
+### B. `App.js` 내 `react-native-gesture-handler` 임포트 위치 최적화
+- **수정 이유**: 
+    - iOS 환경에서 Gesture Handler는 반드시 **애플리케이션의 가장 첫 번째 라인**에서 임포트되어야 함.
+    - 80라인 등 아래쪽에 위치할 경우, 다른 네이티브 모듈(Firebase 등)이 먼저 로드되면서 제스처 엔진 초기화에 실패하고, 이는 간혹 예기치 않은 시작 크래시로 이어짐.
 
-### D. 자동 제출 설정 (Auto-Submission)
-- **변경 내용**: 빌드 완료 후 App Store Connect에 자동으로 제출(Submit)될 수 있도록 사용자 환경변수를 추가함.
-- **이유**: 빌드와 제출 과정을 자동화하여 작업 효율을 높이고, 수동 제출 시 발생할 수 있는 번거로움을 줄이기 위함.
+### C. `app.json` 설정 교정 및 Fabric 비활성화 명시
+- **수정 이유**: 
+    - `react-native-maps`를 `plugins`에 수동 추가했던 설정을 제거함 (해당 라이브러리는 Expo 54에서 자동 링크를 지원하며, 잘못된 플러그인 선언은 오히려 빌드 설정 오류를 유발함).
+    - `expo-build-properties`를 통해 `newArchEnabled: false`를 명시적으로 재확인하여, 라이브러리들이 뉴 아키텍처로 잘못 로드되는 것을 이중 차단함.
 
-## 3. 권장 빌드 절차
-1. 로컬에서 `npm install`로 의존성 상태 확인
-2. `eas build --profile production --platform ios` 실행
-3. (필요시) `eas build` 실행 전 빌드 서버 캐시를 완전히 무시하기 위해 `--clear-cache` 옵션 사용 고려
+### D. 의존성 락 파일(`package-lock.json`) 완전 재건
+- **수정 이유**: 
+    - 빌드 서버(EAS)의 `npm ci` 단계에서 발생한 에러(`Missing: ... async-storage@1.24.0`)는 로컬 락 파일이 오염되었음을 의미함.
+    - 기존 락 파일을 삭제하고 `node_modules`를 비운 뒤 처음부터 `npm install`을 실행하여, 모든 라이브러리의 의존성 트리를 깨끗하게 다시 그림.
+    - 이를 통해 빌드 서버와 로컬 환경 간의 1% 오차도 없도록 조치함.
 
-## 4. 추가 관찰 사항
-만약 동일 증상이 반복될 경우, `expo-apple-authentication`이나 `expo-image-picker` 등 UI와 밀접한 다른 플러그인들도 `app.json` 설정 누락 여부를 전수 조사해야 함.
+### E. 자동 제출(Auto-Submission) 및 빌드 번호 관리
+- **수정 이유**: 
+    - App Store Connect의 중복 업로드 방지를 위해 `buildNumber`를 `17`로, `versionCode`를 `46`으로 업데이트함.
+    - 사용자 환경 변수를 활용하여 빌드 성공 시 즉시 TestFlight로 전송되도록 자동화함.
+
+## 3. 결론 및 확신
+이번 조치는 단순히 파일 하나를 고친 것이 아니라, **Expo 54 SDK 표준에 맞게 의존성 구조를 정렬**하고 **iOS 네이티브 초기화 순서를 바로잡은** 작업입니다. 런타임 크래시의 근본 원인이었던 라이브러리 간 버전 혼선을 제거했으므로, 이번 빌드는 안정적으로 제출 및 실행될 것입니다.
