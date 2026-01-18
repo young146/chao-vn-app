@@ -105,6 +105,7 @@ import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getHomeDataCached, hasHomeDataCache } from "./services/wordpressApi";
 import notificationService from "./services/NotificationService";
+import { initializeFirebase } from "./firebase/config";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -183,6 +184,7 @@ import AdminScreen from "./screens/AdminScreen";
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const updatesCheckedRef = useRef(false);
 
   // 🚀 캐시 우선 로딩 전략
   useEffect(() => {
@@ -191,16 +193,24 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // 0. 네이티브 Firebase 초기화 완료 대기 (iOS 크래시 방지)
-        // 웹 Firebase는 firebase/config.js에서 이미 초기화됨
-        // 네이티브 Firebase만 대기
+        // ✅ 0. 네이티브 Firebase 초기화 완료 대기 (최우선)
+        // 네이티브 모듈이 완전히 준비될 때까지 대기
         const firebaseReady = await waitForFirebase(5000);
         if (!firebaseReady) {
-          console.log("⚠️ Firebase 초기화 지연, 계속 진행...");
+          console.log("⚠️ 네이티브 Firebase 초기화 지연, 계속 진행...");
         }
 
-        // 0.5 App Check 초기화 (Firebase 백엔드 보안)
-        // 프로덕션에서만 활성화 (개발 빌드에서는 주석 처리)
+        // ✅ 0.1 웹 Firebase 초기화 (네이티브 Firebase 이후)
+        // Lazy initialization으로 변경했으므로 명시적으로 초기화
+        try {
+          await initializeFirebase();
+          console.log("✅ 웹 Firebase 초기화 완료");
+        } catch (webFirebaseError) {
+          console.log("⚠️ 웹 Firebase 초기화 실패 (계속 진행):", webFirebaseError?.message);
+        }
+
+        // ✅ 0.5 App Check 초기화 (Firebase 백엔드 보안)
+        // 프로덕션에서만 활성화
         if (!__DEV__) {
           try {
             await initializeAppCheck();
@@ -209,21 +219,7 @@ export default function App() {
           }
         }
 
-        // 1. 프로덕션 빌드에서만 업데이트 체크 (백그라운드)
-        if (!__DEV__ && Updates.isEnabled) {
-          try {
-            const update = await Updates.checkForUpdateAsync();
-            if (update.isAvailable) {
-              console.log("📦 새 업데이트 발견, 다운로드 중...");
-              await Updates.fetchUpdateAsync();
-              console.log("✅ 업데이트 다운로드 완료, 다음 실행 시 적용됩니다");
-              // 자동 재시작은 사용자 경험을 해칠 수 있으므로 다음 실행 시 적용
-            }
-          } catch (updateError) {
-            console.log("⚠️ 업데이트 체크 실패:", updateError);
-            // 업데이트 실패해도 앱은 정상 작동
-          }
-        }
+        // ⚠️ Updates 체크는 첫 화면 렌더링 이후로 이동 (아래 useEffect에서 처리)
 
         // 2. 캐시 확인 - 있으면 즉시 진입!
         const hasCache = await hasHomeDataCache();
@@ -266,6 +262,49 @@ export default function App() {
 
     initializeApp();
   }, []);
+
+  // ✅ 첫 화면이 완전히 렌더링된 후 Updates 체크
+  // "content appeared" 이벤트 이후에 실행하여 ErrorRecovery 크래시 방지
+  useEffect(() => {
+    if (!isReady) return; // 아직 준비 안됨
+    
+    // 첫 화면 렌더링 완료 대기 (content appeared 이벤트 이후)
+    const timer = setTimeout(async () => {
+      if (!updatesCheckedRef.current && !__DEV__ && Updates.isEnabled) {
+        updatesCheckedRef.current = true;
+        
+        try {
+          console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작...");
+          
+          // 타임아웃과 함께 안전하게 체크
+          const update = await Promise.race([
+            Updates.checkForUpdateAsync(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Updates check timeout')), 10000)
+            )
+          ]);
+          
+          if (update && update.isAvailable) {
+            console.log("📦 새 업데이트 발견, 다운로드 중...");
+            await Promise.race([
+              Updates.fetchUpdateAsync(),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Updates fetch timeout')), 15000)
+              )
+            ]);
+            console.log("✅ 업데이트 다운로드 완료, 다음 실행 시 적용됩니다");
+          } else {
+            console.log("✅ 최신 버전입니다");
+          }
+        } catch (updateError) {
+          console.log("⚠️ 업데이트 체크 실패 (앱은 정상 작동):", updateError?.message || updateError);
+          // 업데이트 실패해도 앱은 정상 작동
+        }
+      }
+    }, 3000); // 첫 화면 렌더링 후 3초 대기 (content appeared 이벤트 확실히 발생 후)
+    
+    return () => clearTimeout(timer);
+  }, [isReady]); // isReady가 true가 된 후에만 실행
 
   return (
     <AuthProvider>

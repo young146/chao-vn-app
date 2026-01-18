@@ -2,7 +2,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { initializeAuth, getReactNativePersistence, getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";  // ✅ Storage 추가!
+import { getStorage } from "firebase/storage";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 // Your web app's Firebase configuration
@@ -16,67 +16,129 @@ const firebaseConfig = {
   measurementId: "G-QTCWJ6GGH0",
 };
 
-// Initialize Firebase (중복 초기화 방지)
-let app;
-try {
-  const existingApps = getApps();
-  if (existingApps.length > 0) {
-    app = existingApps[0];
-  } else {
-    app = initializeApp(firebaseConfig);
-  }
-} catch (error) {
-  console.error("Firebase 초기화 실패:", error);
-  // 크래시 방지를 위해 기본값으로 초기화 시도
-  try {
-    app = initializeApp(firebaseConfig);
-  } catch (retryError) {
-    console.error("Firebase 재초기화 실패:", retryError);
-    throw retryError;
-  }
-}
+// ✅ Lazy Initialization: 모듈 로드 시 즉시 실행하지 않음
+// 이렇게 하면 네이티브 모듈 초기화와의 경쟁 상태를 방지할 수 있습니다.
+let app = null;
+let db = null;
+let auth = null;
+let storage = null;
+let initializationPromise = null;
+let isInitialized = false;
 
-// Firestore 데이터베이스 export (안전한 초기화)
-let db;
-try {
-  db = getFirestore(app);
-} catch (error) {
-  console.error("Firestore 초기화 실패:", error);
-  throw error;
-}
-
-// Authentication with AsyncStorage persistence (안전한 초기화)
-let auth;
-try {
-  // 이미 초기화된 auth가 있는지 확인
-  try {
-    auth = getAuth(app);
-  } catch (e) {
-    // auth가 없으면 초기화
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-    });
+// 초기화 함수 (필요할 때만 호출)
+const initializeFirebase = async () => {
+  if (isInitialized) {
+    return { app, db, auth, storage };
   }
-} catch (error) {
-  console.error("Firebase Auth 초기화 실패:", error);
-  // 크래시 방지를 위해 기본 auth로 초기화 시도
-  try {
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-    });
-  } catch (retryError) {
-    console.error("Firebase Auth 재초기화 실패:", retryError);
-    throw retryError;
+
+  if (initializationPromise) {
+    return initializationPromise;
   }
-}
 
-// ✅ Firebase Storage export (사진 업로드용) - 안전한 초기화
-let storage;
-try {
-  storage = getStorage(app);
-} catch (error) {
-  console.error("Firebase Storage 초기화 실패:", error);
-  throw error;
-}
+  initializationPromise = (async () => {
+    try {
+      console.log("🔥 Firebase Web SDK 초기화 시작 (Lazy)...");
+      
+      // Initialize Firebase (중복 초기화 방지)
+      const existingApps = getApps();
+      if (existingApps.length > 0) {
+        app = existingApps[0];
+        console.log("✅ 기존 Firebase 앱 인스턴스 사용");
+      } else {
+        app = initializeApp(firebaseConfig);
+        console.log("✅ 새 Firebase 앱 인스턴스 생성");
+      }
 
+      // Firestore 데이터베이스
+      db = getFirestore(app);
+      console.log("✅ Firestore 초기화 완료");
+
+      // Authentication with AsyncStorage persistence
+      try {
+        auth = getAuth(app);
+        console.log("✅ 기존 Auth 인스턴스 사용");
+      } catch (e) {
+        auth = initializeAuth(app, {
+          persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+        });
+        console.log("✅ 새 Auth 인스턴스 생성 (AsyncStorage persistence)");
+      }
+
+      // Firebase Storage
+      storage = getStorage(app);
+      console.log("✅ Firebase Storage 초기화 완료");
+
+      isInitialized = true;
+      console.log("✅ Firebase Web SDK 초기화 완료 (Lazy)");
+      
+      return { app, db, auth, storage };
+    } catch (error) {
+      console.error("❌ Firebase 초기화 실패:", error);
+      initializationPromise = null;
+      throw error;
+    }
+  })();
+
+  return initializationPromise;
+};
+
+// Getter 함수들 (초기화 보장)
+const getApp = async () => {
+  if (!isInitialized) await initializeFirebase();
+  return app;
+};
+
+const getDb = async () => {
+  if (!isInitialized) await initializeFirebase();
+  return db;
+};
+
+const getAuthInstance = async () => {
+  if (!isInitialized) await initializeFirebase();
+  return auth;
+};
+
+const getStorageInstance = async () => {
+  if (!isInitialized) await initializeFirebase();
+  return storage;
+};
+
+// 동기식 getter (이미 초기화된 경우에만 사용 - 기존 코드 호환성)
+const getDbSync = () => {
+  if (!db) {
+    throw new Error("Firebase not initialized. Call initializeFirebase() first or use getDb() instead.");
+  }
+  return db;
+};
+
+const getAuthSync = () => {
+  if (!auth) {
+    throw new Error("Firebase not initialized. Call initializeFirebase() first or use getAuthInstance() instead.");
+  }
+  return auth;
+};
+
+const getStorageSync = () => {
+  if (!storage) {
+    throw new Error("Firebase not initialized. Call initializeFirebase() first or use getStorageInstance() instead.");
+  }
+  return storage;
+};
+
+// 기존 호환성을 위한 export
+// ⚠️ 중요: App.js에서 initializeFirebase()를 먼저 호출해야 합니다.
+// React 컴포넌트들은 App.js가 렌더링된 후에야 사용되므로,
+// App.js에서 초기화를 보장하면 다른 컴포넌트들이 사용할 때는 이미 초기화되어 있습니다.
 export { db, auth, storage };
+
+// 새로운 Lazy Initialization API
+export {
+  initializeFirebase,
+  getApp,
+  getDb,
+  getAuthInstance,
+  getStorageInstance,
+  getDbSync,
+  getAuthSync,
+  getStorageSync,
+};
