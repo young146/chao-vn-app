@@ -5,7 +5,7 @@
     "owner": "young146",
     "version": "2.2.0",
     "newArchEnabled": false,
-    "scheme": "com.yourname.chaovnapp",
+    "scheme": "xinchao",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
@@ -27,6 +27,11 @@
         "UIBackgroundModes": ["remote-notification"],
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "xinchao"
+            ]
+          },
           {
             "CFBundleURLSchemes": [
               "com.googleusercontent.apps.249390849714-tl1s8pn1pr1e76ebnunu86eagjm98sm8"

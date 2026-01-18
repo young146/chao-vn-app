@@ -298,6 +298,7 @@ export default function App() {
             <NavigationContainer
               linking={{
                 prefixes: [
+                  "xinchao://",
                   "com.yourname.chaovnapp://",
                   "exp+chao-vn-app://",
                   "https://auth.expo.io/@young146/chao-vn-app",
@@ -306,6 +307,28 @@ export default function App() {
                   screens: {
                     MainApp: {
                       screens: {
+                        홈: {
+                          screens: {
+                            홈메인: {
+                              path: "",
+                              parse: {
+                                type: () => "home",
+                                categoryId: (categoryId) => categoryId ? parseInt(categoryId) : null,
+                              },
+                            },
+                          },
+                        },
+                        뉴스: {
+                          screens: {
+                            뉴스메인: {
+                              path: "daily-news",
+                              parse: {
+                                type: () => "news",
+                                categoryId: () => 31,
+                              },
+                            },
+                          },
+                        },
                         씬짜오나눔: "danggn",
                         Chat: "chat",
                         Menu: "menu",
