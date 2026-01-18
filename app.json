@@ -98,7 +98,6 @@
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
       "@react-native-community/datetimepicker",
-      "react-native-maps",
       [
         "react-native-google-mobile-ads",
         {
