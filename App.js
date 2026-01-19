@@ -306,84 +306,86 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [isReady]); // isReady가 true가 된 후에만 실행
 
+  // ✅ iOS 크래시 수정: Firebase 초기화 완료 전에는 AuthProvider를 렌더링하지 않음
+  // AuthProvider 내부의 onAuthStateChanged가 null auth를 참조하면 크래시 발생
+  if (!isReady) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ExpoImage
+          source={require("./assets/icon.png")}
+          style={{ width: 150, height: 150, marginBottom: 50 }}
+          contentFit="contain"
+        />
+        <View style={styles.progressBottomContainer}>
+          <ActivityIndicator size="large" color="#FF6B35" />
+          <Text style={styles.loadingPercentText}>
+            첫 실행 데이터 준비 중...
+          </Text>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[styles.progressBarFill, { width: `${loadProgress}%` }]}
+            />
+          </View>
+          <Text style={styles.loadingPercent}>
+            {Math.round(loadProgress)}%
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
-      {!isReady ? (
-        <View style={styles.loadingOverlay}>
-          <ExpoImage
-            source={require("./assets/icon.png")}
-            style={{ width: 150, height: 150, marginBottom: 50 }}
-            contentFit="contain"
-          />
-          <View style={styles.progressBottomContainer}>
-            <ActivityIndicator size="large" color="#FF6B35" />
-            <Text style={styles.loadingPercentText}>
-              첫 실행 데이터 준비 중...
-            </Text>
-            <View style={styles.progressBarBg}>
-              <View
-                style={[styles.progressBarFill, { width: `${loadProgress}%` }]}
-              />
-            </View>
-            <Text style={styles.loadingPercent}>
-              {Math.round(loadProgress)}%
-            </Text>
-          </View>
-        </View>
-      ) : (
-        <>
-          <GlobalChatNotificationListener />
-          <SafeAreaProvider>
-            <NavigationContainer
-              linking={{
-                prefixes: [
-                  "xinchao://",
-                  "com.yourname.chaovnapp://",
-                  "exp+chao-vn-app://",
-                  "https://auth.expo.io/@young146/chao-vn-app",
-                ],
-                config: {
+      <GlobalChatNotificationListener />
+      <SafeAreaProvider>
+        <NavigationContainer
+          linking={{
+            prefixes: [
+              "xinchao://",
+              "com.yourname.chaovnapp://",
+              "exp+chao-vn-app://",
+              "https://auth.expo.io/@young146/chao-vn-app",
+            ],
+            config: {
+              screens: {
+                MainApp: {
                   screens: {
-                    MainApp: {
+                    홈: {
                       screens: {
-                        홈: {
-                          screens: {
-                            홈메인: {
-                              path: "",
-                              parse: {
-                                type: () => "home",
-                                categoryId: (categoryId) => categoryId ? parseInt(categoryId) : null,
-                              },
-                            },
+                        홈메인: {
+                          path: "",
+                          parse: {
+                            type: () => "home",
+                            categoryId: (categoryId) => categoryId ? parseInt(categoryId) : null,
                           },
                         },
-                        뉴스: {
-                          screens: {
-                            뉴스메인: {
-                              path: "daily-news",
-                              parse: {
-                                type: () => "news",
-                                categoryId: () => 31,
-                              },
-                            },
-                          },
-                        },
-                        씬짜오나눔: "danggn",
-                        Chat: "chat",
-                        Menu: "menu",
                       },
                     },
-                    로그인: "login",
+                    뉴스: {
+                      screens: {
+                        뉴스메인: {
+                          path: "daily-news",
+                          parse: {
+                            type: () => "news",
+                            categoryId: () => 31,
+                          },
+                        },
+                      },
+                    },
+                    씬짜오나눔: "danggn",
+                    Chat: "chat",
+                    Menu: "menu",
                   },
                 },
-              }}
-            >
-              <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-              <RootNavigator />
-            </NavigationContainer>
-          </SafeAreaProvider>
-        </>
-      )}
+                로그인: "login",
+              },
+            },
+          }}
+        >
+          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+          <RootNavigator />
+        </NavigationContainer>
+      </SafeAreaProvider>
     </AuthProvider>
   );
 }

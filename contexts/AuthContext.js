@@ -23,6 +23,15 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // ✅ iOS 크래시 방어: auth가 null인 경우 초기화 대기
+    // App.js에서 initializeFirebase() 완료 후 AuthProvider가 렌더링되므로
+    // 일반적으로는 auth가 null이 아니지만, 추가 방어 코드로 안전성 확보
+    if (!auth) {
+      console.log("⚠️ AuthContext: auth가 아직 초기화되지 않음, 대기 중...");
+      setLoading(false);
+      return;
+    }
+
     // Firebase Auth 상태 변화 감지
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);

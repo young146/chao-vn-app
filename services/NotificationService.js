@@ -2,7 +2,8 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { db, auth } from "../firebase/config";
+// ✅ iOS 크래시 수정: Lazy getter를 사용하여 초기화 완료 후에만 접근
+import { getDb, getAuthInstance } from "../firebase/config";
 import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from "firebase/firestore";
 import Constants from "expo-constants";
 
@@ -229,6 +230,8 @@ class NotificationService {
         pushTokenUpdatedAt: serverTimestamp(),
       };
 
+      // ✅ iOS 크래시 수정: 비동기 getter 사용
+      const db = await getDb();
       await setDoc(doc(db, "users", user.uid), tokenData, { merge: true });
       console.log("✅ 푸시 토큰 저장 완료");
       console.log("  - Expo Token:", expoPushToken ? "있음" : "없음");
@@ -275,10 +278,16 @@ class NotificationService {
       // 채팅방으로 이동
       if (data?.screen === "ChatRoom" && data?.roomId && navigationRef?.isReady()) {
         try {
-          // 채팅방 정보 가져오기
-          const chatRoomDoc = await db.collection("chatRooms").doc(data.roomId).get();
+          // ✅ iOS 크래시 수정: 비동기 getter 사용
+          const db = await getDb();
+          const auth = await getAuthInstance();
           
-          if (chatRoomDoc.exists) {
+          // Firestore modular API 사용 (collection API 대신)
+          const { getDoc, doc: firestoreDoc } = require("firebase/firestore");
+          const chatRoomDocRef = firestoreDoc(db, "chatRooms", data.roomId);
+          const chatRoomDoc = await getDoc(chatRoomDocRef);
+          
+          if (chatRoomDoc.exists()) {
             const chatRoomData = chatRoomDoc.data();
             const currentUserId = auth.currentUser?.uid;
             
@@ -312,7 +321,7 @@ class NotificationService {
   /**
    * 전역 채팅 알림 리스너 시작 (Firestore 실시간 감지)
    */
-  startChatRoomsListener(userId) {
+  async startChatRoomsListener(userId) {
     // 기존 리스너가 있으면 제거
     if (this.chatRoomsUnsubscribe) {
       this.chatRoomsUnsubscribe();
@@ -322,6 +331,8 @@ class NotificationService {
 
     console.log("🔔 전역 채팅 알림 리스너 시작:", userId);
 
+    // ✅ iOS 크래시 수정: 비동기 getter 사용
+    const db = await getDb();
     const chatRoomsRef = collection(db, "chatRooms");
     const q = query(chatRoomsRef, where("participants", "array-contains", userId));
 
@@ -431,7 +442,18 @@ class NotificationService {
       const responseListener = this.setupNotificationResponseListener();
 
       // 5. 사용자 로그인 상태 감지하여 채팅 리스너 시작
-      auth.onAuthStateChanged((user) => {
+      // ✅ iOS 크래시 수정: 비동기 getter 사용
+      const auth = await getAuthInstance();
+      
+      // auth가 null인 경우 방어 (극히 드문 경우)
+      if (!auth) {
+        console.log("⚠️ NotificationService: auth가 초기화되지 않음");
+        this.isInitialized = true;
+        return;
+      }
+      
+      const { onAuthStateChanged } = require("firebase/auth");
+      onAuthStateChanged(auth, (user) => {
         if (user) {
           this.registerTokens(user);
           this.startChatRoomsListener(user.uid);
