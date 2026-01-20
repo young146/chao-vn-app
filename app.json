@@ -150,12 +150,10 @@
         }
       ]
     ],
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "2.2.0",
     "updates": {
       "url": "https://u.expo.dev/9b58881f-f09a-4042-acc3-a8593658c231",
-      "checkAutomatically": "ON_ERROR_RECOVERY",
+      "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     }
   }
