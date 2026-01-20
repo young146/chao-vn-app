@@ -265,7 +265,8 @@ export const hasHomeDataCache = async () => {
 };
 
 // 🗞️ 뉴스 카테고리별 섹션 데이터 가져오기 (오늘 날짜 기준)
-const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE';
+// 캐시 버전: 탑뉴스 로직 추가 (v2)
+const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE_V2';
 
 export const getNewsSectionsCached = async (forceRefresh = false, targetDate = null) => {
   try {
@@ -337,11 +338,26 @@ export const getNewsSectionsCached = async (forceRefresh = false, targetDate = n
       });
       allTodayNews = response.data;
       console.log(`📰 ${dateStr} 뉴스 ${allTodayNews.length}개 로드`);
+      // 디버그: 첫 3개 뉴스의 meta 값 확인
+      if (allTodayNews.length > 0) {
+        console.log('📋 샘플 뉴스 meta:', allTodayNews.slice(0, 3).map(p => ({
+          id: p.id,
+          is_top_news: p.meta?.is_top_news,
+          news_category: p.meta?.news_category
+        })));
+      }
     } catch (error) {
       console.error('뉴스 로드 실패:', error.message);
     }
     
-    // 카테고리별로 분류 (모든 뉴스 표시, 제한 없음)
+    // 2. 🗞️ 뉴스 분류 (Top News + 카테고리별)
+    // is_top_news 값은 WordPress에서 '1', 1, true, 'true', 'on' 등 다양하게 저장될 수 있음
+    const topNewsPosts = allTodayNews.filter(post => {
+      const isTop = post.meta?.is_top_news;
+      return isTop === '1' || isTop === 1 || isTop === true || isTop === 'true' || isTop === 'on';
+    });
+    console.log(`🔥 탑뉴스 ${topNewsPosts.length}개 발견 (전체 ${allTodayNews.length}개 중)`);
+
     const newsSections = NEWS_SECTIONS_CONFIG.map(config => {
       const categoryPosts = allTodayNews.filter(
         post => post.meta?.news_category === config.categoryKey
@@ -355,6 +371,18 @@ export const getNewsSectionsCached = async (forceRefresh = false, targetDate = n
         }))
       };
     }).filter(section => section.posts.length > 0); // 뉴스가 있는 섹션만
+
+    // 3. 탑뉴스가 있으면 맨 앞에 추가
+    if (topNewsPosts.length > 0) {
+      newsSections.unshift({
+        name: '🔥 주요 뉴스',
+        categoryKey: 'TopNews',
+        posts: topNewsPosts.map((post, idx) => ({
+          ...post,
+          id: `news-TopNews-${post.id}-${idx}`
+        }))
+      });
+    }
     
     const result = { 
       newsSections, 

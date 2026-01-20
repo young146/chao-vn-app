@@ -635,12 +635,17 @@ export default function MagazineScreen({ navigation, route }) {
                       </View>
                       {/* 모든 뉴스 표시 (제한 없음) */}
                       {section.posts.map((post, index) => (
-                        <MagazineCard 
-                          key={`news-${section.categoryKey}-${index}`}
-                          item={post} 
-                          onPress={handlePostPress} 
-                          type="news" 
-                        />
+                        <React.Fragment key={`news-${section.categoryKey}-${post.id}-${index}`}>
+                          <MagazineCard 
+                            item={post} 
+                            onPress={handlePostPress} 
+                            type="news" 
+                          />
+                          {/* 4개 기사마다 인라인 광고 삽입 */}
+                          {(index + 1) % 4 === 0 && (
+                            <InlineAdBanner position="news_inline" />
+                          )}
+                        </React.Fragment>
                       ))}
                     </View>
                   </View>

@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "29",
+      "buildNumber": "32",
       "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
@@ -91,7 +91,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 47,
+      "versionCode": 49,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -129,13 +129,6 @@
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
       "@react-native-community/datetimepicker",
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-7944314901202352~3025832510",
-          "iosAppId": "ca-app-pub-7944314901202352~9182981091"
-        }
-      ],
       [
         "expo-build-properties",
         {
