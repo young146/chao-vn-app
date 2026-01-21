@@ -3,6 +3,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { initializeAuth, getReactNativePersistence, getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getRemoteConfig, fetchAndActivate } from "firebase/remote-config";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 // Your web app's Firebase configuration
@@ -22,6 +23,7 @@ let app = null;
 let db = null;
 let auth = null;
 let storage = null;
+let remoteConfig = null;
 let initializationPromise = null;
 let isInitialized = false;
 
@@ -68,10 +70,29 @@ const initializeFirebase = async () => {
       storage = getStorage(app);
       console.log("✅ Firebase Storage 초기화 완료");
 
+      // Firebase Remote Config (광고 설정용)
+      try {
+        remoteConfig = getRemoteConfig(app);
+        remoteConfig.settings = {
+          minimumFetchIntervalMillis: 3600000, // 1시간 캐시
+        };
+        // 기본값 설정
+        remoteConfig.defaultConfig = {
+          in_house_ads: JSON.stringify({
+            banner: { imageUrl: "https://chaovietnam.co.kr/ads/banner_ad.png", linkUrl: "https://chaovietnam.co.kr" },
+            inline: { imageUrl: "https://chaovietnam.co.kr/ads/inline_ad.png", linkUrl: "https://chaovietnam.co.kr" },
+            section: { imageUrl: "https://chaovietnam.co.kr/ads/section_ad.png", linkUrl: "https://chaovietnam.co.kr" },
+          }),
+        };
+        console.log("✅ Firebase Remote Config 초기화 완료");
+      } catch (rcError) {
+        console.log("⚠️ Remote Config 초기화 실패 (광고에 기본값 사용):", rcError.message);
+      }
+
       isInitialized = true;
       console.log("✅ Firebase Web SDK 초기화 완료 (Lazy)");
       
-      return { app, db, auth, storage };
+      return { app, db, auth, storage, remoteConfig };
     } catch (error) {
       console.error("❌ Firebase 초기화 실패:", error);
       initializationPromise = null;
@@ -129,7 +150,7 @@ const getStorageSync = () => {
 // ⚠️ 중요: App.js에서 initializeFirebase()를 먼저 호출해야 합니다.
 // React 컴포넌트들은 App.js가 렌더링된 후에야 사용되므로,
 // App.js에서 초기화를 보장하면 다른 컴포넌트들이 사용할 때는 이미 초기화되어 있습니다.
-export { db, auth, storage };
+export { db, auth, storage, remoteConfig };
 
 // 새로운 Lazy Initialization API
 export {
