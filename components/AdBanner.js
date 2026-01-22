@@ -66,12 +66,41 @@ const extractImageUrl = (content) => {
 };
 
 /**
- * HTML content에서 링크 URL 추출
+ * HTML content에서 링크 URL 추출 (외부 링크 우선)
  */
 const extractLinkUrl = (content) => {
-  // a 태그에서 href 추출
-  const linkMatch = content.match(/<a[^>]+href=["']([^"']+)["']/i);
-  if (linkMatch) return linkMatch[1];
+  // 모든 a 태그의 href 추출
+  const linkMatches = content.match(/<a[^>]+href=["']([^"']+)["']/gi);
+  
+  if (linkMatches && linkMatches.length > 0) {
+    // 각 매치에서 href 값 추출
+    for (const match of linkMatches) {
+      const hrefMatch = match.match(/href=["']([^"']+)["']/i);
+      if (hrefMatch && hrefMatch[1]) {
+        const url = hrefMatch[1];
+        // chaovietnam.co.kr 내부 링크가 아닌 외부 링크 우선
+        if (!url.includes('chaovietnam.co.kr') && url.startsWith('http')) {
+          return url;
+        }
+      }
+    }
+    
+    // 외부 링크가 없으면 첫 번째 링크 반환
+    const firstHref = linkMatches[0].match(/href=["']([^"']+)["']/i);
+    if (firstHref && firstHref[1] && firstHref[1].startsWith('http')) {
+      return firstHref[1];
+    }
+  }
+  
+  // URL 패턴으로 직접 찾기 (http로 시작하고 chaovietnam이 아닌 것)
+  const urlMatches = content.match(/https?:\/\/[^\s"'<>]+/gi);
+  if (urlMatches) {
+    for (const url of urlMatches) {
+      if (!url.includes('chaovietnam.co.kr') && !url.includes('.jpg') && !url.includes('.png') && !url.includes('.gif')) {
+        return url;
+      }
+    }
+  }
   
   return "https://chaovietnam.co.kr"; // 기본값
 };
