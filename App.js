@@ -89,7 +89,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Platform,
   StatusBar,
   ActivityIndicator,
 } from "react-native";
