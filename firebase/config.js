@@ -56,14 +56,16 @@ const initializeFirebase = async () => {
       console.log("✅ Firestore 초기화 완료");
 
       // Authentication with AsyncStorage persistence
+      // ✅ 로그인 상태 유지: 반드시 initializeAuth를 먼저 시도하여 persistence 설정
       try {
-        auth = getAuth(app);
-        console.log("✅ 기존 Auth 인스턴스 사용");
-      } catch (e) {
         auth = initializeAuth(app, {
           persistence: getReactNativePersistence(ReactNativeAsyncStorage)
         });
-        console.log("✅ 새 Auth 인스턴스 생성 (AsyncStorage persistence)");
+        console.log("✅ Auth 인스턴스 생성 (AsyncStorage persistence로 로그인 상태 유지)");
+      } catch (e) {
+        // 이미 초기화된 경우 기존 인스턴스 사용
+        auth = getAuth(app);
+        console.log("✅ 기존 Auth 인스턴스 사용");
       }
 
       // Firebase Storage
