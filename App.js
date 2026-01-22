@@ -1,5 +1,6 @@
 import "react-native-gesture-handler";
-import { LogBox } from "react-native";
+import { LogBox, Platform } from "react-native";
+import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 // LogBox.ignoreAllLogs(true);
 
 // Firebase Remote Config deprecated 경고 무시 (기능은 정상 작동)
@@ -193,7 +194,18 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // ✅ 0. 네이티브 Firebase 초기화 완료 대기 (최우선)
+        // ✅ 0. iOS ATT (App Tracking Transparency) 권한 요청
+        // Apple 심사 요구사항: 추적 전에 사용자 동의 받기
+        if (Platform.OS === "ios") {
+          try {
+            const { status } = await requestTrackingPermissionsAsync();
+            console.log(`📱 ATT 권한 상태: ${status}`);
+          } catch (attError) {
+            console.log("⚠️ ATT 권한 요청 실패 (계속 진행):", attError?.message);
+          }
+        }
+
+        // ✅ 0.1 네이티브 Firebase 초기화 완료 대기 (최우선)
         // 네이티브 모듈이 완전히 준비될 때까지 대기
         const firebaseReady = await waitForFirebase(5000);
         if (!firebaseReady) {

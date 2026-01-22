@@ -91,7 +91,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 49,
+      "versionCode": 50,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -141,7 +141,8 @@
             "hermesEnabled": true
           }
         }
-      ]
+      ],
+      "expo-tracking-transparency"
     ],
     "runtimeVersion": "2.2.0",
     "updates": {
