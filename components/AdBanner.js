@@ -9,7 +9,16 @@ import axios from "axios";
 // ============================================
 
 const AD_API_URL = "https://chaovietnam.co.kr/wp-json/wp/v2/posts";
-const AD_CATEGORY_ID = 399; // AD 카테고리
+const AD_CATEGORIES_API = "https://chaovietnam.co.kr/wp-json/wp/v2/categories";
+
+// 광고 카테고리 ID (WordPress에서 생성 후 ID 확인 필요)
+// 기본값은 AD 카테고리, 하위 카테고리가 있으면 자동 감지
+let AD_CATEGORY_IDS = {
+  banner: null,   // AD-Banner 카테고리 ID
+  inline: null,   // AD-Inline 카테고리 ID  
+  section: null,  // AD-Section 카테고리 ID
+  all: 399,       // AD 카테고리 (기본값)
+};
 
 /**
  * 기본 광고 데이터 (WordPress API 로드 실패 시 사용)
@@ -68,7 +77,57 @@ const extractLinkUrl = (content) => {
 };
 
 /**
- * WordPress API에서 광고 데이터 가져오기
+ * 카테고리 ID 찾기 (슬러그로)
+ */
+const findCategoryId = async (slug) => {
+  try {
+    const response = await axios.get(AD_CATEGORIES_API, {
+      params: { slug, _fields: "id" },
+      timeout: 5000,
+    });
+    if (response.data && response.data.length > 0) {
+      return response.data[0].id;
+    }
+  } catch (error) {
+    console.log(`카테고리 ${slug} 찾기 실패:`, error.message);
+  }
+  return null;
+};
+
+/**
+ * 특정 카테고리에서 광고 가져오기
+ */
+const fetchAdsFromCategory = async (categoryId) => {
+  if (!categoryId) return [];
+  
+  try {
+    const response = await axios.get(AD_API_URL, {
+      params: {
+        categories: categoryId,
+        per_page: 20,
+        _fields: "id,title,content,featured_media,link",
+      },
+      timeout: 8000,
+    });
+    
+    const posts = response.data || [];
+    return posts.map(post => {
+      const content = post.content?.rendered || "";
+      return {
+        id: post.id,
+        title: post.title?.rendered || "",
+        imageUrl: extractImageUrl(content),
+        linkUrl: extractLinkUrl(content),
+      };
+    }).filter(ad => ad.imageUrl);
+  } catch (error) {
+    console.log(`카테고리 ${categoryId} 광고 로드 실패:`, error.message);
+    return [];
+  }
+};
+
+/**
+ * WordPress API에서 광고 데이터 가져오기 (위치별 분리)
  */
 const fetchAdConfig = async () => {
   const now = Date.now();
@@ -81,39 +140,32 @@ const fetchAdConfig = async () => {
   try {
     console.log("📢 WordPress에서 광고 로드 중...");
     
-    const response = await axios.get(AD_API_URL, {
-      params: {
-        categories: AD_CATEGORY_ID,
-        per_page: 50, // 최대 50개 광고
-        _fields: "id,title,content,featured_media,link",
-      },
-      timeout: 8000,
-    });
-    
-    const posts = response.data;
-    
-    if (posts && posts.length > 0) {
-      // 모든 광고를 하나의 배열로 (위치 구분 없이 랜덤 사용)
-      const allAds = posts.map(post => {
-        const content = post.content?.rendered || "";
-        return {
-          id: post.id,
-          title: post.title?.rendered || "",
-          imageUrl: extractImageUrl(content),
-          linkUrl: extractLinkUrl(content),
-        };
-      }).filter(ad => ad.imageUrl); // 이미지가 있는 것만
-      
-      cachedAds = {
-        banner: allAds,
-        inline: allAds,
-        section: allAds,
-      };
-      
-      lastFetchTime = now;
-      console.log(`✅ WordPress 광고 ${allAds.length}개 로드 성공`);
-      return cachedAds;
+    // 카테고리 ID 찾기 (처음 한 번만)
+    if (!AD_CATEGORY_IDS.banner) {
+      AD_CATEGORY_IDS.banner = await findCategoryId("ad-banner");
+      AD_CATEGORY_IDS.inline = await findCategoryId("ad-inline");
+      AD_CATEGORY_IDS.section = await findCategoryId("ad-section");
+      console.log("📂 광고 카테고리 ID:", AD_CATEGORY_IDS);
     }
+    
+    // 위치별 광고 가져오기
+    const [bannerAds, inlineAds, sectionAds, allAds] = await Promise.all([
+      fetchAdsFromCategory(AD_CATEGORY_IDS.banner),
+      fetchAdsFromCategory(AD_CATEGORY_IDS.inline),
+      fetchAdsFromCategory(AD_CATEGORY_IDS.section),
+      fetchAdsFromCategory(AD_CATEGORY_IDS.all),
+    ]);
+    
+    // 위치별 카테고리가 없으면 전체 AD 카테고리에서 가져옴
+    cachedAds = {
+      banner: bannerAds.length > 0 ? bannerAds : allAds,
+      inline: inlineAds.length > 0 ? inlineAds : allAds,
+      section: sectionAds.length > 0 ? sectionAds : allAds,
+    };
+    
+    lastFetchTime = now;
+    console.log(`✅ 광고 로드: Banner ${cachedAds.banner.length}, Inline ${cachedAds.inline.length}, Section ${cachedAds.section.length}`);
+    return cachedAds;
   } catch (error) {
     console.log("WordPress 광고 로드 실패, 기본값 사용:", error.message);
   }
