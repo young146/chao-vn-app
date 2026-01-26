@@ -114,7 +114,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-// ✅ 스플래시 화면을 앱이 준비될 때까지 유지 (검은 화면 방지)
+// ✅ 네이티브 스플래시를 잠깐만 유지 후 JS 로딩 화면(프로그레스 바) 표시
 SplashScreen.preventAutoHideAsync().catch(() => {
   // 이미 숨겨졌거나 에러 발생 시 무시
 });
@@ -297,14 +297,17 @@ export default function App() {
     initializeApp();
   }, []);
 
-  // ✅ 앱이 준비되면 스플래시 화면 숨기기 (검은 화면 방지)
+  // ✅ 앱 마운트 시 바로 스플래시 숨기고 JS 로딩 화면(프로그레스 바) 표시
   useEffect(() => {
-    if (isReady) {
+    // 약간의 딜레이 후 스플래시 숨김 (JS 로딩 화면이 렌더링된 후)
+    const timer = setTimeout(() => {
       SplashScreen.hideAsync().catch(() => {
         // 이미 숨겨졌거나 에러 시 무시
       });
-    }
-  }, [isReady]);
+    }, 100); // 100ms 후 스플래시 숨김 → 프로그레스 바 로딩 화면 표시
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // ✅ 첫 화면이 완전히 렌더링된 후 Updates 체크
   // "content appeared" 이벤트 이후에 실행하여 ErrorRecovery 크래시 방지
