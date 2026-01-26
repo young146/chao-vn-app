@@ -22,6 +22,10 @@
       "bundleIdentifier": "com.yourname.chaovnapp",
       "buildNumber": "35",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "associatedDomains": [
+        "applinks:chaovietnam.co.kr",
+        "applinks:www.chaovietnam.co.kr"
+      ],
       "config": {
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
       },
@@ -107,7 +111,26 @@
         "googleMaps": {
           "apiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
         }
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "chaovietnam.co.kr",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.chaovietnam.co.kr",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "extra": {
       "eas": {
