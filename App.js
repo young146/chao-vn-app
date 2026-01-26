@@ -1,7 +1,19 @@
 import "react-native-gesture-handler";
 import { LogBox, Platform } from "react-native";
-import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
+import Constants from "expo-constants";
 // LogBox.ignoreAllLogs(true);
+
+// expo-tracking-transparency는 Expo Go에서 사용 불가 (프로덕션 빌드에서만 작동)
+let requestTrackingPermissionsAsync = null;
+const isExpoGo = Constants.appOwnership === 'expo';
+if (!isExpoGo) {
+  try {
+    const TrackingTransparency = require("expo-tracking-transparency");
+    requestTrackingPermissionsAsync = TrackingTransparency.requestTrackingPermissionsAsync;
+  } catch (e) {
+    console.log("⚠️ expo-tracking-transparency 로드 실패 (Expo Go에서는 정상)");
+  }
+}
 
 // Firebase Remote Config deprecated 경고 무시 (기능은 정상 작동)
 LogBox.ignoreLogs([
@@ -59,7 +71,8 @@ const initializeAppCheck = async () => {
 };
 
 // Firebase 초기화 상태 확인 함수 (네이티브 Firebase)
-const waitForFirebase = async (timeout = 5000) => {
+// ⚡ 타임아웃 2초로 단축 (딥링크 속도 개선)
+const waitForFirebase = async (timeout = 2000) => {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
@@ -68,14 +81,14 @@ const waitForFirebase = async (timeout = 5000) => {
       if (apps && apps.length > 0) {
         const app = firebase.app();
         if (app && app.name === "[DEFAULT]") {
-          console.log("✅ 네이티브 Firebase 초기화 완료");
+          console.log(`✅ 네이티브 Firebase 초기화 완료 (${Date.now() - startTime}ms)`);
           return true;
         }
       }
     } catch (e) {
       // 아직 초기화 안됨 - 계속 대기
     }
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 50)); // 50ms로 단축
   }
 
   console.log("⚠️ 네이티브 Firebase 초기화 타임아웃 (기본값으로 진행)");
@@ -195,7 +208,8 @@ export default function App() {
 
         // ✅ 0. iOS ATT (App Tracking Transparency) 권한 요청
         // Apple 심사 요구사항: 추적 전에 사용자 동의 받기
-        if (Platform.OS === "ios") {
+        // Expo Go에서는 건너뜀 (프로덕션 빌드에서만 작동)
+        if (Platform.OS === "ios" && requestTrackingPermissionsAsync) {
           try {
             const { status } = await requestTrackingPermissionsAsync();
             console.log(`📱 ATT 권한 상태: ${status}`);
@@ -204,31 +218,34 @@ export default function App() {
           }
         }
 
-        // ✅ 0.1 네이티브 Firebase 초기화 완료 대기 (최우선)
-        // 네이티브 모듈이 완전히 준비될 때까지 대기
-        const firebaseReady = await waitForFirebase(5000);
-        if (!firebaseReady) {
-          console.log("⚠️ 네이티브 Firebase 초기화 지연, 계속 진행...");
-        }
-
-        // ✅ 0.1 웹 Firebase 초기화 (네이티브 Firebase 이후)
-        // Lazy initialization으로 변경했으므로 명시적으로 초기화
-        try {
-          await initializeFirebase();
-          console.log("✅ 웹 Firebase 초기화 완료");
-        } catch (webFirebaseError) {
-          console.log("⚠️ 웹 Firebase 초기화 실패 (계속 진행):", webFirebaseError?.message);
-        }
-
-        // ✅ 0.5 App Check 초기화 (Firebase 백엔드 보안)
-        // 프로덕션에서만 활성화
+        // ✅ 병렬 초기화 (속도 개선)
+        // Firebase 네이티브 + 웹 + App Check를 동시에 처리
+        const initPromises = [
+          // 네이티브 Firebase 대기 (2초 타임아웃)
+          waitForFirebase(2000).then(ready => {
+            if (!ready) console.log("⚠️ 네이티브 Firebase 지연, 계속 진행...");
+            return ready;
+          }),
+          // 웹 Firebase 초기화
+          initializeFirebase().then(() => {
+            console.log("✅ 웹 Firebase 초기화 완료");
+          }).catch(err => {
+            console.log("⚠️ 웹 Firebase 초기화 실패:", err?.message);
+          }),
+        ];
+        
+        // App Check는 프로덕션에서만
         if (!__DEV__) {
-          try {
-            await initializeAppCheck();
-          } catch (appCheckError) {
-            console.log("⚠️ App Check 초기화 실패 (계속 진행):", appCheckError?.message);
-          }
+          initPromises.push(
+            initializeAppCheck().catch(err => {
+              console.log("⚠️ App Check 초기화 실패:", err?.message);
+            })
+          );
         }
+        
+        // 모든 초기화 병렬 실행 (하나 실패해도 계속)
+        await Promise.allSettled(initPromises);
+        console.log(`⏱️ Firebase 초기화 완료: ${Date.now() - startTime}ms`);
 
         // ⚠️ Updates 체크는 첫 화면 렌더링 이후로 이동 (아래 useEffect에서 처리)
 
