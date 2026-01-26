@@ -3,7 +3,7 @@
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
     "owner": "young146",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "newArchEnabled": false,
     "scheme": "xinchao",
     "orientation": "portrait",
@@ -18,9 +18,9 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "38",
+      "buildNumber": "39",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
@@ -170,7 +170,7 @@
       ],
       "expo-tracking-transparency"
     ],
-    "runtimeVersion": "2.2.0",
+    "runtimeVersion": "2.2.1",
     "updates": {
       "url": "https://u.expo.dev/9b58881f-f09a-4042-acc3-a8593658c231",
       "checkAutomatically": "ON_LOAD",
