@@ -95,7 +95,7 @@ const waitForFirebase = async (timeout = 2000) => {
   return false;
 };
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Image as ExpoImage } from "expo-image";
 import {
   StyleSheet,
@@ -105,6 +105,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -112,6 +113,11 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+
+// ✅ 스플래시 화면을 앱이 준비될 때까지 유지 (검은 화면 방지)
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // 이미 숨겨졌거나 에러 발생 시 무시
+});
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
@@ -290,6 +296,15 @@ export default function App() {
 
     initializeApp();
   }, []);
+
+  // ✅ 앱이 준비되면 스플래시 화면 숨기기 (검은 화면 방지)
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync().catch(() => {
+        // 이미 숨겨졌거나 에러 시 무시
+      });
+    }
+  }, [isReady]);
 
   // ✅ 첫 화면이 완전히 렌더링된 후 Updates 체크
   // "content appeared" 이벤트 이후에 실행하여 ErrorRecovery 크래시 방지
