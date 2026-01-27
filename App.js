@@ -283,25 +283,38 @@ export default function App() {
           return;
         }
 
-        // 3. 캐시 없음 (첫 설치) → 로딩 화면 표시
+        // 3. 캐시 없음 (첫 설치) → 최대 3초 후 화면 진입 (빠른 UX)
         console.log("⏳ 첫 실행, 데이터 로딩 중...");
 
         let progress = 0;
         const interval = setInterval(() => {
           if (progress < 90) {
-            progress += Math.random() * 20;
+            progress += Math.random() * 15;
             if (progress > 90) progress = 90;
             setLoadProgress(progress);
           }
-        }, 150);
+        }, 100);
 
-        // 최적화된 단일 API 호출
-        await getHomeDataCached();
+        // 🚀 최대 3초 타임아웃: 데이터 로드 또는 타임아웃 중 먼저 완료되는 것
+        const MAX_WAIT_TIME = 3000; // 3초
+        const dataPromise = getHomeDataCached();
+        const timeoutPromise = new Promise(resolve => 
+          setTimeout(() => resolve('timeout'), MAX_WAIT_TIME)
+        );
+
+        const result = await Promise.race([dataPromise, timeoutPromise]);
 
         clearInterval(interval);
         setLoadProgress(100);
 
-        console.log(`⏱️ 첫 로딩 완료: ${Date.now() - startTime}ms`);
+        if (result === 'timeout') {
+          console.log("⏱️ 3초 타임아웃, 홈 화면에서 로딩 계속");
+          // 백그라운드에서 데이터 로드 완료 대기 (사용자는 홈 화면 진입)
+          dataPromise.then(() => console.log("✅ 백그라운드 데이터 로드 완료"));
+        } else {
+          console.log(`⏱️ 첫 로딩 완료: ${Date.now() - startTime}ms`);
+        }
+
         setTimeout(() => setIsReady(true), 100);
       } catch (error) {
         console.log("초기화 에러:", error);
