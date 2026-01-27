@@ -95,7 +95,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 54,
+      "versionCode": 55,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -173,7 +173,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-7944314901202352~3025832510"
+          "androidAppId": "ca-app-pub-7944314901202352~3025832510",
+          "delay_app_measurement_init": true
         }
       ]
     ],
