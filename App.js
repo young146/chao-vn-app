@@ -212,79 +212,40 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // ✅ 0. 플랫폼별 광고 동의 요청
-        // iOS: ATT (App Tracking Transparency)
-        // Android: UMP (User Messaging Platform) - AdMob 동의
-        if (Platform.OS === "ios" && requestTrackingPermissionsAsync) {
-          try {
-            const { status } = await requestTrackingPermissionsAsync();
-            console.log(`📱 iOS ATT 권한 상태: ${status}`);
-          } catch (attError) {
-            console.log("⚠️ ATT 권한 요청 실패 (계속 진행):", attError?.message);
-          }
-        } else if (Platform.OS === "android") {
-          // Android AdMob 동의 요청 (UMP)
-          try {
-            const { requestAdConsent } = require("./services/AdConsentService");
-            const consentResult = await requestAdConsent();
-            console.log(`📱 Android 광고 동의: ${JSON.stringify(consentResult)}`);
-            
-            // 동의 후 전면 광고 미리 로드
-            if (consentResult.canShowAds) {
-              const { preloadInterstitialAd } = require("./services/InterstitialAdService");
-              preloadInterstitialAd();
-            }
-          } catch (consentError) {
-            console.log("⚠️ 광고 동의 요청 실패 (계속 진행):", consentError?.message);
-          }
-        }
-
-        // ✅ 병렬 초기화 (속도 개선)
-        // Firebase 네이티브 + 웹 + App Check를 동시에 처리
-        const initPromises = [
-          // 네이티브 Firebase 대기 (2초 타임아웃)
-          waitForFirebase(2000).then(ready => {
-            if (!ready) console.log("⚠️ 네이티브 Firebase 지연, 계속 진행...");
-            return ready;
-          }),
-          // 웹 Firebase 초기화
-          initializeFirebase().then(() => {
-            console.log("✅ 웹 Firebase 초기화 완료");
-          }).catch(err => {
-            console.log("⚠️ 웹 Firebase 초기화 실패:", err?.message);
-          }),
-        ];
-        
-        // App Check는 프로덕션에서만
-        if (!__DEV__) {
-          initPromises.push(
-            initializeAppCheck().catch(err => {
-              console.log("⚠️ App Check 초기화 실패:", err?.message);
-            })
-          );
-        }
-        
-        // 모든 초기화 병렬 실행 (하나 실패해도 계속)
-        await Promise.allSettled(initPromises);
-        console.log(`⏱️ Firebase 초기화 완료: ${Date.now() - startTime}ms`);
-
-        // ⚠️ Updates 체크는 첫 화면 렌더링 이후로 이동 (아래 useEffect에서 처리)
-
-        // 2. 캐시 확인 - 있으면 즉시 진입!
+        // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
         const hasCache = await hasHomeDataCache();
 
         if (hasCache) {
           console.log("✅ 캐시 발견! 즉시 진입");
           setIsReady(true);
 
-          // 백그라운드에서 조용히 데이터 갱신 (사용자는 모름)
-          getHomeDataCached(true); // forceRefresh = true
-          console.log(`⏱️ 총 소요시간: ${Date.now() - startTime}ms`);
+          // 백그라운드에서 모든 초기화 + 데이터 갱신 (사용자는 안 기다림)
+          Promise.allSettled([
+            // Firebase 초기화
+            waitForFirebase(2000),
+            initializeFirebase(),
+            !__DEV__ && initializeAppCheck(),
+            // 데이터 갱신
+            getHomeDataCached(true),
+            // 광고 동의 (백그라운드)
+            Platform.OS === "android" && (async () => {
+              try {
+                const { requestAdConsent } = require("./services/AdConsentService");
+                const result = await requestAdConsent();
+                if (result.canShowAds) {
+                  const { preloadInterstitialAd } = require("./services/InterstitialAdService");
+                  preloadInterstitialAd();
+                }
+              } catch (e) {}
+            })(),
+          ]).then(() => console.log("✅ 백그라운드 초기화 완료"));
+          
+          console.log(`⏱️ 즉시 진입: ${Date.now() - startTime}ms`);
           return;
         }
 
-        // 3. 캐시 없음 (첫 설치) → 최대 3초 후 화면 진입 (빠른 UX)
-        console.log("⏳ 첫 실행, 데이터 로딩 중...");
+        // 🚀 2. 캐시 없음 → 프로그레스 바 표시 + 빠른 초기화
+        console.log("⏳ 첫 실행, 프로그레스 바 표시...");
 
         let progress = 0;
         const interval = setInterval(() => {
@@ -295,24 +256,39 @@ export default function App() {
           }
         }, 100);
 
-        // 🚀 최대 3초 타임아웃: 데이터 로드 또는 타임아웃 중 먼저 완료되는 것
-        const MAX_WAIT_TIME = 3000; // 3초
-        const dataPromise = getHomeDataCached();
+        // 모든 초기화를 병렬로 + 최대 2초 타임아웃
+        const MAX_INIT_TIME = 2000; // 최대 2초
+
+        const allInitPromise = Promise.allSettled([
+          waitForFirebase(1500),
+          initializeFirebase(),
+          !__DEV__ && initializeAppCheck(),
+          getHomeDataCached(),
+          // 광고 동의도 병렬로
+          Platform.OS === "ios" && requestTrackingPermissionsAsync?.(),
+          Platform.OS === "android" && (async () => {
+            try {
+              const { requestAdConsent } = require("./services/AdConsentService");
+              await requestAdConsent();
+            } catch (e) {}
+          })(),
+        ]);
+
         const timeoutPromise = new Promise(resolve => 
-          setTimeout(() => resolve('timeout'), MAX_WAIT_TIME)
+          setTimeout(() => resolve('timeout'), MAX_INIT_TIME)
         );
 
-        const result = await Promise.race([dataPromise, timeoutPromise]);
+        const result = await Promise.race([allInitPromise, timeoutPromise]);
 
         clearInterval(interval);
         setLoadProgress(100);
 
         if (result === 'timeout') {
-          console.log("⏱️ 3초 타임아웃, 홈 화면에서 로딩 계속");
-          // 백그라운드에서 데이터 로드 완료 대기 (사용자는 홈 화면 진입)
-          dataPromise.then(() => console.log("✅ 백그라운드 데이터 로드 완료"));
+          console.log(`⏱️ ${MAX_INIT_TIME}ms 타임아웃, 화면 진입`);
+          // 백그라운드에서 계속
+          allInitPromise.then(() => console.log("✅ 백그라운드 초기화 완료"));
         } else {
-          console.log(`⏱️ 첫 로딩 완료: ${Date.now() - startTime}ms`);
+          console.log(`⏱️ 초기화 완료: ${Date.now() - startTime}ms`);
         }
 
         setTimeout(() => setIsReady(true), 100);
@@ -862,7 +838,7 @@ function BottomTabNavigator() {
 
   return (
     <Tab.Navigator
-      initialRouteName="홈"
+      initialRouteName="뉴스"
       screenOptions={({ route }) => ({
         headerShown: false,
         lazy: false,
