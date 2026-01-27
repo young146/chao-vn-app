@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "249390849714",
+    "project_id": "chaovietnam-login",
+    "storage_bucket": "chaovietnam-login.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249390849714:android:fa01cab0585c7ffae973ab",
+        "android_client_info": {
+          "package_name": "com.yourname.chaovnapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUT94AybeiI3rjAXWR0Eo51u2gReqEgAg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249390849714-uh33llioruo1dc861eoh7o3267i0ap22.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

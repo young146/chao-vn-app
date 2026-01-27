@@ -1,17 +1,14 @@
 /**
- * Expo Config Plugin: react-native-google-mobile-ads의 codegenConfig를 제외
- * newArchEnabled: false일 때도 RCTThirdPartyComponentsProvider가 실행되어
- * nil 객체 크래시가 발생하는 것을 방지
- * 
- * 이 플러그인은 prebuild 시 react-native-google-mobile-ads의 package.json에서
- * codegenConfig를 제거하여 RCTThirdPartyComponentsProvider에 포함되지 않도록 합니다.
+ * Expo Config Plugin: 
+ * 1. react-native-google-mobile-ads의 codegenConfig를 제외 (iOS 크래시 방지)
+ * 2. Android Manifest 충돌 해결 (DELAY_APP_MEASUREMENT_INIT)
  */
-const { withDangerousMod } = require('@expo/config-plugins');
+const { withDangerousMod, withAndroidManifest } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
 module.exports = function withGoogleMobileAdsCodegenExclude(config) {
-  // iOS와 Android 모두 처리
+  // 1. iOS: codegenConfig 제거
   config = withDangerousMod(config, [
     'ios',
     async (config) => {
@@ -29,12 +26,10 @@ module.exports = function withGoogleMobileAdsCodegenExclude(config) {
             fs.readFileSync(googleMobileAdsPackagePath, 'utf8')
           );
           
-          // codegenConfig를 제거하여 RCTThirdPartyComponentsProvider에 포함되지 않도록 함
           if (packageJson.codegenConfig) {
             const originalCodegenConfig = packageJson.codegenConfig;
             delete packageJson.codegenConfig;
             
-            // 백업 파일 생성 (나중에 복원 가능하도록)
             const backupPath = googleMobileAdsPackagePath + '.backup';
             if (!fs.existsSync(backupPath)) {
               fs.writeFileSync(backupPath, JSON.stringify({ codegenConfig: originalCodegenConfig }, null, 2));
@@ -51,7 +46,7 @@ module.exports = function withGoogleMobileAdsCodegenExclude(config) {
           }
         } catch (error) {
           console.error('❌ react-native-google-mobile-ads package.json 수정 실패:', error.message);
-          throw error; // 실패 시 빌드 중단
+          throw error;
         }
       } else {
         console.warn('⚠️ react-native-google-mobile-ads package.json을 찾을 수 없습니다:', googleMobileAdsPackagePath);
@@ -60,6 +55,49 @@ module.exports = function withGoogleMobileAdsCodegenExclude(config) {
       return config;
     },
   ]);
+
+  // 2. Android: Manifest 충돌 해결 - tools:replace 추가
+  config = withAndroidManifest(config, async (config) => {
+    const mainApplication = config.modResults.manifest.application?.[0];
+    
+    if (mainApplication) {
+      // tools 네임스페이스 추가
+      if (!config.modResults.manifest.$) {
+        config.modResults.manifest.$ = {};
+      }
+      config.modResults.manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+      
+      // meta-data 배열 확인/생성
+      if (!mainApplication['meta-data']) {
+        mainApplication['meta-data'] = [];
+      }
+      
+      // DELAY_APP_MEASUREMENT_INIT 찾아서 tools:replace 추가
+      const metaDataArray = mainApplication['meta-data'];
+      const delayMeasurementIndex = metaDataArray.findIndex(
+        (item) => item.$?.['android:name'] === 'com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT'
+      );
+      
+      if (delayMeasurementIndex >= 0) {
+        // 기존 항목에 tools:replace 추가
+        metaDataArray[delayMeasurementIndex].$['tools:replace'] = 'android:value';
+        metaDataArray[delayMeasurementIndex].$['android:value'] = 'true';
+        console.log('✅ DELAY_APP_MEASUREMENT_INIT에 tools:replace 추가됨');
+      } else {
+        // 새 항목 추가 (tools:replace 포함)
+        metaDataArray.push({
+          $: {
+            'android:name': 'com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT',
+            'android:value': 'true',
+            'tools:replace': 'android:value'
+          }
+        });
+        console.log('✅ DELAY_APP_MEASUREMENT_INIT 추가됨 (tools:replace 포함)');
+      }
+    }
+    
+    return config;
+  });
 
   return config;
 };
