@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "40",
+      "buildNumber": "41",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
@@ -110,7 +110,8 @@
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
-        }
+        },
+        "googleMobileAdsAppId": "ca-app-pub-7944314901202352~3025832510"
       },
       "intentFilters": [
         {
@@ -168,7 +169,13 @@
           }
         }
       ],
-      "expo-tracking-transparency"
+      "expo-tracking-transparency",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-7944314901202352~3025832510"
+        }
+      ]
     ],
     "runtimeVersion": "2.2.1",
     "updates": {
