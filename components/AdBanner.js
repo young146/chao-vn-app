@@ -1,12 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Linking } from "react-native";
+import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform } from "react-native";
 import axios from "axios";
 
+// AdMob 배너 (Android만 사용)
+let BannerAd = null;
+let BannerAdSizeEnum = null;
+let TestIds = null;
+
+// Android에서만 AdMob 로드
+if (Platform.OS === 'android') {
+  try {
+    const GoogleMobileAds = require('react-native-google-mobile-ads');
+    BannerAd = GoogleMobileAds.BannerAd;
+    BannerAdSizeEnum = GoogleMobileAds.BannerAdSize;
+    TestIds = GoogleMobileAds.TestIds;
+  } catch (e) {
+    console.log('AdMob 로드 실패, 자체 광고 사용:', e.message);
+  }
+}
+
 // ============================================
-// 🏠 자체 광고 시스템 (하이브리드 방식)
-// 1. ChaoVN Ad API (Ad Inserter 플러그인) 우선 시도
-// 2. WordPress Posts API + 태그 기반 위치별 광고 지원
+// 🏠 하이브리드 광고 시스템
+// 1. AdMob 먼저 시도 (Android만)
+// 2. 실패 시 ChaoVN Ad API (Ad Inserter 플러그인)
+// 3. 최종 폴백: WordPress Posts API
 // ============================================
+
+// AdMob 광고 단위 ID (실제 프로덕션용)
+const ADMOB_AD_UNITS = {
+  BANNER: 'ca-app-pub-7944314901202352/4705993110',           // 매인 상단 배너
+  INTERSTITIAL: 'ca-app-pub-7944314901202352/3814173100',     // 전면 광고
+  NATIVE_ADVANCED: 'ca-app-pub-7944314901202352/2867922944',  // 콘텐츠 광고 (네이티브)
+};
 
 // API URLs
 const CHAOVN_AD_API_URL = "https://chaovietnam.co.kr/wp-json/chaovn/v1/ads";
@@ -309,113 +334,211 @@ const handleAdPress = async (url) => {
 
 /**
  * 광고 배너 컴포넌트 (하이브리드 방식)
- * ✅ 여러 광고 중 랜덤 표시
+ * ✅ 자체 광고 우선 (사이트 계약 광고)
+ * ✅ 자체 광고가 없으면 AdMob으로 채움 (Android만)
  * 
  * @param {string} position - 광고 위치 태그 (예: "home_header", "news_header")
- *                           WordPress에서 해당 태그로 광고를 필터링
- *                           태그가 없으면 기본 배너 광고 표시
+ * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부 (기본: true, Android만)
  */
-export default function AdBanner({ position = "default", size, style }) {
-  const [ad, setAd] = useState(getRandomAd(DEFAULT_ADS.banner));
+export default function AdBanner({ position = "default", size, style, useAdMob = true }) {
+  const [ad, setAd] = useState(null);
+  const [hasSelfAd, setHasSelfAd] = useState(true); // 자체 광고 존재 여부
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Android에서 AdMob 사용 가능 여부 (자체 광고가 없을 때만)
+  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
   
   useEffect(() => {
-    const loadAd = async () => {
+    const loadSelfAd = async () => {
+      setIsLoading(true);
       try {
         // 1. 먼저 위치별 태그로 광고 찾기 (예: "home_header")
         if (position && position !== "default") {
           const tagAds = await fetchAdsByTag(position, 'banner');
           if (tagAds && tagAds.length > 0) {
             setAd(getRandomAd(tagAds));
+            setHasSelfAd(true);
+            setIsLoading(false);
             return;
           }
         }
         
-        // 2. 태그별 광고가 없으면 기본 배너에서 가져오기
+        // 2. 태그별 광고가 없으면 ChaoVN Ad API에서 가져오기
         const ads = await fetchAdConfig();
-        const bannerAds = ads?.banner?.length > 0 ? ads.banner : DEFAULT_ADS.banner;
-        const selectedAd = getRandomAd(bannerAds);
-        if (selectedAd) setAd(selectedAd);
+        const bannerAds = ads?.banner || [];
+        
+        // 기본 광고(DEFAULT_ADS)는 진짜 광고가 아니므로 제외
+        const realAds = bannerAds.filter(ad => 
+          ad.imageUrl && !ad.imageUrl.includes('/ads/banner_ad.png')
+        );
+        
+        if (realAds.length > 0) {
+          setAd(getRandomAd(realAds));
+          setHasSelfAd(true);
+        } else {
+          // 자체 광고 없음 → AdMob 사용
+          console.log("📢 자체 광고 없음, AdMob으로 대체");
+          setHasSelfAd(false);
+        }
       } catch (error) {
-        // 에러 시 기본값 유지
         console.log("배너 광고 로드 실패:", error.message);
+        setHasSelfAd(false); // 에러 시 AdMob 사용
       }
+      setIsLoading(false);
     };
     
-    loadAd();
+    loadSelfAd();
   }, [position]);
   
-  // 광고 데이터가 없으면 렌더링하지 않음
-  if (!ad?.imageUrl) {
-    return null;
+  // 로딩 중이면 빈 공간
+  if (isLoading) {
+    return <View style={[styles.adPlaceholder, style]} />;
   }
   
-  return (
-    <TouchableOpacity 
-      style={[styles.adPlaceholder, style]} 
-      onPress={() => handleAdPress(ad?.linkUrl)}
-      activeOpacity={0.8}
-    >
-      <Image 
-        source={{ uri: ad.imageUrl }} 
-        style={styles.adImage}
-        resizeMode="cover"
-      />
-    </TouchableOpacity>
-  );
+  // 자체 광고가 있으면 자체 광고 표시 (최우선)
+  if (hasSelfAd && ad?.imageUrl) {
+    return (
+      <TouchableOpacity 
+        style={[styles.adPlaceholder, style]} 
+        onPress={() => handleAdPress(ad?.linkUrl)}
+        activeOpacity={0.8}
+      >
+        <Image 
+          source={{ uri: ad.imageUrl }} 
+          style={styles.adImage}
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+    );
+  }
+  
+  // 자체 광고가 없고 AdMob 사용 가능하면 AdMob 표시
+  if (canUseAdMob) {
+    return (
+      <View style={[styles.adPlaceholder, style]}>
+        <BannerAd
+          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.BANNER}
+          size={BannerAdSizeEnum.BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+          onAdLoaded={() => {
+            console.log('✅ AdMob 배너 로드 성공 (자체 광고 빈 자리 채움)');
+          }}
+          onAdFailedToLoad={(error) => {
+            console.log('❌ AdMob 배너도 실패:', error.message);
+          }}
+        />
+      </View>
+    );
+  }
+  
+  // 아무 광고도 없으면 렌더링 안 함
+  return null;
 }
 
 /**
  * 인라인 광고 (리스트 중간에 삽입용)
- * ✅ 여러 광고 중 랜덤 표시
+ * ✅ 자체 광고 우선 (사이트 계약 광고)
+ * ✅ 자체 광고가 없으면 AdMob으로 채움 (Android만)
  * 
  * @param {string} position - 광고 위치 태그 (예: "news_inline", "board_inline")
+ * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부 (기본: true, Android만)
  */
-export function InlineAdBanner({ position = "inline", style }) {
-  const [ad, setAd] = useState(getRandomAd(DEFAULT_ADS.inline));
+export function InlineAdBanner({ position = "inline", style, useAdMob = true }) {
+  const [ad, setAd] = useState(null);
+  const [hasSelfAd, setHasSelfAd] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Android에서 AdMob 사용 가능 여부 (자체 광고가 없을 때만)
+  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
   
   useEffect(() => {
-    const loadAd = async () => {
+    const loadSelfAd = async () => {
+      setIsLoading(true);
       try {
         // 1. 위치별 태그로 광고 찾기
         if (position && position !== "inline") {
           const tagAds = await fetchAdsByTag(position, 'inline');
           if (tagAds && tagAds.length > 0) {
             setAd(getRandomAd(tagAds));
+            setHasSelfAd(true);
+            setIsLoading(false);
             return;
           }
         }
         
-        // 2. 기본 인라인 광고
+        // 2. ChaoVN Ad API에서 인라인 광고 가져오기
         const ads = await fetchAdConfig();
-        const inlineAds = ads?.inline?.length > 0 ? ads.inline : DEFAULT_ADS.inline;
-        const selectedAd = getRandomAd(inlineAds);
-        if (selectedAd) setAd(selectedAd);
+        const inlineAds = ads?.inline || [];
+        
+        // 기본 광고는 진짜 광고가 아니므로 제외
+        const realAds = inlineAds.filter(ad => 
+          ad.imageUrl && !ad.imageUrl.includes('/ads/inline_ad.png')
+        );
+        
+        if (realAds.length > 0) {
+          setAd(getRandomAd(realAds));
+          setHasSelfAd(true);
+        } else {
+          console.log("📢 자체 인라인 광고 없음, AdMob으로 대체");
+          setHasSelfAd(false);
+        }
       } catch (error) {
         console.log("인라인 광고 로드 실패:", error.message);
+        setHasSelfAd(false);
       }
+      setIsLoading(false);
     };
     
-    loadAd();
+    loadSelfAd();
   }, [position]);
   
-  // 광고 데이터가 없으면 렌더링하지 않음
-  if (!ad?.imageUrl) {
-    return null;
+  // 로딩 중이면 빈 공간
+  if (isLoading) {
+    return <View style={[styles.inlineAdPlaceholder, style]} />;
   }
   
-  return (
-    <TouchableOpacity 
-      style={[styles.inlineAdPlaceholder, style]} 
-      onPress={() => handleAdPress(ad?.linkUrl)}
-      activeOpacity={0.8}
-    >
-      <Image 
-        source={{ uri: ad.imageUrl }} 
-        style={styles.adImage}
-        resizeMode="cover"
-      />
-    </TouchableOpacity>
-  );
+  // 자체 광고가 있으면 자체 광고 표시 (최우선)
+  if (hasSelfAd && ad?.imageUrl) {
+    return (
+      <TouchableOpacity 
+        style={[styles.inlineAdPlaceholder, style]} 
+        onPress={() => handleAdPress(ad?.linkUrl)}
+        activeOpacity={0.8}
+      >
+        <Image 
+          source={{ uri: ad.imageUrl }} 
+          style={styles.adImage}
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+    );
+  }
+  
+  // 자체 광고가 없고 AdMob 사용 가능하면 AdMob 표시
+  if (canUseAdMob) {
+    return (
+      <View style={[styles.inlineAdPlaceholder, style, { height: 250, justifyContent: 'center', alignItems: 'center' }]}>
+        <BannerAd
+          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.NATIVE_ADVANCED}
+          size={BannerAdSizeEnum.MEDIUM_RECTANGLE}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+          onAdLoaded={() => {
+            console.log('✅ AdMob 인라인 광고 로드 성공 (빈 자리 채움)');
+          }}
+          onAdFailedToLoad={(error) => {
+            console.log('❌ AdMob 인라인도 실패:', error.message);
+          }}
+        />
+      </View>
+    );
+  }
+  
+  // 아무 광고도 없으면 렌더링 안 함
+  return null;
 }
 
 /**

@@ -212,15 +212,30 @@ export default function App() {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
 
-        // ✅ 0. iOS ATT (App Tracking Transparency) 권한 요청
-        // Apple 심사 요구사항: 추적 전에 사용자 동의 받기
-        // Expo Go에서는 건너뜀 (프로덕션 빌드에서만 작동)
+        // ✅ 0. 플랫폼별 광고 동의 요청
+        // iOS: ATT (App Tracking Transparency)
+        // Android: UMP (User Messaging Platform) - AdMob 동의
         if (Platform.OS === "ios" && requestTrackingPermissionsAsync) {
           try {
             const { status } = await requestTrackingPermissionsAsync();
-            console.log(`📱 ATT 권한 상태: ${status}`);
+            console.log(`📱 iOS ATT 권한 상태: ${status}`);
           } catch (attError) {
             console.log("⚠️ ATT 권한 요청 실패 (계속 진행):", attError?.message);
+          }
+        } else if (Platform.OS === "android") {
+          // Android AdMob 동의 요청 (UMP)
+          try {
+            const { requestAdConsent } = require("./services/AdConsentService");
+            const consentResult = await requestAdConsent();
+            console.log(`📱 Android 광고 동의: ${JSON.stringify(consentResult)}`);
+            
+            // 동의 후 전면 광고 미리 로드
+            if (consentResult.canShowAds) {
+              const { preloadInterstitialAd } = require("./services/InterstitialAdService");
+              preloadInterstitialAd();
+            }
+          } catch (consentError) {
+            console.log("⚠️ 광고 동의 요청 실패 (계속 진행):", consentError?.message);
           }
         }
 
