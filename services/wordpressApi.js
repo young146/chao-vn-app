@@ -264,9 +264,10 @@ export const hasHomeDataCache = async () => {
   }
 };
 
-// 🗞️ 뉴스 카테고리별 섹션 데이터 가져오기 (오늘 날짜 기준)
-// 캐시 버전: 탑뉴스 로직 추가 (v2)
-const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE_V2';
+// 🗞️ 뉴스 터미널 API (chaovn-news-api 플러그인 사용)
+// V3: 서버에서 정리된 데이터를 바로 받아옴 (빠름!)
+const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE_V3';
+const NEWS_TERMINAL_API_URL = 'https://chaovietnam.co.kr/wp-json/chaovn/v1/news-terminal';
 
 export const getNewsSectionsCached = async (forceRefresh = false, targetDate = null) => {
   try {
@@ -289,118 +290,101 @@ export const getNewsSectionsCached = async (forceRefresh = false, targetDate = n
       }
     }
     
-    console.log(`🗞️ ${dateStr} 뉴스 로딩 시작...`);
+    console.log(`🗞️ ${dateStr} 뉴스 로딩 시작 (새 API)...`);
+    const startTime = Date.now();
     
-    // 2. 각 카테고리별 뉴스 가져오기 (병렬 처리)
-    const sectionPromises = NEWS_SECTIONS_CONFIG.map(async (config) => {
-      try {
-        // meta.news_category로 필터링
-        const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
-          params: {
-            per_page: 10,
-            _embed: 1,
-            after: `${dateStr}T00:00:00`,
-            before: `${dateStr}T23:59:59`,
-            // meta_key와 meta_value는 WordPress REST API 기본 지원 안 함
-            // 대신 모든 뉴스를 가져와서 필터링
-          },
-        });
-        
-        // 해당 카테고리만 필터링
-        const filteredPosts = response.data.filter(
-          post => post.meta?.news_category === config.categoryKey
-        );
-        
-        return {
-          name: config.name,
-          categoryKey: config.categoryKey,
-          posts: filteredPosts.slice(0, 4).map((post, idx) => ({
-            ...post,
-            id: `news-${config.categoryKey}-${post.id}-${idx}`
-          }))
-        };
-      } catch (error) {
-        console.error(`뉴스 섹션 ${config.name} 로드 실패:`, error.message);
-        return { name: config.name, categoryKey: config.categoryKey, posts: [] };
-      }
-    });
+    // 2. 새 API 호출 (서버에서 이미 정리된 데이터)
+    const apiUrl = targetDate 
+      ? `${NEWS_TERMINAL_API_URL}/${dateStr}`
+      : NEWS_TERMINAL_API_URL;
     
-    // 모든 뉴스를 한 번에 가져와서 카테고리별로 분류 (더 효율적)
-    let allTodayNews = [];
-    try {
-      const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
-        params: {
-          per_page: 100, // 오늘 뉴스 최대 100개
-          _embed: 1,
-          after: `${dateStr}T00:00:00`,
-          before: `${dateStr}T23:59:59`,
-        },
-      });
-      allTodayNews = response.data;
-      console.log(`📰 ${dateStr} 뉴스 ${allTodayNews.length}개 로드`);
-      // 디버그: 첫 3개 뉴스의 meta 값 확인
-      if (allTodayNews.length > 0) {
-        console.log('📋 샘플 뉴스 meta:', allTodayNews.slice(0, 3).map(p => ({
-          id: p.id,
-          is_top_news: p.meta?.is_top_news,
-          news_category: p.meta?.news_category
-        })));
-      }
-    } catch (error) {
-      console.error('뉴스 로드 실패:', error.message);
+    const response = await api.get(apiUrl);
+    const apiData = response.data;
+    
+    if (!apiData.success) {
+      throw new Error(apiData.error || 'API 응답 실패');
     }
     
-    // 2. 🗞️ 뉴스 분류 (Top News + 카테고리별)
-    // is_top_news 값은 WordPress에서 '1', 1, true, 'true', 'on' 등 다양하게 저장될 수 있음
-    const topNewsPosts = allTodayNews.filter(post => {
-      const isTop = post.meta?.is_top_news;
-      return isTop === '1' || isTop === 1 || isTop === true || isTop === 'true' || isTop === 'on';
-    });
-    console.log(`🔥 탑뉴스 ${topNewsPosts.length}개 발견 (전체 ${allTodayNews.length}개 중)`);
-
-    const newsSections = NEWS_SECTIONS_CONFIG.map(config => {
-      const categoryPosts = allTodayNews.filter(
-        post => post.meta?.news_category === config.categoryKey
-      );
-      return {
-        name: config.name,
-        categoryKey: config.categoryKey,
-        posts: categoryPosts.map((post, idx) => ({
-          ...post,
-          id: `news-${config.categoryKey}-${post.id}-${idx}`
-        }))
-      };
-    }).filter(section => section.posts.length > 0); // 뉴스가 있는 섹션만
-
-    // 3. 탑뉴스가 있으면 맨 앞에 추가
-    if (topNewsPosts.length > 0) {
-      newsSections.unshift({
+    console.log(`📰 API 응답: ${apiData.totalCount}개 뉴스, ${apiData.newsSections?.length || 0}개 섹션 (${Date.now() - startTime}ms)`);
+    
+    // 3. 데이터 변환 (앱 형식에 맞게)
+    const newsSections = [];
+    
+    // 탑뉴스 추가
+    if (apiData.topNews && apiData.topNews.length > 0) {
+      newsSections.push({
         name: '🔥 주요 뉴스',
         categoryKey: 'TopNews',
-        posts: topNewsPosts.map((post, idx) => ({
-          ...post,
-          id: `news-TopNews-${post.id}-${idx}`
+        posts: apiData.topNews.map((post, idx) => ({
+          id: `news-TopNews-${post.id}-${idx}`,
+          title: post.title,
+          excerpt: post.excerpt,
+          date: post.dateISO || post.date,
+          link: post.link,
+          _embedded: {
+            'wp:featuredmedia': post.thumbnail ? [{ source_url: post.thumbnail }] : []
+          },
+          meta: post.meta || {},
         }))
       });
+    }
+    
+    // 섹션별 뉴스 추가
+    if (apiData.newsSections) {
+      for (const section of apiData.newsSections) {
+        if (section.posts && section.posts.length > 0) {
+          newsSections.push({
+            name: section.name,
+            categoryKey: section.categoryKey || section.key,
+            posts: section.posts.map((post, idx) => ({
+              id: `news-${section.key}-${post.id}-${idx}`,
+              title: post.title,
+              excerpt: post.excerpt,
+              date: post.dateISO || post.date,
+              link: post.link,
+              _embedded: {
+                'wp:featuredmedia': post.thumbnail ? [{ source_url: post.thumbnail }] : []
+              },
+              meta: post.meta || {},
+            }))
+          });
+        }
+      }
     }
     
     const result = { 
       newsSections, 
-      totalCount: allTodayNews.length,
-      date: dateStr 
+      totalCount: apiData.totalCount || 0,
+      date: apiData.date || dateStr 
     };
     
-    // 3. 캐시 저장
+    // 4. 캐시 저장
     await AsyncStorage.setItem(cacheKey, JSON.stringify({
       data: result,
       timestamp: Date.now()
     }));
     
-    console.log(`✅ ${newsSections.length}개 뉴스 섹션 로드 완료`);
+    console.log(`✅ ${newsSections.length}개 뉴스 섹션 로드 완료 (${Date.now() - startTime}ms)`);
     return result;
     
   } catch (error) {
     console.error('getNewsSectionsCached error:', error.message);
+    
+    // 에러 시 캐시 사용 시도
+    try {
+      const dateStr = targetDate 
+        ? targetDate.toISOString().split('T')[0] 
+        : new Date().toISOString().split('T')[0];
+      const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) {
+        console.log('⚠️ 에러 발생, 이전 캐시 사용');
+        return JSON.parse(cached).data;
+      }
+    } catch (cacheError) {
+      console.error('캐시 읽기 실패:', cacheError);
+    }
+    
     return { newsSections: [], totalCount: 0, date: null };
   }
 };

@@ -352,18 +352,7 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
     const loadSelfAd = async () => {
       setIsLoading(true);
       try {
-        // 1. 먼저 위치별 태그로 광고 찾기 (예: "home_header")
-        if (position && position !== "default") {
-          const tagAds = await fetchAdsByTag(position, 'banner');
-          if (tagAds && tagAds.length > 0) {
-            setAd(getRandomAd(tagAds));
-            setHasSelfAd(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // 2. 태그별 광고가 없으면 ChaoVN Ad API에서 가져오기
+        // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
         const ads = await fetchAdConfig();
         const bannerAds = ads?.banner || [];
         
@@ -375,11 +364,24 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
         if (realAds.length > 0) {
           setAd(getRandomAd(realAds));
           setHasSelfAd(true);
-        } else {
-          // 자체 광고 없음 → AdMob 사용
-          console.log("📢 자체 광고 없음, AdMob으로 대체");
-          setHasSelfAd(false);
+          setIsLoading(false);
+          return;
         }
+        
+        // 2. 자체 광고 없으면 위치별 태그로 광고 찾기 (예: "home_header")
+        if (position && position !== "default") {
+          const tagAds = await fetchAdsByTag(position, 'banner');
+          if (tagAds && tagAds.length > 0) {
+            setAd(getRandomAd(tagAds));
+            setHasSelfAd(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // 3. 둘 다 없음 → AdMob 사용
+        console.log("📢 자체 광고 없음, AdMob으로 대체");
+        setHasSelfAd(false);
       } catch (error) {
         console.log("배너 광고 로드 실패:", error.message);
         setHasSelfAd(false); // 에러 시 AdMob 사용
@@ -457,18 +459,7 @@ export function InlineAdBanner({ position = "inline", style, useAdMob = true }) 
     const loadSelfAd = async () => {
       setIsLoading(true);
       try {
-        // 1. 위치별 태그로 광고 찾기
-        if (position && position !== "inline") {
-          const tagAds = await fetchAdsByTag(position, 'inline');
-          if (tagAds && tagAds.length > 0) {
-            setAd(getRandomAd(tagAds));
-            setHasSelfAd(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // 2. ChaoVN Ad API에서 인라인 광고 가져오기
+        // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
         const ads = await fetchAdConfig();
         const inlineAds = ads?.inline || [];
         
@@ -480,10 +471,24 @@ export function InlineAdBanner({ position = "inline", style, useAdMob = true }) 
         if (realAds.length > 0) {
           setAd(getRandomAd(realAds));
           setHasSelfAd(true);
-        } else {
-          console.log("📢 자체 인라인 광고 없음, AdMob으로 대체");
-          setHasSelfAd(false);
+          setIsLoading(false);
+          return;
         }
+        
+        // 2. 자체 광고 없으면 위치별 태그로 광고 찾기
+        if (position && position !== "inline") {
+          const tagAds = await fetchAdsByTag(position, 'inline');
+          if (tagAds && tagAds.length > 0) {
+            setAd(getRandomAd(tagAds));
+            setHasSelfAd(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // 3. 둘 다 없음 → AdMob 사용
+        console.log("📢 자체 인라인 광고 없음, AdMob으로 대체");
+        setHasSelfAd(false);
       } catch (error) {
         console.log("인라인 광고 로드 실패:", error.message);
         setHasSelfAd(false);
@@ -553,7 +558,21 @@ export function SectionAdBanner({ position = "section", style }) {
   useEffect(() => {
     const loadAd = async () => {
       try {
-        // 1. 위치별 태그로 광고 찾기
+        // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
+        const ads = await fetchAdConfig();
+        const sectionAds = ads?.section || [];
+        
+        // 기본 광고 제외
+        const realAds = sectionAds.filter(ad => 
+          ad.imageUrl && !ad.imageUrl.includes('/ads/section_ad.png')
+        );
+        
+        if (realAds.length > 0) {
+          setAd(getRandomAd(realAds));
+          return;
+        }
+        
+        // 2. 자체 광고 없으면 위치별 태그로 광고 찾기
         if (position && position !== "section") {
           const tagAds = await fetchAdsByTag(position, 'section');
           if (tagAds && tagAds.length > 0) {
@@ -562,11 +581,8 @@ export function SectionAdBanner({ position = "section", style }) {
           }
         }
         
-        // 2. 기본 섹션 광고
-        const ads = await fetchAdConfig();
-        const sectionAds = ads?.section?.length > 0 ? ads.section : DEFAULT_ADS.section;
-        const selectedAd = getRandomAd(sectionAds);
-        if (selectedAd) setAd(selectedAd);
+        // 3. 둘 다 없으면 기본 광고
+        setAd(getRandomAd(DEFAULT_ADS.section));
       } catch (error) {
         console.log("섹션 광고 로드 실패:", error.message);
       }
