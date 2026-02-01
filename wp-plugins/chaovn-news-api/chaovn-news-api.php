@@ -293,9 +293,17 @@ function chaovn_format_post($post_data) {
     // 카테고리 표시명
     $category_display = chaovn_get_category_display_name($post_data['category']);
     
+    // 본문 내용 (WordPress 표준 post_content 사용)
+    $content_html = '';
+    if (!empty($post_obj->post_content)) {
+        // WordPress 콘텐츠 필터 적용 (shortcode, 자동 단락 등)
+        $content_html = apply_filters('the_content', $post_obj->post_content);
+    }
+    
     return array(
         'id' => $post_id,
         'title' => array('rendered' => get_the_title($post_id)),
+        'content' => array('rendered' => $content_html),
         'excerpt' => $excerpt,
         'thumbnail' => $thumbnail,
         'link' => get_permalink($post_id),

@@ -99,8 +99,9 @@ export default function PostDetailScreen({ route }) {
   }
 
   // 🔧 본문에서 첫 번째 이미지 제거 (featuredImage와 중복 방지)
-  let contentHtml = post.content.rendered;
-  if (featuredImage) {
+  // 안전하게 content 필드 확인
+  let contentHtml = post.content?.rendered || post.excerpt || '';
+  if (featuredImage && contentHtml) {
     // 본문 맨 앞의 공백 제거 후 <img> 또는 <figure> 태그 제거
     contentHtml = contentHtml.trim()
       .replace(/^(<p>\s*)?<figure[^>]*>[\s\S]*?<\/figure>(\s*<\/p>)?/i, '')

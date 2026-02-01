@@ -265,8 +265,8 @@ export const hasHomeDataCache = async () => {
 };
 
 // 🗞️ 뉴스 터미널 API (chaovn-news-api 플러그인 사용)
-// V3: 서버에서 정리된 데이터를 바로 받아옴 (빠름!)
-const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE_V3';
+// V4: content 필드 추가 (본문 포함)
+const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE_V4';
 const NEWS_TERMINAL_API_URL = 'https://chaovietnam.co.kr/wp-json/chaovn/v1/news-terminal';
 
 export const getNewsSectionsCached = async (forceRefresh = false, targetDate = null) => {
@@ -318,6 +318,7 @@ export const getNewsSectionsCached = async (forceRefresh = false, targetDate = n
         posts: apiData.topNews.map((post, idx) => ({
           id: `news-TopNews-${post.id}-${idx}`,
           title: post.title,
+          content: post.content || { rendered: '' },
           excerpt: post.excerpt,
           date: post.dateISO || post.date,
           link: post.link,
@@ -339,6 +340,7 @@ export const getNewsSectionsCached = async (forceRefresh = false, targetDate = n
             posts: section.posts.map((post, idx) => ({
               id: `news-${section.key}-${post.id}-${idx}`,
               title: post.title,
+              content: post.content || { rendered: '' },
               excerpt: post.excerpt,
               date: post.dateISO || post.date,
               link: post.link,
