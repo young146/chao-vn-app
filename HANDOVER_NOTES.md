@@ -707,7 +707,217 @@ npm install react-native-maps
 
 ---
 
-**최종 업데이트 일자:** 2026년 1월 14일 (저녁)
+## 10. 뉴스 상세보기 본문 표시 오류 수정 (2026-02-01)
+
+### 10.1 문제 발견
+**날짜:** 2026년 2월 1일  
+**심각도:** Critical - 앱 크래시 발생
+
+#### 증상
+- 마지막 업데이트 후 뉴스 메뉴에서 뉴스 제목/이미지 클릭 시 **앱 종료**
+- 수정 후 상세보기에서 **본문이 표시되지 않고 요약본만 표시**됨
+
+### 10.2 원인 분석
+
+#### 1차 문제: 앱 크래시
+- **원인**: WordPress API에서 `content` 필드가 누락
+- **영향**: `PostDetailScreen.js`에서 `post.content.rendered` 접근 시 undefined 에러
+
+#### 2차 문제: 본문 미표시
+- **원인**: 앱의 캐시 시스템이 `content` 없는 이전 데이터 사용
+- **영향**: WordPress 플러그인 수정 후에도 앱에서 본문 안 보임
+
+### 10.3 해결 과정
+
+#### Step 1: WordPress 플러그인 수정
+**파일:** `wp-plugins/chaovn-news-api/chaovn-news-api.php`
+
+```php
+function chaovn_format_post($post_data) {
+    $post_id = $post_data['post_id'];
+    $post_obj = get_post($post_id);
+    
+    // ✅ 본문 추가
+    $content_html = apply_filters('the_content', $post_obj->post_content);
+    
+    return array(
+        'id' => $post_id,
+        'title' => array('rendered' => get_the_title($post_id)),
+        'content' => array('rendered' => $content_html), // ✅ 추가
+        'excerpt' => $excerpt,
+        // ...
+    );
+}
+```
+
+#### Step 2: 앱 캐시 무효화
+**파일:** `services/wordpressApi.js`
+
+```javascript
+// 캐시 키 변경으로 기존 캐시 무효화
+const NEWS_CACHE_KEY = 'NEWS_SECTIONS_CACHE_V4'; // V3 → V4 변경
+```
+
+#### Step 3: 방어 코드 추가
+**파일:** `screens/PostDetailScreen.js`
+
+```javascript
+// 안전한 content 접근
+let contentHtml = post.content?.rendered || post.excerpt || '';
+```
+
+### 10.4 수정된 파일 목록
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `wp-plugins/chaovn-news-api/chaovn-news-api.php` | `content` 필드 반환 추가 |
+| `services/wordpressApi.js` | 캐시 키 V3→V4 변경, content 필드 매핑 |
+| `screens/PostDetailScreen.js` | 옵셔널 체이닝으로 안전한 접근 |
+
+### 10.5 커밋 정보
+- **커밋 해시:** `5fc5606`
+- **메시지:** "fix: 뉴스 상세보기 본문 표시 오류 수정"
+- **배포:** WordPress 플러그인 업데이트 + OTA 업데이트
+
+### 10.6 교훈
+> **"원인 파악 먼저, 코드 수정은 마지막"**
+> - 증상만 보고 성급하게 수정하지 말 것
+> - 이전과 지금의 차이점 분석 필수
+> - 캐시 시스템 고려
+
+---
+
+## 11. 다크모드 TextInput 텍스트 표시 문제 해결 (2026-02-01)
+
+### 11.1 문제 발견
+**날짜:** 2026년 2월 1일  
+**심각도:** Critical - 사용자 입력 불가
+
+#### 증상
+- **나눔 섹션** 상품 등록 시 입력 필드에서:
+  - 키보드 입력 → 커서는 움직임 ✅
+  - **텍스트가 화면에 표시 안됨** ❌
+- 프로필 수정, 채팅 등 **모든 TextInput**에서 동일 증상
+- **iOS는 정상**, **Android만 문제** (여러 기기 확인)
+- 사진 업로드는 정상 작동
+
+### 11.2 원인 분석
+
+#### 초기 가설 (❌ 모두 오류)
+1. ~~AdMob UMP 동의 폼이 화면 차단~~ → AdMob 문제 아님
+2. ~~TextInput 코드 오류~~ → iOS 정상이므로 코드 문제 없음
+3. ~~최근 업데이트 영향~~ → 개발 서버는 정상
+4. ~~기기별 캐시 문제~~ → 앱 재설치해도 동일
+
+#### 실제 원인: **다크모드**
+- 특정 Android 기기들이 **다크모드**로 설정됨
+- TextInput에 명시적인 `color` 속성이 없음
+- 결과: 흰 배경(`backgroundColor: "#fff"`)에 **흰 글씨** → 안 보임!
+
+### 11.3 해결 방법
+
+#### Step 1: 색상 테마 시스템 생성
+**새 파일:** `utils/colors.js`
+
+```javascript
+export const lightColors = {
+  inputText: '#000000',
+  inputBackground: '#FFFFFF',
+  // ...
+};
+
+export const darkColors = {
+  inputText: '#FFFFFF',
+  inputBackground: '#2C2C2E',
+  // ...
+};
+
+export function getColors(colorScheme) {
+  return colorScheme === 'dark' ? darkColors : lightColors;
+}
+```
+
+#### Step 2: 모든 TextInput에 color 속성 추가
+**수정된 화면:**
+- `screens/AddItemScreen.js` - 상품 등록/수정
+- `screens/ChatRoomScreen.js` - 채팅 입력
+- `screens/XinChaoDanggnScreen.js` - 검색창
+- `screens/ReviewScreen.js` - 리뷰 작성
+
+```javascript
+// Before
+input: {
+  backgroundColor: "#fff",
+  fontSize: 16,
+}
+
+// After
+input: {
+  backgroundColor: "#fff",
+  fontSize: 16,
+  color: "#000", // ✅ 명시적 색상 추가
+}
+```
+
+#### Step 3: useColorScheme 훅 추가
+```javascript
+import { useColorScheme } from 'react-native';
+import { getColors } from '../utils/colors';
+
+export default function AddItemScreen() {
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme);
+  // ...
+}
+```
+
+### 11.4 이미 color가 있던 화면 (✅ 수정 불필요)
+- `screens/LoginScreen.js` - `color: "#333"`
+- `screens/SignupScreen.js` - `color: "#333"`
+- `screens/FindPasswordScreen.js` - `color: "#333"`
+- `screens/FindIdScreen.js` - `color: "#333"`
+- `screens/MagazineScreen.js` - `color: '#333'`
+- `screens/UserManagementScreen.js` - `color: "#333"`
+- `components/profile/ProfileEditForm.js` - `color: "#333"`
+
+### 11.5 수정된 파일 목록
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `utils/colors.js` | ✨ 신규 생성 - 라이트/다크 색상 테마 |
+| `screens/AddItemScreen.js` | `color: '#000'` 추가 |
+| `screens/ChatRoomScreen.js` | `color: '#000'` 추가 |
+| `screens/XinChaoDanggnScreen.js` | `color: '#000'` 추가 |
+| `screens/ReviewScreen.js` | `color: '#000'` 추가 |
+
+### 11.6 테스트 결과
+- ✅ **라이트 모드**: 정상 작동 (검은 텍스트)
+- ✅ **다크 모드**: 정상 작동 (검은 텍스트 - 흰 배경이므로)
+- ✅ **iOS**: 정상
+- ✅ **Android**: 정상 (여러 기기 확인)
+
+### 11.7 커밋 정보
+- **커밋 해시:** `d22af3f`
+- **메시지:** "feat: Add dark mode support for TextInput components"
+- **배포:** Git 푸시 완료, OTA 업데이트 예정
+
+### 11.8 교훈
+> **"성급한 코드 수정 금지, 환경 설정부터 확인"**
+> 
+> #### 문제 해결 순서:
+> 1. ✅ 재현 조건 찾기 (다른 기기에서 확인)
+> 2. ✅ 환경 차이 파악 (다크모드!)
+> 3. ✅ 최소한의 수정 (color 속성만 추가)
+> 4. ❌ 코드부터 수정하지 말 것
+> 
+> #### 핵심:
+> - iOS 정상 → 코드 문제 아님
+> - 특정 기기만 문제 → 설정 문제
+> - 다크모드는 사용자 편의 우선 → 지원해야 함
+
+---
+
+**최종 업데이트 일자:** 2026년 2월 1일
 **작업 상태:** 
 - ✅ 로딩/로그인 최적화 성공
 - ✅ UI/UX 대규모 개선 완료
@@ -723,5 +933,8 @@ npm install react-native-maps
 - ✅ Firebase App Check 설정 완료
 - ✅ iOS Google + Apple 로그인 통합
 - ✅ Google Maps SDK 설정 완료
+- ✅ 뉴스 상세보기 본문 표시 오류 수정 (2026-02-01)
+- ✅ 다크모드 TextInput 지원 추가 (2026-02-01)
 - ⚠️ 개발 빌드에서 알람 불안정 (FCM 토큰 충돌 - 출시 앱과 동시 테스트 시 발생)
 - ✅ 출시 앱은 완전 정상 작동
+
