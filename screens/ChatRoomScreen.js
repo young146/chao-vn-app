@@ -13,11 +13,13 @@ import {
   Vibration,
   Modal,
   Dimensions,
+  useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getColors } from "../utils/colors";
 import { db, auth, storage } from "../firebase/config";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -57,6 +59,9 @@ export default function ChatRoomScreen({ route, navigation }) {
     otherUserName,
     sellerId,
   } = route.params;
+
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme);
 
   const isFocused = useIsFocused(); // 현재 화면이 활성화되어 있는지 확인
   const [chatRoomId, setChatRoomId] = useState(initialChatRoomId);
@@ -646,6 +651,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     maxHeight: 100,
     fontSize: 15,
+    color: "#000", // ✅ 다크모드 대응: 텍스트 색상 명시
   },
   attachButton: {
     padding: 10,

@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
@@ -20,6 +21,7 @@ import {
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
 import { useAuth } from "../contexts/AuthContext";
+import { getColors } from "../utils/colors";
 import {
   collection,
   addDoc,
@@ -40,6 +42,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme);
+  
   const editItem = route?.params?.item;
   const isEditMode = !!editItem;
 
@@ -877,6 +882,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     backgroundColor: "#fff",
+    color: "#000", // ✅ 다크모드 대응: 텍스트 색상 명시
   },
   textArea: {
     height: 100,

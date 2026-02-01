@@ -10,14 +10,18 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import { getColors } from "../utils/colors";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 export default function ReviewScreen({ route, navigation }) {
   const { item } = route.params;
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme);
   const { user } = useAuth();
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
@@ -242,6 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 150,
     backgroundColor: "#fff",
+    color: "#000", // ✅ 다크모드 대응: 텍스트 색상 명시
   },
   submitButton: {
     backgroundColor: "#FF6B35",

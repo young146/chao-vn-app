@@ -11,12 +11,14 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // AsyncStorage 추가
 import { useAuth } from "../contexts/AuthContext";
+import { getColors } from "../utils/colors";
 import { db } from "../firebase/config";
 import {
   collection,
@@ -92,6 +94,9 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
 
 export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme);
+  
   const [items, setItems] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("전체");
@@ -539,6 +544,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     fontSize: 14,
+    color: "#000", // ✅ 다크모드 대응: 텍스트 색상 명시
   },
   filterSection: {
     backgroundColor: "#fff",
