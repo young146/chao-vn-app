@@ -34,7 +34,7 @@ import {
   getDistrictsByCity,
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
-import AdBanner from "../components/AdBanner";
+import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 
 // 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
 const SearchBar = memo(({ value, onChangeText }) => (
@@ -443,7 +443,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const listHeader = useMemo(() => (
     <View>
       {/* 🔥 메인 헤더 광고 */}
-      <AdBanner position="nanum_header" style={{ marginHorizontal: 12, marginTop: 8, borderRadius: 8 }} />
+      <AdBanner position="nanum_header" style={{ marginTop: 8 }} />
       {headerBanners}
       <SearchBar value={searchText} onChangeText={setSearchText} />
       {headerFilters}
@@ -481,7 +481,8 @@ export default function XinChaoDanggnScreen({ navigation }) {
         windowSize={10}
       />
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add" size={24} color="#fff" />
+        <Text style={styles.floatingButtonText}>등록</Text>
       </TouchableOpacity>
     </View>
   );
@@ -682,13 +683,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 20,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "#FF6B35",
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
+  },
+  floatingButtonText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

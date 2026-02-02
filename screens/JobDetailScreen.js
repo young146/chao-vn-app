@@ -248,6 +248,9 @@ export default function JobDetailScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 상단 광고 */}
+        <AdBanner position="job_detail_top" />
+        
         {/* 이미지 영역 */}
         {images.length > 0 ? (
           <View style={styles.imageContainer}>
@@ -287,7 +290,7 @@ export default function JobDetailScreen({ route, navigation }) {
         )}
 
         {/* 광고 배너 */}
-        <AdBanner position="job_detail" style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 8 }} />
+        <AdBanner position="job_detail" style={{ marginTop: 12 }} />
 
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
@@ -438,6 +441,9 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* 하단 광고 */}
+        <AdBanner position="job_detail_bottom" />
+        
         <View style={{ height: 100 }} />
       </ScrollView>
 

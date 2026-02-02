@@ -30,7 +30,7 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
-import AdBanner from "../components/AdBanner";
+import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 
 // 검색바 컴포넌트
 const SearchBar = memo(({ value, onChangeText }) => (
@@ -339,11 +339,17 @@ export default function RealEstateScreen({ navigation }) {
   }, [navigation]);
 
   const renderItem = useCallback(({ item, index }) => (
-    <RealEstateCard
-      item={item}
-      onPress={handleItemPress}
-      index={index}
-    />
+    <View>
+      <RealEstateCard
+        item={item}
+        onPress={handleItemPress}
+        index={index}
+      />
+      {/* 2개마다 광고 삽입 */}
+      {(index + 1) % 2 === 0 && (
+        <InlineAdBanner position="realestate_inline" />
+      )}
+    </View>
   ), [handleItemPress]);
 
   const renderFooter = useCallback(() => {
@@ -412,7 +418,7 @@ export default function RealEstateScreen({ navigation }) {
   const ListHeader = useMemo(() => (
     <View>
       {/* 광고 배너 */}
-      <AdBanner position="realestate_header" style={{ marginHorizontal: 12, marginTop: 8, borderRadius: 8 }} />
+      <AdBanner position="realestate_header" style={{ marginTop: 8 }} />
       
       {/* 로그인 유도 배너 */}
       {!user && (
@@ -465,7 +471,8 @@ export default function RealEstateScreen({ navigation }) {
       
       {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add" size={24} color="#fff" />
+        <Text style={styles.floatingButtonText}>등록</Text>
       </TouchableOpacity>
     </View>
   );
@@ -697,13 +704,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 20,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "#E91E63",
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
+  },
+  floatingButtonText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

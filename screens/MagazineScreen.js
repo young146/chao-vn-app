@@ -517,8 +517,8 @@ export default function MagazineScreen({ navigation, route }) {
         renderItem={({ item, index }) => (
           <View>
             <MagazineCard item={item} onPress={handlePostPress} type={type} />
-            {/* 뉴스/게시판: 4개 기사마다 광고 삽입 (4, 8, 12...) */}
-            {(type === 'news' || type === 'board') && (index + 1) % 4 === 0 && (
+            {/* 뉴스/게시판: 2개 기사마다 광고 삽입 */}
+            {(type === 'news' || type === 'board') && (index + 1) % 2 === 0 && (
               <InlineAdBanner position={type === 'news' ? 'news_inline' : 'board_inline'} />
             )}
           </View>
@@ -540,7 +540,7 @@ export default function MagazineScreen({ navigation, route }) {
             {/* 🔥 메인 헤더 광고 */}
             <AdBanner 
               position={type === 'home' ? 'home_header' : type === 'news' ? 'news_header' : 'board_header'} 
-              style={{ marginHorizontal: 16, marginBottom: 8, borderRadius: 8 }} 
+              style={{ marginBottom: 8 }} 
             />
 
             {type === 'news' && (
@@ -641,8 +641,8 @@ export default function MagazineScreen({ navigation, route }) {
                             onPress={handlePostPress} 
                             type="news" 
                           />
-                          {/* 4개 기사마다 인라인 광고 삽입 */}
-                          {(index + 1) % 4 === 0 && (
+                          {/* 2개 기사마다 인라인 광고 삽입 */}
+                          {(index + 1) % 2 === 0 && (
                             <InlineAdBanner position="news_inline" />
                           )}
                         </React.Fragment>

@@ -445,6 +445,9 @@ export default function ItemDetailScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
+        {/* 상단 광고 */}
+        <AdBanner position="item_detail_top" />
+        
         {/* 이미지 갤러리 */}
         <View style={styles.imageContainer}>
           {images.length > 0 ? (
@@ -499,7 +502,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         </View>
 
         {/* 🔥 물품 상세 광고 */}
-        <AdBanner position="item_detail" style={{ marginHorizontal: 16, marginVertical: 12, borderRadius: 8 }} />
+        <AdBanner position="item_detail" style={{ marginVertical: 12 }} />
 
         {/* 물품 정보 */}
         <View style={styles.contentContainer}>
@@ -700,6 +703,11 @@ export default function ItemDetailScreen({ route, navigation }) {
             )}
           </View>
         </View>
+        
+        {/* 하단 광고 */}
+        <AdBanner position="item_detail_bottom" />
+        
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* 하단 버튼 */}

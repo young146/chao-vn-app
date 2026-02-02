@@ -620,7 +620,7 @@ export const BannerAdSize = {
 
 const styles = StyleSheet.create({
   adPlaceholder: {
-    height: 50,
+    height: 150,
     backgroundColor: "#f5f5f5",
     marginVertical: 8,
     overflow: "hidden",
@@ -635,7 +635,6 @@ const styles = StyleSheet.create({
     height: 250,
     backgroundColor: "#fff",
     marginVertical: 16,
-    borderRadius: 8,
     overflow: "hidden",
     // 그림자 효과
     shadowColor: "#000",
@@ -648,8 +647,6 @@ const styles = StyleSheet.create({
     height: 100,
     backgroundColor: "#fff",
     marginVertical: 20,
-    marginHorizontal: 16,
-    borderRadius: 8,
     overflow: "hidden",
     // 그림자 효과
     shadowColor: "#000",
