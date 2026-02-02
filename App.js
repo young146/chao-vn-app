@@ -508,9 +508,10 @@ function HomeStack() {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("메뉴")}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: 16, alignItems: "center" }}
             >
-              <Ionicons name="menu" size={26} color="#fff" />
+              <Ionicons name="menu" size={22} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
             </TouchableOpacity>
           ),
         })}
@@ -560,9 +561,10 @@ function NewsStack() {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("메뉴")}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: 16, alignItems: "center" }}
             >
-              <Ionicons name="menu" size={26} color="#fff" />
+              <Ionicons name="menu" size={22} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
             </TouchableOpacity>
           ),
         })}
@@ -605,9 +607,10 @@ function JobsStack() {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("메뉴")}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: 16, alignItems: "center" }}
             >
-              <Ionicons name="menu" size={26} color="#fff" />
+              <Ionicons name="menu" size={22} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
             </TouchableOpacity>
           ),
         })}
@@ -659,9 +662,10 @@ function RealEstateStack() {
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("메뉴", { screen: "메뉴메인" })}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: 16, alignItems: "center" }}
             >
-              <Ionicons name="menu" size={26} color="#fff" />
+              <Ionicons name="menu" size={22} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
             </TouchableOpacity>
           ),
         })}
@@ -909,10 +913,11 @@ function DanggnHeaderRight({ navigation }) {
       style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}
     >
       <TouchableOpacity
-        style={{ padding: 8 }}
+        style={{ padding: 8, alignItems: "center" }}
         onPress={() => navigation.navigate("메뉴")}
       >
-        <Ionicons name="menu" size={26} color="#fff" />
+        <Ionicons name="menu" size={22} color="#fff" />
+        <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
       </TouchableOpacity>
     </View>
   );
