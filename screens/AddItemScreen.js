@@ -897,10 +897,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 10,
+    height: 56,
   },
   picker: {
     flex: 1,
-    paddingVertical: 8,
+    height: 56,
     fontSize: 16,
     color: "#333",
   },

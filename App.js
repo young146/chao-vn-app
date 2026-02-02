@@ -198,6 +198,12 @@ import NotificationsScreen from "./screens/NotificationsScreen";
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
 import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
+import JobsScreen from "./screens/JobsScreen";
+import JobDetailScreen from "./screens/JobDetailScreen";
+import AddJobScreen from "./screens/AddJobScreen";
+import RealEstateScreen from "./screens/RealEstateScreen";
+import RealEstateDetailScreen from "./screens/RealEstateDetailScreen";
+import AddRealEstateScreen from "./screens/AddRealEstateScreen";
 import AdminScreen from "./screens/AdminScreen";
 
 export default function App() {
@@ -473,6 +479,14 @@ function HomeStack() {
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("메뉴")}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="menu" size={26} color="#fff" />
+            </TouchableOpacity>
+          ),
         })}
       />
       <Stack.Screen
@@ -517,6 +531,14 @@ function NewsStack() {
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("메뉴")}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="menu" size={26} color="#fff" />
+            </TouchableOpacity>
+          ),
         })}
       />
       <Stack.Screen
@@ -532,42 +554,107 @@ function NewsStack() {
   );
 }
 
-function BoardStack() {
+function JobsStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="게시판메인"
-        component={MagazineScreen}
-        initialParams={{ type: "board" }}
+        name="Jobs메인"
+        component={JobsScreen}
         options={({ navigation }) => ({
           headerTitle: () => (
             <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("게시판메인", {
-                  type: "board",
-                  resetSearch: Date.now(),
-                })
-              }
+              onPress={() => navigation.navigate("Jobs메인")}
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                게시판
+                구인구직
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                우리 이웃들의 소리가 담긴 베트남 교민 커뮤니티
+                베트남 한인 일자리 정보
               </Text>
             </TouchableOpacity>
           ),
-          headerStyle: { backgroundColor: "#FF6B35", height: 70 },
+          headerStyle: { backgroundColor: "#2196F3", height: 70 },
           headerTintColor: "#fff",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("메뉴")}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="menu" size={26} color="#fff" />
+            </TouchableOpacity>
+          ),
         })}
       />
       <Stack.Screen
-        name="PostDetail"
-        component={PostDetailScreen}
+        name="Jobs상세"
+        component={JobDetailScreen}
         options={{
-          title: "상세보기",
-          headerStyle: { backgroundColor: "#FF6B35" },
+          title: "공고 상세",
+          headerStyle: { backgroundColor: "#2196F3" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="Jobs등록"
+        component={AddJobScreen}
+        options={{
+          title: "공고 등록",
+          headerStyle: { backgroundColor: "#2196F3" },
+          headerTintColor: "#fff",
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function RealEstateStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="부동산메인"
+        component={RealEstateScreen}
+        options={({ navigation }) => ({
+          headerTitle: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("부동산메인")}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                부동산
+              </Text>
+              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
+                베트남 교민을 위한 임대·매매 정보
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerStyle: { backgroundColor: "#E91E63", height: 70 },
+          headerTintColor: "#fff",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("메뉴", { screen: "메뉴메인" })}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="menu" size={26} color="#fff" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="부동산상세"
+        component={RealEstateDetailScreen}
+        options={{
+          title: "매물 상세",
+          headerStyle: { backgroundColor: "#E91E63" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="부동산등록"
+        component={AddRealEstateScreen}
+        options={{
+          title: "매물 등록",
+          headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
         }}
       />
@@ -588,10 +675,10 @@ function DanggnStack() {
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                나눔
+                당근/나눔
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                무료 나눔, 중고 거래소. 내 아파트 주변 물품 찾기
+                중고거래·무료나눔, 내 아파트 주변 물품 찾기
               </Text>
             </TouchableOpacity>
           ),
@@ -791,44 +878,16 @@ function MenuStack() {
 }
 
 function DanggnHeaderRight({ navigation }) {
-  const { user } = useAuth();
   return (
     <View
       style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}
     >
-      {user ? (
-        <TouchableOpacity
-          style={{ padding: 8 }}
-          onPress={() => navigation.navigate("Menu")}
-        >
-          <Ionicons name="person-circle" size={28} color="#fff" />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "rgba(255,255,255,0.2)",
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 16,
-            marginLeft: 8,
-          }}
-          onPress={() => navigation.navigate("로그인")}
-        >
-          <Ionicons name="log-in-outline" size={18} color="#fff" />
-          <Text
-            style={{
-              marginLeft: 4,
-              fontSize: 13,
-              fontWeight: "600",
-              color: "#fff",
-            }}
-          >
-            로그인
-          </Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={{ padding: 8 }}
+        onPress={() => navigation.navigate("메뉴")}
+      >
+        <Ionicons name="menu" size={26} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -847,18 +906,18 @@ function BottomTabNavigator() {
           if (route.name === "홈") iconName = focused ? "home" : "home-outline";
           else if (route.name === "뉴스")
             iconName = focused ? "newspaper" : "newspaper-outline";
-          else if (route.name === "게시판")
-            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
-          else if (route.name === "나눔")
+          else if (route.name === "Jobs")
+            iconName = focused ? "briefcase" : "briefcase-outline";
+          else if (route.name === "부동산")
+            iconName = focused ? "business" : "business-outline";
+          else if (route.name === "당근/나눔")
             iconName = focused ? "gift" : "gift-outline";
-          else if (route.name === "메뉴")
-            iconName = focused ? "apps" : "apps-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#FF6B35",
         tabBarInactiveTintColor: "#555",
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: "700",
           marginBottom: 2,
         },
@@ -898,29 +957,38 @@ function BottomTabNavigator() {
         })}
       />
       <Tab.Screen
-        name="게시판"
-        component={BoardStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.navigate("게시판", {
-              screen: "게시판메인",
-              params: { type: "board", resetSearch: Date.now() },
-            });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="나눔"
+        name="당근/나눔"
         component={DanggnStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            navigation.navigate("나눔", {
+            navigation.navigate("당근/나눔", {
               screen: "씬짜오나눔메인",
             });
           },
         })}
       />
-      <Tab.Screen name="메뉴" component={MenuStack} />
+      <Tab.Screen
+        name="Jobs"
+        component={JobsStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.navigate("Jobs", {
+              screen: "Jobs메인",
+            });
+          },
+        })}
+      />
+      <Tab.Screen
+        name="부동산"
+        component={RealEstateStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.navigate("부동산", {
+              screen: "부동산메인",
+            });
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }
@@ -951,6 +1019,12 @@ function RootNavigator() {
       <Stack.Screen
         name="비밀번호찾기"
         component={FindPasswordScreen}
+        options={{ headerShown: false }}
+      />
+      {/* 메뉴 화면들 - 어디서든 접근 가능 */}
+      <Stack.Screen
+        name="메뉴"
+        component={MenuStack}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
