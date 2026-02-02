@@ -348,7 +348,33 @@ export default function App() {
                 setTimeout(() => reject(new Error('Updates fetch timeout')), 15000)
               )
             ]);
-            console.log("✅ 업데이트 다운로드 완료, 다음 실행 시 적용됩니다");
+            console.log("✅ 업데이트 다운로드 완료");
+            
+            // 🔔 업데이트 완료 팝업 표시 (지금 적용이 기본 선택)
+            Alert.alert(
+              "🎉 새로운 업데이트",
+              "새로운 기능이 추가되었습니다!\n지금 업데이트를 적용하시겠습니까?",
+              [
+                { 
+                  text: "나중에", 
+                  style: "cancel",
+                  onPress: () => console.log("업데이트 나중에 적용")
+                },
+                { 
+                  text: "지금 적용", 
+                  style: "default",
+                  isPreferred: true,
+                  onPress: async () => {
+                    try {
+                      await Updates.reloadAsync();
+                    } catch (e) {
+                      console.log("업데이트 적용 실패:", e);
+                    }
+                  }
+                }
+              ],
+              { cancelable: false } // 뒤로가기나 바깥 터치로 닫기 방지
+            );
           } else {
             console.log("✅ 최신 버전입니다");
           }
