@@ -9,27 +9,19 @@ import {
   Text,
   TouchableOpacity,
   StatusBar,
-  Platform,
-  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, changeLanguage } from '../i18n';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Android 네비게이션 바 높이 (충분히 크게)
-const BOTTOM_PADDING = Platform.OS === 'android' ? 80 : 34;
 
 const LanguageSelectScreen = ({ onComplete, showHeader = false }) => {
   const { i18n } = useTranslation();
   const [selectedLang, setSelectedLang] = useState(i18n.language || 'ko');
 
-  const handleSelect = (langCode) => {
+  // 언어 선택 즉시 앱 시작
+  const handleSelect = async (langCode) => {
     setSelectedLang(langCode);
-  };
-
-  const handleContinue = async () => {
-    await changeLanguage(selectedLang);
+    await changeLanguage(langCode);
     if (onComplete) {
       onComplete();
     }
@@ -50,9 +42,9 @@ const LanguageSelectScreen = ({ onComplete, showHeader = false }) => {
 
           {/* 언어 선택 안내 */}
           <Text style={styles.selectText}>
-            언어를 선택하세요{'\n'}
-            Chọn ngôn ngữ của bạn{'\n'}
-            Select your language
+            언어를 선택하면 앱이 시작됩니다{'\n'}
+            Chọn ngôn ngữ để bắt đầu{'\n'}
+            Tap your language to start
           </Text>
 
           {/* 언어 버튼들 */}
@@ -87,17 +79,6 @@ const LanguageSelectScreen = ({ onComplete, showHeader = false }) => {
           </View>
         </View>
 
-        {/* 계속 버튼 - 하단 고정 (네비게이션 바 위로) */}
-        <TouchableOpacity
-          style={[styles.continueButton, { marginBottom: BOTTOM_PADDING }]}
-          onPress={handleContinue}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.continueButtonText}>
-            {selectedLang === 'ko' ? '계속하기' : 
-             selectedLang === 'vi' ? 'Tiếp tục' : 'Continue'}
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -111,10 +92,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 60,
     paddingBottom: 24,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   topSection: {
     alignItems: 'center',
@@ -191,24 +172,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#FF6B35',
     fontWeight: 'bold',
-  },
-  continueButton: {
-    backgroundColor: '#FF6B35',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    width: '100%',
-    alignItems: 'center',
-    shadowColor: '#FF6B35',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  continueButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });
 
