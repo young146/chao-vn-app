@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,7 @@ import {
   Linking,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { WebView } from 'react-native-webview';
@@ -18,11 +19,16 @@ import { Image } from 'expo-image';
 import { Ionicons, FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import CommentsSection from '../components/commentsSection';
+import TranslatedText from '../components/TranslatedText';
+import { translateText } from '../services/TranslationService';
 
 export default function PostDetailScreen({ route }) {
-  const { t } = useTranslation('menu');
+  const { t, i18n } = useTranslation('menu');
   const { post } = route.params;
   const { width } = useWindowDimensions();
+  
+  const [translatedContent, setTranslatedContent] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
   
@@ -102,16 +108,45 @@ export default function PostDetailScreen({ route }) {
 
   // 🔧 본문에서 첫 번째 이미지 제거 (featuredImage와 중복 방지)
   // 안전하게 content 필드 확인
-  let contentHtml = post.content?.rendered || post.excerpt || '';
-  if (featuredImage && contentHtml) {
+  let originalContentHtml = post.content?.rendered || post.excerpt || '';
+  if (featuredImage && originalContentHtml) {
     // 본문 맨 앞의 공백 제거 후 <img> 또는 <figure> 태그 제거
-    contentHtml = contentHtml.trim()
+    originalContentHtml = originalContentHtml.trim()
       .replace(/^(<p>\s*)?<figure[^>]*>[\s\S]*?<\/figure>(\s*<\/p>)?/i, '')
       .replace(/^(<p>\s*)?<img[^>]*\/?>\s*(<\/p>)?/i, '');
   }
+
+  // 🌐 HTML 본문 번역
+  useEffect(() => {
+    const translateContent = async () => {
+      if (i18n.language === 'ko') {
+        setTranslatedContent(originalContentHtml);
+        return;
+      }
+      
+      if (!originalContentHtml || originalContentHtml.trim() === '') {
+        setTranslatedContent(originalContentHtml);
+        return;
+      }
+
+      setIsTranslating(true);
+      try {
+        // Google Translate API는 HTML 태그를 보존하면서 텍스트만 번역
+        const translated = await translateText(originalContentHtml, i18n.language, 'ko');
+        setTranslatedContent(translated);
+      } catch (error) {
+        console.log('본문 번역 실패:', error);
+        setTranslatedContent(originalContentHtml); // 실패 시 원문 표시
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    translateContent();
+  }, [originalContentHtml, i18n.language]);
   
   const source = {
-    html: contentHtml
+    html: translatedContent || originalContentHtml
   };
 
   const tagsStyles = {
@@ -152,9 +187,9 @@ export default function PostDetailScreen({ route }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>
+        <TranslatedText style={styles.title}>
           {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
-        </Text>
+        </TranslatedText>
         
         <View style={styles.metaInfo}>
           <Text style={styles.date}>{dateStr}</Text>
@@ -184,6 +219,14 @@ export default function PostDetailScreen({ route }) {
         )}
 
         <View style={styles.content}>
+          {isTranslating && (
+            <View style={styles.translatingContainer}>
+              <ActivityIndicator size="small" color="#FF6B35" />
+              <Text style={styles.translatingText}>
+                {i18n.language === 'vi' ? 'Đang dịch...' : 'Translating...'}
+              </Text>
+            </View>
+          )}
           <RenderHtml
             contentWidth={width - 32}
             source={source}
@@ -314,6 +357,20 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 20,
+  },
+  translatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginBottom: 10,
+    backgroundColor: '#FFF8F3',
+    borderRadius: 8,
+  },
+  translatingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#FF6B35',
   },
   // 📤 공유 섹션 스타일
   shareSection: {

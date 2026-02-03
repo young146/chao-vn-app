@@ -24,6 +24,7 @@ import {
 import { db } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
 import { ko, vi, enUS } from "date-fns/locale";
+import TranslatedText from "../components/TranslatedText";
 
 export default function NotificationsScreen({ navigation }) {
   const { user } = useAuth();
@@ -223,9 +224,9 @@ export default function NotificationsScreen({ navigation }) {
             {/* 물품 제목 표시 */}
             {(item.type === "new_item" || item.type === "item_rejected") &&
               item.itemTitle && (
-                <Text style={styles.itemTitle} numberOfLines={1}>
+                <TranslatedText style={styles.itemTitle} numberOfLines={1}>
                   📦 {item.itemTitle}
-                </Text>
+                </TranslatedText>
               )}
 
             {/* 시간 */}

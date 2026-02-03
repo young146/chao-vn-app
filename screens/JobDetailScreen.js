@@ -27,6 +27,7 @@ import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import AdBanner from "../components/AdBanner";
+import TranslatedText from "../components/TranslatedText";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -313,7 +314,7 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
 
           {/* 제목 */}
-          <Text style={styles.title}>{job.title}</Text>
+          <TranslatedText style={styles.title}>{job.title}</TranslatedText>
 
           {/* 등록 정보 */}
           <View style={styles.metaRow}>
@@ -400,16 +401,16 @@ export default function JobDetailScreen({ route, navigation }) {
         {/* 상세 내용 */}
         <View style={styles.descriptionCard}>
           <Text style={styles.cardTitle}>📝 {t('detail.description')}</Text>
-          <Text style={styles.description}>
+          <TranslatedText style={styles.description}>
             {job.description || t('detail.noDescription')}
-          </Text>
+          </TranslatedText>
         </View>
 
         {/* 자격 요건 */}
         {job.requirements && (
           <View style={styles.descriptionCard}>
             <Text style={styles.cardTitle}>✅ {t('detail.requirements')}</Text>
-            <Text style={styles.description}>{job.requirements}</Text>
+            <TranslatedText style={styles.description}>{job.requirements}</TranslatedText>
           </View>
         )}
 

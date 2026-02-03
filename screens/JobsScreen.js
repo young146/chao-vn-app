@@ -32,6 +32,7 @@ import {
   doc,
 } from "firebase/firestore";
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
+import TranslatedText from "../components/TranslatedText";
 
 // 검색바 컴포넌트
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -116,7 +117,7 @@ const JobCard = memo(({ item, onPress, index, t }) => {
         </View>
 
         {/* 제목 */}
-        <Text style={styles.jobTitle} numberOfLines={2}>{item.title}</Text>
+        <TranslatedText style={styles.jobTitle} numberOfLines={2}>{item.title}</TranslatedText>
 
         {/* 급여 */}
         {item.salary && (

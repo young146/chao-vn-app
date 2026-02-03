@@ -26,6 +26,7 @@ import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import AdBanner from "../components/AdBanner";
+import TranslatedText from "../components/TranslatedText";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -333,7 +334,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </View>
 
           {/* 제목 */}
-          <Text style={styles.title}>{item.title}</Text>
+          <TranslatedText style={styles.title}>{item.title}</TranslatedText>
 
           {/* 가격 정보 */}
           <View style={styles.priceSection}>
@@ -443,9 +444,9 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         {/* 상세 설명 */}
         <View style={styles.descriptionCard}>
           <Text style={styles.cardTitle}>📝 {t('detail.description')}</Text>
-          <Text style={styles.description}>
+          <TranslatedText style={styles.description}>
             {item.description || t('detail.noDescription')}
-          </Text>
+          </TranslatedText>
         </View>
 
         {/* 내 매물인 경우 관리 버튼 */}

@@ -19,6 +19,7 @@ import {
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import TranslatedText from "../components/TranslatedText";
 
 export default function ChatListScreen({ navigation }) {
   const { user } = useAuth();
@@ -154,9 +155,9 @@ export default function ChatListScreen({ navigation }) {
         {/* 채팅 정보 */}
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
-            <Text style={styles.itemTitle} numberOfLines={1}>
+            <TranslatedText style={styles.itemTitle} numberOfLines={1}>
               {item.itemTitle || t('deletedItem')}
-            </Text>
+            </TranslatedText>
             <Text style={styles.timestamp}>
               {formatDate(item.lastMessageAt)}
             </Text>

@@ -18,6 +18,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/config";
+import TranslatedText from "../components/TranslatedText";
 
 export default function ReviewScreen({ route, navigation }) {
   const { t } = useTranslation('menu');
@@ -103,7 +104,7 @@ export default function ReviewScreen({ route, navigation }) {
         <View style={styles.content}>
           {/* 물품 정보 */}
           <View style={styles.itemInfo}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
+            <TranslatedText style={styles.itemTitle}>{item.title}</TranslatedText>
             <Text style={styles.itemPrice}>
               {new Intl.NumberFormat("ko-KR").format(item.price)}₫
             </Text>

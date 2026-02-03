@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import TranslatedText from "../components/TranslatedText";
 
 export default function BookmarksScreen({ navigation }) {
   const { user } = useAuth();
@@ -69,9 +70,9 @@ export default function BookmarksScreen({ navigation }) {
   const renderBookmark = ({ item }) => (
     <View style={styles.bookmarkItem}>
       <View style={styles.bookmarkContent}>
-        <Text style={styles.title} numberOfLines={2}>
+        <TranslatedText style={styles.title} numberOfLines={2}>
           {item.title || item.url}
-        </Text>
+        </TranslatedText>
         <Text style={styles.url} numberOfLines={1}>
           {item.url}
         </Text>

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import TranslatedText from "../components/TranslatedText";
 
 export default function MyFavoritesScreen({ navigation }) {
   const { user } = useAuth();
@@ -152,9 +153,9 @@ export default function MyFavoritesScreen({ navigation }) {
 
       {/* 물품 정보 */}
       <View style={styles.itemInfo}>
-        <Text style={styles.itemTitle} numberOfLines={2}>
+        <TranslatedText style={styles.itemTitle} numberOfLines={2}>
           {item.itemTitle}
-        </Text>
+        </TranslatedText>
         <Text style={styles.itemPrice}>{formatPrice(item.itemPrice)}</Text>
         <View style={styles.itemMeta}>
           <Text style={styles.itemCategory}>{item.itemCategory}</Text>

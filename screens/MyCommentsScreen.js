@@ -19,6 +19,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import TranslatedText from "../components/TranslatedText";
 
 export default function MyCommentsScreen({ navigation }) {
   const { user } = useAuth();
@@ -75,9 +76,9 @@ export default function MyCommentsScreen({ navigation }) {
     <View style={styles.reviewItem}>
       <View style={styles.reviewHeader}>
         <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle} numberOfLines={1}>
+          <TranslatedText style={styles.itemTitle} numberOfLines={1}>
             {item.itemTitle || t('item')}
-          </Text>
+          </TranslatedText>
           <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Ionicons
@@ -97,7 +98,7 @@ export default function MyCommentsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.content}>{item.content}</Text>
+      <TranslatedText style={styles.content}>{item.content}</TranslatedText>
 
       <Text style={styles.date}>
         {item.createdAt?.toDate().toLocaleDateString("ko-KR", {

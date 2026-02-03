@@ -32,6 +32,7 @@ import {
   doc,
 } from "firebase/firestore";
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
+import TranslatedText from "../components/TranslatedText";
 
 // 검색바 컴포넌트
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -133,7 +134,7 @@ const RealEstateCard = memo(({ item, onPress, index, t }) => {
         </View>
 
         {/* 제목 */}
-        <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+        <TranslatedText style={styles.cardTitle} numberOfLines={2}>{item.title}</TranslatedText>
 
         {/* 가격 */}
         <View style={styles.priceRow}>

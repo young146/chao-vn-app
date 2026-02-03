@@ -20,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
 import AdBanner, { SectionAdBanner, InlineAdBanner } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import TranslatedText from '../components/TranslatedText';
 
 const { width } = Dimensions.get('window');
 
@@ -183,9 +184,9 @@ const HomeSlider = ({ posts, onPress }) => {
                 contentFit="cover"
               />
               <View style={styles.slideOverlay}>
-                <Text style={styles.slideTitle} numberOfLines={2}>
+                <TranslatedText style={styles.slideTitle} numberOfLines={2}>
                   {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
-                </Text>
+                </TranslatedText>
               </View>
             </TouchableOpacity>
           );
@@ -304,9 +305,9 @@ const MagazineCard = ({ item, onPress, type }) => {
         )}
       </View>
       <View style={styles.contentContainer}>
-        <Text style={styles.title} numberOfLines={2}>
+        <TranslatedText style={styles.title} numberOfLines={2}>
           {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
-        </Text>
+        </TranslatedText>
         <View style={styles.footer}>
           <Text style={styles.date}>{dateStr}</Text>
           <View style={styles.categoryBadge}>
@@ -608,9 +609,9 @@ export default function MagazineScreen({ navigation, route }) {
                                   style={styles.gridCardImage}
                                   contentFit="cover"
                                 />
-                                <Text style={styles.gridCardTitle} numberOfLines={2}>
+                                <TranslatedText style={styles.gridCardTitle} numberOfLines={2}>
                                   {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
-                                </Text>
+                                </TranslatedText>
                               </>
                             ) : (
                               <View style={styles.emptyCard}>

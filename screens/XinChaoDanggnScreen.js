@@ -36,6 +36,7 @@ import {
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
+import TranslatedText from "../components/TranslatedText";
 
 // 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -90,7 +91,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
         </View>
       </View>
       <View style={styles.itemInfo}>
-        <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+        <TranslatedText style={styles.itemTitle} numberOfLines={1}>{item.title}</TranslatedText>
         <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
         <View style={styles.locationContainer}>
           <Ionicons name="location-outline" size={14} color="#666" />

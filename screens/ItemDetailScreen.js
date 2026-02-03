@@ -32,6 +32,7 @@ import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import AdBanner from "../components/AdBanner";
+import TranslatedText from "../components/TranslatedText";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -506,7 +507,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           {/* 제목 & 가격 & 상태 */}
           <View style={styles.headerSection}>
             <View style={styles.titleRow}>
-              <Text style={styles.title}>{item.title}</Text>
+              <TranslatedText style={styles.title}>{item.title}</TranslatedText>
               {/* ✅ 상태 배지 */}
               <View
                 style={[
@@ -549,9 +550,9 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Ionicons name="document-text" size={20} color="#FF6B35" />
               <Text style={styles.sectionTitle}>{t('detail.description')}</Text>
             </View>
-            <Text style={styles.description}>
+            <TranslatedText style={styles.description}>
               {item.description || t('detail.noDescription')}
-            </Text>
+            </TranslatedText>
           </View>
 
           <View style={styles.divider} />
@@ -684,7 +685,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                         ))}
                       </View>
                     </View>
-                    <Text style={styles.reviewContent}>{review.content}</Text>
+                    <TranslatedText style={styles.reviewContent}>{review.content}</TranslatedText>
                     <Text style={styles.reviewDate}>
                       {formatDate(review.createdAt)}
                     </Text>

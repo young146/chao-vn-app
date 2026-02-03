@@ -40,6 +40,7 @@ import {
 } from "firebase/firestore";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import TranslatedText from "../components/TranslatedText";
 
 // 알림 핸들러 설정 (앱 시작 시 한 번만)
 Notifications.setNotificationHandler({
@@ -416,14 +417,14 @@ export default function ChatRoomScreen({ route, navigation }) {
               />
             </TouchableOpacity>
           ) : (
-            <Text
+            <TranslatedText
               style={[
                 styles.messageText,
                 isMyMessage ? styles.myMessageText : styles.otherMessageText,
               ]}
             >
               {item.text}
-            </Text>
+            </TranslatedText>
           )}
         </View>
         <Text style={styles.messageTime}>{messageTime}</Text>
