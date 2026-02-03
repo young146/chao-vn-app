@@ -13,12 +13,14 @@ import {
   useColorScheme,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 export default function ReviewScreen({ route, navigation }) {
+  const { t } = useTranslation('menu');
   const { item } = route.params;
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
@@ -29,12 +31,12 @@ export default function ReviewScreen({ route, navigation }) {
 
   const handleSubmit = async () => {
     if (!content.trim()) {
-      Alert.alert("알림", "리뷰 내용을 입력해주세요!");
+      Alert.alert(t('notice'), t('review.enterContent'));
       return;
     }
 
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다!");
+      Alert.alert(t('notice'), t('review.loginRequired'));
       return;
     }
 
@@ -72,9 +74,9 @@ export default function ReviewScreen({ route, navigation }) {
         console.log("✅ 리뷰 알림 전송 완료:", item.userId);
       }
 
-      Alert.alert("완료!", "리뷰가 등록되었습니다!", [
+      Alert.alert(t('review.success'), t('review.successMessage'), [
         {
-          text: "확인",
+          text: t('common:confirm'),
           onPress: () => {
             navigation.goBack();
           },
@@ -82,7 +84,7 @@ export default function ReviewScreen({ route, navigation }) {
       ]);
     } catch (error) {
       console.error("리뷰 작성 실패:", error);
-      Alert.alert("오류", "리뷰 작성에 실패했습니다.");
+      Alert.alert(t('common:error'), t('review.failed'));
     } finally {
       setSubmitting(false);
     }
@@ -111,7 +113,7 @@ export default function ReviewScreen({ route, navigation }) {
 
           {/* 별점 선택 */}
           <View style={styles.section}>
-            <Text style={styles.label}>별점 *</Text>
+            <Text style={styles.label}>{t('review.rating')} *</Text>
             <View style={styles.ratingContainer}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -129,14 +131,14 @@ export default function ReviewScreen({ route, navigation }) {
             </View>
             <Text style={styles.ratingText}>
               {rating === 5
-                ? "⭐ 최고예요!"
+                ? `⭐ ${t('review.ratingExcellent')}`
                 : rating === 4
-                ? "⭐ 좋아요!"
+                ? `⭐ ${t('review.ratingGood')}`
                 : rating === 3
-                ? "⭐ 보통이에요"
+                ? `⭐ ${t('review.ratingAverage')}`
                 : rating === 2
-                ? "⭐ 별로예요"
-                : "⭐ 최악이에요"}
+                ? `⭐ ${t('review.ratingBad')}`
+                : `⭐ ${t('review.ratingWorst')}`}
             </Text>
           </View>
 
@@ -144,10 +146,10 @@ export default function ReviewScreen({ route, navigation }) {
 
           {/* 리뷰 내용 */}
           <View style={styles.section}>
-            <Text style={styles.label}>리뷰 내용 *</Text>
+            <Text style={styles.label}>{t('review.content')} *</Text>
             <TextInput
               style={styles.textArea}
-              placeholder="거래 경험을 공유해주세요&#10;&#10;• 물품 상태는 어땠나요?&#10;• 판매자는 친절했나요?&#10;• 거래 과정은 만족스러웠나요?"
+              placeholder={t('review.contentPlaceholder')}
               placeholderTextColor="rgba(0, 0, 0, 0.38)"
               value={content}
               onChangeText={setContent}
@@ -166,12 +168,12 @@ export default function ReviewScreen({ route, navigation }) {
             {submitting ? (
               <View style={styles.uploadingContainer}>
                 <ActivityIndicator color="#fff" />
-                <Text style={styles.buttonText}> 등록 중...</Text>
+                <Text style={styles.buttonText}> {t('review.submitting')}</Text>
               </View>
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                <Text style={styles.buttonText}> 리뷰 등록하기</Text>
+                <Text style={styles.buttonText}> {t('review.submit')}</Text>
               </>
             )}
           </TouchableOpacity>

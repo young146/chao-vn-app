@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
   GoogleSignin,
@@ -20,6 +21,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
 export default function LoginScreen({ navigation }) {
+  const { t } = useTranslation('auth');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,11 +62,11 @@ export default function LoginScreen({ navigation }) {
       if (credential.identityToken) {
         const result = await appleLogin(credential.identityToken, rawNonce);
         if (result.success) {
-          Alert.alert("로그인 성공! ✅", "환영합니다!", [
-            { text: "확인", onPress: () => navigation.goBack() },
+          Alert.alert(t('loginSuccess'), t('welcome'), [
+            { text: t('common:confirm'), onPress: () => navigation.goBack() },
           ]);
         } else {
-          Alert.alert("애플 로그인 실패", result.error);
+          Alert.alert(t('appleLoginFailed'), result.error);
         }
       }
     } catch (error) {
@@ -72,7 +74,7 @@ export default function LoginScreen({ navigation }) {
         console.log("애플 로그인을 취소했습니다.");
       } else {
         console.error("애플 로그인 에러:", error);
-        Alert.alert("오류", "애플 로그인에 실패했습니다.");
+        Alert.alert(t('common:error'), t('appleLoginFailed'));
       }
     } finally {
       setAppleLoading(false);
@@ -104,17 +106,17 @@ export default function LoginScreen({ navigation }) {
         console.log(`⏱️ 전체 로그인 완료: ${Date.now() - startTime}ms`);
         
         if (result.success) {
-          Alert.alert("로그인 성공! ✅", "환영합니다!", [
-            { text: "확인", onPress: () => navigation.goBack() },
+          Alert.alert(t('loginSuccess'), t('welcome'), [
+            { text: t('common:confirm'), onPress: () => navigation.goBack() },
           ]);
         } else {
-          Alert.alert("구글 로그인 실패", result.error);
+          Alert.alert(t('googleLoginFailed'), result.error);
         }
       }
     } catch (error) {
       console.error("Google Sign-In 에러:", error);
       if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert("구글 로그인 실패", error.message || "알 수 없는 오류가 발생했습니다.");
+        Alert.alert(t('googleLoginFailed'), error.message || t('common:error'));
       }
     } finally {
       setGoogleLoading(false);
@@ -123,7 +125,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      Alert.alert(t('common:loginRequired'), t('emailRequired'));
       return;
     }
 
@@ -132,11 +134,11 @@ export default function LoginScreen({ navigation }) {
     setLoading(false);
 
     if (!result.success) {
-      Alert.alert("로그인 실패", result.error);
+      Alert.alert(t('loginFailed'), result.error);
     } else {
-      Alert.alert("로그인 성공! ✅", "환영합니다!", [
+      Alert.alert(t('loginSuccess'), t('welcome'), [
         {
-          text: "확인",
+          text: t('common:confirm'),
           onPress: () => navigation.goBack(),
         },
       ]);
@@ -153,8 +155,8 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.logoCircle}>
             <Ionicons name="newspaper" size={40} color="#FF6B35" />
           </View>
-          <Text style={styles.logoText}>씬짜오 베트남</Text>
-          <Text style={styles.subtitle}>한국 내 베트남 커뮤니티</Text>
+          <Text style={styles.logoText}>{t('appName')}</Text>
+          <Text style={styles.subtitle}>{t('welcomeMessage')}</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -162,7 +164,7 @@ export default function LoginScreen({ navigation }) {
             <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="이메일"
+              placeholder={t('email')}
               placeholderTextColor="rgba(0, 0, 0, 0.38)"
               value={email}
               onChangeText={setEmail}
@@ -176,7 +178,7 @@ export default function LoginScreen({ navigation }) {
             <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="비밀번호"
+              placeholder={t('password')}
               placeholderTextColor="rgba(0, 0, 0, 0.38)"
               value={password}
               onChangeText={setPassword}
@@ -189,13 +191,13 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>로그인</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>{t('loginButton')}</Text>}
           </TouchableOpacity>
 
           {/* 소셜 로그인 섹션 (Android + iOS 둘 다) */}
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText}>또는</Text>
+            <Text style={styles.dividerText}>{t('or')}</Text>
             <View style={styles.divider} />
           </View>
 
@@ -208,12 +210,12 @@ export default function LoginScreen({ navigation }) {
             {googleLoading ? (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <ActivityIndicator color="#fff" />
-                <Text style={[styles.googleButtonText, { marginLeft: 10 }]}>로그인 중...</Text>
+                <Text style={[styles.googleButtonText, { marginLeft: 10 }]}>{t('loggingIn')}</Text>
               </View>
             ) : (
               <>
                 <Ionicons name="logo-google" size={20} color="#fff" />
-                <Text style={styles.googleButtonText}>Google로 로그인</Text>
+                <Text style={styles.googleButtonText}>{t('googleLogin')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -231,18 +233,18 @@ export default function LoginScreen({ navigation }) {
 
           <View style={styles.findContainer}>
             <TouchableOpacity onPress={() => navigation.navigate("아이디찾기")}>
-              <Text style={styles.findText}>아이디 찾기</Text>
+              <Text style={styles.findText}>{t('findId')}</Text>
             </TouchableOpacity>
             <Text style={styles.findDivider}>|</Text>
             <TouchableOpacity onPress={() => navigation.navigate("비밀번호찾기")}>
-              <Text style={styles.findText}>비밀번호 찾기</Text>
+              <Text style={styles.findText}>{t('findPassword')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>계정이 없으신가요? </Text>
+            <Text style={styles.signupText}>{t('noAccount')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate("회원가입")}>
-              <Text style={styles.signupLink}>회원가입</Text>
+              <Text style={styles.signupLink}>{t('common:signup')}</Text>
             </TouchableOpacity>
           </View>
         </View>

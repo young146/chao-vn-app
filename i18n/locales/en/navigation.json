@@ -1,0 +1,33 @@
+{
+  "tabs": {
+    "home": "Home",
+    "news": "News",
+    "danggn": "Buy & Sell",
+    "jobs": "Jobs",
+    "realEstate": "Property"
+  },
+  "headers": {
+    "postDetail": "Details",
+    "jobDetail": "Job Details",
+    "addJob": "Post Job",
+    "propertyDetail": "Property Details",
+    "addProperty": "Post Property",
+    "itemDetail": "Item Details",
+    "addItem": "Post Item",
+    "editItem": "Edit Item",
+    "writeReview": "Write Review",
+    "chat": "Chat",
+    "menu": "Menu",
+    "myPage": "My Page",
+    "myChats": "My Chats",
+    "favorites": "Favorites",
+    "bookmarks": "Bookmarks",
+    "notificationSettings": "Notification Settings",
+    "profile": "Profile",
+    "adminPage": "Admin",
+    "myItems": "My Items",
+    "myReviews": "My Reviews",
+    "userManagement": "User Management",
+    "notifications": "Notifications"
+  }
+}

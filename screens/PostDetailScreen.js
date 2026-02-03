@@ -16,9 +16,11 @@ import RenderHtml from 'react-native-render-html';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import { Ionicons, FontAwesome5, FontAwesome } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import CommentsSection from '../components/commentsSection';
 
 export default function PostDetailScreen({ route }) {
+  const { t } = useTranslation('menu');
   const { post } = route.params;
   const { width } = useWindowDimensions();
 
@@ -58,7 +60,7 @@ export default function PostDetailScreen({ route }) {
           if (zaloInstalled) {
             await Share.share({ message: shareMessage, title: shareTitle });
           } else {
-            Alert.alert('Zalo', 'Zalo 앱이 설치되어 있지 않습니다.\n일반 공유를 사용해주세요.');
+            Alert.alert('Zalo', t('postDetail.zaloNotInstalled'));
           }
           break;
           
@@ -86,7 +88,7 @@ export default function PostDetailScreen({ route }) {
   };
   
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
-  let dateStr = '날짜 정보 없음';
+  let dateStr = t('postDetail.noDateInfo');
   try {
     if (post.date) {
       const dateObj = new Date(post.date);
@@ -193,7 +195,7 @@ export default function PostDetailScreen({ route }) {
 
         {/* 📤 SNS 공유 섹션 */}
         <View style={styles.shareSection}>
-          <Text style={styles.shareTitle}>📤 이 기사 공유하기</Text>
+          <Text style={styles.shareTitle}>📤 {t('postDetail.shareTitle')}</Text>
           <View style={styles.shareButtons}>
             {/* 카카오톡 */}
             <TouchableOpacity 

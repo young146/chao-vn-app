@@ -8,12 +8,14 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 export default function MyPageScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('menu');
   const [profileImage, setProfileImage] = useState(null);
 
   useEffect(() => {
@@ -35,35 +37,35 @@ export default function MyPageScreen({ navigation }) {
   const myPageItems = [
     {
       id: "favorites",
-      title: "찜한 물품",
+      title: t('favorites'),
       icon: "heart",
       screen: "찜한 물품",
       color: "#E91E63",
     },
     {
       id: "bookmarks",
-      title: "북마크",
+      title: t('bookmarks'),
       icon: "bookmark",
       screen: "북마크",
       color: "#4CAF50",
     },
     {
       id: "comments",
-      title: "내 후기",
+      title: t('myReviews'),
       icon: "chatbox",
       screen: "내 후기",
       color: "#2196F3",
     },
     {
       id: "profile",
-      title: "프로필",
+      title: t('profile'),
       icon: "person",
       screen: "프로필",
       color: "#FF9800",
     },
     {
       id: "myitems",
-      title: "내 물품",
+      title: t('myItems'),
       icon: "cube",
       screen: "내 물품",
       color: "#9C27B0",
@@ -91,20 +93,20 @@ export default function MyPageScreen({ navigation }) {
           )}
         </View>
         <Text style={styles.userName}>
-          {user?.email ? user.email.split("@")[0] : "사용자"}
+          {user?.email ? user.email.split("@")[0] : t('user')}
         </Text>
         <Text style={styles.userEmail}>{user?.email || ""}</Text>
       </View>
 
       {/* My Page 메뉴 */}
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>내 활동</Text>
+        <Text style={styles.sectionTitle}>{t('myActivity')}</Text>
         {myPageItems.map((item) => (
           <TouchableOpacity
             key={item.id}
             style={styles.menuItem}
             onPress={() => handleMenuPress(item)}
-            disabled={item.badge === "준비중"}
+            disabled={item.badge === t('preparing')}
           >
             <View style={styles.menuLeft}>
               <View
@@ -118,7 +120,7 @@ export default function MyPageScreen({ navigation }) {
               <Text
                 style={[
                   styles.menuTitle,
-                  item.badge === "준비중" && styles.disabledText,
+                  item.badge === t('preparing') && styles.disabledText,
                 ]}
               >
                 {item.title}
@@ -132,7 +134,7 @@ export default function MyPageScreen({ navigation }) {
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={item.badge === "준비중" ? "#ccc" : "#999"}
+              color={item.badge === t('preparing') ? "#ccc" : "#999"}
             />
           </TouchableOpacity>
         ))}

@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import {
@@ -33,6 +34,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddRealEstateScreen({ navigation, route }) {
   const { user } = useAuth();
+  const { t } = useTranslation(['realEstate', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -109,7 +111,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("권한 필요", "카메라 접근 권한이 필요합니다.");
+      Alert.alert(t('common:permissionRequired'), t('common:cameraPermission'));
       return false;
     }
     return true;
@@ -118,7 +120,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+      Alert.alert(t('common:permissionRequired'), t('common:galleryPermission'));
       return false;
     }
     return true;
@@ -141,7 +143,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      Alert.alert("오류", "사진 촬영에 실패했습니다.");
+      Alert.alert(t('form.error'), t('common:cameraError'));
     }
   };
 
@@ -163,17 +165,17 @@ export default function AddRealEstateScreen({ navigation, route }) {
         setImages([...images, ...newImages].slice(0, 10));
       }
     } catch (error) {
-      Alert.alert("오류", "사진을 선택할 수 없습니다.");
+      Alert.alert(t('form.error'), t('common:photoSelectError'));
     }
   };
 
   const pickImages = () => {
     if (images.length >= 10) {
-      Alert.alert("알림", "사진은 최대 10장까지 등록할 수 있습니다.");
+      Alert.alert(t('common:notice'), t('common:maxPhotos'));
       return;
     }
 
-    Alert.alert("사진 선택", "사진을 추가할 방법을 선택하세요", [
+    Alert.alert(t('common:selectPhoto'), t('common:selectPhotoMethod'), [
       {
         text: "📷 카메라로 촬영",
         onPress: takePhoto,
@@ -237,27 +239,27 @@ export default function AddRealEstateScreen({ navigation, route }) {
   // 폼 유효성 검사
   const validateForm = () => {
     if (!title.trim()) {
-      Alert.alert("알림", "제목을 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.titleRequired'));
       return false;
     }
     if (title.trim().length < 5) {
-      Alert.alert("알림", "제목은 최소 5자 이상 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.titleTooShort'));
       return false;
     }
     if (dealType === "임대" && !deposit && !monthlyRent) {
-      Alert.alert("알림", "보증금 또는 월세를 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.rentRequired'));
       return false;
     }
     if (dealType === "매매" && !price) {
-      Alert.alert("알림", "매매가를 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.priceRequired'));
       return false;
     }
     if (!selectedCity) {
-      Alert.alert("알림", "위치를 선택해주세요.");
+      Alert.alert(t('common:notice'), t('form.locationRequired'));
       return false;
     }
     if (images.length === 0) {
-      Alert.alert("알림", "최소 1장 이상의 사진을 등록해주세요.");
+      Alert.alert(t('common:notice'), t('form.photoRequired'));
       return false;
     }
     return true;
@@ -305,7 +307,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
           updatedAt: serverTimestamp(),
         });
 
-        Alert.alert("수정 완료", "매물 정보가 수정되었습니다!", [
+        Alert.alert(t('form.success'), t('form.propertyUpdated'), [
           {
             text: "확인",
             onPress: () => navigation.goBack(),
@@ -324,7 +326,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         // 캐시 무효화
         await AsyncStorage.removeItem("cached_realestate");
 
-        Alert.alert("등록 완료", "부동산 매물이 등록되었습니다!", [
+        Alert.alert(t('form.success'), t('form.propertyRegistered'), [
           {
             text: "확인",
             onPress: () => {
@@ -335,7 +337,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error("등록 실패:", error);
-      Alert.alert("오류", "등록에 실패했습니다. 다시 시도해주세요.");
+      Alert.alert(t('form.error'), t('form.errorMessage'));
     } finally {
       setUploading(false);
     }
@@ -356,10 +358,10 @@ export default function AddRealEstateScreen({ navigation, route }) {
           <Ionicons name="home" size={24} color="#E91E63" />
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>
-              {isEditMode ? "매물 수정" : "부동산 등록"}
+              {isEditMode ? t('form.updateButton') : t('addProperty')}
             </Text>
             <Text style={styles.headerSubtitle}>
-              베트남 교민을 위한 부동산 정보
+              {t('subtitle')}
             </Text>
           </View>
         </View>
@@ -367,7 +369,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 임대/매매 선택 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="swap-horizontal" size={16} color="#333" /> 거래 유형 *
+            <Ionicons name="swap-horizontal" size={16} color="#333" /> {t('form.dealTypeLabel')}
           </Text>
           <View style={styles.dealTypeContainer}>
             {dealTypes.map((type) => (
@@ -390,7 +392,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
                     dealType === type && styles.dealTypeTextActive,
                   ]}
                 >
-                  {type}
+                  {type === "임대" ? t('rent') : t('sale')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -400,7 +402,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 매물 유형 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="home-outline" size={16} color="#333" /> 매물 유형 *
+            <Ionicons name="home-outline" size={16} color="#333" /> {t('form.propertyTypeLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -418,11 +420,11 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 제목 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="create" size={16} color="#333" /> 제목 *
+            <Ionicons name="create" size={16} color="#333" /> {t('form.titleLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
-            placeholder="예: 호치민 2군 타오디엔 럭셔리 아파트 임대"
+            placeholder={t('form.titlePlaceholder')}
             placeholderTextColor="#999"
             value={title}
             onChangeText={setTitle}
@@ -434,48 +436,48 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 가격 정보 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="cash-outline" size={16} color="#333" /> 가격 정보 * ({dealType === "매매" ? "억동 단위" : "만동 단위"})
+            <Ionicons name="cash-outline" size={16} color="#333" /> {dealType === "매매" ? t('form.priceLabel') : t('form.monthlyRentLabel')}
           </Text>
           
           {dealType === "임대" ? (
             <>
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>보증금</Text>
+                <Text style={styles.priceLabel}>{t('deposit')}</Text>
                 <TextInput
                   style={[styles.textInput, styles.priceInput]}
-                  placeholder="예: 5000"
+                  placeholder={t('form.depositPlaceholder')}
                   placeholderTextColor="#999"
                   value={deposit}
                   onChangeText={setDeposit}
                   keyboardType="numeric"
                 />
-                <Text style={styles.priceUnit}>만동</Text>
+                <Text style={styles.priceUnit}>VND</Text>
               </View>
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>월세</Text>
+                <Text style={styles.priceLabel}>{t('monthlyRent')}</Text>
                 <TextInput
                   style={[styles.textInput, styles.priceInput]}
-                  placeholder="예: 2000"
+                  placeholder={t('form.monthlyRentPlaceholder')}
                   placeholderTextColor="#999"
                   value={monthlyRent}
                   onChangeText={setMonthlyRent}
                   keyboardType="numeric"
                 />
-                <Text style={styles.priceUnit}>만동</Text>
+                <Text style={styles.priceUnit}>VND</Text>
               </View>
             </>
           ) : (
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>매매가</Text>
+              <Text style={styles.priceLabel}>{t('form.priceLabel')}</Text>
               <TextInput
                 style={[styles.textInput, styles.priceInput]}
-                placeholder="예: 110 (110억동)"
+                placeholder={t('form.pricePlaceholder')}
                 placeholderTextColor="#999"
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="numeric"
               />
-              <Text style={styles.priceUnit}>억동</Text>
+              <Text style={styles.priceUnit}>VND</Text>
             </View>
           )}
         </View>
@@ -483,7 +485,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 위치 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="location-outline" size={16} color="#333" /> 위치 *
+            <Ionicons name="location-outline" size={16} color="#333" /> {t('form.cityLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -498,7 +500,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
           </View>
           <TextInput
             style={[styles.textInput, { marginTop: 8 }]}
-            placeholder="상세 주소 (구/군, 아파트명 등)"
+            placeholder={t('form.selectDistrict')}
             placeholderTextColor="#999"
             value={selectedDistrict}
             onChangeText={setSelectedDistrict}
@@ -508,14 +510,14 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 면적/방 정보 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="resize-outline" size={16} color="#333" /> 면적 및 구성
+            <Ionicons name="resize-outline" size={16} color="#333" /> {t('area')}
           </Text>
           <View style={styles.rowInputs}>
             <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>면적 (㎡)</Text>
+              <Text style={styles.inputLabel}>{t('form.areaLabel')}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="예: 85"
+                placeholder={t('form.areaPlaceholder')}
                 placeholderTextColor="#999"
                 value={area}
                 onChangeText={setArea}
@@ -523,10 +525,10 @@ export default function AddRealEstateScreen({ navigation, route }) {
               />
             </View>
             <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>층수</Text>
+              <Text style={styles.inputLabel}>{t('form.floorLabel')}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="예: 15층"
+                placeholder={t('form.floorPlaceholder')}
                 placeholderTextColor="#999"
                 value={floor}
                 onChangeText={setFloor}
@@ -535,7 +537,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
           </View>
           <TextInput
             style={[styles.textInput, { marginTop: 8 }]}
-            placeholder="방 구성 (예: 방 2개, 화장실 2개)"
+            placeholder={t('form.roomsPlaceholder')}
             placeholderTextColor="#999"
             value={rooms}
             onChangeText={setRooms}
@@ -545,11 +547,11 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 입주 가능일 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16} color="#333" /> 입주 가능일
+            <Ionicons name="calendar-outline" size={16} color="#333" /> {t('form.availableDateLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
-            placeholder="예: 즉시 입주 가능, 2026년 3월부터"
+            placeholder={t('form.availableDatePlaceholder')}
             placeholderTextColor="#999"
             value={availableDate}
             onChangeText={setAvailableDate}
@@ -559,28 +561,28 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16} color="#333" /> 연락처
+            <Ionicons name="call-outline" size={16} color="#333" /> {t('form.contactLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
-            placeholder="전화번호 또는 카카오톡 ID"
+            placeholder={t('form.contactPlaceholder')}
             placeholderTextColor="#999"
             value={contact}
             onChangeText={setContact}
           />
           <Text style={styles.helperText}>
-            * 비공개를 원하시면 채팅으로만 연락받을 수 있습니다
+            * {t('common:chatOnlyContact', '비공개를 원하시면 채팅으로만 연락받을 수 있습니다')}
           </Text>
         </View>
 
         {/* 상세 설명 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text-outline" size={16} color="#333" /> 상세 설명
+            <Ionicons name="document-text-outline" size={16} color="#333" /> {t('form.descriptionLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
-            placeholder="매물의 장점, 주변 편의시설, 특이사항 등을 자세히 작성해주세요"
+            placeholder={t('form.descriptionPlaceholder')}
             placeholderTextColor="#999"
             value={description}
             onChangeText={setDescription}
@@ -593,10 +595,10 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 이미지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="images-outline" size={16} color="#333" /> 사진 * (최대 10장)
+            <Ionicons name="images-outline" size={16} color="#333" /> {t('form.photoSection')} * (10)
           </Text>
           <Text style={styles.helperText}>
-            첫 번째 사진이 대표 이미지로 사용됩니다
+            {t('common:firstPhotoMain', '첫 번째 사진이 대표 이미지로 사용됩니다')}
           </Text>
           <View style={styles.imageGrid}>
             {images.map((uri, index) => (
@@ -610,7 +612,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
                 </TouchableOpacity>
                 {index === 0 && (
                   <View style={styles.mainImageBadge}>
-                    <Text style={styles.mainImageText}>대표</Text>
+                    <Text style={styles.mainImageText}>{t('form.mainPhoto')}</Text>
                   </View>
                 )}
               </View>
@@ -618,7 +620,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
             {images.length < 10 && (
               <TouchableOpacity style={styles.addImageButton} onPress={pickImages}>
                 <Ionicons name="camera" size={32} color="#999" />
-                <Text style={styles.addImageText}>사진 추가</Text>
+                <Text style={styles.addImageText}>{t('form.addPhoto')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -628,7 +630,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {isEditMode && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="flag-outline" size={16} color="#333" /> 거래 상태
+              <Ionicons name="flag-outline" size={16} color="#333" /> {t('form.statusLabel')}
             </Text>
             <View style={styles.statusContainer}>
               {["거래가능", "예약중", "거래완료"].map((s) => (
@@ -675,7 +677,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
             <>
               <Ionicons name="checkmark-circle" size={22} color="#fff" />
               <Text style={styles.submitButtonText}>
-                {isEditMode ? "수정 완료" : "등록하기"}
+                {isEditMode ? t('form.updateButton') : t('form.submitButton')}
               </Text>
             </>
           )}

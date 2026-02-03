@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import {
   doc,
   deleteDoc,
@@ -37,6 +38,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function ItemDetailScreen({ route, navigation }) {
   const { item } = route.params;
   const { user, isAdmin } = useAuth();
+  const { t } = useTranslation(['danggn', 'common']);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
@@ -131,10 +133,10 @@ export default function ItemDetailScreen({ route, navigation }) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return "방금 전";
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
+    if (minutes < 1) return t('detail.justNow');
+    if (minutes < 60) return t('detail.minutesAgo', { count: minutes });
+    if (hours < 24) return t('detail.hoursAgo', { count: hours });
+    if (days < 7) return t('detail.daysAgo', { count: days });
 
     return date.toLocaleDateString("ko-KR");
   };
@@ -155,10 +157,10 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   // ✅ 판매완료 처리
   const handleMarkAsSold = async () => {
-    Alert.alert("판매완료", "이 물품을 판매완료로 표시하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('detail.markAsSold'), t('detail.markAsSoldConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "확인",
+        text: t('common:confirm'),
         onPress: async () => {
           try {
             const itemRef = doc(db, "XinChaoDanggn", item.id);
@@ -167,10 +169,10 @@ export default function ItemDetailScreen({ route, navigation }) {
             });
 
             setCurrentStatus("판매완료");
-            Alert.alert("완료", "판매완료로 표시되었습니다!");
+            Alert.alert(t('detail.complete'), t('detail.markedAsSold'));
           } catch (error) {
             console.error("상태 변경 실패:", error);
-            Alert.alert("오류", "상태 변경에 실패했습니다.");
+            Alert.alert(t('common:error'), t('detail.statusChangeFailed'));
           }
         },
       },
@@ -179,9 +181,9 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   const handleChat = useCallback(() => {
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다.", [
-        { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
+        { text: t('common:confirm') },
+        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
@@ -192,10 +194,10 @@ export default function ItemDetailScreen({ route, navigation }) {
       itemTitle: item.title,
       itemImage: images[0] || null,
       otherUserId: item.userId,
-      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : "판매자",
+      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : t('detail.seller'),
       sellerId: item.userId,
     });
-  }, [user, item, images, navigation]);
+  }, [user, item, images, navigation, t]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -231,7 +233,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                 marginLeft: 4,
               }}
             >
-              판매자와 채팅
+              {t('detail.chatWithSeller')}
             </Text>
           </TouchableOpacity>
         ),
@@ -248,10 +250,10 @@ export default function ItemDetailScreen({ route, navigation }) {
 
     switch (type) {
       case "phone":
-        Alert.alert("연락하기", `전화번호: ${value}`, [
-          { text: "취소", style: "cancel" },
+        Alert.alert(t('detail.contact'), `${t('detail.phoneNumber')}: ${value}`, [
+          { text: t('common:cancel'), style: "cancel" },
           {
-            text: "전화하기",
+            text: t('detail.makeCall'),
             onPress: () => {
               const phoneNumber = value.replace(/[^0-9+]/g, "");
               Linking.openURL(`tel:${phoneNumber}`);
@@ -260,10 +262,10 @@ export default function ItemDetailScreen({ route, navigation }) {
         ]);
         break;
       case "kakao":
-        Alert.alert("카카오톡 ID", value, [{ text: "확인" }]);
+        Alert.alert(t('detail.kakaoId'), value, [{ text: t('common:confirm') }]);
         break;
       case "other":
-        Alert.alert("기타 연락처", value, [{ text: "확인" }]);
+        Alert.alert(t('detail.otherContact'), value, [{ text: t('common:confirm') }]);
         break;
     }
   };
@@ -273,40 +275,40 @@ export default function ItemDetailScreen({ route, navigation }) {
     const hasContact = contact.phone || contact.kakaoId || contact.other;
 
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다.", [
-        { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
+        { text: t('common:confirm') },
+        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
 
     if (!hasContact) {
-      Alert.alert("알림", "판매자가 연락처를 등록하지 않았습니다.");
+      Alert.alert(t('detail.noContact'), t('detail.noContactMessage'));
       return;
     }
 
     const options = [];
     if (contact.phone) {
       options.push({
-        text: `📞 전화: ${contact.phone}`,
+        text: `📞 ${t('detail.phoneNumber')}: ${contact.phone}`,
         onPress: () => handleContactOption("phone", contact.phone),
       });
     }
     if (contact.kakaoId) {
       options.push({
-        text: `💬 카카오톡: ${contact.kakaoId}`,
+        text: `💬 ${t('detail.kakaoId')}: ${contact.kakaoId}`,
         onPress: () => handleContactOption("kakao", contact.kakaoId),
       });
     }
     if (contact.other) {
       options.push({
-        text: `📱 기타: ${contact.other}`,
+        text: `📱 ${t('detail.otherContact')}: ${contact.other}`,
         onPress: () => handleContactOption("other", contact.other),
       });
     }
-    options.push({ text: "취소", style: "cancel" });
+    options.push({ text: t('common:cancel'), style: "cancel" });
 
-    Alert.alert("판매자 연락처", "연락 방법을 선택하세요", options);
+    Alert.alert(t('detail.contactSeller'), t('detail.contact'), options);
   };
 
   const handleEdit = () => {
@@ -314,15 +316,10 @@ export default function ItemDetailScreen({ route, navigation }) {
   };
 
   const handleDelete = () => {
-    const message =
-      isAdmin() && !isMyItem
-        ? "관리자 권한으로 이 물품을 삭제하시겠습니까?"
-        : "정말 삭제하시겠습니까?";
-
-    Alert.alert("물품 삭제", message, [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('common:delete'), t('detail.deleteConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "삭제",
+        text: t('common:delete'),
         style: "destructive",
         onPress: async () => {
           try {
@@ -343,12 +340,12 @@ export default function ItemDetailScreen({ route, navigation }) {
 
             await deleteDoc(doc(db, "XinChaoDanggn", item.id));
 
-            Alert.alert("삭제 완료", "물품이 삭제되었습니다.", [
-              { text: "확인", onPress: () => navigation.goBack() },
+            Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+              { text: t('common:confirm'), onPress: () => navigation.goBack() },
             ]);
           } catch (error) {
             console.error("삭제 실패:", error);
-            Alert.alert("오류", "삭제에 실패했습니다.");
+            Alert.alert(t('common:error'), t('detail.deleteFailed'));
           }
         },
       },
@@ -363,9 +360,9 @@ export default function ItemDetailScreen({ route, navigation }) {
   // ✅ 찜하기 핸들러 (알림 추가!)
   const handleFavorite = async () => {
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다.", [
-        { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
+        { text: t('common:confirm') },
+        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
@@ -386,7 +383,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         }
 
         setIsFavorited(false);
-        Alert.alert("완료", "찜 목록에서 제거되었습니다.");
+        Alert.alert(t('detail.complete'), t('detail.favoriteRemoved'));
       } else {
         // 찜 추가
         await addDoc(collection(db, "favorites"), {
@@ -404,7 +401,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           await addDoc(collection(db, "notifications"), {
             userId: item.userId, // 판매자
             type: "favorite",
-            message: `${user.email?.split("@")[0] || "사용자"}님이 "${item.title
+            message: `${user.email?.split("@")[0] || t('detail.seller')}님이 "${item.title
               }" 물품을 찜했습니다! ❤️`,
             itemId: item.id,
             itemTitle: item.title,
@@ -417,25 +414,25 @@ export default function ItemDetailScreen({ route, navigation }) {
         }
 
         setIsFavorited(true);
-        Alert.alert("완료", "찜 목록에 추가되었습니다! ❤️");
+        Alert.alert(t('detail.complete'), t('detail.favoriteAdded'));
       }
     } catch (error) {
       console.error("찜하기 실패:", error);
-      Alert.alert("오류", "찜하기에 실패했습니다.");
+      Alert.alert(t('common:error'), t('detail.deleteFailed'));
     }
   };
 
   const handleWriteReview = () => {
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다.", [
-        { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
+        { text: t('common:confirm') },
+        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
 
     if (isMyItem) {
-      Alert.alert("알림", "자신의 물품에는 리뷰를 작성할 수 없습니다.");
+      Alert.alert(t('common:notice'), t('detail.noReviews'));
       return;
     }
 
@@ -496,7 +493,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           ) : (
             <View style={styles.noImageContainer}>
               <Ionicons name="image-outline" size={80} color="#ccc" />
-              <Text style={styles.imagePlaceholder}>사진 없음</Text>
+              <Text style={styles.imagePlaceholder}>{t('detail.noPhoto')}</Text>
             </View>
           )}
         </View>
@@ -534,7 +531,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="location" size={20} color="#FF6B35" />
-              <Text style={styles.sectionTitle}>거래 지역</Text>
+              <Text style={styles.sectionTitle}>{t('detail.tradeArea')}</Text>
             </View>
             <View style={styles.locationDetails}>
               <Text style={styles.locationText}>
@@ -550,10 +547,10 @@ export default function ItemDetailScreen({ route, navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="document-text" size={20} color="#FF6B35" />
-              <Text style={styles.sectionTitle}>상세 설명</Text>
+              <Text style={styles.sectionTitle}>{t('detail.description')}</Text>
             </View>
             <Text style={styles.description}>
-              {item.description || "상세 설명이 없습니다."}
+              {item.description || t('detail.noDescription')}
             </Text>
           </View>
 
@@ -563,14 +560,14 @@ export default function ItemDetailScreen({ route, navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="person" size={20} color="#FF6B35" />
-              <Text style={styles.sectionTitle}>판매자 정보</Text>
+              <Text style={styles.sectionTitle}>{t('detail.sellerInfo')}</Text>
             </View>
             <View style={styles.sellerInfo}>
               <View style={styles.sellerAvatar}>
                 <Ionicons name="person" size={24} color="#fff" />
               </View>
               <Text style={styles.sellerName}>
-                {item.userEmail ? item.userEmail.split("@")[0] : "익명"}
+                {item.userEmail ? item.userEmail.split("@")[0] : t('detail.anonymous')}
               </Text>
             </View>
           </View>
@@ -585,7 +582,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Ionicons name="call" size={20} color="#FF6B35" />
-                    <Text style={styles.sectionTitle}>연락처</Text>
+                    <Text style={styles.sectionTitle}>{t('detail.contactInfo')}</Text>
                   </View>
 
                   {user ? (
@@ -606,7 +603,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                             color="#666"
                           />
                           <Text style={styles.contactText}>
-                            카톡: {item.contact.kakaoId}
+                            {t('detail.kakaoPrefix')}: {item.contact.kakaoId}
                           </Text>
                         </View>
                       )}
@@ -630,7 +627,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                     >
                       <Ionicons name="lock-closed-outline" size={20} color="#666" />
                       <Text style={styles.loginToViewContactText}>
-                        로그인하고 연락처 보기
+                        {t('detail.loginToViewContact')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -643,7 +640,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="star" size={20} color="#FFD700" />
-              <Text style={styles.sectionTitle}>리뷰/후기</Text>
+              <Text style={styles.sectionTitle}>{t('detail.reviewSection')}</Text>
               {reviews.length > 0 && (
                 <View style={styles.ratingBadge}>
                   <Ionicons name="star" size={14} color="#FFD700" />
@@ -656,9 +653,9 @@ export default function ItemDetailScreen({ route, navigation }) {
             {reviews.length === 0 ? (
               <View style={styles.noReviews}>
                 <Ionicons name="chatbubble-outline" size={40} color="#ccc" />
-                <Text style={styles.noReviewsText}>아직 리뷰가 없습니다</Text>
+                <Text style={styles.noReviewsText}>{t('detail.noReviews')}</Text>
                 <Text style={styles.noReviewsSubtext}>
-                  첫 번째 리뷰를 남겨주세요!
+                  {t('detail.writeFirstReview')}
                 </Text>
               </View>
             ) : (
@@ -671,7 +668,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                           <Ionicons name="person" size={16} color="#fff" />
                         </View>
                         <Text style={styles.reviewerName}>
-                          {review.userEmail?.split("@")[0] || "익명"}
+                          {review.userEmail?.split("@")[0] || t('detail.anonymous')}
                         </Text>
                       </View>
                       <View style={styles.reviewRating}>
@@ -726,7 +723,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                     size={20}
                     color="#fff"
                   />
-                  <Text style={styles.buttonText}>판매완료</Text>
+                  <Text style={styles.buttonText}>{t('detail.markAsSold')}</Text>
                 </TouchableOpacity>
                 <View style={{ width: 8 }} />
               </>
@@ -736,7 +733,7 @@ export default function ItemDetailScreen({ route, navigation }) {
               onPress={handleEdit}
             >
               <Ionicons name="create-outline" size={20} color="#fff" />
-              <Text style={styles.buttonText}>수정하기</Text>
+              <Text style={styles.buttonText}>{t('detail.edit')}</Text>
             </TouchableOpacity>
             <View style={{ width: 8 }} />
             <TouchableOpacity
@@ -744,7 +741,7 @@ export default function ItemDetailScreen({ route, navigation }) {
               onPress={handleDelete}
             >
               <Ionicons name="trash-outline" size={20} color="#fff" />
-              <Text style={styles.buttonText}>삭제하기</Text>
+              <Text style={styles.buttonText}>{t('detail.delete')}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -767,7 +764,7 @@ export default function ItemDetailScreen({ route, navigation }) {
               onPress={handleWriteReview}
             >
               <Ionicons name="star-outline" size={20} color="#fff" />
-              <Text style={styles.buttonText}>리뷰 작성</Text>
+              <Text style={styles.buttonText}>{t('detail.reviewBtn')}</Text>
             </TouchableOpacity>
 
             {/* Admin 삭제 버튼 */}
@@ -779,7 +776,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                   onPress={handleDelete}
                 >
                   <Ionicons name="shield-outline" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>관리자 삭제</Text>
+                  <Text style={styles.buttonText}>{t('common:adminDelete')}</Text>
                 </TouchableOpacity>
               </>
             )}

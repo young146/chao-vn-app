@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
 import AdBanner, { SectionAdBanner, InlineAdBanner } from '../components/AdBanner';
@@ -26,6 +27,7 @@ const SEARCH_HISTORY_KEY = 'search_history';
 const MAX_HISTORY = 5;
 
 const SearchHeader = ({ onSearch, onClear, isSearching }) => {
+  const { t } = useTranslation('menu');
   const [text, setText] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -93,7 +95,7 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
         <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           style={styles.searchTextInput}
-          placeholder="궁금한 소식을 검색해보세요"
+          placeholder={t('magazine.searchPlaceholder')}
           placeholderTextColor="#999"
           value={text}
           onChangeText={setText}
@@ -112,7 +114,7 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
       {/* 🔍 최근 검색어 */}
       {showHistory && searchHistory.length > 0 && !isSearching && (
         <View style={styles.historyContainer}>
-          <Text style={styles.historyTitle}>최근 검색어</Text>
+          <Text style={styles.historyTitle}>{t('magazine.recentSearches')}</Text>
           {searchHistory.map((query, index) => (
             <View key={index} style={styles.historyItem}>
               <TouchableOpacity 
@@ -202,11 +204,12 @@ const HomeSlider = ({ posts, onPress }) => {
 };
 
 const MagazineCard = ({ item, onPress, type }) => {
+  const { t } = useTranslation('home');
   // WordPress API에서 특성 이미지 가져오기 (_embed: 1 필요)
   const featuredImage = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
   
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
-  let dateStr = '날짜 정보 없음';
+  let dateStr = t('noDateInfo');
   try {
     if (item.date) {
       const dateObj = new Date(item.date);
@@ -220,42 +223,42 @@ const MagazineCard = ({ item, onPress, type }) => {
 
   // 카테고리와 출처 추출 (WordPress meta 필드 사용)
   const getCategoryAndSource = () => {
-    // 영어 카테고리 → 한글 변환 (12개 카테고리)
-    const categoryMap = {
-      'Society': '사회',
-      'Economy': '경제',
-      'Culture': '문화',
-      'Politics': '정치',
-      'International': '국제',
-      'Korea-Vietnam': '한-베',
-      'Community': '교민',
-      'Travel': '여행',
-      'Health': '건강',
-      'Food': '음식',
-      'Other': '기타',
-      // 추가 카테고리
-      'Sports': '스포츠',
-      'Technology': '기술',
-      'Education': '교육',
-      'Entertainment': '연예',
-      'Business': '비즈니스',
-      'World': '국제',
-      'Life': '생활',
-      'Pet': '펫',
-      'Weather': '날씨',
-      'Opinion': '오피니언',
-      'Real Estate': '부동산',
-      'Lifestyle': '라이프',
-      'Wellness': '웰니스',
-      'Recipe': '레시피',
+    // 영어 카테고리 → 번역 키 매핑
+    const categoryKeyMap = {
+      'Society': 'society',
+      'Economy': 'economy',
+      'Culture': 'culture',
+      'Politics': 'politics',
+      'International': 'international',
+      'Korea-Vietnam': 'koreaVietnam',
+      'Community': 'community',
+      'Travel': 'travel',
+      'Health': 'health',
+      'Food': 'food',
+      'Other': 'other',
+      'Sports': 'sports',
+      'Technology': 'technology',
+      'Education': 'education',
+      'Entertainment': 'entertainment',
+      'Business': 'business',
+      'World': 'world',
+      'Life': 'life',
+      'Pet': 'pet',
+      'Weather': 'weather',
+      'Opinion': 'opinion',
+      'Real Estate': 'realEstate',
+      'Lifestyle': 'lifestyle',
+      'Wellness': 'wellness',
+      'Recipe': 'recipe',
     };
     
     // 1. meta 필드에서 카테고리와 출처 가져오기
     const newsCategory = item.meta?.news_category || '';
     const newsSource = item.meta?.news_source || '';
     
-    // 카테고리 한글 변환
-    const category = categoryMap[newsCategory] || newsCategory;
+    // 카테고리 번역
+    const categoryKey = categoryKeyMap[newsCategory];
+    const category = categoryKey ? t(`sections.${categoryKey}`) : newsCategory;
     
     // 2. 결과 조합
     if (category && newsSource) {
@@ -273,9 +276,9 @@ const MagazineCard = ({ item, onPress, type }) => {
     
     // 기본값
     switch(type) {
-      case 'news': return '뉴스';
-      case 'board': return '게시판';
-      default: return '매거진';
+      case 'news': return t('types.news');
+      case 'board': return t('types.board');
+      default: return t('types.magazine');
     }
   };
 
@@ -316,6 +319,7 @@ const MagazineCard = ({ item, onPress, type }) => {
 };
 
 export default function MagazineScreen({ navigation, route }) {
+  const { t } = useTranslation('home');
   const { type = 'magazine', categoryId, resetSearch } = route.params || {};
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
@@ -551,7 +555,7 @@ export default function MagazineScreen({ navigation, route }) {
                 >
                   <Ionicons name="calendar-outline" size={20} color={isFilteredByDate ? "#fff" : "#FF6B35"} />
                   <Text style={[styles.dateButtonText, isFilteredByDate && styles.dateButtonTextActive]}>
-                    {isFilteredByDate ? selectedDate.toLocaleDateString() : '날짜별 뉴스 보기'}
+                    {isFilteredByDate ? selectedDate.toLocaleDateString() : t('viewByDate')}
                   </Text>
                 </TouchableOpacity>
                 {isFilteredByDate && (
@@ -584,7 +588,7 @@ export default function MagazineScreen({ navigation, route }) {
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>{section.name}</Text>
                       <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
-                        <Text style={styles.seeMore}>더보기 {'>'}</Text>
+                        <Text style={styles.seeMore}>{t('seeMore')} {'>'}</Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.gridContainer}>
@@ -655,13 +659,13 @@ export default function MagazineScreen({ navigation, route }) {
                 <View style={styles.endMessageContainer}>
                   <Text style={styles.endMessageText}>
                     {(isFilteredByDate || showingYesterdayNews)
-                      ? `✨ 이상, ${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 베트남 뉴스입니다 ✨`
-                      : '✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨'
+                      ? `✨ ${t('dateNewsEnd', { year: selectedDate.getFullYear(), month: selectedDate.getMonth() + 1, day: selectedDate.getDate() })} ✨`
+                      : `✨ ${t('todayNewsEnd')} ✨`
                     }
                   </Text>
                   {!isFilteredByDate && !showingYesterdayNews && (
                     <Text style={styles.endMessageSubText}>
-                      지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
+                      {t('pastNewsHint')}
                     </Text>
                   )}
                 </View>
@@ -669,7 +673,7 @@ export default function MagazineScreen({ navigation, route }) {
             )}
             {searchQuery.length > 0 && (
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>'{searchQuery}' 검색 결과</Text>
+                <Text style={styles.sectionTitle}>'{searchQuery}' {t('searchResult')}</Text>
               </View>
             )}
           </View>

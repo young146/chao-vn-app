@@ -16,7 +16,8 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // AsyncStorage 추가
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import { db } from "../firebase/config";
@@ -37,12 +38,12 @@ import {
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 
 // 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
-const SearchBar = memo(({ value, onChangeText }) => (
+const SearchBar = memo(({ value, onChangeText, placeholder }) => (
   <View style={styles.searchContainer}>
     <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
     <TextInput
       style={styles.searchInput}
-      placeholder="내 아파트 나눔을 찾아보세요"
+      placeholder={placeholder}
       placeholderTextColor="rgba(0, 0, 0, 0.38)"
       value={value}
       onChangeText={onChangeText}
@@ -52,8 +53,19 @@ const SearchBar = memo(({ value, onChangeText }) => (
 
 // 별도 컴포넌트로 분리하여 메모이제이션 적용
 const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) => {
+  const { t } = useTranslation('danggn');
   const status = item.status || "판매중";
   const originalImage = item.images?.[0] || item.imageUri;
+
+  // 상태 번역
+  const getTranslatedStatus = (s) => {
+    switch(s) {
+      case "판매중": return t('selling');
+      case "가격 조정됨": return t('priceChanged');
+      case "판매완료": return t('sold');
+      default: return s;
+    }
+  };
 
   // const getThumbnail = (url) => { ... } // 일단 비활성화
   const imageSource = originalImage; // 안전한 원본 이미지 사용 (사진 안 나오는 문제 해결)
@@ -74,7 +86,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
           <Ionicons name="image-outline" size={40} color="#ccc" />
         )}
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
-          <Text style={styles.statusText}>{status}</Text>
+          <Text style={styles.statusText}>{getTranslatedStatus(status)}</Text>
         </View>
       </View>
       <View style={styles.itemInfo}>
@@ -94,6 +106,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
 
 export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('danggn');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -113,22 +126,29 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const ITEMS_PER_PAGE = 10;
 
-  const categories = [
-    "전체",
-    "무료나눔",
-    "구인",
-    "구직",
-    "부동산 임대",
-    "부동산 판매",
-    "전자제품",
-    "가구/인테리어",
-    "의류/잡화",
-    "생활용품",
-    "도서/문구",
-    "유아용품",
-    "펫 용품",
-    "기타",
+  // 카테고리 키 목록 (데이터 저장용 - 한국어로 저장)
+  const categoryKeys = [
+    { key: 'all', value: '전체' },
+    { key: 'free', value: '무료나눔' },
+    { key: 'hiring', value: '구인' },
+    { key: 'seeking', value: '구직' },
+    { key: 'rentProperty', value: '부동산 임대' },
+    { key: 'sellProperty', value: '부동산 판매' },
+    { key: 'electronics', value: '전자제품' },
+    { key: 'furniture', value: '가구/인테리어' },
+    { key: 'clothing', value: '의류/잡화' },
+    { key: 'household', value: '생활용품' },
+    { key: 'books', value: '도서/문구' },
+    { key: 'baby', value: '유아용품' },
+    { key: 'pet', value: '펫 용품' },
+    { key: 'other', value: '기타' },
   ];
+  
+  // 번역된 카테고리 배열 (UI 표시용)
+  const categories = categoryKeys.map(cat => ({
+    label: t(`categories.${cat.key}`),
+    value: cat.value
+  }));
 
   // 사용자 프로필 로드 (비차단 방식으로 수정)
   useEffect(() => {
@@ -298,26 +318,26 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const handleAddItem = useCallback(() => {
     if (!user) {
       Alert.alert(
-        "로그인 필요 🔒",
-        "상품을 등록하려면 로그인이 필요합니다.\n지금 로그인하시겠어요?",
+        t('common:loginRequired') + " 🔒",
+        t('loginMessage'),
         [
-          { text: "나중에", style: "cancel" },
-          { text: "로그인", onPress: () => navigation.navigate("로그인") },
+          { text: t('common:later'), style: "cancel" },
+          { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
         ]
       );
     } else {
       navigation.navigate("물품 등록");
     }
-  }, [user, navigation]);
+  }, [user, navigation, t]);
 
   const handleProfilePrompt = useCallback(() => {
     Alert.alert(
-      "프로필 작성 📝",
-      "주소를 등록하면 내 주변 새 상품이 등록될 때마다 자동으로 알림을 받을 수 있습니다.\n\n지금 프로필을 작성하시겠어요?",
+      t('profilePromptTitle') + " 📝",
+      t('profilePromptMessage'),
       [
-        { text: "나중에", style: "cancel", onPress: () => setShowProfilePrompt(false) },
+        { text: t('common:later'), style: "cancel", onPress: () => setShowProfilePrompt(false) },
         {
-          text: "작성하기",
+          text: t('writeProfile'),
           onPress: () => {
             setShowProfilePrompt(false);
             navigation.navigate("Menu", { screen: "프로필" });
@@ -325,7 +345,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
         },
       ]
     );
-  }, [navigation]);
+  }, [navigation, t]);
 
   const districts = useMemo(() => 
     getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity),
@@ -372,19 +392,19 @@ export default function XinChaoDanggnScreen({ navigation }) {
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
           <Ionicons name="lock-closed" size={20} color="#FF6B35" />
-          <Text style={styles.loginBannerText}>로그인하고 더 많은 상품을 확인하세요!</Text>
+          <Text style={styles.loginBannerText}>{t('loginBanner')}</Text>
           <Ionicons name="chevron-forward" size={20} color="#FF6B35" />
         </TouchableOpacity>
       )}
       {showProfilePrompt && (
         <TouchableOpacity style={styles.profilePromptBanner} onPress={handleProfilePrompt}>
           <Ionicons name="notifications" size={20} color="#2196F3" />
-          <Text style={styles.profilePromptText}>프로필을 작성하시면 자동으로 귀하의 주변 새상품 등록을 확인할 수 있습니다</Text>
+          <Text style={styles.profilePromptText}>{t('profilePrompt')}</Text>
           <Ionicons name="chevron-forward" size={20} color="#2196F3" />
         </TouchableOpacity>
       )}
     </>
-  ), [user, showProfilePrompt, navigation, handleProfilePrompt]);
+  ), [user, showProfilePrompt, navigation, handleProfilePrompt, t]);
 
   const headerFilters = useMemo(() => (
     <View style={styles.filterSection}>
@@ -394,7 +414,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
           onValueChange={(v) => { setSelectedCity(v); setSelectedDistrict("전체"); setSelectedApartment("전체"); }}
           style={styles.picker}
         >
-          <Picker.Item label="전체 도시" value="전체" />
+          <Picker.Item label={t('allCities')} value="전체" />
           <Picker.Item label="호치민" value="호치민" />
           <Picker.Item label="하노이" value="하노이" />
           <Picker.Item label="다낭" value="다낭" />
@@ -408,7 +428,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
             onValueChange={(v) => { setSelectedDistrict(v); setSelectedApartment("전체"); }}
             style={styles.picker}
           >
-            <Picker.Item label="전체 구/군" value="전체" />
+            <Picker.Item label={t('allDistricts')} value="전체" />
             {districts.map((d) => <Picker.Item key={d} label={d} value={d} />)}
           </Picker>
         </View>
@@ -416,36 +436,36 @@ export default function XinChaoDanggnScreen({ navigation }) {
       {selectedDistrict !== "전체" && apartments.length > 0 && (
         <View style={styles.pickerContainer}>
           <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={styles.picker}>
-            <Picker.Item label="전체 아파트" value="전체" />
+            <Picker.Item label={t('allApartments')} value="전체" />
             {apartments.map((a) => <Picker.Item key={a} label={a} value={a} />)}
           </Picker>
         </View>
       )}
     </View>
-  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments]);
+  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments, t]);
 
   const headerCategories = useMemo(() => (
     <View style={styles.categoriesContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {categories.map((item) => (
+        {categories.map((cat) => (
           <TouchableOpacity
-            key={item}
-            style={[styles.categoryButton, selectedCategory === item && styles.categoryButtonActive]}
-            onPress={() => setSelectedCategory(item)}
+            key={cat.value}
+            style={[styles.categoryButton, selectedCategory === cat.value && styles.categoryButtonActive]}
+            onPress={() => setSelectedCategory(cat.value)}
           >
-            <Text style={[styles.categoryText, selectedCategory === item && styles.categoryTextActive]}>{item}</Text>
+            <Text style={[styles.categoryText, selectedCategory === cat.value && styles.categoryTextActive]}>{cat.label}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
-  ), [selectedCategory]);
+  ), [selectedCategory, categories]);
 
   const listHeader = useMemo(() => (
     <View>
       {/* 🔥 메인 헤더 광고 */}
       <AdBanner position="nanum_header" style={{ marginTop: 8 }} />
       {headerBanners}
-      <SearchBar value={searchText} onChangeText={setSearchText} />
+      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
       {headerFilters}
       {headerCategories}
     </View>
@@ -470,7 +490,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
           !refreshing && (
             <View style={styles.emptyContainer}>
               <Ionicons name="cart-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>등록된 물품이 없습니다</Text>
+              <Text style={styles.emptyText}>{t('noItems')}</Text>
             </View>
           )
         }
@@ -482,7 +502,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       />
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={24} color="#fff" />
-        <Text style={styles.floatingButtonText}>등록</Text>
+        <Text style={styles.floatingButtonText}>{t('common:register')}</Text>
       </TouchableOpacity>
     </View>
   );

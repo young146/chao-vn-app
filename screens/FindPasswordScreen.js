@@ -9,16 +9,18 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function FindPasswordScreen({ navigation }) {
+    const { t } = useTranslation('auth');
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const { findPassword } = useAuth();
 
     const handleFindPassword = async () => {
         if (!email.trim()) {
-            Alert.alert("알림", "이메일을 입력해주세요.");
+            Alert.alert(t('common:notice'), t('emailRequired'));
             return;
         }
 
@@ -28,17 +30,17 @@ export default function FindPasswordScreen({ navigation }) {
 
         if (result.success) {
             Alert.alert(
-                "메일 발송 완료",
-                "비밀번호 재설정 메일을 보냈습니다.\n메일함을 확인해주세요.",
+                t('emailSent'),
+                t('checkEmailMessage'),
                 [
                     {
-                        text: "확인",
+                        text: t('common:confirm'),
                         onPress: () => navigation.goBack(),
                     },
                 ]
             );
         } else {
-            Alert.alert("실패", result.error);
+            Alert.alert(t('failed'), result.error);
         }
     };
 
@@ -48,19 +50,19 @@ export default function FindPasswordScreen({ navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>비밀번호 찾기</Text>
+                <Text style={styles.headerTitle}>{t('findPasswordTitle')}</Text>
             </View>
 
             <View style={styles.content}>
                 <Text style={styles.description}>
-                    가입하신 이메일 주소를 입력하시면{"\n"}비밀번호 재설정 메일을 보내드립니다.
+                    {t('passwordResetDescription')}
                 </Text>
 
                 <View style={styles.inputGroup}>
                     <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="이메일"
+                        placeholder={t('email')}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -76,7 +78,7 @@ export default function FindPasswordScreen({ navigation }) {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.buttonText}>비밀번호 재설정 메일 보내기</Text>
+                        <Text style={styles.buttonText}>{t('sendResetEmail')}</Text>
                     )}
                 </TouchableOpacity>
             </View>

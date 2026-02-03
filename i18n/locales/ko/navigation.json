@@ -1,0 +1,33 @@
+{
+  "tabs": {
+    "home": "홈",
+    "news": "뉴스",
+    "danggn": "당근/나눔",
+    "jobs": "Jobs",
+    "realEstate": "부동산"
+  },
+  "headers": {
+    "postDetail": "상세보기",
+    "jobDetail": "공고 상세",
+    "addJob": "공고 등록",
+    "propertyDetail": "매물 상세",
+    "addProperty": "매물 등록",
+    "itemDetail": "물품 상세",
+    "addItem": "물품 등록",
+    "editItem": "물품 수정",
+    "writeReview": "리뷰 작성",
+    "chat": "채팅",
+    "menu": "메뉴",
+    "myPage": "My Page",
+    "myChats": "내 채팅",
+    "favorites": "찜한 물품",
+    "bookmarks": "북마크",
+    "notificationSettings": "알림 설정",
+    "profile": "프로필",
+    "adminPage": "관리자 페이지",
+    "myItems": "내 물품",
+    "myReviews": "내 후기",
+    "userManagement": "회원관리",
+    "notifications": "알림"
+  }
+}

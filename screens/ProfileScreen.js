@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   query,
@@ -24,6 +25,7 @@ import ProfileEditForm from "../components/profile/ProfileEditForm";
 
 export default function ProfileScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
+  const { t } = useTranslation(['menu', 'common']);
   const scrollViewRef = useRef(null);
 
   const [isEditMode, setIsEditMode] = useState(false);

@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import {
@@ -33,6 +34,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddJobScreen({ navigation, route }) {
   const { user } = useAuth();
+  const { t } = useTranslation(['jobs', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -109,7 +111,7 @@ export default function AddJobScreen({ navigation, route }) {
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("권한 필요", "카메라 접근 권한이 필요합니다.");
+      Alert.alert(t('common:permissionRequired'), t('common:cameraPermission'));
       return false;
     }
     return true;
@@ -118,7 +120,7 @@ export default function AddJobScreen({ navigation, route }) {
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+      Alert.alert(t('common:permissionRequired'), t('common:galleryPermission'));
       return false;
     }
     return true;
@@ -141,7 +143,7 @@ export default function AddJobScreen({ navigation, route }) {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      Alert.alert("오류", "사진 촬영에 실패했습니다.");
+      Alert.alert(t('form.error'), t('common:cameraError'));
     }
   };
 
@@ -163,17 +165,17 @@ export default function AddJobScreen({ navigation, route }) {
         setImages([...images, ...newImages].slice(0, 5));
       }
     } catch (error) {
-      Alert.alert("오류", "사진을 선택할 수 없습니다.");
+      Alert.alert(t('form.error'), t('common:photoSelectError'));
     }
   };
 
   const pickImages = () => {
     if (images.length >= 5) {
-      Alert.alert("알림", "사진은 최대 5장까지 등록할 수 있습니다.");
+      Alert.alert(t('common:notice'), t('common:maxPhotos5'));
       return;
     }
 
-    Alert.alert("사진 선택", "사진을 추가할 방법을 선택하세요", [
+    Alert.alert(t('common:selectPhoto'), t('common:selectPhotoMethod'), [
       {
         text: "📷 카메라로 촬영",
         onPress: takePhoto,
@@ -237,23 +239,23 @@ export default function AddJobScreen({ navigation, route }) {
   // 폼 유효성 검사
   const validateForm = () => {
     if (!title.trim()) {
-      Alert.alert("알림", "제목을 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.titleRequired'));
       return false;
     }
     if (title.trim().length < 5) {
-      Alert.alert("알림", "제목은 최소 5자 이상 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.titleTooShort'));
       return false;
     }
     if (!description.trim()) {
-      Alert.alert("알림", "상세 내용을 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.descriptionRequired'));
       return false;
     }
     if (description.trim().length < 20) {
-      Alert.alert("알림", "상세 내용은 최소 20자 이상 입력해주세요.");
+      Alert.alert(t('common:notice'), t('form.descriptionTooShort'));
       return false;
     }
     if (!selectedCity) {
-      Alert.alert("알림", "근무지 도시를 선택해주세요.");
+      Alert.alert(t('common:notice'), t('form.cityRequired'));
       return false;
     }
     return true;
@@ -298,7 +300,7 @@ export default function AddJobScreen({ navigation, route }) {
           updatedAt: serverTimestamp(),
         });
 
-        Alert.alert("수정 완료", "공고가 수정되었습니다!", [
+        Alert.alert(t('form.success'), t('form.jobUpdated'), [
           {
             text: "확인",
             onPress: () => navigation.goBack(),
@@ -317,7 +319,7 @@ export default function AddJobScreen({ navigation, route }) {
         // 캐시 무효화
         await AsyncStorage.removeItem("cached_jobs");
 
-        Alert.alert("등록 완료", "구인구직 공고가 등록되었습니다!", [
+        Alert.alert(t('form.success'), t('form.jobRegistered'), [
           {
             text: "확인",
             onPress: () => {
@@ -328,7 +330,7 @@ export default function AddJobScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error("등록 실패:", error);
-      Alert.alert("오류", "등록에 실패했습니다. 다시 시도해주세요.");
+      Alert.alert(t('form.error'), t('form.errorMessage'));
     } finally {
       setUploading(false);
     }
@@ -349,10 +351,10 @@ export default function AddJobScreen({ navigation, route }) {
           <Ionicons name="briefcase" size={24} color="#2196F3" />
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>
-              {isEditMode ? "공고 수정" : "구인구직 등록"}
+              {isEditMode ? t('form.updateButton') : t('addJob')}
             </Text>
             <Text style={styles.headerSubtitle}>
-              베트남 한인 커뮤니티와 함께해요
+              {t('subtitle')}
             </Text>
           </View>
         </View>
@@ -360,7 +362,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 구인/구직 선택 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="swap-horizontal" size={16} color="#333" /> 유형 선택 *
+            <Ionicons name="swap-horizontal" size={16} color="#333" /> {t('form.jobTypeLabel')}
           </Text>
           <View style={styles.jobTypeContainer}>
             {jobTypes.map((type) => (
@@ -383,13 +385,13 @@ export default function AddJobScreen({ navigation, route }) {
                     jobType === type && styles.jobTypeTextActive,
                   ]}
                 >
-                  {type}
+                  {type === "구인" ? t('hiring') : t('seeking')}
                 </Text>
                 <Text style={[
                   styles.jobTypeDesc,
                   jobType === type && styles.jobTypeDescActive,
                 ]}>
-                  {type === "구인" ? "인재를 찾습니다" : "일자리를 찾습니다"}
+                  {type === "구인" ? t('common:lookingForTalent', '인재를 찾습니다') : t('common:lookingForJob', '일자리를 찾습니다')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -399,7 +401,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 제목 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="create" size={16} color="#333" /> 제목 *
+            <Ionicons name="create" size={16} color="#333" /> {t('form.titleLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -415,7 +417,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 업종 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="briefcase-outline" size={16} color="#333" /> 업종 *
+            <Ionicons name="briefcase-outline" size={16} color="#333" /> {t('form.industryLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -433,11 +435,11 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 급여 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="cash-outline" size={16} color="#333" /> 급여
+            <Ionicons name="cash-outline" size={16} color="#333" /> {t('form.salaryLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
-            placeholder="예: 월 2000만동, 시급 5만동, 협의 가능"
+            placeholder={t('form.salaryPlaceholder')}
             placeholderTextColor="#999"
             value={salary}
             onChangeText={setSalary}
@@ -447,7 +449,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 고용 형태 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="time-outline" size={16} color="#333" /> 고용 형태
+            <Ionicons name="time-outline" size={16} color="#333" /> {t('form.employmentTypeLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -465,7 +467,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 근무지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="location-outline" size={16} color="#333" /> 근무지 *
+            <Ionicons name="location-outline" size={16} color="#333" /> {t('form.cityLabel')}
           </Text>
           <View style={styles.locationRow}>
             <View style={[styles.pickerWrapper, { flex: 1 }]}>
@@ -482,7 +484,7 @@ export default function AddJobScreen({ navigation, route }) {
           </View>
           <TextInput
             style={[styles.textInput, { marginTop: 8 }]}
-            placeholder="상세 지역 (선택사항)"
+            placeholder={t('form.selectDistrict')}
             placeholderTextColor="#999"
             value={selectedDistrict}
             onChangeText={setSelectedDistrict}
@@ -492,29 +494,29 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16} color="#333" /> 연락처
+            <Ionicons name="call-outline" size={16} color="#333" /> {t('form.contactLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
-            placeholder="전화번호 또는 카카오톡 ID"
+            placeholder={t('form.contactPlaceholder')}
             placeholderTextColor="#999"
             value={contact}
             onChangeText={setContact}
             keyboardType="phone-pad"
           />
           <Text style={styles.helperText}>
-            * 비공개를 원하시면 채팅으로만 연락받을 수 있습니다
+            * {t('common:chatOnlyContact', '비공개를 원하시면 채팅으로만 연락받을 수 있습니다')}
           </Text>
         </View>
 
         {/* 마감일 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16} color="#333" /> 마감일
+            <Ionicons name="calendar-outline" size={16} color="#333" /> {t('form.deadlineLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
-            placeholder="예: 2026년 3월 31일, 채용시까지"
+            placeholder={t('form.deadlinePlaceholder')}
             placeholderTextColor="#999"
             value={deadline}
             onChangeText={setDeadline}
@@ -524,14 +526,11 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 상세 내용 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text-outline" size={16} color="#333" /> 상세 내용 *
+            <Ionicons name="document-text-outline" size={16} color="#333" /> {t('form.descriptionLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
-            placeholder={jobType === "구인" 
-              ? "업무 내용, 근무 시간, 복리후생 등을 상세히 작성해주세요"
-              : "경력 사항, 희망 업무, 가능 시간 등을 상세히 작성해주세요"
-            }
+            placeholder={t('form.descriptionPlaceholder')}
             placeholderTextColor="#999"
             value={description}
             onChangeText={setDescription}
@@ -546,14 +545,11 @@ export default function AddJobScreen({ navigation, route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             <Ionicons name="checkmark-circle-outline" size={16} color="#333" /> 
-            {jobType === "구인" ? " 자격 요건" : " 보유 스킬/자격증"}
+            {t('form.requirementsLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea, { height: 100 }]}
-            placeholder={jobType === "구인"
-              ? "필요한 경력, 자격증, 언어 능력 등"
-              : "보유하고 있는 스킬, 자격증, 언어 능력 등"
-            }
+            placeholder={t('form.requirementsPlaceholder')}
             placeholderTextColor="#999"
             value={requirements}
             onChangeText={setRequirements}
@@ -566,10 +562,10 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 이미지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="images-outline" size={16} color="#333" /> 사진 (최대 5장)
+            <Ionicons name="images-outline" size={16} color="#333" /> {t('form.photoSection')} (5)
           </Text>
           <Text style={styles.helperText}>
-            회사 사진, 근무환경 등을 등록하면 신뢰도가 올라갑니다
+            {t('common:photoHelperText', '회사 사진, 근무환경 등을 등록하면 신뢰도가 올라갑니다')}
           </Text>
           <View style={styles.imageGrid}>
             {images.map((uri, index) => (
@@ -586,7 +582,7 @@ export default function AddJobScreen({ navigation, route }) {
             {images.length < 5 && (
               <TouchableOpacity style={styles.addImageButton} onPress={pickImages}>
                 <Ionicons name="camera" size={32} color="#999" />
-                <Text style={styles.addImageText}>사진 추가</Text>
+                <Text style={styles.addImageText}>{t('form.addPhoto')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -596,7 +592,7 @@ export default function AddJobScreen({ navigation, route }) {
         {isEditMode && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="flag-outline" size={16} color="#333" /> 모집 상태
+              <Ionicons name="flag-outline" size={16} color="#333" /> {t('form.statusLabel')}
             </Text>
             <View style={styles.statusContainer}>
               {["모집중", "마감임박", "마감"].map((s) => (
@@ -643,7 +639,7 @@ export default function AddJobScreen({ navigation, route }) {
             <>
               <Ionicons name="checkmark-circle" size={22} color="#fff" />
               <Text style={styles.submitButtonText}>
-                {isEditMode ? "수정 완료" : "등록하기"}
+                {isEditMode ? t('form.updateButton') : t('form.submitButton')}
               </Text>
             </>
           )}

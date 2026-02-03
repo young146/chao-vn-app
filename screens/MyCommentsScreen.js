@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   query,
@@ -21,6 +22,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function MyCommentsScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('menu');
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,18 +53,18 @@ export default function MyCommentsScreen({ navigation }) {
   }, [user]);
 
   const handleDelete = async (reviewId) => {
-    Alert.alert("리뷰 삭제", "이 리뷰를 삭제하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('deleteReview'), t('deleteReviewConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "삭제",
+        text: t('common:delete'),
         style: "destructive",
         onPress: async () => {
           try {
             await deleteDoc(doc(db, "reviews", reviewId));
-            Alert.alert("완료", "리뷰가 삭제되었습니다.");
+            Alert.alert(t('complete'), t('reviewDeleted'));
           } catch (error) {
             console.error("리뷰 삭제 실패:", error);
-            Alert.alert("오류", "리뷰 삭제에 실패했습니다.");
+            Alert.alert(t('error'), t('deleteReviewFailed'));
           }
         },
       },
@@ -74,7 +76,7 @@ export default function MyCommentsScreen({ navigation }) {
       <View style={styles.reviewHeader}>
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle} numberOfLines={1}>
-            {item.itemTitle || "물품"}
+            {item.itemTitle || t('item')}
           </Text>
           <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
@@ -110,7 +112,7 @@ export default function MyCommentsScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text>로딩 중...</Text>
+        <Text>{t('loading')}</Text>
       </View>
     );
   }
@@ -124,9 +126,9 @@ export default function MyCommentsScreen({ navigation }) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="star-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>작성한 리뷰가 없습니다</Text>
+            <Text style={styles.emptyText}>{t('noReviewsMessage')}</Text>
             <Text style={styles.emptySubtext}>
-              거래한 물품에 리뷰를 남겨보세요!
+              {t('leaveReviewHint')}
             </Text>
           </View>
         }

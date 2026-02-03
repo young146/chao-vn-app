@@ -19,6 +19,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 import { getColors } from "../utils/colors";
 import { db, auth, storage } from "../firebase/config";
 import * as ImagePicker from "expo-image-picker";
@@ -60,6 +61,7 @@ export default function ChatRoomScreen({ route, navigation }) {
     sellerId,
   } = route.params;
 
+  const { t } = useTranslation('menu');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
 
@@ -72,7 +74,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [previewImage, setPreviewImage] = useState(null); // 전송 전 이미지 미리보기 상태
   const [isUploading, setIsUploading] = useState(false); // 업로드 중 상태
   const currentUserId = auth.currentUser?.uid;
-  const currentUserName = auth.currentUser?.email?.split("@")[0] || "사용자";
+  const currentUserName = auth.currentUser?.email?.split("@")[0] || t('chatRoom.user');
   const flatListRef = useRef(null);
   const prevMessageCountRef = useRef(0);
   const sentMessageIdsRef = useRef(new Set()); // 발신자가 보낸 메시지 ID 추적
@@ -144,7 +146,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       // 🛡️ 무결성 체크: 필수 값이 없으면 생성 중단
       if (!sellerId || !currentUserId || !itemId) {
         console.error("❌ 채팅방 생성 불가: 필수 정보 누락", { sellerId, currentUserId, itemId });
-        alert("채팅방 정보를 불러올 수 없습니다.");
+        alert(t('chatRoom.chatRoomLoadFailed'));
         navigation.goBack();
         return;
       }
@@ -208,7 +210,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       // 로컬 알림 발생
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "새 메시지",
+          title: t('chatRoom.newMessage'),
           body: messageText,
           sound: selectedSound.file,
           data: { screen: "ChatRoom" },
@@ -306,7 +308,7 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       // 3. Send Message
       const messageData = {
-        text: messageText.trim() || (previewImage ? "사진" : ""),
+        text: messageText.trim() || (previewImage ? t('chatRoom.photo') : ""),
         senderId: currentUserId,
         senderName: currentUserName,
         timestamp: serverTimestamp(),
@@ -334,7 +336,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       const isSeller = currentUserId === sellerId;
 
       await updateDoc(chatRoomRef, {
-        lastMessage: downloadURL ? "사진을 보냈습니다." : messageText.trim(),
+        lastMessage: downloadURL ? t('chatRoom.sentPhoto') : messageText.trim(),
         lastMessageAt: serverTimestamp(),
         lastMessageSenderId: currentUserId,
         [isSeller ? "sellerRead" : "buyerRead"]: true,
@@ -347,7 +349,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       setPreviewImage(null);
     } catch (error) {
       console.error("❌❌❌ 메시지 전송 실패:", error);
-      alert("전송 실패: " + error.message);
+      alert(t('chatRoom.sendFailed') + ": " + error.message);
     } finally {
       setIsUploading(false);
     }
@@ -356,7 +358,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      alert("갤러리 접근 권한이 필요합니다.");
+      alert(t('chatRoom.galleryPermission'));
       return;
     }
 
@@ -450,7 +452,7 @@ export default function ChatRoomScreen({ route, navigation }) {
             {itemTitle}
           </Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            나: {currentUserName} ↔ 상대: {otherUserName}
+            {t('chatRoom.me')}: {currentUserName} ↔ {t('chatRoom.other')}: {otherUserName}
           </Text>
         </View>
       </View>
@@ -500,7 +502,7 @@ export default function ChatRoomScreen({ route, navigation }) {
             style={styles.input}
             value={messageText}
             onChangeText={setMessageText}
-            placeholder="메시지를 입력하세요"
+            placeholder={t('chatRoom.messagePlaceholder')}
             placeholderTextColor="rgba(0, 0, 0, 0.38)"
             multiline
             maxLength={500}
@@ -514,7 +516,7 @@ export default function ChatRoomScreen({ route, navigation }) {
             disabled={(!messageText.trim() && !previewImage) || isUploading}
           >
             <Text style={styles.sendButtonText}>
-              {isUploading ? "..." : "전송"}
+              {isUploading ? "..." : t('chatRoom.send')}
             </Text>
           </TouchableOpacity>
         </View>

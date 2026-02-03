@@ -11,6 +11,7 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next";
 import { CITIES, INTEREST_OPTIONS } from "../../utils/constants";
 import { getDistrictsByCity, getApartmentsByDistrict } from "../../utils/vietnamLocations";
 
@@ -43,6 +44,7 @@ export default function ProfileEditForm({
     isSaving,
     isAdmin,
 }) {
+    const { t } = useTranslation('profile');
     const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
     const apartments = selectedCity && selectedDistrict ? getApartmentsByDistrict(selectedCity, selectedDistrict) : [];
 
@@ -84,10 +86,10 @@ export default function ProfileEditForm({
             </View>
 
             <View style={styles.formContainer}>
-                <Text style={styles.sectionTitle}>기본 정보</Text>
+                <Text style={styles.sectionTitle}>{t('basicInfo')}</Text>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>이메일</Text>
+                    <Text style={styles.label}>{t('email')}</Text>
                     <TextInput
                         style={[styles.input, styles.disabledInput]}
                         value={email}
@@ -96,65 +98,65 @@ export default function ProfileEditForm({
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>이름 <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.label}>{t('name')} <Text style={styles.required}>{t('required')}</Text></Text>
                     <TextInput
                         style={styles.input}
                         value={name}
                         onChangeText={setName}
-                        placeholder="이름을 입력하세요"
+                        placeholder={t('namePlaceholder')}
                     />
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>전화번호 <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.label}>{t('phone')} <Text style={styles.required}>{t('required')}</Text></Text>
                     <TextInput
                         style={styles.input}
                         value={phone}
                         onChangeText={setPhone}
-                        placeholder="전화번호를 입력하세요"
+                        placeholder={t('phonePlaceholder')}
                         keyboardType="phone-pad"
                     />
                 </View>
 
                 <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                        <Text style={styles.label}>나이대</Text>
+                        <Text style={styles.label}>{t('ageGroup')}</Text>
                         <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={ageGroup}
                                 onValueChange={setAgeGroup}
                                 style={styles.picker}
                             >
-                                <Picker.Item label="선택" value="" />
-                                <Picker.Item label="20대" value="20대" />
-                                <Picker.Item label="30대" value="30대" />
-                                <Picker.Item label="40대" value="40대" />
-                                <Picker.Item label="50대" value="50대" />
-                                <Picker.Item label="60대 이상" value="60대 이상" />
+                                <Picker.Item label={t('select')} value="" />
+                                <Picker.Item label={t('age20s')} value="20대" />
+                                <Picker.Item label={t('age30s')} value="30대" />
+                                <Picker.Item label={t('age40s')} value="40대" />
+                                <Picker.Item label={t('age50s')} value="50대" />
+                                <Picker.Item label={t('age60plus')} value="60대 이상" />
                             </Picker>
                         </View>
                     </View>
 
                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                        <Text style={styles.label}>성별</Text>
+                        <Text style={styles.label}>{t('gender')}</Text>
                         <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={gender}
                                 onValueChange={setGender}
                                 style={styles.picker}
                             >
-                                <Picker.Item label="선택" value="" />
-                                <Picker.Item label="남성" value="남성" />
-                                <Picker.Item label="여성" value="여성" />
+                                <Picker.Item label={t('select')} value="" />
+                                <Picker.Item label={t('male')} value="남성" />
+                                <Picker.Item label={t('female')} value="여성" />
                             </Picker>
                         </View>
                     </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>주소 정보</Text>
+                <Text style={styles.sectionTitle}>{t('addressInfo')}</Text>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>도시 <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.label}>{t('city')} <Text style={styles.required}>{t('required')}</Text></Text>
                     <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={selectedCity}
@@ -165,7 +167,7 @@ export default function ProfileEditForm({
                             }}
                             style={styles.picker}
                         >
-                            <Picker.Item label="도시 선택" value="" />
+                            <Picker.Item label={t('selectCity')} value="" />
                             {CITIES.map((city) => (
                                 <Picker.Item key={city} label={city} value={city} />
                             ))}
@@ -175,7 +177,7 @@ export default function ProfileEditForm({
 
                 {selectedCity && (
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>구/군 <Text style={styles.required}>*</Text></Text>
+                        <Text style={styles.label}>{t('district')} <Text style={styles.required}>{t('required')}</Text></Text>
                         <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={selectedDistrict}
@@ -185,7 +187,7 @@ export default function ProfileEditForm({
                                 }}
                                 style={styles.picker}
                             >
-                                <Picker.Item label="구/군 선택" value="" />
+                                <Picker.Item label={t('selectDistrict')} value="" />
                                 {districts.map((district) => (
                                     <Picker.Item key={district} label={district} value={district} />
                                 ))}
@@ -196,14 +198,14 @@ export default function ProfileEditForm({
 
                 {selectedDistrict && apartments.length > 0 && (
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>아파트</Text>
+                        <Text style={styles.label}>{t('apartment')}</Text>
                         <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={selectedApartment}
                                 onValueChange={setSelectedApartment}
                                 style={styles.picker}
                             >
-                                <Picker.Item label="아파트 선택" value="" />
+                                <Picker.Item label={t('selectApartment')} value="" />
                                 {apartments.map((apt) => (
                                     <Picker.Item key={apt} label={apt} value={apt} />
                                 ))}
@@ -213,104 +215,104 @@ export default function ProfileEditForm({
                 )}
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>상세 주소</Text>
+                    <Text style={styles.label}>{t('detailedAddress')}</Text>
                     <TextInput
                         style={styles.input}
                         value={detailedAddress}
                         onChangeText={setDetailedAddress}
-                        placeholder="동/호수 등 상세 주소"
+                        placeholder={t('detailedAddressPlaceholder')}
                     />
                 </View>
 
-                <Text style={styles.sectionTitle}>거주 및 직업</Text>
+                <Text style={styles.sectionTitle}>{t('residenceJob')}</Text>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>거주 기간 <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.label}>{t('residencePeriod')} <Text style={styles.required}>{t('required')}</Text></Text>
                     <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={residencePeriod}
                             onValueChange={setResidencePeriod}
                             style={styles.picker}
                         >
-                            <Picker.Item label="선택해주세요" value="" />
-                            <Picker.Item label="1년 미만" value="1년 미만" />
-                            <Picker.Item label="1년 ~ 3년" value="1년 ~ 3년" />
-                            <Picker.Item label="3년 ~ 5년" value="3년 ~ 5년" />
-                            <Picker.Item label="5년 ~ 10년" value="5년 ~ 10년" />
-                            <Picker.Item label="10년 이상" value="10년 이상" />
+                            <Picker.Item label={t('pleaseSelect')} value="" />
+                            <Picker.Item label={t('lessThan1Year')} value="1년 미만" />
+                            <Picker.Item label={t('oneToThreeYears')} value="1년 ~ 3년" />
+                            <Picker.Item label={t('threeToFiveYears')} value="3년 ~ 5년" />
+                            <Picker.Item label={t('fiveToTenYears')} value="5년 ~ 10년" />
+                            <Picker.Item label={t('moreThan10Years')} value="10년 이상" />
                         </Picker>
                     </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>거주 목적 <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.label}>{t('residencePurpose')} <Text style={styles.required}>{t('required')}</Text></Text>
                     <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={residencePurpose}
                             onValueChange={setResidencePurpose}
                             style={styles.picker}
                         >
-                            <Picker.Item label="선택해주세요" value="" />
-                            <Picker.Item label="사업/주재원" value="사업/주재원" />
-                            <Picker.Item label="취업/직장" value="취업/직장" />
-                            <Picker.Item label="학업/유학" value="학업/유학" />
-                            <Picker.Item label="결혼/가족" value="결혼/가족" />
-                            <Picker.Item label="은퇴/요양" value="은퇴/요양" />
-                            <Picker.Item label="기타" value="기타" />
+                            <Picker.Item label={t('pleaseSelect')} value="" />
+                            <Picker.Item label={t('business')} value="사업/주재원" />
+                            <Picker.Item label={t('employment')} value="취업/직장" />
+                            <Picker.Item label={t('study')} value="학업/유학" />
+                            <Picker.Item label={t('family')} value="결혼/가족" />
+                            <Picker.Item label={t('retirement')} value="은퇴/요양" />
+                            <Picker.Item label={t('other')} value="기타" />
                         </Picker>
                     </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>직업 <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.label}>{t('occupation')} <Text style={styles.required}>{t('required')}</Text></Text>
                     <TextInput
                         style={styles.input}
                         value={occupation}
                         onChangeText={setOccupation}
-                        placeholder="직업을 입력하세요"
+                        placeholder={t('occupationPlaceholder')}
                     />
                 </View>
 
-                <Text style={styles.sectionTitle}>SNS 정보</Text>
+                <Text style={styles.sectionTitle}>{t('snsInfo')}</Text>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>카카오톡 ID</Text>
+                    <Text style={styles.label}>{t('kakaoId')}</Text>
                     <TextInput
                         style={styles.input}
                         value={kakaoId}
                         onChangeText={setKakaoId}
-                        placeholder="카카오톡 ID"
+                        placeholder={t('kakaoIdPlaceholder')}
                     />
                 </View>
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Zalo ID</Text>
+                    <Text style={styles.label}>{t('zaloId')}</Text>
                     <TextInput
                         style={styles.input}
                         value={zaloId}
                         onChangeText={setZaloId}
-                        placeholder="Zalo ID"
+                        placeholder={t('zaloIdPlaceholder')}
                     />
                 </View>
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Facebook</Text>
+                    <Text style={styles.label}>{t('facebook')}</Text>
                     <TextInput
                         style={styles.input}
                         value={facebook}
                         onChangeText={setFacebook}
-                        placeholder="Facebook 프로필 링크"
+                        placeholder={t('facebookPlaceholder')}
                     />
                 </View>
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Instagram</Text>
+                    <Text style={styles.label}>{t('instagram')}</Text>
                     <TextInput
                         style={styles.input}
                         value={instagram}
                         onChangeText={setInstagram}
-                        placeholder="Instagram 아이디"
+                        placeholder={t('instagramPlaceholder')}
                     />
                 </View>
 
-                <Text style={styles.sectionTitle}>관심사 (중복 선택 가능)</Text>
+                <Text style={styles.sectionTitle}>{t('interests')}</Text>
                 <View style={styles.interestsContainer}>
                     {INTEREST_OPTIONS.map((interest) => (
                         <TouchableOpacity
@@ -338,7 +340,7 @@ export default function ProfileEditForm({
                         style={[styles.button, styles.cancelButton]}
                         onPress={onCancel}
                     >
-                        <Text style={styles.cancelButtonText}>취소</Text>
+                        <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.button, styles.saveButton]}
@@ -348,13 +350,13 @@ export default function ProfileEditForm({
                         {isSaving ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.saveButtonText}>저장</Text>
+                            <Text style={styles.saveButtonText}>{t('save')}</Text>
                         )}
                     </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-                    <Text style={styles.deleteButtonText}>프로필 삭제</Text>
+                    <Text style={styles.deleteButtonText}>{t('deleteProfile')}</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>

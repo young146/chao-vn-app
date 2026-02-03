@@ -9,9 +9,11 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function FindIdScreen({ navigation }) {
+    const { t } = useTranslation('auth');
     const [searchType, setSearchType] = useState("displayName"); // 'displayName' or 'name'
     const [searchValue, setSearchValue] = useState("");
     const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function FindIdScreen({ navigation }) {
 
     const handleFindId = async () => {
         if (!searchValue.trim()) {
-            Alert.alert("알림", searchType === 'displayName' ? "닉네임을 입력해주세요." : "이름을 입력해주세요.");
+            Alert.alert(t('common:notice'), searchType === 'displayName' ? t('enterNickname') : t('enterName'));
             return;
         }
 
@@ -32,7 +34,7 @@ export default function FindIdScreen({ navigation }) {
         if (response.success) {
             setResult(response.emails);
         } else {
-            Alert.alert("알림", response.error);
+            Alert.alert(t('common:notice'), response.error);
         }
     };
 
@@ -50,7 +52,7 @@ export default function FindIdScreen({ navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>아이디 찾기</Text>
+                <Text style={styles.headerTitle}>{t('findIdTitle')}</Text>
             </View>
 
             <View style={styles.content}>
@@ -64,7 +66,7 @@ export default function FindIdScreen({ navigation }) {
                             setResult(null);
                         }}
                     >
-                        <Text style={[styles.tabText, searchType === "displayName" && styles.activeTabText]}>닉네임으로 찾기</Text>
+                        <Text style={[styles.tabText, searchType === "displayName" && styles.activeTabText]}>{t('findByNickname')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tabButton, searchType === "name" && styles.activeTab]}
@@ -74,21 +76,21 @@ export default function FindIdScreen({ navigation }) {
                             setResult(null);
                         }}
                     >
-                        <Text style={[styles.tabText, searchType === "name" && styles.activeTabText]}>이름으로 찾기</Text>
+                        <Text style={[styles.tabText, searchType === "name" && styles.activeTabText]}>{t('findByName')}</Text>
                     </TouchableOpacity>
                 </View>
 
                 <Text style={styles.description}>
                     {searchType === "displayName"
-                        ? "가입 시 등록한 닉네임을 입력해주세요."
-                        : "가입 시 등록한 실명을 입력해주세요."}
+                        ? t('nicknameDescription')
+                        : t('nameDescription')}
                 </Text>
 
                 <View style={styles.inputGroup}>
                     <Ionicons name={searchType === "displayName" ? "person-outline" : "id-card-outline"} size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder={searchType === "displayName" ? "닉네임" : "이름"}
+                        placeholder={searchType === "displayName" ? t('nickname') : t('name')}
                         value={searchValue}
                         onChangeText={setSearchValue}
                         autoCapitalize="none"
@@ -103,13 +105,13 @@ export default function FindIdScreen({ navigation }) {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.buttonText}>아이디 찾기</Text>
+                        <Text style={styles.buttonText}>{t('findIdTitle')}</Text>
                     )}
                 </TouchableOpacity>
 
                 {result && (
                     <View style={styles.resultContainer}>
-                        <Text style={styles.resultTitle}>찾은 아이디</Text>
+                        <Text style={styles.resultTitle}>{t('foundIds')}</Text>
                         {result.map((email, index) => (
                             <Text key={index} style={styles.resultText}>
                                 {maskEmail(email)}
@@ -119,7 +121,7 @@ export default function FindIdScreen({ navigation }) {
                             style={styles.loginLinkButton}
                             onPress={() => navigation.navigate("로그인")}
                         >
-                            <Text style={styles.loginLinkText}>로그인하러 가기</Text>
+                            <Text style={styles.loginLinkText}>{t('goToLogin')}</Text>
                         </TouchableOpacity>
                     </View>
                 )}

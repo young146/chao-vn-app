@@ -11,24 +11,26 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
-// 알림음 옵션
-const NOTIFICATION_SOUNDS = [
-  {
-    id: "default",
-    label: "기본 알림음",
-    file: "default.wav",
-    channel: "chat_default",
-  },
-  { id: "chime", label: "차임벨", file: "chime.wav", channel: "chat_chime" },
-  { id: "bell", label: "종소리", file: "bell.wav", channel: "chat_bell" },
-];
-
 export default function NotificationSettingScreen() {
+  const { t } = useTranslation('menu');
   const { user } = useAuth();
+  
+  // 알림음 옵션
+  const NOTIFICATION_SOUNDS = [
+    {
+      id: "default",
+      label: t('notificationSettings.defaultSound'),
+      file: "default.wav",
+      channel: "chat_default",
+    },
+    { id: "chime", label: t('notificationSettings.chimeSound'), file: "chime.wav", channel: "chat_chime" },
+    { id: "bell", label: t('notificationSettings.bellSound'), file: "bell.wav", channel: "chat_bell" },
+  ];
   const [settings, setSettings] = useState({
     newArticles: true,
     comments: true,
@@ -126,7 +128,7 @@ export default function NotificationSettingScreen() {
       setSelectedSound(sound.id);
       await AsyncStorage.setItem("notification_sound", JSON.stringify(sound));
       await playTestNotification(sound);
-      Alert.alert("알림음 변경", `"${sound.label}"로 변경되었습니다`);
+      Alert.alert(t('notificationSettings.soundChanged'), `"${sound.label}" ${t('notificationSettings.soundChangedTo')}`);
     } catch (error) {
       console.error("알림음 변경 실패:", error);
     }
@@ -137,8 +139,8 @@ export default function NotificationSettingScreen() {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "알림음 미리듣기",
-          body: `${sound.label} 소리입니다`,
+          title: t('notificationSettings.soundPreview'),
+          body: sound.label,
           sound: sound.file,
         },
         trigger: {
@@ -155,7 +157,7 @@ export default function NotificationSettingScreen() {
     <ScrollView style={styles.container}>
       {/* 뉴스 관련 알림 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📰 뉴스 알림</Text>
+        <Text style={styles.sectionTitle}>📰 {t('notificationSettings.newsSection')}</Text>
 
         <View style={styles.settingItem}>
           <View style={styles.settingLeft}>
@@ -166,9 +168,9 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>새 기사 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.newArticle')}</Text>
               <Text style={styles.settingDescription}>
-                새로운 기사가 올라오면 알림을 받습니다
+                {t('notificationSettings.newArticleDesc')}
               </Text>
             </View>
           </View>
@@ -189,9 +191,9 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>댓글 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.commentNotification')}</Text>
               <Text style={styles.settingDescription}>
-                내 댓글에 답글이 달리면 알림을 받습니다
+                {t('notificationSettings.commentDesc')}
               </Text>
             </View>
           </View>
@@ -212,8 +214,8 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>커뮤니티 알림</Text>
-              <Text style={styles.settingDescription}>커뮤니티 새 글 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.communityNotification')}</Text>
+              <Text style={styles.settingDescription}>{t('notificationSettings.communityDesc')}</Text>
             </View>
           </View>
           <Switch
@@ -233,8 +235,8 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>구인구직 알림</Text>
-              <Text style={styles.settingDescription}>새 채용 공고 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.jobNotification')}</Text>
+              <Text style={styles.settingDescription}>{t('notificationSettings.jobDesc')}</Text>
             </View>
           </View>
           <Switch
@@ -254,8 +256,8 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>부동산 알림</Text>
-              <Text style={styles.settingDescription}>새 부동산 매물 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.realEstateNotification')}</Text>
+              <Text style={styles.settingDescription}>{t('notificationSettings.realEstateDesc')}</Text>
             </View>
           </View>
           <Switch
@@ -269,7 +271,7 @@ export default function NotificationSettingScreen() {
 
       {/* 씬짜오나눔 알림 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🎁 씬짜오나눔 알림</Text>
+        <Text style={styles.sectionTitle}>🎁 {t('notificationSettings.xinchaonanum')}</Text>
 
         {/* 🆕 내 주변 상품 알림 */}
         <View style={styles.settingItem}>
@@ -281,9 +283,9 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>내 주변 상품 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.nearbyItemNotification')}</Text>
               <Text style={styles.settingDescription}>
-                내 주소 주변에 새 상품이 등록되면 알려드립니다
+                {t('notificationSettings.nearbyItemDesc')}
               </Text>
             </View>
           </View>
@@ -304,9 +306,9 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>채팅 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.chatNotification')}</Text>
               <Text style={styles.settingDescription}>
-                새 메시지가 오면 알려드립니다
+                {t('notificationSettings.chatDesc')}
               </Text>
             </View>
           </View>
@@ -328,9 +330,9 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>가격 변동 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.priceChangeNotification')}</Text>
               <Text style={styles.settingDescription}>
-                찜한 물품의 가격이 변경되면 알려드립니다
+                {t('notificationSettings.priceChangeDesc')}
               </Text>
             </View>
           </View>
@@ -352,9 +354,9 @@ export default function NotificationSettingScreen() {
               style={styles.settingIcon}
             />
             <View>
-              <Text style={styles.settingLabel}>리뷰 알림</Text>
+              <Text style={styles.settingLabel}>{t('notificationSettings.reviewNotification')}</Text>
               <Text style={styles.settingDescription}>
-                내 물품에 리뷰가 달리면 알려드립니다
+                {t('notificationSettings.reviewDesc')}
               </Text>
             </View>
           </View>
@@ -370,7 +372,7 @@ export default function NotificationSettingScreen() {
       {/* 채팅 알림음 선택 */}
       {settings.chat && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔 채팅 알림음</Text>
+          <Text style={styles.sectionTitle}>🔔 {t('notificationSettings.chatSound')}</Text>
 
           {NOTIFICATION_SOUNDS.map((sound) => (
             <TouchableOpacity
@@ -409,7 +411,7 @@ export default function NotificationSettingScreen() {
           <View style={styles.infoBox}>
             <Ionicons name="volume-high" size={18} color="#8E8E93" />
             <Text style={styles.infoText}>
-              알림음을 선택하면 미리듣기가 재생됩니다
+              {t('notificationSettings.soundPreviewDesc')}
             </Text>
           </View>
         </View>
@@ -419,9 +421,7 @@ export default function NotificationSettingScreen() {
       <View style={styles.footerInfo}>
         <Ionicons name="information-circle-outline" size={20} color="#8E8E93" />
         <Text style={styles.footerText}>
-          알림은 앱이 실행 중일 때 표시됩니다.{"\n"}
-          가격 변동 알림은 찜한 물품의 가격이 낮아질 때 알려드립니다.{"\n"}
-          주변 상품 알림은 프로필에 주소를 등록하셔야 받으실 수 있습니다.
+          {t('notificationSettings.footerInfo')}
         </Text>
       </View>
     </ScrollView>

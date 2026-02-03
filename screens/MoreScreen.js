@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { SUPPORTED_LANGUAGES, changeLanguage } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
 import * as Updates from "expo-updates";
 import { doc, getDoc } from "firebase/firestore";
@@ -17,6 +19,7 @@ import { db } from "../firebase/config";
 
 export default function MoreScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const { t, i18n } = useTranslation('menu');
   const [isAdmin, setIsAdmin] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -57,15 +60,15 @@ export default function MoreScreen({ navigation }) {
         setUpdateInfo({
           isAvailable: true,
           manifest: manifest.manifest,
-          message: "새 업데이트가 있습니다! 앱을 재시작하면 적용됩니다.",
+          message: t('newUpdateMessage'),
         });
         Alert.alert(
-          "업데이트 확인",
-          "새 업데이트가 있습니다.\n앱을 재시작하면 적용됩니다.",
+          t('newUpdateTitle'),
+          t('newUpdateMessage'),
           [
-            { text: "나중에", style: "cancel" },
+            { text: t('common:later'), style: "cancel" },
             {
-              text: "지금 재시작",
+              text: t('restartNow'),
               onPress: () => Updates.reloadAsync(),
             },
           ]
@@ -73,31 +76,31 @@ export default function MoreScreen({ navigation }) {
       } else {
         setUpdateInfo({
           isAvailable: false,
-          message: "최신 버전입니다.",
+          message: t('latestVersion'),
         });
-        Alert.alert("업데이트 확인", "최신 버전입니다.");
+        Alert.alert(t('newUpdateTitle'), t('latestVersion'));
       }
     } catch (error) {
       console.error("업데이트 확인 실패:", error);
-      Alert.alert("오류", "업데이트 확인에 실패했습니다.");
+      Alert.alert(t('common:error'), t('common:error'));
     } finally {
       setCheckingUpdate(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('logout'), t('logoutConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "로그아웃",
+        text: t('logout'),
         style: "destructive",
         onPress: async () => {
           try {
             await logout();
-            Alert.alert("완료", "로그아웃되었습니다.");
+            Alert.alert(t('common:confirm'), t('logoutSuccess'));
           } catch (error) {
             console.error("로그아웃 실패:", error);
-            Alert.alert("오류", "로그아웃에 실패했습니다.");
+            Alert.alert(t('common:error'), t('common:error'));
           }
         },
       },
@@ -107,7 +110,7 @@ export default function MoreScreen({ navigation }) {
   const menuItems = [
     {
       id: "chat",
-      title: "채팅",
+      title: t('chat'),
       icon: "chatbubble-ellipses",
       screen: "내 채팅",
       color: "#4CAF50",
@@ -115,7 +118,7 @@ export default function MoreScreen({ navigation }) {
     },
     {
       id: "mypage",
-      title: "마이페이지",
+      title: t('myPage'),
       icon: "person-circle",
       screen: "My Page",
       color: "#FF6B35",
@@ -123,7 +126,7 @@ export default function MoreScreen({ navigation }) {
     },
     {
       id: "notifications",
-      title: "알림",
+      title: t('notifications'),
       icon: "notifications",
       screen: "알림",
       color: "#2196F3",
@@ -133,10 +136,10 @@ export default function MoreScreen({ navigation }) {
 
   const handleMenuPress = (item) => {
     if (item.requiresAuth && !user) {
-      Alert.alert("로그인 필요", "이 기능을 사용하려면 로그인이 필요합니다.", [
-        { text: "취소", style: "cancel" },
+      Alert.alert(t('loginRequired'), t('loginRequiredMessage'), [
+        { text: t('common:cancel'), style: "cancel" },
         {
-          text: "로그인",
+          text: t('common:login'),
           onPress: () => navigation.navigate("로그인"),
         },
       ]);
@@ -170,12 +173,12 @@ export default function MoreScreen({ navigation }) {
           </>
         ) : (
           <>
-            <Text style={styles.userName}>로그인이 필요합니다</Text>
+            <Text style={styles.userName}>{t('loginRequired')}</Text>
             <TouchableOpacity
               style={styles.loginButton}
               onPress={() => navigation.navigate("로그인")}
             >
-              <Text style={styles.loginButtonText}>로그인하기</Text>
+              <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -205,10 +208,10 @@ export default function MoreScreen({ navigation }) {
         ))}
       </View>
 
-      {/* ✅ 관리자 메뉴 */}
+      {/* ✅ 관리자 메뉴 (번역 불필요 - 관리자 전용) */}
       {isAdmin && (
         <View style={styles.adminSection}>
-          <Text style={styles.sectionTitle}>👑 관리자 메뉴</Text>
+          <Text style={styles.sectionTitle}>👑 {t('adminMenu')}</Text>
 
           <TouchableOpacity
             style={styles.adminMenuItem}
@@ -220,7 +223,7 @@ export default function MoreScreen({ navigation }) {
               >
                 <Ionicons name="people" size={24} color="#dc3545" />
               </View>
-              <Text style={styles.menuTitle}>회원관리</Text>
+              <Text style={styles.menuTitle}>{t('userManagement')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
@@ -235,7 +238,7 @@ export default function MoreScreen({ navigation }) {
               >
                 <Ionicons name="shield-checkmark" size={24} color="#dc3545" />
               </View>
-              <Text style={styles.menuTitle}>신규 물품 관리</Text>
+              <Text style={styles.menuTitle}>{t('newItemManagement')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
@@ -246,9 +249,36 @@ export default function MoreScreen({ navigation }) {
       {user && (
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#dc3545" />
-          <Text style={styles.logoutButtonText}>로그아웃</Text>
+          <Text style={styles.logoutButtonText}>{t('logout')}</Text>
         </TouchableOpacity>
       )}
+
+      {/* 언어 설정 */}
+      <View style={styles.languageSection}>
+        <Text style={styles.languageSectionTitle}>{t('languageSettings')}</Text>
+        <View style={styles.languageButtons}>
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <TouchableOpacity
+              key={lang.code}
+              style={[
+                styles.languageButton,
+                i18n.language === lang.code && styles.languageButtonActive,
+              ]}
+              onPress={() => changeLanguage(lang.code)}
+            >
+              <Text style={styles.languageFlag}>{lang.flag}</Text>
+              <Text
+                style={[
+                  styles.languageText,
+                  i18n.language === lang.code && styles.languageTextActive,
+                ]}
+              >
+                {lang.nativeName}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
       {/* 업데이트 확인 버튼 */}
       <View style={styles.updateSection}>
@@ -263,7 +293,7 @@ export default function MoreScreen({ navigation }) {
             <Ionicons name="refresh" size={20} color="#FF6B35" />
           )}
           <Text style={styles.updateButtonText}>
-            {checkingUpdate ? "확인 중..." : "업데이트 확인"}
+            {checkingUpdate ? t('checking') : t('updateCheck')}
           </Text>
         </TouchableOpacity>
         {updateInfo && (
@@ -273,15 +303,15 @@ export default function MoreScreen({ navigation }) {
 
       {/* 앱 정보 */}
       <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>씬짜오나눔 v2.2.0</Text>
-        <Text style={styles.appInfoText}>베트남 한인 중고거래</Text>
+        <Text style={styles.appInfoText}>{t('appVersion')}</Text>
+        <Text style={styles.appInfoText}>{t('appDescription')}</Text>
         {__DEV__ ? (
           <Text style={[styles.appInfoText, { color: "#FF6B35" }]}>
-            개발 모드
+            {t('devMode')}
           </Text>
         ) : (
           <Text style={[styles.appInfoText, { color: "#4CAF50" }]}>
-            프로덕션 모드
+            {t('prodMode')}
           </Text>
         )}
       </View>
@@ -395,6 +425,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#dc3545",
     fontWeight: "600",
+  },
+  languageSection: {
+    backgroundColor: "#fff",
+    marginTop: 12,
+    padding: 16,
+  },
+  languageSectionTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 12,
+  },
+  languageButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  languageButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  languageButtonActive: {
+    backgroundColor: "#FFF4E6",
+    borderColor: "#FF6B35",
+  },
+  languageFlag: {
+    fontSize: 20,
+    marginRight: 6,
+  },
+  languageText: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  languageTextActive: {
+    color: "#FF6B35",
+    fontWeight: "bold",
   },
   updateSection: {
     backgroundColor: "#fff",

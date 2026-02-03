@@ -1,5 +1,9 @@
 import "react-native-gesture-handler";
-import { LogBox, Platform } from "react-native";
+import { LogBox, Platform, Alert } from "react-native";
+
+// i18n 초기화 (앱 시작 시 바로 실행)
+import './i18n';
+import { isFirstLaunch, setFirstLaunchComplete } from './i18n';
 import Constants from "expo-constants";
 // LogBox.ignoreAllLogs(true);
 
@@ -205,10 +209,13 @@ import RealEstateScreen from "./screens/RealEstateScreen";
 import RealEstateDetailScreen from "./screens/RealEstateDetailScreen";
 import AddRealEstateScreen from "./screens/AddRealEstateScreen";
 import AdminScreen from "./screens/AdminScreen";
+import LanguageSelectScreen from "./screens/LanguageSelectScreen";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [showLanguageSelect, setShowLanguageSelect] = useState(false);
   const updatesCheckedRef = useRef(false);
 
   // 🚀 캐시 우선 로딩 전략
@@ -217,6 +224,14 @@ export default function App() {
       try {
         console.log("🚀 앱 초기화 시작...");
         const startTime = Date.now();
+
+        // 🌐 첫 실행 시 언어 선택 화면 표시
+        const firstLaunch = await isFirstLaunch();
+        if (firstLaunch) {
+          setShowLanguageSelect(true);
+          setIsReady(true);
+          return;
+        }
 
         // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
         const hasCache = await hasHomeDataCache();
@@ -416,6 +431,18 @@ export default function App() {
     );
   }
 
+  // 🌐 첫 실행 시 언어 선택 화면 표시
+  if (showLanguageSelect) {
+    return (
+      <LanguageSelectScreen
+        onComplete={async () => {
+          await setFirstLaunchComplete();
+          setShowLanguageSelect(false);
+        }}
+      />
+    );
+  }
+
   return (
     <AuthProvider>
       <GlobalChatNotificationListener />
@@ -476,7 +503,11 @@ export default function App() {
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// i18n 훅 사용을 위한 import
+import { useTranslation } from 'react-i18next';
+
 function HomeStack() {
+  const { t } = useTranslation(['home', 'common']);
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -496,23 +527,26 @@ function HomeStack() {
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                씬짜오베트남
+                {t('home:title')}
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                2002년부터 격주 발행, 베트남 교민사회의 길잡이
+                {t('home:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("메뉴")}
-              style={{ marginRight: 16, alignItems: "center" }}
-            >
-              <Ionicons name="menu" size={22} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LanguageSwitcher />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("메뉴")}
+                style={{ marginRight: 16, alignItems: "center" }}
+              >
+                <Ionicons name="menu" size={22} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
+              </TouchableOpacity>
+            </View>
           ),
         })}
       />
@@ -520,7 +554,7 @@ function HomeStack() {
         name="PostDetail"
         component={PostDetailScreen}
         options={{
-          title: "상세보기",
+          title: t('home:postDetail'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -530,6 +564,7 @@ function HomeStack() {
 }
 
 function NewsStack() {
+  const { t } = useTranslation(['home', 'common']);
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -549,23 +584,26 @@ function NewsStack() {
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                데일리 뉴스
+                {t('home:newsTitle')}
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                매일 아침 발행되는 온라인 베트남 뉴스
+                {t('home:newsSubtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("메뉴")}
-              style={{ marginRight: 16, alignItems: "center" }}
-            >
-              <Ionicons name="menu" size={22} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LanguageSwitcher />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("메뉴")}
+                style={{ marginRight: 16, alignItems: "center" }}
+              >
+                <Ionicons name="menu" size={22} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
+              </TouchableOpacity>
+            </View>
           ),
         })}
       />
@@ -573,7 +611,7 @@ function NewsStack() {
         name="PostDetail"
         component={PostDetailScreen}
         options={{
-          title: "상세보기",
+          title: t('home:postDetail'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -583,6 +621,7 @@ function NewsStack() {
 }
 
 function JobsStack() {
+  const { t } = useTranslation(['jobs', 'common']);
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -595,23 +634,26 @@ function JobsStack() {
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                구인구직
+                {t('jobs:title')}
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                베트남 한인 일자리 정보
+                {t('jobs:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#2196F3", height: 70 },
           headerTintColor: "#fff",
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("메뉴")}
-              style={{ marginRight: 16, alignItems: "center" }}
-            >
-              <Ionicons name="menu" size={22} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LanguageSwitcher />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("메뉴")}
+                style={{ marginRight: 16, alignItems: "center" }}
+              >
+                <Ionicons name="menu" size={22} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
+              </TouchableOpacity>
+            </View>
           ),
         })}
       />
@@ -619,7 +661,7 @@ function JobsStack() {
         name="Jobs상세"
         component={JobDetailScreen}
         options={{
-          title: "공고 상세",
+          title: t('jobs:jobDetail'),
           headerStyle: { backgroundColor: "#2196F3" },
           headerTintColor: "#fff",
         }}
@@ -628,7 +670,7 @@ function JobsStack() {
         name="Jobs등록"
         component={AddJobScreen}
         options={{
-          title: "공고 등록",
+          title: t('jobs:addJob'),
           headerStyle: { backgroundColor: "#2196F3" },
           headerTintColor: "#fff",
         }}
@@ -638,6 +680,7 @@ function JobsStack() {
 }
 
 function RealEstateStack() {
+  const { t } = useTranslation(['realEstate', 'common']);
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -650,23 +693,26 @@ function RealEstateStack() {
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                부동산
+                {t('realEstate:title')}
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                베트남 교민을 위한 임대·매매 정보
+                {t('realEstate:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#E91E63", height: 70 },
           headerTintColor: "#fff",
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("메뉴", { screen: "메뉴메인" })}
-              style={{ marginRight: 16, alignItems: "center" }}
-            >
-              <Ionicons name="menu" size={22} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LanguageSwitcher />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("메뉴", { screen: "메뉴메인" })}
+                style={{ marginRight: 16, alignItems: "center" }}
+              >
+                <Ionicons name="menu" size={22} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
+              </TouchableOpacity>
+            </View>
           ),
         })}
       />
@@ -674,7 +720,7 @@ function RealEstateStack() {
         name="부동산상세"
         component={RealEstateDetailScreen}
         options={{
-          title: "매물 상세",
+          title: t('realEstate:propertyDetail'),
           headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
         }}
@@ -683,7 +729,7 @@ function RealEstateStack() {
         name="부동산등록"
         component={AddRealEstateScreen}
         options={{
-          title: "매물 등록",
+          title: t('realEstate:addProperty'),
           headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
         }}
@@ -693,6 +739,7 @@ function RealEstateStack() {
 }
 
 function DanggnStack() {
+  const { t } = useTranslation(['danggn', 'common']);
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -705,10 +752,10 @@ function DanggnStack() {
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                당근/나눔
+                {t('danggn:title')}
               </Text>
               <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                중고거래·무료나눔, 내 아파트 주변 물품 찾기
+                {t('danggn:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
@@ -721,7 +768,7 @@ function DanggnStack() {
         name="물품 등록"
         component={AddItemScreen}
         options={{
-          title: "물품 등록",
+          title: t('danggn:addItem'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -730,7 +777,7 @@ function DanggnStack() {
         name="물품 상세"
         component={ItemDetailScreen}
         options={{
-          title: "물품 상세",
+          title: t('danggn:itemDetail'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -739,7 +786,7 @@ function DanggnStack() {
         name="물품 수정"
         component={AddItemScreen}
         options={{
-          title: "물품 수정",
+          title: t('danggn:editItem'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -748,7 +795,7 @@ function DanggnStack() {
         name="리뷰 작성"
         component={ReviewScreen}
         options={{
-          title: "리뷰 작성",
+          title: t('danggn:writeReview'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -757,7 +804,7 @@ function DanggnStack() {
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{
-          title: "채팅",
+          title: t('common:chat'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -767,22 +814,24 @@ function DanggnStack() {
 }
 
 function MenuStack() {
+  const { t } = useTranslation(['menu', 'navigation', 'common']);
   return (
     <Stack.Navigator>
       <Stack.Screen
         name="메뉴메인"
         component={MoreScreen}
         options={{
-          title: "메뉴",
+          title: t('menu:title'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
+          headerRight: () => <LanguageSwitcher />,
         }}
       />
       <Stack.Screen
         name="My Page"
         component={MyPageScreen}
         options={{
-          title: "My Page",
+          title: t('menu:myPage'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -791,7 +840,7 @@ function MenuStack() {
         name="내 채팅"
         component={ChatListScreen}
         options={{
-          title: "내 채팅",
+          title: t('menu:myChats'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -800,7 +849,7 @@ function MenuStack() {
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{
-          title: "채팅",
+          title: t('common:chat'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -809,7 +858,7 @@ function MenuStack() {
         name="찜한 물품"
         component={MyFavoritesScreen}
         options={{
-          title: "찜한 물품",
+          title: t('menu:favorites'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -818,7 +867,7 @@ function MenuStack() {
         name="북마크"
         component={BookmarksScreen}
         options={{
-          title: "북마크",
+          title: t('menu:bookmarks'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -827,7 +876,7 @@ function MenuStack() {
         name="알림 설정"
         component={NotificationSettingScreen}
         options={{
-          title: "알림 설정",
+          title: t('menu:notificationSettings'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -836,7 +885,7 @@ function MenuStack() {
         name="프로필"
         component={ProfileScreen}
         options={{
-          title: "프로필",
+          title: t('menu:profile'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -845,7 +894,7 @@ function MenuStack() {
         name="관리자 페이지"
         component={AdminScreen}
         options={{
-          title: "관리자 페이지",
+          title: t('menu:adminMenu'),
           headerStyle: { backgroundColor: "#dc3545" },
           headerTintColor: "#fff",
         }}
@@ -854,7 +903,7 @@ function MenuStack() {
         name="물품 상세"
         component={ItemDetailScreen}
         options={{
-          title: "물품 상세",
+          title: t('navigation:headers.itemDetail'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -863,7 +912,7 @@ function MenuStack() {
         name="내 물품"
         component={MyItemsScreen}
         options={{
-          title: "내 물품",
+          title: t('menu:myItems'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -872,7 +921,7 @@ function MenuStack() {
         name="내 후기"
         component={MyCommentsScreen}
         options={{
-          title: "내 후기",
+          title: t('menu:myReviews'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
@@ -881,7 +930,7 @@ function MenuStack() {
         name="회원관리"
         component={UserManagementScreen}
         options={{
-          title: "회원관리",
+          title: t('menu:userManagement'),
           headerStyle: { backgroundColor: "#dc3545" },
           headerTintColor: "#fff",
         }}
@@ -890,7 +939,7 @@ function MenuStack() {
         name="알림"
         component={NotificationsScreen}
         options={({ navigation }) => ({
-          title: "알림",
+          title: t('menu:notifications'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
           headerRight: () => (
@@ -908,16 +957,18 @@ function MenuStack() {
 }
 
 function DanggnHeaderRight({ navigation }) {
+  const { t } = useTranslation('common');
   return (
     <View
       style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}
     >
+      <LanguageSwitcher />
       <TouchableOpacity
         style={{ padding: 8, alignItems: "center" }}
         onPress={() => navigation.navigate("메뉴")}
       >
         <Ionicons name="menu" size={22} color="#fff" />
-        <Text style={{ color: "#fff", fontSize: 9 }}>더보기</Text>
+        <Text style={{ color: "#fff", fontSize: 9 }}>{t('more')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -925,6 +976,16 @@ function DanggnHeaderRight({ navigation }) {
 
 function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('navigation');
+
+  // 탭 라벨 번역 맵
+  const tabLabels = {
+    "홈": t('tabs.home'),
+    "뉴스": t('tabs.news'),
+    "당근/나눔": t('tabs.danggn'),
+    "Jobs": t('tabs.jobs'),
+    "부동산": t('tabs.realEstate'),
+  };
 
   return (
     <Tab.Navigator
@@ -932,6 +993,7 @@ function BottomTabNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         lazy: false,
+        tabBarLabel: tabLabels[route.name] || route.name,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           if (route.name === "홈") iconName = focused ? "home" : "home-outline";

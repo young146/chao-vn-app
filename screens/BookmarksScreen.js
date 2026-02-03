@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   query,
@@ -22,6 +23,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function BookmarksScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('menu');
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,17 +49,17 @@ export default function BookmarksScreen({ navigation }) {
   }, [user]);
 
   const handleDelete = async (bookmarkId) => {
-    Alert.alert("북마크 삭제", "이 북마크를 삭제하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('deleteBookmark'), t('deleteBookmarkConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "삭제",
+        text: t('common:delete'),
         style: "destructive",
         onPress: async () => {
           try {
             await deleteDoc(doc(db, "bookmarks", bookmarkId));
           } catch (error) {
             console.error("북마크 삭제 실패:", error);
-            Alert.alert("오류", "북마크 삭제에 실패했습니다.");
+            Alert.alert(t('error'), t('deleteBookmarkFailed'));
           }
         },
       },
@@ -89,7 +91,7 @@ export default function BookmarksScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text>로딩 중...</Text>
+        <Text>{t('loading')}</Text>
       </View>
     );
   }
@@ -103,7 +105,7 @@ export default function BookmarksScreen({ navigation }) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="bookmark-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>저장된 북마크가 없습니다</Text>
+            <Text style={styles.emptyText}>{t('noBookmarksMessage')}</Text>
           </View>
         }
       />

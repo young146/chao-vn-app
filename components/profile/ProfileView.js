@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function ProfileView({
     user,
@@ -36,6 +37,7 @@ export default function ProfileView({
     onHelp,
     onAppInfo,
 }) {
+    const { t } = useTranslation('profile');
     return (
         <ScrollView style={styles.container}>
             <View style={styles.profileHeader}>
@@ -77,32 +79,32 @@ export default function ProfileView({
             <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
                     <Text style={styles.statNumber}>{stats.bookmarks}</Text>
-                    <Text style={styles.statLabel}>북마크</Text>
+                    <Text style={styles.statLabel}>{t('bookmarks')}</Text>
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.statItem}>
                     <Text style={styles.statNumber}>{stats.comments}</Text>
-                    <Text style={styles.statLabel}>댓글</Text>
+                    <Text style={styles.statLabel}>{t('comments')}</Text>
                 </View>
             </View>
 
             <TouchableOpacity style={styles.editButton} onPress={onEdit}>
                 <Ionicons name="create-outline" size={20} color="#fff" />
-                <Text style={styles.editButtonText}>프로필 수정</Text>
+                <Text style={styles.editButtonText}>{t('editProfile')}</Text>
             </TouchableOpacity>
 
             {/* 프로필 정보 표시 */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="person-outline" size={20} color="#FF6B35" />
-                    <Text style={styles.sectionTitle}>기본 정보</Text>
+                    <Text style={styles.sectionTitle}>{t('basicInfo')}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>이메일</Text>
+                    <Text style={styles.infoLabel}>{t('email')}</Text>
                     <Text style={styles.infoValue}>{email || "-"}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>이름</Text>
+                    <Text style={styles.infoLabel}>{t('name')}</Text>
                     <Text style={styles.infoValue}>{name || "-"}</Text>
                 </View>
             </View>
@@ -110,31 +112,31 @@ export default function ProfileView({
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="location" size={20} color="#FF6B35" />
-                    <Text style={styles.sectionTitle}>주소</Text>
+                    <Text style={styles.sectionTitle}>{t('address')}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>도시</Text>
+                    <Text style={styles.infoLabel}>{t('city')}</Text>
                     <Text style={styles.infoValue}>{city || "-"}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>구/군</Text>
+                    <Text style={styles.infoLabel}>{t('district')}</Text>
                     <Text style={styles.infoValue}>{district || "-"}</Text>
                 </View>
                 {apartment && (
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>아파트</Text>
+                        <Text style={styles.infoLabel}>{t('apartment')}</Text>
                         <Text style={styles.infoValue}>{apartment}</Text>
                     </View>
                 )}
                 {detailedAddress && (
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>상세 주소</Text>
+                        <Text style={styles.infoLabel}>{t('detailedAddress')}</Text>
                         <Text style={styles.infoValue}>{detailedAddress}</Text>
                     </View>
                 )}
                 {postalCode && (
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>우편번호</Text>
+                        <Text style={styles.infoLabel}>{t('postalCode')}</Text>
                         <Text style={styles.infoValue}>{postalCode}</Text>
                     </View>
                 )}
@@ -143,18 +145,18 @@ export default function ProfileView({
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="briefcase-outline" size={20} color="#FF6B35" />
-                    <Text style={styles.sectionTitle}>거주 및 직업</Text>
+                    <Text style={styles.sectionTitle}>{t('residenceJob')}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>거주 기간</Text>
+                    <Text style={styles.infoLabel}>{t('residencePeriod')}</Text>
                     <Text style={styles.infoValue}>{residencePeriod || "-"}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>거주 목적</Text>
+                    <Text style={styles.infoLabel}>{t('residencePurpose')}</Text>
                     <Text style={styles.infoValue}>{residencePurpose || "-"}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>직업</Text>
+                    <Text style={styles.infoLabel}>{t('occupation')}</Text>
                     <Text style={styles.infoValue}>{occupation || "-"}</Text>
                 </View>
             </View>
@@ -163,29 +165,29 @@ export default function ProfileView({
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Ionicons name="share-social-outline" size={20} color="#FF6B35" />
-                        <Text style={styles.sectionTitle}>SNS</Text>
+                        <Text style={styles.sectionTitle}>{t('snsInfo')}</Text>
                     </View>
                     {kakaoId && (
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>카카오톡</Text>
+                            <Text style={styles.infoLabel}>{t('kakaoId')}</Text>
                             <Text style={styles.infoValue}>{kakaoId}</Text>
                         </View>
                     )}
                     {zaloId && (
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Zalo</Text>
+                            <Text style={styles.infoLabel}>{t('zaloId')}</Text>
                             <Text style={styles.infoValue}>{zaloId}</Text>
                         </View>
                     )}
                     {facebook && (
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Facebook</Text>
+                            <Text style={styles.infoLabel}>{t('facebook')}</Text>
                             <Text style={styles.infoValue}>{facebook}</Text>
                         </View>
                     )}
                     {instagram && (
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Instagram</Text>
+                            <Text style={styles.infoLabel}>{t('instagram')}</Text>
                             <Text style={styles.infoValue}>{instagram}</Text>
                         </View>
                     )}
@@ -195,13 +197,13 @@ export default function ProfileView({
             <View style={styles.section}>
                 <TouchableOpacity style={styles.menuItem} onPress={onAppSettings}>
                     <Ionicons name="settings-outline" size={20} color="#666" />
-                    <Text style={styles.menuText}>앱 설정</Text>
+                    <Text style={styles.menuText}>{t('appSettings')}</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuItem} onPress={onHelp}>
                     <Ionicons name="help-circle-outline" size={20} color="#666" />
-                    <Text style={styles.menuText}>도움말</Text>
+                    <Text style={styles.menuText}>{t('help')}</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
 
@@ -211,13 +213,13 @@ export default function ProfileView({
                         size={20}
                         color="#666"
                     />
-                    <Text style={styles.menuText}>앱 정보</Text>
+                    <Text style={styles.menuText}>{t('appInfo')}</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
             </View>
 
             <View style={styles.versionContainer}>
-                <Text style={styles.versionText}>씬짜오 베트남 v2.2.0</Text>
+                <Text style={styles.versionText}>{t('appVersion')}</Text>
             </View>
         </ScrollView>
     );

@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import {
   doc,
   deleteDoc,
@@ -32,6 +33,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function JobDetailScreen({ route, navigation }) {
   const { job } = route.params;
   const { user, isAdmin } = useAuth();
+  const { t } = useTranslation(['jobs', 'common']);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(job.status || "모집중");
 
@@ -58,10 +60,10 @@ export default function JobDetailScreen({ route, navigation }) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return "방금 전";
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
+    if (minutes < 1) return t('detail.justNow');
+    if (minutes < 60) return t('detail.minutesAgo', { count: minutes });
+    if (hours < 24) return t('detail.hoursAgo', { count: hours });
+    if (days < 7) return t('detail.daysAgo', { count: days });
 
     return date.toLocaleDateString("ko-KR");
   };
@@ -80,17 +82,18 @@ export default function JobDetailScreen({ route, navigation }) {
   };
 
   const getJobTypeBadge = (jobType) => {
-    return jobType === "구인"
-      ? { bg: "#E3F2FD", color: "#1976D2", text: "구인" }
-      : { bg: "#FFF3E0", color: "#E65100", text: "구직" };
+    const isHiring = jobType === "구인";
+    return isHiring
+      ? { bg: "#E3F2FD", color: "#1976D2", text: t('hiring') }
+      : { bg: "#FFF3E0", color: "#E65100", text: t('seeking') };
   };
 
   // 마감 처리
   const handleMarkAsClosed = async () => {
-    Alert.alert("마감 처리", "이 공고를 마감으로 표시하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('detail.markAsClosed'), t('detail.markAsClosedConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "확인",
+        text: t('common:confirm'),
         onPress: async () => {
           try {
             const jobRef = doc(db, "Jobs", job.id);
@@ -98,10 +101,10 @@ export default function JobDetailScreen({ route, navigation }) {
               status: "마감",
             });
             setCurrentStatus("마감");
-            Alert.alert("완료", "마감으로 표시되었습니다!");
+            Alert.alert(t('detail.complete'), t('detail.markedAsClosed'));
           } catch (error) {
             console.error("상태 변경 실패:", error);
-            Alert.alert("오류", "상태 변경에 실패했습니다.");
+            Alert.alert(t('common:error'), t('detail.deleteFailed'));
           }
         },
       },
@@ -110,10 +113,10 @@ export default function JobDetailScreen({ route, navigation }) {
 
   // 모집중으로 재오픈
   const handleReopen = async () => {
-    Alert.alert("재오픈", "이 공고를 다시 모집중으로 변경하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('detail.reopen'), t('detail.reopenConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "확인",
+        text: t('common:confirm'),
         onPress: async () => {
           try {
             const jobRef = doc(db, "Jobs", job.id);
@@ -121,10 +124,10 @@ export default function JobDetailScreen({ route, navigation }) {
               status: "모집중",
             });
             setCurrentStatus("모집중");
-            Alert.alert("완료", "모집중으로 변경되었습니다!");
+            Alert.alert(t('detail.complete'), t('detail.reopened'));
           } catch (error) {
             console.error("상태 변경 실패:", error);
-            Alert.alert("오류", "상태 변경에 실패했습니다.");
+            Alert.alert(t('common:error'), t('detail.deleteFailed'));
           }
         },
       },
@@ -134,15 +137,15 @@ export default function JobDetailScreen({ route, navigation }) {
   // 채팅하기
   const handleChat = useCallback(() => {
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다.", [
-        { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      Alert.alert(t('common:loginRequired'), t('common:loginRequired'), [
+        { text: t('common:confirm') },
+        { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
 
     if (isMyJob) {
-      Alert.alert("알림", "본인이 등록한 공고입니다.");
+      Alert.alert(t('common:notice'), t('detail.ownPost'));
       return;
     }
 
@@ -152,7 +155,7 @@ export default function JobDetailScreen({ route, navigation }) {
       itemTitle: job.title,
       itemImage: images[0] || null,
       otherUserId: job.userId,
-      otherUserName: job.userEmail ? job.userEmail.split("@")[0] : "담당자",
+      otherUserName: job.userEmail ? job.userEmail.split("@")[0] : t('detail.poster'),
       sellerId: job.userId,
     });
   }, [user, job, images, navigation, isMyJob]);
@@ -160,7 +163,7 @@ export default function JobDetailScreen({ route, navigation }) {
   // 전화걸기
   const handleCall = () => {
     if (!job.contact) {
-      Alert.alert("알림", "연락처 정보가 없습니다.");
+      Alert.alert(t('common:notice'), t('detail.noContact'));
       return;
     }
 
@@ -172,7 +175,7 @@ export default function JobDetailScreen({ route, navigation }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `[${job.jobType}] ${job.title}\n\n📍 ${job.city}${job.district ? ` ${job.district}` : ''}\n💰 ${job.salary || '급여 협의'}\n\n씬짜오 베트남 앱에서 확인하세요!`,
+        message: `[${job.jobType}] ${job.title}\n\n📍 ${job.city}${job.district ? ` ${job.district}` : ''}\n💰 ${job.salary || t('detail.negotiable')}\n\nXinChao Vietnam App`,
       });
     } catch (error) {
       console.error("공유 실패:", error);
@@ -187,12 +190,12 @@ export default function JobDetailScreen({ route, navigation }) {
   // 삭제하기
   const handleDelete = () => {
     Alert.alert(
-      "삭제 확인",
-      "이 공고를 삭제하시겠습니까?\n삭제된 공고는 복구할 수 없습니다.",
+      t('common:delete'),
+      t('detail.deleteConfirm'),
       [
-        { text: "취소", style: "cancel" },
+        { text: t('common:cancel'), style: "cancel" },
         {
-          text: "삭제",
+          text: t('common:delete'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -212,12 +215,12 @@ export default function JobDetailScreen({ route, navigation }) {
 
               await deleteDoc(doc(db, "Jobs", job.id));
 
-              Alert.alert("삭제 완료", "공고가 삭제되었습니다.", [
-                { text: "확인", onPress: () => navigation.goBack() },
+              Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+                { text: t('common:confirm'), onPress: () => navigation.goBack() },
               ]);
             } catch (error) {
               console.error("삭제 실패:", error);
-              Alert.alert("오류", "삭제에 실패했습니다.");
+              Alert.alert(t('common:error'), t('detail.deleteFailed'));
             }
           },
         },
@@ -285,7 +288,7 @@ export default function JobDetailScreen({ route, navigation }) {
         ) : (
           <View style={styles.noImageContainer}>
             <Ionicons name="briefcase-outline" size={80} color="#ddd" />
-            <Text style={styles.noImageText}>등록된 이미지가 없습니다</Text>
+            <Text style={styles.noImageText}>{t('detail.noImage')}</Text>
           </View>
         )}
 
@@ -316,7 +319,7 @@ export default function JobDetailScreen({ route, navigation }) {
           <View style={styles.metaRow}>
             <Ionicons name="person-outline" size={14} color="#888" />
             <Text style={styles.metaText}>
-              {job.userEmail ? job.userEmail.split("@")[0] : "익명"}
+              {job.userEmail ? job.userEmail.split("@")[0] : t('detail.anonymous')}
             </Text>
             <Text style={styles.metaDivider}>·</Text>
             <Text style={styles.metaText}>{formatDate(job.createdAt)}</Text>
@@ -325,15 +328,15 @@ export default function JobDetailScreen({ route, navigation }) {
 
         {/* 상세 정보 카드 */}
         <View style={styles.infoCard}>
-          <Text style={styles.cardTitle}>📋 상세 정보</Text>
+          <Text style={styles.cardTitle}>📋 {t('detail.detailInfo')}</Text>
 
           {/* 급여 */}
           <View style={styles.infoRow}>
             <View style={styles.infoLabel}>
               <Ionicons name="cash-outline" size={18} color="#4CAF50" />
-              <Text style={styles.labelText}>급여</Text>
+              <Text style={styles.labelText}>{t('detail.salary')}</Text>
             </View>
-            <Text style={styles.infoValue}>{job.salary || "협의"}</Text>
+            <Text style={styles.infoValue}>{job.salary || t('detail.negotiable')}</Text>
           </View>
 
           {/* 고용 형태 */}
@@ -341,7 +344,7 @@ export default function JobDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="time-outline" size={18} color="#2196F3" />
-                <Text style={styles.labelText}>고용 형태</Text>
+                <Text style={styles.labelText}>{t('detail.employmentType')}</Text>
               </View>
               <Text style={styles.infoValue}>{job.employmentType}</Text>
             </View>
@@ -352,7 +355,7 @@ export default function JobDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="briefcase-outline" size={18} color="#9C27B0" />
-                <Text style={styles.labelText}>업종</Text>
+                <Text style={styles.labelText}>{t('detail.industry')}</Text>
               </View>
               <Text style={styles.infoValue}>{job.industry}</Text>
             </View>
@@ -362,7 +365,7 @@ export default function JobDetailScreen({ route, navigation }) {
           <View style={styles.infoRow}>
             <View style={styles.infoLabel}>
               <Ionicons name="location-outline" size={18} color="#FF5722" />
-              <Text style={styles.labelText}>근무지</Text>
+              <Text style={styles.labelText}>{t('detail.workLocation')}</Text>
             </View>
             <Text style={styles.infoValue}>
               {job.city}{job.district ? ` ${job.district}` : ''}
@@ -374,7 +377,7 @@ export default function JobDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="calendar-outline" size={18} color="#795548" />
-                <Text style={styles.labelText}>마감일</Text>
+                <Text style={styles.labelText}>{t('detail.deadline')}</Text>
               </View>
               <Text style={styles.infoValue}>{job.deadline}</Text>
             </View>
@@ -385,7 +388,7 @@ export default function JobDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="call-outline" size={18} color="#009688" />
-                <Text style={styles.labelText}>연락처</Text>
+                <Text style={styles.labelText}>{t('detail.contact')}</Text>
               </View>
               <TouchableOpacity onPress={handleCall}>
                 <Text style={[styles.infoValue, styles.linkText]}>{job.contact}</Text>
@@ -396,16 +399,16 @@ export default function JobDetailScreen({ route, navigation }) {
 
         {/* 상세 내용 */}
         <View style={styles.descriptionCard}>
-          <Text style={styles.cardTitle}>📝 상세 내용</Text>
+          <Text style={styles.cardTitle}>📝 {t('detail.description')}</Text>
           <Text style={styles.description}>
-            {job.description || "상세 내용이 없습니다."}
+            {job.description || t('detail.noDescription')}
           </Text>
         </View>
 
         {/* 자격 요건 */}
         {job.requirements && (
           <View style={styles.descriptionCard}>
-            <Text style={styles.cardTitle}>✅ 자격 요건</Text>
+            <Text style={styles.cardTitle}>✅ {t('detail.requirements')}</Text>
             <Text style={styles.description}>{job.requirements}</Text>
           </View>
         )}
@@ -418,7 +421,7 @@ export default function JobDetailScreen({ route, navigation }) {
               onPress={handleEdit}
             >
               <Ionicons name="create-outline" size={20} color="#2196F3" />
-              <Text style={styles.editButtonText}>수정하기</Text>
+              <Text style={styles.editButtonText}>{t('detail.edit')}</Text>
             </TouchableOpacity>
 
             {currentStatus !== "마감" ? (
@@ -427,7 +430,7 @@ export default function JobDetailScreen({ route, navigation }) {
                 onPress={handleMarkAsClosed}
               >
                 <Ionicons name="close-circle-outline" size={20} color="#FF9800" />
-                <Text style={styles.closeButtonText}>마감 처리</Text>
+                <Text style={styles.closeButtonText}>{t('detail.markAsClosed')}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -435,7 +438,7 @@ export default function JobDetailScreen({ route, navigation }) {
                 onPress={handleReopen}
               >
                 <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
-                <Text style={styles.reopenButtonText}>재오픈</Text>
+                <Text style={styles.reopenButtonText}>{t('detail.reopen')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -453,7 +456,7 @@ export default function JobDetailScreen({ route, navigation }) {
           {job.contact && (
             <TouchableOpacity style={styles.callButton} onPress={handleCall}>
               <Ionicons name="call" size={22} color="#fff" />
-              <Text style={styles.callButtonText}>전화하기</Text>
+              <Text style={styles.callButtonText}>{t('detail.call')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -461,7 +464,7 @@ export default function JobDetailScreen({ route, navigation }) {
             onPress={handleChat}
           >
             <Ionicons name="chatbubble" size={22} color="#fff" />
-            <Text style={styles.chatButtonText}>채팅하기</Text>
+            <Text style={styles.chatButtonText}>{t('detail.chat')}</Text>
           </TouchableOpacity>
         </View>
       )}

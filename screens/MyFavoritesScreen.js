@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MyFavoritesScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('menu');
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +63,7 @@ export default function MyFavoritesScreen({ navigation }) {
       setFavorites(items);
     } catch (error) {
       console.error("찜 목록 로드 실패:", error);
-      Alert.alert("오류", "찜 목록을 불러오는데 실패했습니다.");
+      Alert.alert(t('error'), t('loadFavoritesFailed'));
     } finally {
       setLoading(false);
     }
@@ -69,21 +71,21 @@ export default function MyFavoritesScreen({ navigation }) {
 
   const handleRemoveFavorite = async (favoriteId, itemTitle) => {
     Alert.alert(
-      "찜 취소",
-      `"${itemTitle}"을(를) 찜 목록에서 삭제하시겠습니까?`,
+      t('removeFavorite'),
+      t('removeFavoriteConfirm', { title: itemTitle }),
       [
-        { text: "취소", style: "cancel" },
+        { text: t('common:cancel'), style: "cancel" },
         {
-          text: "삭제",
+          text: t('common:delete'),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteDoc(doc(db, "favorites", favoriteId));
               setFavorites(prev => prev.filter(item => item.id !== favoriteId));
-              Alert.alert("삭제 완료", "찜 목록에서 삭제되었습니다");
+              Alert.alert(t('deleteComplete'), t('removedFromFavorites'));
             } catch (error) {
               console.error("찜 삭제 실패:", error);
-              Alert.alert("오류", "삭제에 실패했습니다.");
+              Alert.alert(t('error'), t('deleteFailed'));
             }
           }
         }
@@ -107,11 +109,11 @@ export default function MyFavoritesScreen({ navigation }) {
         };
         navigation.navigate("물품 상세", { item: serializableItem });
       } else {
-        Alert.alert("알림", "해당 물품을 찾을 수 없습니다.\n삭제되었을 수 있습니다.");
+        Alert.alert(t('notice'), t('itemNotFound'));
       }
     } catch (error) {
       console.error("물품 정보 로드 실패:", error);
-      Alert.alert("오류", "물품 정보를 불러오는데 실패했습니다.");
+      Alert.alert(t('error'), t('loadItemFailed'));
     }
   };
 
@@ -175,15 +177,15 @@ export default function MyFavoritesScreen({ navigation }) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="heart-outline" size={80} color="#ccc" />
-        <Text style={styles.emptyTitle}>로그인이 필요합니다</Text>
+        <Text style={styles.emptyTitle}>{t('loginRequired')}</Text>
         <Text style={styles.emptyMessage}>
-          찜한 물품을 보려면 로그인해주세요
+          {t('viewFavoritesLogin')}
         </Text>
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate("로그인")}
         >
-          <Text style={styles.loginButtonText}>로그인하기</Text>
+          <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -192,7 +194,7 @@ export default function MyFavoritesScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyMessage}>로딩 중...</Text>
+        <Text style={styles.emptyMessage}>{t('loading')}</Text>
       </View>
     );
   }
@@ -201,9 +203,9 @@ export default function MyFavoritesScreen({ navigation }) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="heart-outline" size={80} color="#ccc" />
-        <Text style={styles.emptyTitle}>찜한 물품이 없습니다</Text>
+        <Text style={styles.emptyTitle}>{t('noFavorites')}</Text>
         <Text style={styles.emptyMessage}>
-          마음에 드는 물품을 찜해보세요
+          {t('addFavoriteHint')}
         </Text>
       </View>
     );

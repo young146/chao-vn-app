@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   query,
@@ -17,10 +18,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // 추가
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ChatListScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('menu');
   const [chatRooms, setChatRooms] = useState([]);
 
   useEffect(() => {
@@ -95,12 +97,12 @@ export default function ChatListScreen({ navigation }) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return "방금 전";
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
+    if (minutes < 1) return t('justNow');
+    if (minutes < 60) return t('minutesAgo', { count: minutes });
+    if (hours < 24) return t('hoursAgo', { count: hours });
+    if (days < 7) return t('daysAgo', { count: days });
 
-    return date.toLocaleDateString("ko-KR");
+    return date.toLocaleDateString();
   };
 
   const getOtherUserInfo = (room) => {
@@ -153,7 +155,7 @@ export default function ChatListScreen({ navigation }) {
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
             <Text style={styles.itemTitle} numberOfLines={1}>
-              {item.itemTitle || "삭제된 상품"}
+              {item.itemTitle || t('deletedItem')}
             </Text>
             <Text style={styles.timestamp}>
               {formatDate(item.lastMessageAt)}
@@ -170,7 +172,7 @@ export default function ChatListScreen({ navigation }) {
               ]}
               numberOfLines={1}
             >
-              {item.lastMessage || "메시지 없음"}
+              {item.lastMessage || t('noMessage')}
             </Text>
             {hasUnread && (
               <View style={styles.unreadBadge}>
@@ -187,7 +189,7 @@ export default function ChatListScreen({ navigation }) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyText}>로그인이 필요합니다</Text>
+        <Text style={styles.emptyText}>{t('loginRequired')}</Text>
       </View>
     );
   }
@@ -201,7 +203,7 @@ export default function ChatListScreen({ navigation }) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>채팅 내역이 없습니다</Text>
+            <Text style={styles.emptyText}>{t('noChats')}</Text>
           </View>
         }
       />

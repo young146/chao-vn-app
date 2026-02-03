@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next";
 import {
   VIETNAM_LOCATIONS,
   getDistrictsByCity,
@@ -42,6 +43,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
+  const { t } = useTranslation(['danggn', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -91,7 +93,7 @@ export default function AddItemScreen({ navigation, route }) {
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("권한 필요", "카메라 접근 권한이 필요합니다.");
+      Alert.alert(t('form.permissionRequired'), t('form.cameraPermission'));
       return false;
     }
     return true;
@@ -100,7 +102,7 @@ export default function AddItemScreen({ navigation, route }) {
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+      Alert.alert(t('form.permissionRequired'), t('form.galleryPermission'));
       return false;
     }
     return true;
@@ -122,7 +124,7 @@ export default function AddItemScreen({ navigation, route }) {
         setImages([...images, result.assets[0].uri]);
       }
     } catch (error) {
-      Alert.alert("오류", "사진 촬영에 실패했습니다.");
+      Alert.alert(t('form.error'), t('common:cameraError', '사진 촬영에 실패했습니다.'));
     }
   };
 
@@ -143,17 +145,17 @@ export default function AddItemScreen({ navigation, route }) {
         setImages([...images, ...newImages].slice(0, 10));
       }
     } catch (error) {
-      Alert.alert("오류", "사진을 선택할 수 없습니다.");
+      Alert.alert(t('form.error'), t('common:photoSelectError', '사진을 선택할 수 없습니다.'));
     }
   };
 
   const pickImages = () => {
     if (images.length >= 10) {
-      Alert.alert("알림", "사진은 최대 10장까지 등록할 수 있습니다.");
+      Alert.alert(t('common:notice'), t('common:maxPhotos', '사진은 최대 10장까지 등록할 수 있습니다.'));
       return;
     }
 
-    Alert.alert("사진 선택", "사진을 추가할 방법을 선택하세요", [
+    Alert.alert(t('common:selectPhoto', '사진 선택'), t('common:selectPhotoMethod', '사진을 추가할 방법을 선택하세요'), [
       {
         text: "📷 카메라로 촬영",
         onPress: takePhoto,
@@ -395,17 +397,17 @@ export default function AddItemScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     if (!title || !price || !description || !selectedApartment) {
-      Alert.alert("알림", "필수 항목을 모두 입력해주세요!");
+      Alert.alert(t('form.requiredFields'), t('form.fillRequiredFields'));
       return;
     }
 
     if (!phone && !kakaoId && !otherContact) {
-      Alert.alert("알림", "연락처를 최소 하나 이상 입력해주세요!");
+      Alert.alert(t('common:notice'), t('common:contactRequired', '연락처를 최소 하나 이상 입력해주세요!'));
       return;
     }
 
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다!");
+      Alert.alert(t('common:notice'), t('common:loginRequired'));
       return;
     }
 
@@ -482,7 +484,7 @@ export default function AddItemScreen({ navigation, route }) {
 
         setUploading(false);
 
-        Alert.alert("성공!", "물품이 수정되었습니다!", [
+        Alert.alert(t('form.success'), t('form.itemUpdated'), [
           {
             text: "확인",
             onPress: () => {
@@ -540,7 +542,7 @@ export default function AddItemScreen({ navigation, route }) {
 
         setUploading(false);
 
-        Alert.alert("성공!", "상품이 등록되었습니다!", [
+        Alert.alert(t('form.success'), t('form.itemRegistered'), [
           {
             text: "확인",
             onPress: () => {
@@ -556,8 +558,8 @@ export default function AddItemScreen({ navigation, route }) {
       setUploading(false);
 
       Alert.alert(
-        "오류",
-        `작업에 실패했습니다.\n\n${error.message}\n\n다시 시도해주세요.`
+        t('form.error'),
+        `${t('form.errorMessage')}\n\n${error.message}`
       );
     }
   };
@@ -581,7 +583,7 @@ export default function AddItemScreen({ navigation, route }) {
         {/* 사진 업로드 섹션 */}
         <View style={styles.imageSection}>
           <Text style={styles.imageSectionTitle}>
-            📷 사진 등록 ({images.length}/10)
+            {t('form.photoSection')} ({images.length}/10)
           </Text>
 
           <ScrollView
@@ -595,7 +597,7 @@ export default function AddItemScreen({ navigation, route }) {
                 onPress={pickImages}
               >
                 <Ionicons name="camera" size={40} color="#999" />
-                <Text style={styles.addImageText}>사진 추가</Text>
+                <Text style={styles.addImageText}>{t('form.addPhoto')}</Text>
               </TouchableOpacity>
             )}
 
@@ -615,7 +617,7 @@ export default function AddItemScreen({ navigation, route }) {
                 </TouchableOpacity>
                 {index === 0 && (
                   <View style={styles.mainBadge}>
-                    <Text style={styles.mainBadgeText}>대표</Text>
+                    <Text style={styles.mainBadgeText}>{t('form.mainPhoto')}</Text>
                   </View>
                 )}
               </View>
@@ -623,49 +625,49 @@ export default function AddItemScreen({ navigation, route }) {
           </ScrollView>
         </View>
 
-        <Text style={styles.label}>제목 *</Text>
+        <Text style={styles.label}>{t('form.titleLabel')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="상품 제목"
+          placeholder={t('form.titlePlaceholder')}
           placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={title}
           onChangeText={setTitle}
         />
 
-        <Text style={styles.label}>가격 (VND) *</Text>
+        <Text style={styles.label}>{t('form.priceLabel')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="가격"
+          placeholder={t('form.pricePlaceholder')}
           placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={price}
           onChangeText={setPrice}
           keyboardType="numeric"
         />
 
-        <Text style={styles.label}>카테고리</Text>
+        <Text style={styles.label}>{t('form.categoryLabel')}</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={category}
             onValueChange={setCategory}
             style={styles.picker}
           >
-            <Picker.Item label="무료나눔" value="무료나눔" />
-            <Picker.Item label="🔍 구인" value="구인" />
-            <Picker.Item label="💼 구직" value="구직" />
-            <Picker.Item label="🏠 부동산 임대" value="부동산 임대" />
-            <Picker.Item label="🏡 부동산 판매" value="부동산 판매" />
-            <Picker.Item label="전자제품" value="전자제품" />
-            <Picker.Item label="가구/인테리어" value="가구/인테리어" />
-            <Picker.Item label="의류/잡화" value="의류/잡화" />
-            <Picker.Item label="생활용품" value="생활용품" />
-            <Picker.Item label="도서/문구" value="도서/문구" />
-            <Picker.Item label="유아용품" value="유아용품" />
-            <Picker.Item label="펫 용품" value="펫 용품" />
-            <Picker.Item label="기타" value="기타" />
+            <Picker.Item label={t('categories.free')} value="무료나눔" />
+            <Picker.Item label={`🔍 ${t('categories.hiring')}`} value="구인" />
+            <Picker.Item label={`💼 ${t('categories.seeking')}`} value="구직" />
+            <Picker.Item label={`🏠 ${t('categories.rentProperty')}`} value="부동산 임대" />
+            <Picker.Item label={`🏡 ${t('categories.sellProperty')}`} value="부동산 판매" />
+            <Picker.Item label={t('categories.electronics')} value="전자제품" />
+            <Picker.Item label={t('categories.furniture')} value="가구/인테리어" />
+            <Picker.Item label={t('categories.clothing')} value="의류/잡화" />
+            <Picker.Item label={t('categories.household')} value="생활용품" />
+            <Picker.Item label={t('categories.books')} value="도서/문구" />
+            <Picker.Item label={t('categories.baby')} value="유아용품" />
+            <Picker.Item label={t('categories.pet')} value="펫 용품" />
+            <Picker.Item label={t('categories.other')} value="기타" />
           </Picker>
         </View>
 
-        <Text style={styles.label}>도시 *</Text>
+        <Text style={styles.label}>{t('form.cityLabel')}</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedCity}
@@ -676,14 +678,14 @@ export default function AddItemScreen({ navigation, route }) {
             }}
             style={styles.picker}
           >
-            <Picker.Item label="도시 선정" value="" />
+            <Picker.Item label={t('form.selectCity')} value="" />
             {Object.keys(VIETNAM_LOCATIONS).map((city) => (
               <Picker.Item key={city} label={city} value={city} />
             ))}
           </Picker>
         </View>
 
-        <Text style={styles.label}>구/군 *</Text>
+        <Text style={styles.label}>{t('form.districtLabel')}</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedDistrict}
@@ -693,7 +695,7 @@ export default function AddItemScreen({ navigation, route }) {
             }}
             style={styles.picker}
           >
-            <Picker.Item label="선택하세요" value="" />
+            <Picker.Item label={t('form.selectDistrict')} value="" />
             {districts.map((district) => (
               <Picker.Item key={district} label={district} value={district} />
             ))}
@@ -702,15 +704,15 @@ export default function AddItemScreen({ navigation, route }) {
 
         {apartments.length > 0 && (
           <>
-            <Text style={styles.label}>아파트/지역 *</Text>
-            <Text style={styles.helperText}>💡 아파트명을 선택하면 같은 아파트 주민에게 알림이 갑니다!</Text>
+            <Text style={styles.label}>{t('form.apartmentLabel')} *</Text>
+            <Text style={styles.helperText}>💡 {t('common:apartmentNotice', '아파트명을 선택하면 같은 아파트 주민에게 알림이 갑니다!')}</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
                 style={styles.picker}
               >
-                <Picker.Item label="🏠 아파트를 선택하세요" value="" />
+                <Picker.Item label={`🏠 ${t('form.selectApartment')}`} value="" />
                 {apartments.map((apartment) => (
                   <Picker.Item
                     key={apartment}
@@ -723,10 +725,10 @@ export default function AddItemScreen({ navigation, route }) {
           </>
         )}
 
-        <Text style={styles.label}>상품 설명 *</Text>
+        <Text style={styles.label}>{t('form.descriptionLabel')} *</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="상품 설명을 입력하세요"
+          placeholder={t('form.descriptionPlaceholder')}
           placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={description}
           onChangeText={setDescription}
@@ -737,32 +739,32 @@ export default function AddItemScreen({ navigation, route }) {
 
         <View style={styles.contactSection}>
           <Text style={styles.sectionTitle}>
-            📞 연락처 (최소 1개 이상 입력) *
+            📞 {t('form.contactLabel')} *
           </Text>
 
-          <Text style={styles.label}>전화번호</Text>
+          <Text style={styles.label}>{t('form.phonePlaceholder')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="예: 010-1234-5678 또는 +84-123-456-789"
+            placeholder="010-1234-5678 / +84-123-456-789"
             placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>카카오톡 ID</Text>
+          <Text style={styles.label}>{t('form.kakaoPlaceholder')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="예: kakao_id123"
+            placeholder="kakao_id123"
             placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={kakaoId}
             onChangeText={setKakaoId}
           />
 
-          <Text style={styles.label}>기타 SNS (Zalo, Facebook 등)</Text>
+          <Text style={styles.label}>{t('form.otherContactPlaceholder')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="예: Zalo: 0123456789"
+            placeholder="Zalo: 0123456789"
             placeholderTextColor="rgba(0, 0, 0, 0.38)"
             value={otherContact}
             onChangeText={setOtherContact}
@@ -777,11 +779,11 @@ export default function AddItemScreen({ navigation, route }) {
           {uploading ? (
             <View style={styles.uploadingContainer}>
               <ActivityIndicator color="#fff" />
-              <Text style={styles.buttonText}> 처리 중...</Text>
+              <Text style={styles.buttonText}> {t('form.uploading')}</Text>
             </View>
           ) : (
             <Text style={styles.buttonText}>
-              {isEditMode ? "수정하기" : "등록하기"}
+              {isEditMode ? t('form.updateButton') : t('form.submitButton')}
             </Text>
           )}
         </TouchableOpacity>

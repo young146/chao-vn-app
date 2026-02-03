@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
   getDistrictsByCity,
@@ -20,6 +21,7 @@ import {
 } from "../utils/vietnamLocations";
 
 export default function SignupScreen({ navigation }) {
+  const { t } = useTranslation('auth');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -44,17 +46,17 @@ export default function SignupScreen({ navigation }) {
 
   const handleSignup = async () => {
     if (!email.trim() || !password.trim() || !confirmPassword.trim() || !name.trim()) {
-      Alert.alert("알림", "이메일, 비밀번호, 이름을 모두 입력해주세요.");
+      Alert.alert(t('common:loginRequired'), t('allFieldsRequired'));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
+      Alert.alert(t('common:loginRequired'), t('passwordMismatch'));
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("알림", "비밀번호는 최소 6자 이상이어야 합니다.");
+      Alert.alert(t('common:loginRequired'), t('passwordTooShort'));
       return;
     }
 
@@ -74,17 +76,17 @@ export default function SignupScreen({ navigation }) {
 
     if (result.success) {
       const message = result.profileCompleted
-        ? "프로필이 등록되었습니다!\n주변 상품 알림을 받으실 수 있어요."
-        : "언제든 프로필에서 주소를 등록하시면\n주변 새상품 알림을 받으실 수 있어요!";
+        ? t('profileCompleteMessage')
+        : t('profileLaterMessage');
 
-      Alert.alert("🎉 가입 완료", message, [
+      Alert.alert("🎉 " + t('signupSuccess'), message, [
         {
-          text: "확인",
+          text: t('common:confirm'),
           onPress: () => navigation.goBack(),
         },
       ]);
     } else {
-      Alert.alert("가입 실패", result.error);
+      Alert.alert(t('signupFailed'), result.error);
     }
   };
 
@@ -97,9 +99,9 @@ export default function SignupScreen({ navigation }) {
         <View style={styles.content}>
           {/* 헤더 */}
           <View style={styles.header}>
-            <Text style={styles.title}>회원가입</Text>
+            <Text style={styles.title}>{t('signupTitle')}</Text>
             <Text style={styles.subtitle}>
-              씬짜오 베트남에 오신 것을 환영합니다
+              {t('signupSubtitle')}
             </Text>
           </View>
 
@@ -115,7 +117,7 @@ export default function SignupScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="이메일"
+                placeholder={t('email')}
                 placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={email}
                 onChangeText={setEmail}
@@ -135,7 +137,7 @@ export default function SignupScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="이름 (실명)"
+                placeholder={t('name')}
                 placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={name}
                 onChangeText={setName}
@@ -153,7 +155,7 @@ export default function SignupScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="닉네임 (선택)"
+                placeholder={t('nickname')}
                 placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={displayName}
                 onChangeText={setDisplayName}
@@ -171,7 +173,7 @@ export default function SignupScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="비밀번호 (최소 6자)"
+                placeholder={t('passwordMin')}
                 placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={password}
                 onChangeText={setPassword}
@@ -200,7 +202,7 @@ export default function SignupScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="비밀번호 확인"
+                placeholder={t('passwordConfirm')}
                 placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -223,13 +225,13 @@ export default function SignupScreen({ navigation }) {
             <View style={styles.infoBox}>
               <Ionicons name="information-circle" size={18} color="#FF6B35" />
               <Text style={styles.infoText}>
-                프로필을 작성하시면 주변 새상품 알림을 받을 수 있습니다
+                {t('profileTip')}
               </Text>
             </View>
 
             {/* 주소 입력 (선택사항) */}
             <View style={styles.addressSection}>
-              <Text style={styles.sectionTitle}>주소 정보 (선택사항)</Text>
+              <Text style={styles.sectionTitle}>{t('addressOptional')}</Text>
 
               {/* 도시 */}
               <View style={styles.pickerWrapper}>
@@ -242,7 +244,7 @@ export default function SignupScreen({ navigation }) {
                   }}
                   style={styles.picker}
                 >
-                  <Picker.Item label="도시 선택" value="" />
+                  <Picker.Item label={t('selectCity')} value="" />
                   <Picker.Item label="호치민" value="호치민" />
                   <Picker.Item label="하노이" value="하노이" />
                   <Picker.Item label="다낭" value="다낭" />
@@ -261,7 +263,7 @@ export default function SignupScreen({ navigation }) {
                     }}
                     style={styles.picker}
                   >
-                    <Picker.Item label="구/군 선택" value="" />
+                    <Picker.Item label={t('selectDistrict')} value="" />
                     {districts.map((district) => (
                       <Picker.Item
                         key={district}
@@ -281,7 +283,7 @@ export default function SignupScreen({ navigation }) {
                     onValueChange={setSelectedApartment}
                     style={styles.picker}
                   >
-                    <Picker.Item label="아파트/지역 선택" value="" />
+                    <Picker.Item label={t('selectApartment')} value="" />
                     {apartments.map((apartment) => (
                       <Picker.Item
                         key={apartment}
@@ -303,15 +305,15 @@ export default function SignupScreen({ navigation }) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.signupButtonText}>가입하기</Text>
+                <Text style={styles.signupButtonText}>{t('signupButton')}</Text>
               )}
             </TouchableOpacity>
 
             {/* 로그인으로 이동 */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>이미 계정이 있으신가요? </Text>
+              <Text style={styles.loginText}>{t('hasAccount')} </Text>
               <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={styles.loginLink}>로그인</Text>
+                <Text style={styles.loginLink}>{t('loginButton')}</Text>
               </TouchableOpacity>
             </View>
           </View>

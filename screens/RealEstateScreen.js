@@ -17,6 +17,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import { db } from "../firebase/config";
@@ -33,12 +34,12 @@ import {
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 
 // 검색바 컴포넌트
-const SearchBar = memo(({ value, onChangeText }) => (
+const SearchBar = memo(({ value, onChangeText, placeholder }) => (
   <View style={styles.searchContainer}>
     <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
     <TextInput
       style={styles.searchInput}
-      placeholder="원하는 부동산을 검색하세요"
+      placeholder={placeholder}
       placeholderTextColor="rgba(0, 0, 0, 0.38)"
       value={value}
       onChangeText={onChangeText}
@@ -47,17 +48,20 @@ const SearchBar = memo(({ value, onChangeText }) => (
 ));
 
 // 부동산 카드 컴포넌트
-const RealEstateCard = memo(({ item, onPress, index }) => {
-  const status = item.status || "거래가능";
+const RealEstateCard = memo(({ item, onPress, index, t }) => {
+  const status = item.status || t('available');
   const originalImage = item.images?.[0];
 
   const getStatusColor = (status) => {
     switch (status) {
       case "거래가능":
+      case t('available'):
         return "#4CAF50";
       case "예약중":
+      case t('reserved'):
         return "#FF9800";
       case "거래완료":
+      case t('completed'):
         return "#9E9E9E";
       default:
         return "#4CAF50";
@@ -65,16 +69,17 @@ const RealEstateCard = memo(({ item, onPress, index }) => {
   };
 
   const getTypeBadge = (type) => {
-    return type === "임대"
-      ? { bg: "#E3F2FD", color: "#1976D2", text: "임대" }
-      : { bg: "#FFF3E0", color: "#E65100", text: "매매" };
+    const isRent = type === "임대" || type === t('rent');
+    return isRent
+      ? { bg: "#E3F2FD", color: "#1976D2", text: t('rent') }
+      : { bg: "#FFF3E0", color: "#E65100", text: t('sale') };
   };
 
   const badge = getTypeBadge(item.dealType);
 
   // 임대용: 만동 단위로 입력된 가격 포맷
   const formatPrice = (price, unit) => {
-    if (!price) return "가격 협의";
+    if (!price) return t('priceNegotiable');
     const num = parseInt(price);
     if (num >= 10000) {
       return `${(num / 10000).toFixed(1)}억 ${unit || ''}`.trim();
@@ -84,7 +89,7 @@ const RealEstateCard = memo(({ item, onPress, index }) => {
 
   // 매매용: 억동 단위로 입력된 가격 포맷
   const formatSalePrice = (price) => {
-    if (!price) return "가격 협의";
+    if (!price) return t('priceNegotiable');
     const num = parseFloat(price);
     return `💰 ${num}억`;
   };
@@ -173,6 +178,7 @@ const RealEstateCard = memo(({ item, onPress, index }) => {
 
 export default function RealEstateScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('realEstate');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -189,8 +195,9 @@ export default function RealEstateScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const ITEMS_PER_PAGE = 20;
 
-  // 거래 유형
+  // 거래 유형 (데이터 저장용은 한국어, 표시용은 번역)
   const dealTypes = ["전체", "임대", "매매"];
+  const dealTypeLabels = [t('common:all'), t('rent'), t('sale')];
 
   // 매물 유형
   const propertyTypes = [
@@ -322,17 +329,17 @@ export default function RealEstateScreen({ navigation }) {
   const handleAddItem = useCallback(() => {
     if (!user) {
       Alert.alert(
-        "로그인 필요 🔒",
-        "부동산 매물을 등록하려면 로그인이 필요합니다.\n지금 로그인하시겠어요?",
+        t('common:loginRequired') + " 🔒",
+        t('loginMessage'),
         [
-          { text: "나중에", style: "cancel" },
-          { text: "로그인", onPress: () => navigation.navigate("로그인") },
+          { text: t('common:later'), style: "cancel" },
+          { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
         ]
       );
     } else {
       navigation.navigate("부동산등록");
     }
-  }, [user, navigation]);
+  }, [user, navigation, t]);
 
   const handleItemPress = useCallback((item) => {
     navigation.navigate("부동산상세", { item });
@@ -344,13 +351,14 @@ export default function RealEstateScreen({ navigation }) {
         item={item}
         onPress={handleItemPress}
         index={index}
+        t={t}
       />
       {/* 2개마다 광고 삽입 */}
       {(index + 1) % 2 === 0 && (
         <InlineAdBanner position="realestate_inline" />
       )}
     </View>
-  ), [handleItemPress]);
+  ), [handleItemPress, t]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
@@ -364,7 +372,7 @@ export default function RealEstateScreen({ navigation }) {
   // 임대/매매 탭 버튼
   const DealTypeTab = useMemo(() => (
     <View style={styles.dealTypeTabContainer}>
-      {dealTypes.map((type) => (
+      {dealTypes.map((type, index) => (
         <TouchableOpacity
           key={type}
           style={[
@@ -377,12 +385,12 @@ export default function RealEstateScreen({ navigation }) {
             styles.dealTypeTabText,
             selectedDealType === type && styles.dealTypeTabTextActive
           ]}>
-            {type}
+            {dealTypeLabels[index]}
           </Text>
         </TouchableOpacity>
       ))}
     </View>
-  ), [selectedDealType]);
+  ), [selectedDealType, dealTypeLabels]);
 
   // 필터 영역
   const FilterSection = useMemo(() => (
@@ -395,7 +403,7 @@ export default function RealEstateScreen({ navigation }) {
             style={styles.picker}
           >
             {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? "📍 전체 지역" : city} value={city} color="#333" />
+              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : city} value={city} color="#333" />
             ))}
           </Picker>
         </View>
@@ -406,7 +414,7 @@ export default function RealEstateScreen({ navigation }) {
             style={styles.picker}
           >
             {propertyTypes.map((type) => (
-              <Picker.Item key={type} label={type === "전체" ? "🏠 전체 유형" : type} value={type} color="#333" />
+              <Picker.Item key={type} label={type === "전체" ? `🏠 ${t('allTypes')}` : type} value={type} color="#333" />
             ))}
           </Picker>
         </View>
@@ -424,13 +432,13 @@ export default function RealEstateScreen({ navigation }) {
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
           <Ionicons name="lock-closed" size={20} color="#E91E63" />
-          <Text style={styles.loginBannerText}>로그인하고 매물을 등록하세요!</Text>
+          <Text style={styles.loginBannerText}>{t('loginMessage').split('\n')[0]}</Text>
           <Ionicons name="chevron-forward" size={20} color="#E91E63" />
         </TouchableOpacity>
       )}
 
       {/* 검색바 */}
-      <SearchBar value={searchText} onChangeText={setSearchText} />
+      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
 
       {/* 임대/매매 탭 */}
       {DealTypeTab}
@@ -458,8 +466,8 @@ export default function RealEstateScreen({ navigation }) {
           !refreshing && (
             <View style={styles.emptyContainer}>
               <Ionicons name="home-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>등록된 부동산 매물이 없습니다</Text>
-              <Text style={styles.emptySubText}>첫 번째로 등록해보세요!</Text>
+              <Text style={styles.emptyText}>{t('noProperties')}</Text>
+              <Text style={styles.emptySubText}>{t('beFirst')}</Text>
             </View>
           )
         }
@@ -472,7 +480,7 @@ export default function RealEstateScreen({ navigation }) {
       {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={24} color="#fff" />
-        <Text style={styles.floatingButtonText}>등록</Text>
+        <Text style={styles.floatingButtonText}>{t('common:register')}</Text>
       </TouchableOpacity>
     </View>
   );

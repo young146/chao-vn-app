@@ -17,6 +17,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
 import { db } from "../firebase/config";
@@ -33,12 +34,12 @@ import {
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 
 // 검색바 컴포넌트
-const SearchBar = memo(({ value, onChangeText }) => (
+const SearchBar = memo(({ value, onChangeText, placeholder }) => (
   <View style={styles.searchContainer}>
     <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
     <TextInput
       style={styles.searchInput}
-      placeholder="구인구직 정보를 검색하세요"
+      placeholder={placeholder}
       placeholderTextColor="rgba(0, 0, 0, 0.38)"
       value={value}
       onChangeText={onChangeText}
@@ -47,17 +48,20 @@ const SearchBar = memo(({ value, onChangeText }) => (
 ));
 
 // Jobs 카드 컴포넌트
-const JobCard = memo(({ item, onPress, index }) => {
-  const status = item.status || "모집중";
+const JobCard = memo(({ item, onPress, index, t }) => {
+  const status = item.status || t('recruiting');
   const originalImage = item.images?.[0];
 
   const getStatusColor = (status) => {
     switch (status) {
       case "모집중":
+      case t('recruiting'):
         return "#4CAF50";
       case "마감임박":
+      case t('closingSoon'):
         return "#FF9800";
       case "마감":
+      case t('closed'):
         return "#9E9E9E";
       default:
         return "#4CAF50";
@@ -65,9 +69,10 @@ const JobCard = memo(({ item, onPress, index }) => {
   };
 
   const getJobTypeBadge = (jobType) => {
-    return jobType === "구인" 
-      ? { bg: "#E3F2FD", color: "#1976D2", text: "구인" }
-      : { bg: "#FFF3E0", color: "#E65100", text: "구직" };
+    const isHiring = jobType === "구인" || jobType === t('hiring');
+    return isHiring 
+      ? { bg: "#E3F2FD", color: "#1976D2", text: t('hiring') }
+      : { bg: "#FFF3E0", color: "#E65100", text: t('seeking') };
   };
 
   const badge = getJobTypeBadge(item.jobType);
@@ -143,6 +148,7 @@ const JobCard = memo(({ item, onPress, index }) => {
 
 export default function JobsScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('jobs');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -159,8 +165,9 @@ export default function JobsScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const ITEMS_PER_PAGE = 20;
 
-  // 구인/구직 타입
+  // 구인/구직 타입 (데이터 저장용은 한국어, 표시용은 번역)
   const jobTypes = ["전체", "구인", "구직"];
+  const jobTypeLabels = [t('common:all'), t('hiring'), t('seeking')];
 
   // 업종 카테고리
   const industries = [
@@ -296,17 +303,17 @@ export default function JobsScreen({ navigation }) {
   const handleAddJob = useCallback(() => {
     if (!user) {
       Alert.alert(
-        "로그인 필요 🔒",
-        "구인구직 글을 등록하려면 로그인이 필요합니다.\n지금 로그인하시겠어요?",
+        t('common:loginRequired') + " 🔒",
+        t('loginMessage'),
         [
-          { text: "나중에", style: "cancel" },
-          { text: "로그인", onPress: () => navigation.navigate("로그인") },
+          { text: t('common:later'), style: "cancel" },
+          { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
         ]
       );
     } else {
       navigation.navigate("Jobs등록");
     }
-  }, [user, navigation]);
+  }, [user, navigation, t]);
 
   const handleJobPress = useCallback((job) => {
     const serializableJob = {
@@ -322,13 +329,14 @@ export default function JobsScreen({ navigation }) {
         item={item}
         onPress={handleJobPress}
         index={index}
+        t={t}
       />
       {/* 2개마다 광고 삽입 */}
       {(index + 1) % 2 === 0 && (
         <InlineAdBanner position="jobs_inline" />
       )}
     </View>
-  ), [handleJobPress]);
+  ), [handleJobPress, t]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
@@ -342,7 +350,7 @@ export default function JobsScreen({ navigation }) {
   // 구인/구직 탭 버튼
   const JobTypeTab = useMemo(() => (
     <View style={styles.jobTypeTabContainer}>
-      {jobTypes.map((type) => (
+      {jobTypes.map((type, index) => (
         <TouchableOpacity
           key={type}
           style={[
@@ -355,12 +363,12 @@ export default function JobsScreen({ navigation }) {
             styles.jobTypeTabText,
             selectedJobType === type && styles.jobTypeTabTextActive
           ]}>
-            {type}
+            {jobTypeLabels[index]}
           </Text>
         </TouchableOpacity>
       ))}
     </View>
-  ), [selectedJobType]);
+  ), [selectedJobType, jobTypeLabels]);
 
   // 필터 영역
   const FilterSection = useMemo(() => (
@@ -373,7 +381,7 @@ export default function JobsScreen({ navigation }) {
             style={styles.picker}
           >
             {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? "📍 전체 지역" : city} value={city} color="#333" />
+              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : city} value={city} color="#333" />
             ))}
           </Picker>
         </View>
@@ -384,7 +392,7 @@ export default function JobsScreen({ navigation }) {
             style={styles.picker}
           >
             {industries.map((ind) => (
-              <Picker.Item key={ind} label={ind === "전체" ? "💼 전체 업종" : ind} value={ind} color="#333" />
+              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : ind} value={ind} color="#333" />
             ))}
           </Picker>
         </View>
@@ -402,13 +410,13 @@ export default function JobsScreen({ navigation }) {
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
           <Ionicons name="lock-closed" size={20} color="#2196F3" />
-          <Text style={styles.loginBannerText}>로그인하고 구인구직 정보를 등록하세요!</Text>
+          <Text style={styles.loginBannerText}>{t('loginMessage').split('\n')[0]}</Text>
           <Ionicons name="chevron-forward" size={20} color="#2196F3" />
         </TouchableOpacity>
       )}
 
       {/* 검색바 */}
-      <SearchBar value={searchText} onChangeText={setSearchText} />
+      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
 
       {/* 구인/구직 탭 */}
       {JobTypeTab}
@@ -436,8 +444,8 @@ export default function JobsScreen({ navigation }) {
           !refreshing && (
             <View style={styles.emptyContainer}>
               <Ionicons name="briefcase-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>등록된 구인구직 정보가 없습니다</Text>
-              <Text style={styles.emptySubText}>첫 번째로 등록해보세요!</Text>
+              <Text style={styles.emptyText}>{t('noJobs')}</Text>
+              <Text style={styles.emptySubText}>{t('beFirst')}</Text>
             </View>
           )
         }
@@ -450,7 +458,7 @@ export default function JobsScreen({ navigation }) {
       {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddJob}>
         <Ionicons name="add" size={24} color="#fff" />
-        <Text style={styles.floatingButtonText}>등록</Text>
+        <Text style={styles.floatingButtonText}>{t('common:register')}</Text>
       </TouchableOpacity>
     </View>
   );

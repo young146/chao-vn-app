@@ -1,0 +1,33 @@
+{
+  "tabs": {
+    "home": "Trang chủ",
+    "news": "Tin tức",
+    "danggn": "Chia sẻ",
+    "jobs": "Việc làm",
+    "realEstate": "BĐS"
+  },
+  "headers": {
+    "postDetail": "Chi tiết",
+    "jobDetail": "Chi tiết công việc",
+    "addJob": "Đăng tin",
+    "propertyDetail": "Chi tiết BĐS",
+    "addProperty": "Đăng tin BĐS",
+    "itemDetail": "Chi tiết sản phẩm",
+    "addItem": "Đăng sản phẩm",
+    "editItem": "Sửa sản phẩm",
+    "writeReview": "Viết đánh giá",
+    "chat": "Chat",
+    "menu": "Menu",
+    "myPage": "Trang cá nhân",
+    "myChats": "Chat của tôi",
+    "favorites": "Yêu thích",
+    "bookmarks": "Đã lưu",
+    "notificationSettings": "Cài đặt thông báo",
+    "profile": "Hồ sơ",
+    "adminPage": "Quản trị",
+    "myItems": "Sản phẩm của tôi",
+    "myReviews": "Đánh giá của tôi",
+    "userManagement": "Quản lý người dùng",
+    "notifications": "Thông báo"
+  }
+}

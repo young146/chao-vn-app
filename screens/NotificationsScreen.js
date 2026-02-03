@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
   collection,
@@ -22,13 +23,22 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
+import { ko, vi, enUS } from "date-fns/locale";
 
 export default function NotificationsScreen({ navigation }) {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation('menu');
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const getDateLocale = () => {
+    switch (i18n.language) {
+      case 'vi': return vi;
+      case 'en': return enUS;
+      default: return ko;
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -157,7 +167,7 @@ export default function NotificationsScreen({ navigation }) {
     const timeAgo = item.createdAt
       ? formatDistanceToNow(item.createdAt.toDate(), {
           addSuffix: true,
-          locale: ko,
+          locale: getDateLocale(),
         })
       : "";
 
@@ -183,13 +193,13 @@ export default function NotificationsScreen({ navigation }) {
           <View style={styles.textContainer}>
             {/* 제목 */}
             <Text style={[styles.title, !item.read && styles.unreadTitle]}>
-              {item.type === "priceChange" && <Text>🏷️ 가격 할인!</Text>}
-              {item.type === "review" && <Text>⭐ 새 리뷰</Text>}
-              {item.type === "new_review" && <Text>⭐ 새 리뷰</Text>}
-              {item.type === "favorite" && <Text>❤️ 새로운 찜</Text>}
-              {item.type === "chat" && <Text>💬 새 메시지</Text>}
-              {item.type === "new_item" && <Text>📦 새 물품 등록</Text>}
-              {item.type === "item_rejected" && <Text>🚫 물품 등록 거부</Text>}
+              {item.type === "priceChange" && <Text>🏷️ {t('priceDiscount')}</Text>}
+              {item.type === "review" && <Text>⭐ {t('newReview')}</Text>}
+              {item.type === "new_review" && <Text>⭐ {t('newReview')}</Text>}
+              {item.type === "favorite" && <Text>❤️ {t('newFavorite')}</Text>}
+              {item.type === "chat" && <Text>💬 {t('newMessage')}</Text>}
+              {item.type === "new_item" && <Text>📦 {t('newItemRegistered')}</Text>}
+              {item.type === "item_rejected" && <Text>🚫 {t('itemRejected')}</Text>}
             </Text>
             {/* ✅ 메시지 (numberOfLines 제거!) */}
             <Text style={styles.message}>{item.message}</Text>
@@ -204,9 +214,9 @@ export default function NotificationsScreen({ navigation }) {
                 <Text style={styles.newPrice}>
                   {item.newPrice?.toLocaleString()}₫
                 </Text>
-                <Text style={styles.discount}>
-                  ({item.discount?.toLocaleString()}₫ 할인)
-                </Text>
+<Text style={styles.discount}>
+                      ({t('discount', { amount: item.discount?.toLocaleString() })})
+                    </Text>
               </View>
             )}
 
@@ -240,7 +250,7 @@ export default function NotificationsScreen({ navigation }) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={styles.loadingText}>알림을 불러오는 중...</Text>
+        <Text style={styles.loadingText}>{t('loadingNotifications')}</Text>
       </View>
     );
   }
@@ -249,7 +259,7 @@ export default function NotificationsScreen({ navigation }) {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="log-in-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyText}>로그인이 필요합니다</Text>
+        <Text style={styles.emptyText}>{t('loginRequired')}</Text>
       </View>
     );
   }
@@ -276,10 +286,9 @@ export default function NotificationsScreen({ navigation }) {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={80} color="#ddd" />
-            <Text style={styles.emptyText}>알림이 없습니다</Text>
+            <Text style={styles.emptyText}>{t('notificationEmpty')}</Text>
             <Text style={styles.emptySubText}>
-              찜한 물품의 가격이 변경되거나{"\n"}
-              새로운 알림이 오면 여기에 표시됩니다!
+              {t('notificationEmptyDesc')}
             </Text>
           </View>
         }

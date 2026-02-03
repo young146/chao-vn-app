@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function MyItemsScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('menu');
   const [myItems, setMyItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, selling, sold
@@ -62,7 +64,7 @@ export default function MyItemsScreen({ navigation }) {
       setMyItems(items);
     } catch (error) {
       console.error("내 물품 로드 실패:", error);
-      Alert.alert("오류", "내 물품을 불러오는데 실패했습니다.");
+      Alert.alert(t('error'), t('loadItemsFailed'));
     } finally {
       setLoading(false);
     }
@@ -70,21 +72,21 @@ export default function MyItemsScreen({ navigation }) {
 
   const handleDeleteItem = (itemId, itemTitle) => {
     Alert.alert(
-      "물품 삭제",
-      `"${itemTitle}"을(를) 삭제하시겠습니까?`,
+      t('deleteItem'),
+      t('deleteItemConfirm', { title: itemTitle }),
       [
-        { text: "취소", style: "cancel" },
+        { text: t('common:cancel'), style: "cancel" },
         {
-          text: "삭제",
+          text: t('common:delete'),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteDoc(doc(db, "XinChaoDanggn", itemId));
               setMyItems(prev => prev.filter(item => item.id !== itemId));
-              Alert.alert("삭제 완료", "물품이 삭제되었습니다");
+              Alert.alert(t('deleteComplete'), t('itemDeleted'));
             } catch (error) {
               console.error("물품 삭제 실패:", error);
-              Alert.alert("오류", "삭제에 실패했습니다.");
+              Alert.alert(t('error'), t('deleteFailed'));
             }
           }
         }
@@ -155,7 +157,7 @@ export default function MyItemsScreen({ navigation }) {
         {/* 판매완료 오버레이 */}
         {item.status === "판매완료" && (
           <View style={styles.soldOverlay}>
-            <Text style={styles.soldText}>판매완료</Text>
+            <Text style={styles.soldText}>{t('sold')}</Text>
           </View>
         )}
       </View>
@@ -201,15 +203,15 @@ export default function MyItemsScreen({ navigation }) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="cube-outline" size={80} color="#ccc" />
-        <Text style={styles.emptyTitle}>로그인이 필요합니다</Text>
+        <Text style={styles.emptyTitle}>{t('loginRequired')}</Text>
         <Text style={styles.emptyMessage}>
-          내 물품을 보려면 로그인해주세요
+          {t('viewMyItemsLogin')}
         </Text>
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate("로그인")}
         >
-          <Text style={styles.loginButtonText}>로그인하기</Text>
+          <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -226,7 +228,7 @@ export default function MyItemsScreen({ navigation }) {
           onPress={() => setFilter("all")}
         >
           <Text style={[styles.filterText, filter === "all" && styles.filterTextActive]}>
-            전체 ({myItems.length})
+            {t('allItems')} ({myItems.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -234,7 +236,7 @@ export default function MyItemsScreen({ navigation }) {
           onPress={() => setFilter("selling")}
         >
           <Text style={[styles.filterText, filter === "selling" && styles.filterTextActive]}>
-            판매중 ({myItems.filter(i => i.status === "판매중").length})
+            {t('selling')} ({myItems.filter(i => i.status === "판매중").length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -242,25 +244,25 @@ export default function MyItemsScreen({ navigation }) {
           onPress={() => setFilter("sold")}
         >
           <Text style={[styles.filterText, filter === "sold" && styles.filterTextActive]}>
-            판매완료 ({myItems.filter(i => i.status === "판매완료").length})
+            {t('sold')} ({myItems.filter(i => i.status === "판매완료").length})
           </Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyMessage}>로딩 중...</Text>
+          <Text style={styles.emptyMessage}>{t('loading')}</Text>
         </View>
       ) : filteredItems.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cube-outline" size={80} color="#ccc" />
           <Text style={styles.emptyTitle}>
-            {filter === "all" ? "등록한 물품이 없습니다" :
-             filter === "selling" ? "판매중인 물품이 없습니다" :
-             "판매완료된 물품이 없습니다"}
+            {filter === "all" ? t('noItems') :
+             filter === "selling" ? t('noSellingItems') :
+             t('noSoldItems')}
           </Text>
           <Text style={styles.emptyMessage}>
-            물품을 등록해보세요
+            {t('registerItemHint')}
           </Text>
         </View>
       ) : (

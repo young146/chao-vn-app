@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import {
   doc,
   deleteDoc,
@@ -31,6 +32,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function RealEstateDetailScreen({ route, navigation }) {
   const { item } = route.params;
   const { user, isAdmin } = useAuth();
+  const { t } = useTranslation(['realEstate', 'common']);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(item.status || "거래가능");
 
@@ -57,17 +59,17 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return "방금 전";
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
+    if (minutes < 1) return t('detail.justNow');
+    if (minutes < 60) return t('detail.minutesAgo', { count: minutes });
+    if (hours < 24) return t('detail.hoursAgo', { count: hours });
+    if (days < 7) return t('detail.daysAgo', { count: days });
 
     return date.toLocaleDateString("ko-KR");
   };
 
   // 임대용: 만동 단위로 입력된 가격 포맷
   const formatPrice = (price, unit) => {
-    if (!price) return "협의";
+    if (!price) return t('priceNegotiable');
     const num = parseInt(price);
     if (num >= 10000) {
       return `${(num / 10000).toFixed(1)}억 ${unit || ''}`.trim();
@@ -77,7 +79,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
   // 매매용: 억동 단위로 입력된 가격 포맷
   const formatSalePrice = (price) => {
-    if (!price) return "협의";
+    if (!price) return t('priceNegotiable');
     const num = parseFloat(price);
     return `${num}억`;
   };
@@ -96,17 +98,18 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   };
 
   const getTypeBadge = (type) => {
-    return type === "임대"
-      ? { bg: "#E3F2FD", color: "#1976D2", text: "임대" }
-      : { bg: "#FFF3E0", color: "#E65100", text: "매매" };
+    const isRent = type === "임대";
+    return isRent
+      ? { bg: "#E3F2FD", color: "#1976D2", text: t('rent') }
+      : { bg: "#FFF3E0", color: "#E65100", text: t('sale') };
   };
 
   // 거래완료 처리
   const handleMarkAsComplete = async () => {
-    Alert.alert("거래완료", "이 매물을 거래완료로 표시하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('detail.markAsComplete'), t('detail.markAsCompleteConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "확인",
+        text: t('common:confirm'),
         onPress: async () => {
           try {
             const itemRef = doc(db, "RealEstate", item.id);
@@ -114,10 +117,10 @@ export default function RealEstateDetailScreen({ route, navigation }) {
               status: "거래완료",
             });
             setCurrentStatus("거래완료");
-            Alert.alert("완료", "거래완료로 표시되었습니다!");
+            Alert.alert(t('detail.complete'), t('detail.markedAsComplete'));
           } catch (error) {
             console.error("상태 변경 실패:", error);
-            Alert.alert("오류", "상태 변경에 실패했습니다.");
+            Alert.alert(t('common:error'), t('detail.deleteFailed'));
           }
         },
       },
@@ -126,10 +129,10 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
   // 거래가능으로 재오픈
   const handleReopen = async () => {
-    Alert.alert("재등록", "이 매물을 다시 거래가능으로 변경하시겠습니까?", [
-      { text: "취소", style: "cancel" },
+    Alert.alert(t('detail.reopen'), t('detail.reopenConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
       {
-        text: "확인",
+        text: t('common:confirm'),
         onPress: async () => {
           try {
             const itemRef = doc(db, "RealEstate", item.id);
@@ -137,10 +140,10 @@ export default function RealEstateDetailScreen({ route, navigation }) {
               status: "거래가능",
             });
             setCurrentStatus("거래가능");
-            Alert.alert("완료", "거래가능으로 변경되었습니다!");
+            Alert.alert(t('detail.complete'), t('detail.reopened'));
           } catch (error) {
             console.error("상태 변경 실패:", error);
-            Alert.alert("오류", "상태 변경에 실패했습니다.");
+            Alert.alert(t('common:error'), t('detail.deleteFailed'));
           }
         },
       },
@@ -150,15 +153,15 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   // 채팅하기
   const handleChat = useCallback(() => {
     if (!user) {
-      Alert.alert("알림", "로그인이 필요합니다.", [
-        { text: "확인" },
-        { text: "로그인하기", onPress: () => navigation.navigate("로그인") },
+      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
+        { text: t('common:confirm') },
+        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
       ]);
       return;
     }
 
     if (isMyItem) {
-      Alert.alert("알림", "본인이 등록한 매물입니다.");
+      Alert.alert(t('common:notice'), t('detail.ownPost'));
       return;
     }
 
@@ -168,15 +171,15 @@ export default function RealEstateDetailScreen({ route, navigation }) {
       itemTitle: item.title,
       itemImage: images[0] || null,
       otherUserId: item.userId,
-      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : "등록자",
+      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : t('detail.poster'),
       sellerId: item.userId,
     });
-  }, [user, item, images, navigation, isMyItem]);
+  }, [user, item, images, navigation, isMyItem, t]);
 
   // 전화걸기
   const handleCall = () => {
     if (!item.contact) {
-      Alert.alert("알림", "연락처 정보가 없습니다.");
+      Alert.alert(t('common:notice'), t('detail.noContact'));
       return;
     }
 
@@ -188,11 +191,11 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   const handleShare = async () => {
     try {
       const priceText = item.dealType === "임대"
-        ? `보증금 ${formatPrice(item.deposit)} / 월세 ${formatPrice(item.monthlyRent)}`
-        : `매매가 ${formatSalePrice(item.price)}`;
+        ? `${t('detail.deposit')} ${formatPrice(item.deposit)} / ${t('detail.monthlyRent')} ${formatPrice(item.monthlyRent)}`
+        : `${t('detail.salePrice')} ${formatSalePrice(item.price)}`;
       
       await Share.share({
-        message: `[${item.dealType}] ${item.title}\n\n📍 ${item.city}${item.district ? ` ${item.district}` : ''}\n💰 ${priceText}\n\n씬짜오 베트남 앱에서 확인하세요!`,
+        message: `[${item.dealType}] ${item.title}\n\n📍 ${item.city}${item.district ? ` ${item.district}` : ''}\n💰 ${priceText}\n\nXinChao Vietnam App`,
       });
     } catch (error) {
       console.error("공유 실패:", error);
@@ -207,12 +210,12 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   // 삭제하기
   const handleDelete = () => {
     Alert.alert(
-      "삭제 확인",
-      "이 매물을 삭제하시겠습니까?\n삭제된 매물은 복구할 수 없습니다.",
+      t('common:delete'),
+      t('detail.deleteConfirm'),
       [
-        { text: "취소", style: "cancel" },
+        { text: t('common:cancel'), style: "cancel" },
         {
-          text: "삭제",
+          text: t('common:delete'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -232,12 +235,12 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
               await deleteDoc(doc(db, "RealEstate", item.id));
 
-              Alert.alert("삭제 완료", "매물이 삭제되었습니다.", [
-                { text: "확인", onPress: () => navigation.goBack() },
+              Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+                { text: t('common:confirm'), onPress: () => navigation.goBack() },
               ]);
             } catch (error) {
               console.error("삭제 실패:", error);
-              Alert.alert("오류", "삭제에 실패했습니다.");
+              Alert.alert(t('common:error'), t('detail.deleteFailed'));
             }
           },
         },
@@ -305,7 +308,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         ) : (
           <View style={styles.noImageContainer}>
             <Ionicons name="home-outline" size={80} color="#ddd" />
-            <Text style={styles.noImageText}>등록된 이미지가 없습니다</Text>
+            <Text style={styles.noImageText}>{t('detail.noImage')}</Text>
           </View>
         )}
 
@@ -337,17 +340,17 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             {item.dealType === "임대" ? (
               <>
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>보증금</Text>
+                  <Text style={styles.priceLabel}>{t('detail.deposit')}</Text>
                   <Text style={styles.priceValue}>{formatPrice(item.deposit)}</Text>
                 </View>
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>월세</Text>
+                  <Text style={styles.priceLabel}>{t('detail.monthlyRent')}</Text>
                   <Text style={styles.priceValue}>{formatPrice(item.monthlyRent)}</Text>
                 </View>
               </>
             ) : (
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>매매가</Text>
+                <Text style={styles.priceLabel}>{t('detail.salePrice')}</Text>
                 <Text style={styles.priceValue}>{formatSalePrice(item.price)}</Text>
               </View>
             )}
@@ -357,7 +360,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           <View style={styles.metaRow}>
             <Ionicons name="person-outline" size={14} color="#888" />
             <Text style={styles.metaText}>
-              {item.userEmail ? item.userEmail.split("@")[0] : "익명"}
+              {item.userEmail ? item.userEmail.split("@")[0] : t('detail.anonymous')}
             </Text>
             <Text style={styles.metaDivider}>·</Text>
             <Text style={styles.metaText}>{formatDate(item.createdAt)}</Text>
@@ -366,13 +369,13 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
         {/* 상세 정보 카드 */}
         <View style={styles.infoCard}>
-          <Text style={styles.cardTitle}>🏠 매물 정보</Text>
+          <Text style={styles.cardTitle}>🏠 {t('detail.propertyInfo')}</Text>
 
           {/* 위치 */}
           <View style={styles.infoRow}>
             <View style={styles.infoLabel}>
               <Ionicons name="location-outline" size={18} color="#E91E63" />
-              <Text style={styles.labelText}>위치</Text>
+              <Text style={styles.labelText}>{t('detail.location')}</Text>
             </View>
             <Text style={styles.infoValue}>
               {item.city}{item.district ? ` ${item.district}` : ''}
@@ -384,7 +387,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="resize-outline" size={18} color="#2196F3" />
-                <Text style={styles.labelText}>면적</Text>
+                <Text style={styles.labelText}>{t('detail.area')}</Text>
               </View>
               <Text style={styles.infoValue}>{item.area}㎡</Text>
             </View>
@@ -395,7 +398,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="bed-outline" size={18} color="#9C27B0" />
-                <Text style={styles.labelText}>방 구성</Text>
+                <Text style={styles.labelText}>{t('detail.rooms')}</Text>
               </View>
               <Text style={styles.infoValue}>{item.rooms}</Text>
             </View>
@@ -406,7 +409,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="layers-outline" size={18} color="#FF9800" />
-                <Text style={styles.labelText}>층수</Text>
+                <Text style={styles.labelText}>{t('detail.floor')}</Text>
               </View>
               <Text style={styles.infoValue}>{item.floor}</Text>
             </View>
@@ -417,7 +420,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="calendar-outline" size={18} color="#795548" />
-                <Text style={styles.labelText}>입주 가능일</Text>
+                <Text style={styles.labelText}>{t('detail.availableDate')}</Text>
               </View>
               <Text style={styles.infoValue}>{item.availableDate}</Text>
             </View>
@@ -428,7 +431,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="call-outline" size={18} color="#009688" />
-                <Text style={styles.labelText}>연락처</Text>
+                <Text style={styles.labelText}>{t('detail.contact')}</Text>
               </View>
               <TouchableOpacity onPress={handleCall}>
                 <Text style={[styles.infoValue, styles.linkText]}>{item.contact}</Text>
@@ -439,9 +442,9 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
         {/* 상세 설명 */}
         <View style={styles.descriptionCard}>
-          <Text style={styles.cardTitle}>📝 상세 설명</Text>
+          <Text style={styles.cardTitle}>📝 {t('detail.description')}</Text>
           <Text style={styles.description}>
-            {item.description || "상세 설명이 없습니다."}
+            {item.description || t('detail.noDescription')}
           </Text>
         </View>
 
@@ -453,7 +456,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
               onPress={handleEdit}
             >
               <Ionicons name="create-outline" size={20} color="#E91E63" />
-              <Text style={styles.editButtonText}>수정하기</Text>
+              <Text style={styles.editButtonText}>{t('detail.edit')}</Text>
             </TouchableOpacity>
 
             {currentStatus !== "거래완료" ? (
@@ -462,7 +465,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 onPress={handleMarkAsComplete}
               >
                 <Ionicons name="checkmark-circle-outline" size={20} color="#4CAF50" />
-                <Text style={styles.closeButtonText}>거래완료</Text>
+                <Text style={styles.closeButtonText}>{t('detail.markAsComplete')}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -470,7 +473,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 onPress={handleReopen}
               >
                 <Ionicons name="refresh-outline" size={20} color="#2196F3" />
-                <Text style={styles.reopenButtonText}>재등록</Text>
+                <Text style={styles.reopenButtonText}>{t('detail.reopen')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -488,7 +491,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           {item.contact && (
             <TouchableOpacity style={styles.callButton} onPress={handleCall}>
               <Ionicons name="call" size={22} color="#fff" />
-              <Text style={styles.callButtonText}>전화하기</Text>
+              <Text style={styles.callButtonText}>{t('detail.call')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -496,7 +499,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             onPress={handleChat}
           >
             <Ionicons name="chatbubble" size={22} color="#fff" />
-            <Text style={styles.chatButtonText}>채팅하기</Text>
+            <Text style={styles.chatButtonText}>{t('detail.chat')}</Text>
           </TouchableOpacity>
         </View>
       )}
