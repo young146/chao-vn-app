@@ -63,6 +63,21 @@ const DEFAULT_ADS = {
   section: [
     { imageUrl: "https://chaovietnam.co.kr/ads/section_ad.png", linkUrl: "https://chaovietnam.co.kr" },
   ],
+  // 뉴스 탭 전용 광고 (사이트와 동기화) - 기본값 없음 (없으면 일반 배너에서 랜덤)
+  news_header: [],           // jenny-ad-top
+  news_after_topnews: [],    // jenny-ad-after-topnews
+  news_economy: [],          // jenny-ad-economy-1
+  news_economy_2: [],        // jenny-ad-economy-2
+  news_society: [],          // jenny-ad-society-1
+  news_politics: [],         // jenny-ad-politics-1
+  news_korea_vietnam: [],    // jenny-ad-korea_vietnam-1
+  news_health: [],           // jenny-ad-health-1
+  news_food: [],             // jenny-ad-food-1
+  news_community: [],        // jenny-ad-community-1
+  news_culture: [],          // jenny-ad-culture-1
+  news_real_estate: [],      // jenny-ad-real_estate-1
+  news_travel: [],           // jenny-ad-travel-1
+  news_international: [],    // jenny-ad-international-1
 };
 
 /**
@@ -272,10 +287,26 @@ const fetchAdConfig = async () => {
         banner: apiAds.banner?.length > 0 ? apiAds.banner : DEFAULT_ADS.banner,
         inline: apiAds.inline?.length > 0 ? apiAds.inline : DEFAULT_ADS.inline,
         section: apiAds.section?.length > 0 ? apiAds.section : DEFAULT_ADS.section,
+        // 뉴스 탭 전용 광고 (사이트와 동기화)
+        news_header: apiAds.news_header || [],
+        news_after_topnews: apiAds.news_after_topnews || [],
+        news_economy: apiAds.news_economy || [],
+        news_economy_2: apiAds.news_economy_2 || [],
+        news_society: apiAds.news_society || [],
+        news_politics: apiAds.news_politics || [],
+        news_korea_vietnam: apiAds.news_korea_vietnam || [],
+        news_health: apiAds.news_health || [],
+        news_food: apiAds.news_food || [],
+        news_community: apiAds.news_community || [],
+        news_culture: apiAds.news_culture || [],
+        news_real_estate: apiAds.news_real_estate || [],
+        news_travel: apiAds.news_travel || [],
+        news_international: apiAds.news_international || [],
       };
       
       lastFetchTime = now;
-      console.log(`✅ ChaoVN Ad API 성공: Banner ${cachedAds.banner.length}, Inline ${cachedAds.inline.length}, Section ${cachedAds.section.length}`);
+      const newsAdCount = Object.keys(cachedAds).filter(k => k.startsWith('news_')).reduce((sum, k) => sum + cachedAds[k].length, 0);
+      console.log(`✅ ChaoVN Ad API 성공: Banner ${cachedAds.banner.length}, Inline ${cachedAds.inline.length}, Section ${cachedAds.section.length}, News광고 ${newsAdCount}개`);
       return cachedAds;
     }
   } catch (error) {
@@ -307,6 +338,21 @@ const fetchAdConfig = async () => {
       banner: bannerAds.length > 0 ? bannerAds : allAds.length > 0 ? allAds : DEFAULT_ADS.banner,
       inline: inlineAds.length > 0 ? inlineAds : allAds.length > 0 ? allAds : DEFAULT_ADS.inline,
       section: sectionAds.length > 0 ? sectionAds : allAds.length > 0 ? allAds : DEFAULT_ADS.section,
+      // 뉴스 탭 전용은 WordPress Posts API fallback에서는 비어있음 (Ad Inserter 전용)
+      news_header: [],
+      news_after_topnews: [],
+      news_economy: [],
+      news_economy_2: [],
+      news_society: [],
+      news_politics: [],
+      news_korea_vietnam: [],
+      news_health: [],
+      news_food: [],
+      news_community: [],
+      news_culture: [],
+      news_real_estate: [],
+      news_travel: [],
+      news_international: [],
     };
     
     lastFetchTime = now;
@@ -354,10 +400,24 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
       try {
         // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
         const ads = await fetchAdConfig();
-        const bannerAds = ads?.banner || [];
+        
+        // 2. position에 따라 적절한 광고 풀 선택
+        let targetAds = [];
+        
+        // news_로 시작하는 position은 해당 섹션 배열 사용 (사이트 동기화)
+        if (position && position.startsWith('news_')) {
+          targetAds = ads?.[position] || [];
+          if (targetAds.length === 0) {
+            // 해당 섹션 광고가 없으면 일반 banner에서 랜덤
+            targetAds = ads?.banner || [];
+          }
+        } else {
+          // 그 외: 일반 banner에서 랜덤
+          targetAds = ads?.banner || [];
+        }
         
         // 기본 광고(DEFAULT_ADS)는 진짜 광고가 아니므로 제외
-        const realAds = bannerAds.filter(ad => 
+        const realAds = targetAds.filter(ad => 
           ad.imageUrl && !ad.imageUrl.includes('/ads/banner_ad.png')
         );
         
@@ -368,7 +428,7 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
           return;
         }
         
-        // 2. 자체 광고 없으면 위치별 태그로 광고 찾기 (예: "home_header")
+        // 3. 자체 광고 없으면 위치별 태그로 광고 찾기 (예: "home_header")
         if (position && position !== "default") {
           const tagAds = await fetchAdsByTag(position, 'banner');
           if (tagAds && tagAds.length > 0) {
@@ -379,7 +439,7 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
           }
         }
         
-        // 3. 둘 다 없음 → AdMob 사용
+        // 4. 둘 다 없음 → AdMob 사용
         console.log("📢 자체 광고 없음, AdMob으로 대체");
         setHasSelfAd(false);
       } catch (error) {
@@ -553,6 +613,7 @@ export function InlineAdBanner({ position = "inline", style, useAdMob = true }) 
 /**
  * 섹션 구분 광고 (홈 화면 섹션 사이에 배치)
  * ✅ 여러 광고 중 랜덤 표시
+ * ✅ news_section은 사이트와 동기화
  * 
  * @param {string} position - 광고 위치 태그 (예: "home_section", "news_section")
  */
@@ -564,10 +625,24 @@ export function SectionAdBanner({ position = "section", style }) {
       try {
         // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
         const ads = await fetchAdConfig();
-        const sectionAds = ads?.section || [];
+        
+        // 2. position에 따라 적절한 광고 풀 선택
+        let targetAds = [];
+        
+        // news_로 시작하는 position은 해당 섹션 배열 사용 (사이트 동기화)
+        if (position && position.startsWith('news_')) {
+          targetAds = ads?.[position] || [];
+          if (targetAds.length === 0) {
+            // 해당 섹션 광고가 없으면 일반 section에서 랜덤
+            targetAds = ads?.section || [];
+          }
+        } else {
+          // 그 외: 일반 section에서 랜덤
+          targetAds = ads?.section || [];
+        }
         
         // 기본 광고 제외
-        const realAds = sectionAds.filter(ad => 
+        const realAds = targetAds.filter(ad => 
           ad.imageUrl && !ad.imageUrl.includes('/ads/section_ad.png')
         );
         
@@ -576,7 +651,7 @@ export function SectionAdBanner({ position = "section", style }) {
           return;
         }
         
-        // 2. 자체 광고 없으면 위치별 태그로 광고 찾기
+        // 3. 자체 광고 없으면 위치별 태그로 광고 찾기
         if (position && position !== "section") {
           const tagAds = await fetchAdsByTag(position, 'section');
           if (tagAds && tagAds.length > 0) {
@@ -585,7 +660,7 @@ export function SectionAdBanner({ position = "section", style }) {
           }
         }
         
-        // 3. 둘 다 없으면 기본 광고
+        // 4. 둘 다 없으면 기본 광고
         setAd(getRandomAd(DEFAULT_ADS.section));
       } catch (error) {
         console.log("섹션 광고 로드 실패:", error.message);

@@ -24,6 +24,22 @@ import TranslatedText from '../components/TranslatedText';
 
 const { width } = Dimensions.get('window');
 
+// 뉴스 섹션 카테고리 → 광고 position 매핑 (사이트와 동기화)
+const NEWS_SECTION_AD_MAP = {
+  'TopNews': 'news_after_topnews',     // 주요 뉴스 다음
+  'Economy': 'news_economy',           // 경제
+  'Society': 'news_society',           // 사회
+  'Culture': 'news_culture',           // 문화
+  'Politics': 'news_politics',         // 정치
+  'International': 'news_international', // 국제
+  'Korea-Vietnam': 'news_korea_vietnam', // 한-베
+  'Travel': 'news_travel',             // 여행
+  'Health': 'news_health',             // 건강
+  'Food': 'news_food',                 // 음식
+  'Community': 'news_community',       // 교민
+  'Real_Estate': 'news_real_estate',   // 부동산
+};
+
 const SEARCH_HISTORY_KEY = 'search_history';
 const MAX_HISTORY = 5;
 
@@ -631,9 +647,12 @@ export default function MagazineScreen({ navigation, route }) {
             {/* 🗞️ 뉴스 탭: 카테고리별 섹션 (WordPress 사이트와 동일) */}
             {type === 'news' && !searchQuery && newsSections.length > 0 && (
               <View>
-                {newsSections.map((section, sectionIndex) => (
+                {newsSections.map((section, sectionIndex) => {
+                  // 현재 섹션의 광고 position 결정 (사이트와 동기화)
+                  const adPosition = NEWS_SECTION_AD_MAP[section.categoryKey] || 'news_section';
+                  return (
                   <View key={`news-section-${section.categoryKey}`}>
-                    {sectionIndex > 0 && <SectionAdBanner position="news_inline" />}
+                    {sectionIndex > 0 && <SectionAdBanner position={adPosition} />}
                     <View style={styles.homeSection}>
                       <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>{section.name} ({section.posts.length})</Text>
@@ -654,7 +673,8 @@ export default function MagazineScreen({ navigation, route }) {
                       ))}
                     </View>
                   </View>
-                ))}
+                  );
+                })}
                 
                 {/* 마지막 멘트 */}
                 <View style={styles.endMessageContainer}>

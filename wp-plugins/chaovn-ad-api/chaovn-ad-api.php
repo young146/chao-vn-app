@@ -56,6 +56,21 @@ function chaovn_get_ads() {
         'banner' => array(),
         'inline' => array(),
         'section' => array(),
+        // 뉴스 탭 전용 광고 (사이트와 동기화)
+        'news_header' => array(),           // jenny-ad-top (헤더 슬라이더)
+        'news_after_topnews' => array(),    // jenny-ad-after-topnews
+        'news_economy' => array(),          // jenny-ad-economy-1
+        'news_economy_2' => array(),        // jenny-ad-economy-2
+        'news_society' => array(),          // jenny-ad-society-1
+        'news_politics' => array(),         // jenny-ad-politics-1
+        'news_korea_vietnam' => array(),    // jenny-ad-korea_vietnam-1
+        'news_health' => array(),           // jenny-ad-health-1
+        'news_food' => array(),             // jenny-ad-food-1
+        'news_community' => array(),        // jenny-ad-community-1
+        'news_culture' => array(),          // jenny-ad-culture-1
+        'news_real_estate' => array(),      // jenny-ad-real_estate-1
+        'news_travel' => array(),           // jenny-ad-travel-1
+        'news_international' => array(),    // jenny-ad-international-1
     );
     
     // Ad Inserter 메인 옵션 가져오기
@@ -83,16 +98,29 @@ function chaovn_get_ads() {
         $ad_data = chaovn_extract_block_data($ai_options, $i);
         
         if ($ad_data && !empty($ad_data['imageUrl'])) {
-            $position = chaovn_determine_position($ad_data['name'], $i);
-            $ads[$position][] = $ad_data;
+            $position = chaovn_determine_position($ad_data['name'], $i, $ad_data['jennyAdId']);
+            // position이 $ads 배열에 존재하는지 확인
+            if (isset($ads[$position])) {
+                $ads[$position][] = $ad_data;
+            } else {
+                // 알 수 없는 position은 banner로 분류
+                $ads['banner'][] = $ad_data;
+            }
         }
+    }
+    
+    // 전체 광고 수 계산
+    $total = 0;
+    foreach ($ads as $position_ads) {
+        $total += count($position_ads);
     }
     
     return new WP_REST_Response(array(
         'success' => true,
         'data' => $ads,
         'meta' => array(
-            'total' => count($ads['banner']) + count($ads['inline']) + count($ads['section']),
+            'total' => $total,
+            'positions' => array_keys($ads),
             'generated_at' => current_time('c'),
         ),
     ), 200);
@@ -311,11 +339,15 @@ function chaovn_extract_block_data($options, $block_number) {
         return null;
     }
     
+    // HTML에서 jenny-ad-{섹션} ID 추출
+    $jenny_ad_id = chaovn_extract_jenny_ad_id($ad_code);
+    
     return array(
         'id' => $block_number,
         'name' => $ad_name,
         'imageUrl' => $image_url,
         'linkUrl' => !empty($link_url) ? $link_url : 'https://chaovietnam.co.kr',
+        'jennyAdId' => $jenny_ad_id, // jenny-ad-top, jenny-ad-economy-1 등
         // 앱용 썸네일 URL (각 사이즈별)
         'thumbnails' => array(
             'banner' => chaovn_get_app_thumbnail($image_url, 'app-banner'),
@@ -323,6 +355,25 @@ function chaovn_extract_block_data($options, $block_number) {
             'section' => chaovn_get_app_thumbnail($image_url, 'app-section'),
         ),
     );
+}
+
+/**
+ * HTML 코드에서 jenny-ad-{섹션} ID 추출
+ * 예: <div id="jenny-ad-economy-1"> → "jenny-ad-economy-1"
+ * 
+ * @param string $html HTML 코드
+ * @return string|null jenny-ad ID 또는 null
+ */
+function chaovn_extract_jenny_ad_id($html) {
+    // id="jenny-ad-xxx" 또는 id='jenny-ad-xxx' 패턴 찾기
+    if (preg_match('/id=["\']?(jenny-ad-[a-z0-9_-]+)/i', $html, $matches)) {
+        return $matches[1];
+    }
+    // class에 jenny-ad-xxx가 있는 경우도 체크
+    if (preg_match('/class=["\'][^"\']*?(jenny-ad-[a-z0-9_-]+)/i', $html, $matches)) {
+        return $matches[1];
+    }
+    return null;
 }
 
 /**
@@ -535,12 +586,63 @@ function chaovn_is_valid_ad_link($url) {
 }
 
 /**
- * 블록 이름/번호로 광고 위치 결정
+ * 블록 이름/번호/jennyAdId로 광고 위치 결정
+ * jenny-ad-{섹션} ID를 우선으로 체크하여 사이트와 동기화
+ * 
+ * @param string $name 블록 이름
+ * @param int $block_number 블록 번호
+ * @param string|null $jenny_ad_id HTML에서 추출한 jenny-ad ID
  */
-function chaovn_determine_position($name, $block_number) {
+function chaovn_determine_position($name, $block_number, $jenny_ad_id = null) {
+    
+    // 1. 🔥 jenny-ad ID로 섹션별 position 결정 (최우선)
+    if (!empty($jenny_ad_id)) {
+        $jenny_id_lower = strtolower($jenny_ad_id);
+        
+        // jenny-ad-{섹션} 매핑 테이블
+        $jenny_ad_map = array(
+            'jenny-ad-top'              => 'news_header',
+            'jenny-ad-after-topnews'    => 'news_after_topnews',
+            'jenny-ad-economy-1'        => 'news_economy',
+            'jenny-ad-economy-2'        => 'news_economy_2',
+            'jenny-ad-society-1'        => 'news_society',
+            'jenny-ad-politics-1'       => 'news_politics',
+            'jenny-ad-korea_vietnam-1'  => 'news_korea_vietnam',
+            'jenny-ad-health-1'         => 'news_health',
+            'jenny-ad-food-1'           => 'news_food',
+            'jenny-ad-community-1'      => 'news_community',
+            'jenny-ad-culture-1'        => 'news_culture',
+            'jenny-ad-real_estate-1'    => 'news_real_estate',
+            'jenny-ad-travel-1'         => 'news_travel',
+            'jenny-ad-international-1'  => 'news_international',
+        );
+        
+        if (isset($jenny_ad_map[$jenny_id_lower])) {
+            return $jenny_ad_map[$jenny_id_lower];
+        }
+        
+        // 매핑 테이블에 없지만 jenny-ad-로 시작하면 섹션명 추출 시도
+        if (preg_match('/^jenny-ad-([a-z_]+)/', $jenny_id_lower, $matches)) {
+            $section_name = $matches[1];
+            // 숫자 접미사 제거 (economy-1 → economy)
+            $section_name = preg_replace('/-?\d+$/', '', $section_name);
+            $section_name = str_replace('-', '_', $section_name);
+            return 'news_' . $section_name;
+        }
+    }
+    
     $name_lower = strtolower($name);
     
-    // 이름에 키워드가 포함된 경우
+    // 2. 블록 이름으로 뉴스 전용 키워드 체크
+    $news_header_keywords = array('news_header', 'newsheader', '뉴스헤더', '뉴스_헤더', 'news-header');
+    
+    foreach ($news_header_keywords as $keyword) {
+        if (strpos($name_lower, $keyword) !== false) {
+            return 'news_header';
+        }
+    }
+    
+    // 3. 일반 키워드 체크 (랜덤 광고용)
     $banner_keywords = array('banner', '배너', 'header', 'top', '상단');
     $inline_keywords = array('inline', '인라인', 'middle', 'content', '중간', '콘텐츠');
     $section_keywords = array('section', '섹션', 'footer', 'bottom', '하단', 'sidebar');
@@ -563,7 +665,7 @@ function chaovn_determine_position($name, $block_number) {
         }
     }
     
-    // 이름에 키워드가 없으면 블록 번호로 결정
+    // 4. 이름에 키워드가 없으면 블록 번호로 결정
     // 1-5: banner, 6-10: inline, 11+: section
     if ($block_number <= 5) {
         return 'banner';
