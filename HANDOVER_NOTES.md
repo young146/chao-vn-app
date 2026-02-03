@@ -917,7 +917,114 @@ export default function AddItemScreen() {
 
 ---
 
-**최종 업데이트 일자:** 2026년 2월 1일
+---
+
+## 12. 2026년 2월 3일 - 다국어(i18n) 및 광고 동기화
+
+### 12.1 언어 선택 화면 UX 개선
+
+#### 문제
+- 언어 선택 후 "시작하기" 버튼이 작은 화면에서 시스템 네비게이션 바에 가려짐
+
+#### 해결
+- "시작하기" 버튼 제거
+- 언어 선택 시 즉시 앱 시작하도록 변경
+- `LanguageSelectScreen.js` 수정
+
+#### 커밋
+- `578247d` - fix: language select - start app on tap
+
+### 12.2 뉴스 탭 광고 사이트 동기화 구현
+
+#### 목표
+- WordPress 사이트의 뉴스 페이지 광고와 앱의 뉴스 탭 광고 동기화
+- 14개 섹션(경제, 사회, 문화 등)별 광고 위치 매핑
+
+#### 수정 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `wp-plugins/chaovn-ad-api/chaovn-ad-api.php` | jenny-ad ID 파싱, 14개 섹션별 배열 추가 |
+| `components/AdBanner.js` | 14개 position 지원, news_로 시작하는 position 처리 |
+| `screens/MagazineScreen.js` | NEWS_SECTION_AD_MAP 매핑 테이블 추가 |
+
+#### API 구조 변경
+
+**이전:**
+```php
+$ads = array(
+    'banner' => array(),
+    'inline' => array(),
+    'section' => array(),
+);
+```
+
+**변경 후:**
+```php
+$ads = array(
+    'banner' => array(),
+    'inline' => array(),
+    'section' => array(),
+    'news_header' => array(),        // jenny-ad-top
+    'news_after_topnews' => array(), // jenny-ad-after-topnews
+    'news_economy' => array(),       // jenny-ad-economy-1
+    'news_society' => array(),       // jenny-ad-society-1
+    'news_politics' => array(),      // jenny-ad-politics-1
+    'news_culture' => array(),       // jenny-ad-culture-1
+    'news_health' => array(),        // jenny-ad-health-1
+    'news_food' => array(),          // jenny-ad-food-1
+    'news_travel' => array(),        // jenny-ad-travel-1
+    'news_international' => array(), // jenny-ad-international-1
+    'news_korea_vietnam' => array(), // jenny-ad-korea_vietnam-1
+    'news_community' => array(),     // jenny-ad-community-1
+    'news_real_estate' => array(),   // jenny-ad-real_estate-1
+    'news_economy_2' => array(),     // jenny-ad-economy-2
+);
+```
+
+#### jenny-ad ID 파싱 로직
+```php
+function chaovn_extract_jenny_ad_id($html) {
+    // id="jenny-ad-xxx" 패턴 찾기
+    if (preg_match('/id=["\']?(jenny-ad-[a-z0-9_-]+)/i', $html, $matches)) {
+        return $matches[1];
+    }
+    return null;
+}
+```
+
+#### 커밋
+- `6f1942d` - feat: sync news tab ads with website by section (14 positions)
+
+### 12.3 ⚠️ 미해결 문제
+
+#### 증상
+- WordPress API는 새 버전으로 정상 작동 (브라우저에서 확인됨)
+- 앱에서 새 광고 position이 반영되지 않음
+
+#### 확인된 사항
+- WordPress `/wp-json/chaovn/v1/ads` API 응답에 `news_header`, `news_economy` 등 14개 배열 존재 ✅
+- API 응답에 `positions` 배열 존재 ✅
+- 앱 OTA 업데이트 완료 ✅
+
+#### 다음 작업자 확인 필요
+1. 앱 완전 종료 후 재시작 (10분 캐시 만료 대기)
+2. 앱 캐시 삭제 후 테스트
+3. AdBanner.js의 `fetchAdConfig()` 로그 확인
+4. 실제 광고 데이터가 어떤 position으로 분류되는지 확인
+
+### 12.4 수정된 파일 목록
+
+| 파일 | 주요 변경 |
+|------|----------|
+| `screens/LanguageSelectScreen.js` | 시작하기 버튼 제거, 언어 선택 시 즉시 시작 |
+| `wp-plugins/chaovn-ad-api/chaovn-ad-api.php` | jenny-ad ID 파싱, 14개 섹션 position 추가 |
+| `components/AdBanner.js` | 14개 news_ position 지원 |
+| `screens/MagazineScreen.js` | NEWS_SECTION_AD_MAP 매핑 추가 |
+
+---
+
+**최종 업데이트 일자:** 2026년 2월 3일
 **작업 상태:** 
 - ✅ 로딩/로그인 최적화 성공
 - ✅ UI/UX 대규모 개선 완료
@@ -935,6 +1042,10 @@ export default function AddItemScreen() {
 - ✅ Google Maps SDK 설정 완료
 - ✅ 뉴스 상세보기 본문 표시 오류 수정 (2026-02-01)
 - ✅ 다크모드 TextInput 지원 추가 (2026-02-01)
+- ✅ 다국어(i18n) 시스템 구현 완료 (2026-02-03)
+- ✅ 언어 선택 UX 개선 (2026-02-03)
+- ✅ 뉴스 탭 광고 14개 섹션 동기화 코드 구현 (2026-02-03)
+- ⚠️ 뉴스 광고 동기화 앱 반영 확인 필요 (2026-02-03)
 - ⚠️ 개발 빌드에서 알람 불안정 (FCM 토큰 충돌 - 출시 앱과 동시 테스트 시 발생)
 - ✅ 출시 앱은 완전 정상 작동
 
