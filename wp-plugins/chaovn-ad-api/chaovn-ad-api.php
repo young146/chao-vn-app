@@ -16,6 +16,18 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * 앱용 이미지 사이즈 등록
+ * - 배너: 750x200 (가로형)
+ * - 인라인: 750x400 (정사각형에 가까움)
+ * - 섹션: 750x150 (가로형)
+ */
+add_action('after_setup_theme', function() {
+    add_image_size('app-banner', 750, 200, true);   // 배너용 (crop)
+    add_image_size('app-inline', 750, 400, true);   // 인라인용 (crop)
+    add_image_size('app-section', 750, 150, true);  // 섹션용 (crop)
+});
+
+/**
  * REST API 엔드포인트 등록
  */
 add_action('rest_api_init', function () {
@@ -304,7 +316,116 @@ function chaovn_extract_block_data($options, $block_number) {
         'name' => $ad_name,
         'imageUrl' => $image_url,
         'linkUrl' => !empty($link_url) ? $link_url : 'https://chaovietnam.co.kr',
+        // 앱용 썸네일 URL (각 사이즈별)
+        'thumbnails' => array(
+            'banner' => chaovn_get_app_thumbnail($image_url, 'app-banner'),
+            'inline' => chaovn_get_app_thumbnail($image_url, 'app-inline'),
+            'section' => chaovn_get_app_thumbnail($image_url, 'app-section'),
+        ),
     );
+}
+
+/**
+ * 이미지 URL을 앱용 썸네일 URL로 변환
+ * WordPress 미디어 라이브러리에 등록된 이미지만 변환 가능
+ * 썸네일이 없으면 실시간으로 생성
+ * 
+ * @param string $image_url 원본 이미지 URL
+ * @param string $size 앱용 사이즈 (app-banner, app-inline, app-section)
+ * @return string 썸네일 URL (없으면 원본 반환)
+ */
+function chaovn_get_app_thumbnail($image_url, $size = 'app-banner') {
+    if (empty($image_url)) {
+        return $image_url;
+    }
+    
+    // WordPress 미디어 라이브러리에서 attachment ID 찾기
+    $attachment_id = attachment_url_to_postid($image_url);
+    
+    if ($attachment_id) {
+        // 해당 사이즈의 썸네일 가져오기
+        $thumbnail = wp_get_attachment_image_src($attachment_id, $size);
+        if ($thumbnail && !empty($thumbnail[0]) && $thumbnail[0] !== $image_url) {
+            return $thumbnail[0];
+        }
+        
+        // 썸네일이 없으면 실시간으로 생성 시도
+        $generated = chaovn_generate_thumbnail_on_fly($attachment_id, $size);
+        if ($generated) {
+            return $generated;
+        }
+    }
+    
+    // 미디어 라이브러리에 없거나 생성 실패하면 원본 반환
+    return $image_url;
+}
+
+/**
+ * 썸네일을 실시간으로 생성
+ * 
+ * @param int $attachment_id 첨부파일 ID
+ * @param string $size 사이즈명
+ * @return string|false 생성된 썸네일 URL 또는 false
+ */
+function chaovn_generate_thumbnail_on_fly($attachment_id, $size) {
+    // 원본 파일 경로 가져오기
+    $file_path = get_attached_file($attachment_id);
+    if (!$file_path || !file_exists($file_path)) {
+        return false;
+    }
+    
+    // 사이즈 정보 가져오기
+    $sizes = array(
+        'app-banner' => array('width' => 750, 'height' => 200, 'crop' => true),
+        'app-inline' => array('width' => 750, 'height' => 400, 'crop' => true),
+        'app-section' => array('width' => 750, 'height' => 150, 'crop' => true),
+    );
+    
+    if (!isset($sizes[$size])) {
+        return false;
+    }
+    
+    $size_data = $sizes[$size];
+    
+    // 이미지 에디터로 리사이즈
+    $editor = wp_get_image_editor($file_path);
+    if (is_wp_error($editor)) {
+        return false;
+    }
+    
+    $editor->resize($size_data['width'], $size_data['height'], $size_data['crop']);
+    
+    // 새 파일명 생성
+    $path_info = pathinfo($file_path);
+    $new_filename = $path_info['dirname'] . '/' . $path_info['filename'] . '-' . $size_data['width'] . 'x' . $size_data['height'] . '.' . $path_info['extension'];
+    
+    // 이미 존재하면 URL 반환
+    if (file_exists($new_filename)) {
+        $upload_dir = wp_upload_dir();
+        return str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $new_filename);
+    }
+    
+    // 새 파일 저장
+    $saved = $editor->save($new_filename);
+    if (is_wp_error($saved)) {
+        return false;
+    }
+    
+    // 메타데이터 업데이트 (선택사항 - 나중에 wp_get_attachment_image_src로 찾을 수 있도록)
+    $metadata = wp_get_attachment_metadata($attachment_id);
+    if ($metadata && is_array($metadata)) {
+        $metadata['sizes'][$size] = array(
+            'file' => basename($new_filename),
+            'width' => $size_data['width'],
+            'height' => $size_data['height'],
+            'mime-type' => $saved['mime-type'],
+        );
+        wp_update_attachment_metadata($attachment_id, $metadata);
+    }
+    
+    // URL 반환
+    $upload_dir = wp_upload_dir();
+    return str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $new_filename);
 }
 
 /**

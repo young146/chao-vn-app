@@ -34,7 +34,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function JobDetailScreen({ route, navigation }) {
   const { job } = route.params;
   const { user, isAdmin } = useAuth();
-  const { t } = useTranslation(['jobs', 'common']);
+  const { t, i18n } = useTranslation(['jobs', 'common']);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(job.status || "모집중");
 
@@ -308,7 +308,7 @@ export default function JobDetailScreen({ route, navigation }) {
             </View>
             {job.industry && (
               <View style={styles.industryBadge}>
-                <Text style={styles.industryText}>{job.industry}</Text>
+                <TranslatedText style={styles.industryText}>{job.industry}</TranslatedText>
               </View>
             )}
           </View>
@@ -337,7 +337,7 @@ export default function JobDetailScreen({ route, navigation }) {
               <Ionicons name="cash-outline" size={18} color="#4CAF50" />
               <Text style={styles.labelText}>{t('detail.salary')}</Text>
             </View>
-            <Text style={styles.infoValue}>{job.salary || t('detail.negotiable')}</Text>
+            <TranslatedText style={styles.infoValue}>{job.salary || t('detail.negotiable')}</TranslatedText>
           </View>
 
           {/* 고용 형태 */}
@@ -347,7 +347,7 @@ export default function JobDetailScreen({ route, navigation }) {
                 <Ionicons name="time-outline" size={18} color="#2196F3" />
                 <Text style={styles.labelText}>{t('detail.employmentType')}</Text>
               </View>
-              <Text style={styles.infoValue}>{job.employmentType}</Text>
+              <TranslatedText style={styles.infoValue}>{job.employmentType}</TranslatedText>
             </View>
           )}
 
@@ -358,7 +358,7 @@ export default function JobDetailScreen({ route, navigation }) {
                 <Ionicons name="briefcase-outline" size={18} color="#9C27B0" />
                 <Text style={styles.labelText}>{t('detail.industry')}</Text>
               </View>
-              <Text style={styles.infoValue}>{job.industry}</Text>
+              <TranslatedText style={styles.infoValue}>{job.industry}</TranslatedText>
             </View>
           )}
 
@@ -368,9 +368,9 @@ export default function JobDetailScreen({ route, navigation }) {
               <Ionicons name="location-outline" size={18} color="#FF5722" />
               <Text style={styles.labelText}>{t('detail.workLocation')}</Text>
             </View>
-            <Text style={styles.infoValue}>
+            <TranslatedText style={styles.infoValue}>
               {job.city}{job.district ? ` ${job.district}` : ''}
-            </Text>
+            </TranslatedText>
           </View>
 
           {/* 마감일 */}
@@ -380,7 +380,7 @@ export default function JobDetailScreen({ route, navigation }) {
                 <Ionicons name="calendar-outline" size={18} color="#795548" />
                 <Text style={styles.labelText}>{t('detail.deadline')}</Text>
               </View>
-              <Text style={styles.infoValue}>{job.deadline}</Text>
+              <TranslatedText style={styles.infoValue}>{job.deadline}</TranslatedText>
             </View>
           )}
 

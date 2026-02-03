@@ -27,13 +27,14 @@ import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import AdBanner from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
+import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function RealEstateDetailScreen({ route, navigation }) {
   const { item } = route.params;
   const { user, isAdmin } = useAuth();
-  const { t } = useTranslation(['realEstate', 'common']);
+  const { t, i18n } = useTranslation(['realEstate', 'common']);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(item.status || "거래가능");
 
@@ -70,19 +71,12 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
   // 임대용: 만동 단위로 입력된 가격 포맷
   const formatPrice = (price, unit) => {
-    if (!price) return t('priceNegotiable');
-    const num = parseInt(price);
-    if (num >= 10000) {
-      return `${(num / 10000).toFixed(1)}억 ${unit || ''}`.trim();
-    }
-    return `${num.toLocaleString()}만 ${unit || ''}`.trim();
+    return formatRentPrice(price, i18n.language, unit);
   };
 
   // 매매용: 억동 단위로 입력된 가격 포맷
   const formatSalePrice = (price) => {
-    if (!price) return t('priceNegotiable');
-    const num = parseFloat(price);
-    return `${num}억`;
+    return formatSalePriceUtil(price, i18n.language);
   };
 
   const getStatusColor = (status) => {
@@ -378,9 +372,9 @@ export default function RealEstateDetailScreen({ route, navigation }) {
               <Ionicons name="location-outline" size={18} color="#E91E63" />
               <Text style={styles.labelText}>{t('detail.location')}</Text>
             </View>
-            <Text style={styles.infoValue}>
+            <TranslatedText style={styles.infoValue}>
               {item.city}{item.district ? ` ${item.district}` : ''}
-            </Text>
+            </TranslatedText>
           </View>
 
           {/* 면적 */}
@@ -390,7 +384,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 <Ionicons name="resize-outline" size={18} color="#2196F3" />
                 <Text style={styles.labelText}>{t('detail.area')}</Text>
               </View>
-              <Text style={styles.infoValue}>{item.area}㎡</Text>
+              <TranslatedText style={styles.infoValue}>{item.area}㎡</TranslatedText>
             </View>
           )}
 
@@ -401,7 +395,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 <Ionicons name="bed-outline" size={18} color="#9C27B0" />
                 <Text style={styles.labelText}>{t('detail.rooms')}</Text>
               </View>
-              <Text style={styles.infoValue}>{item.rooms}</Text>
+              <TranslatedText style={styles.infoValue}>{item.rooms}</TranslatedText>
             </View>
           )}
 
@@ -412,7 +406,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 <Ionicons name="layers-outline" size={18} color="#FF9800" />
                 <Text style={styles.labelText}>{t('detail.floor')}</Text>
               </View>
-              <Text style={styles.infoValue}>{item.floor}</Text>
+              <TranslatedText style={styles.infoValue}>{item.floor}</TranslatedText>
             </View>
           )}
 
@@ -423,7 +417,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 <Ionicons name="calendar-outline" size={18} color="#795548" />
                 <Text style={styles.labelText}>{t('detail.availableDate')}</Text>
               </View>
-              <Text style={styles.infoValue}>{item.availableDate}</Text>
+              <TranslatedText style={styles.infoValue}>{item.availableDate}</TranslatedText>
             </View>
           )}
 

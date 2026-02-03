@@ -18,8 +18,11 @@ import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import {
   VIETNAM_LOCATIONS,
+  CITIES,
   getDistrictsByCity,
   getApartmentsByDistrict,
+  translateCity,
+  translateOther,
 } from "../utils/vietnamLocations";
 import { useAuth } from "../contexts/AuthContext";
 import { getColors } from "../utils/colors";
@@ -43,7 +46,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
-  const { t } = useTranslation(['danggn', 'common']);
+  const { t, i18n } = useTranslation(['danggn', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -650,6 +653,7 @@ export default function AddItemScreen({ navigation, route }) {
             selectedValue={category}
             onValueChange={setCategory}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             <Picker.Item label={t('categories.free')} value="무료나눔" />
             <Picker.Item label={`🔍 ${t('categories.hiring')}`} value="구인" />
@@ -677,10 +681,11 @@ export default function AddItemScreen({ navigation, route }) {
               setSelectedApartment("");
             }}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             <Picker.Item label={t('form.selectCity')} value="" />
-            {Object.keys(VIETNAM_LOCATIONS).map((city) => (
-              <Picker.Item key={city} label={city} value={city} />
+            {CITIES.map((city) => (
+              <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
             ))}
           </Picker>
         </View>
@@ -694,10 +699,11 @@ export default function AddItemScreen({ navigation, route }) {
               setSelectedApartment("");
             }}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             <Picker.Item label={t('form.selectDistrict')} value="" />
             {districts.map((district) => (
-              <Picker.Item key={district} label={district} value={district} />
+              <Picker.Item key={district} label={translateOther(district, i18n.language)} value={district} />
             ))}
           </Picker>
         </View>
@@ -711,12 +717,13 @@ export default function AddItemScreen({ navigation, route }) {
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
                 style={styles.picker}
+                dropdownIconColor="#333"
               >
                 <Picker.Item label={`🏠 ${t('form.selectApartment')}`} value="" />
                 {apartments.map((apartment) => (
                   <Picker.Item
                     key={apartment}
-                    label={apartment}
+                    label={translateOther(apartment, i18n.language)}
                     value={apartment}
                   />
                 ))}

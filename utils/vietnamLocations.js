@@ -291,12 +291,71 @@ export const VIETNAM_LOCATIONS = {
 
 export const CITIES = Object.keys(VIETNAM_LOCATIONS);
 
+// 도시 이름 번역 맵
+export const CITY_TRANSLATIONS = {
+  호치민: { ko: '호치민', vi: 'TP. Hồ Chí Minh', en: 'Ho Chi Minh City' },
+  하노이: { ko: '하노이', vi: 'Hà Nội', en: 'Hanoi' },
+  다낭: { ko: '다낭', vi: 'Đà Nẵng', en: 'Da Nang' },
+  냐짱: { ko: '냐짱', vi: 'Nha Trang', en: 'Nha Trang' },
+  붕따우: { ko: '붕따우', vi: 'Vũng Tàu', en: 'Vung Tau' },
+  빈증: { ko: '빈증', vi: 'Bình Dương', en: 'Binh Duong' },
+  동나이: { ko: '동나이', vi: 'Đồng Nai', en: 'Dong Nai' },
+  전체: { ko: '전체', vi: 'Tất cả', en: 'All' },
+  기타: { ko: '기타', vi: 'Khác', en: 'Other' },
+};
+
+// "기타" 번역
+export const OTHER_TRANSLATIONS = {
+  ko: '기타',
+  vi: 'Khác',
+  en: 'Other',
+};
+
+// 도시 이름 번역
+export const translateCity = (city, language = 'ko') => {
+  return CITY_TRANSLATIONS[city]?.[language] || city;
+};
+
+// 도시 목록 번역 (Picker용)
+export const getTranslatedCities = (language = 'ko') => {
+  return CITIES.map(city => ({
+    key: city,
+    label: translateCity(city, language),
+  }));
+};
+
+// "기타" 번역
+export const translateOther = (text, language = 'ko') => {
+  if (text === '기타') {
+    return OTHER_TRANSLATIONS[language] || text;
+  }
+  return text;
+};
+
 // 도시별 구/군 가져오기
 export const getDistrictsByCity = (city) => {
   return VIETNAM_LOCATIONS[city]?.districts || [];
 };
 
+// 도시별 구/군 가져오기 (번역 포함)
+export const getTranslatedDistrictsByCity = (city, language = 'ko') => {
+  const districts = VIETNAM_LOCATIONS[city]?.districts || [];
+  return districts.map(district => ({
+    key: district,
+    label: translateOther(district, language),
+  }));
+};
+
 // 구/군별 아파트 가져오기
 export const getApartmentsByDistrict = (city, district) => {
   return VIETNAM_LOCATIONS[city]?.apartmentsByDistrict?.[district] || ["기타"];
+};
+
+// 구/군별 아파트 가져오기 (번역 포함)
+export const getTranslatedApartmentsByDistrict = (city, district, language = 'ko') => {
+  const apartments = VIETNAM_LOCATIONS[city]?.apartmentsByDistrict?.[district] || ["기타"];
+  return apartments.map(apt => ({
+    key: apt,
+    label: translateOther(apt, language),
+  }));
 };

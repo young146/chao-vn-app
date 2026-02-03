@@ -37,6 +37,8 @@ import {
 } from "../utils/vietnamLocations";
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
+import { formatPrice } from "../utils/priceFormatter";
+import { translateCity, translateOther } from "../utils/vietnamLocations";
 
 // 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -95,10 +97,10 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
         <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
         <View style={styles.locationContainer}>
           <Ionicons name="location-outline" size={14} color="#666" />
-          <Text style={styles.itemLocation} numberOfLines={2}>
+          <TranslatedText style={styles.itemLocation} numberOfLines={2}>
             {item.city} · {item.district}
             {item.apartment && item.apartment !== "기타" ? `\n${item.apartment}` : ''}
-          </Text>
+          </TranslatedText>
         </View>
       </View>
     </TouchableOpacity>
@@ -107,7 +109,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
 
 export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
-  const { t } = useTranslation('danggn');
+  const { t, i18n } = useTranslation('danggn');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -299,9 +301,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
     });
   }, [items, searchText, selectedCategory, selectedCity, selectedDistrict, selectedApartment]);
 
-  const formatPrice = useCallback((price) => {
-    return new Intl.NumberFormat("ko-KR").format(price) + "₫";
-  }, []);
+  const formatPriceLocal = useCallback((price) => {
+    return formatPrice(price, i18n.language);
+  }, [i18n.language]);
 
   const getStatusColor = useCallback((status) => {
     switch (status) {
@@ -372,7 +374,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     <ItemCard
       item={item}
       onPress={handleItemPress}
-      formatPrice={formatPrice}
+      formatPrice={formatPriceLocal}
       getStatusColor={getStatusColor}
       index={index}
     />
@@ -414,12 +416,13 @@ export default function XinChaoDanggnScreen({ navigation }) {
           selectedValue={selectedCity}
           onValueChange={(v) => { setSelectedCity(v); setSelectedDistrict("전체"); setSelectedApartment("전체"); }}
           style={styles.picker}
+          dropdownIconColor="#333"
         >
           <Picker.Item label={t('allCities')} value="전체" />
-          <Picker.Item label="호치민" value="호치민" />
-          <Picker.Item label="하노이" value="하노이" />
-          <Picker.Item label="다낭" value="다낭" />
-          <Picker.Item label="냐짱" value="냐짱" />
+          <Picker.Item label={translateCity("호치민", i18n.language)} value="호치민" />
+          <Picker.Item label={translateCity("하노이", i18n.language)} value="하노이" />
+          <Picker.Item label={translateCity("다낭", i18n.language)} value="다낭" />
+          <Picker.Item label={translateCity("냐짱", i18n.language)} value="냐짱" />
         </Picker>
       </View>
       {selectedCity !== "전체" && (
@@ -428,22 +431,23 @@ export default function XinChaoDanggnScreen({ navigation }) {
             selectedValue={selectedDistrict}
             onValueChange={(v) => { setSelectedDistrict(v); setSelectedApartment("전체"); }}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             <Picker.Item label={t('allDistricts')} value="전체" />
-            {districts.map((d) => <Picker.Item key={d} label={d} value={d} />)}
+            {districts.map((d) => <Picker.Item key={d} label={translateOther(d, i18n.language)} value={d} />)}
           </Picker>
         </View>
       )}
       {selectedDistrict !== "전체" && apartments.length > 0 && (
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={styles.picker}>
+          <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={styles.picker} dropdownIconColor="#333">
             <Picker.Item label={t('allApartments')} value="전체" />
-            {apartments.map((a) => <Picker.Item key={a} label={a} value={a} />)}
+            {apartments.map((a) => <Picker.Item key={a} label={translateOther(a, i18n.language)} value={a} />)}
           </Picker>
         </View>
       )}
     </View>
-  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments, t]);
+  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments, t, i18n.language, colors.text]);
 
   const headerCategories = useMemo(() => (
     <View style={styles.categoriesContainer}>

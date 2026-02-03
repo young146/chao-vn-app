@@ -31,10 +31,12 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { translateCity, translateOther } from "../utils/vietnamLocations";
+import { translateIndustry, translateEmploymentType, translateJobType, translateJobStatus } from "../utils/optionTranslations";
 
 export default function AddJobScreen({ navigation, route }) {
   const { user } = useAuth();
-  const { t } = useTranslation(['jobs', 'common']);
+  const { t, i18n } = useTranslation(['jobs', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -362,7 +364,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 구인/구직 선택 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="swap-horizontal" size={16} color="#333" /> {t('form.jobTypeLabel')}
+            <Ionicons name="swap-horizontal" size={16}  /> {t('form.jobTypeLabel')}
           </Text>
           <View style={styles.jobTypeContainer}>
             {jobTypes.map((type) => (
@@ -401,7 +403,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 제목 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="create" size={16} color="#333" /> {t('form.titleLabel')}
+            <Ionicons name="create" size={16}  /> {t('form.titleLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -417,16 +419,17 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 업종 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="briefcase-outline" size={16} color="#333" /> {t('form.industryLabel')}
+            <Ionicons name="briefcase-outline" size={16}  /> {t('form.industryLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={industry}
               onValueChange={setIndustry}
               style={styles.picker}
+              dropdownIconColor="#333"
             >
               {industries.map((ind) => (
-                <Picker.Item key={ind} label={ind} value={ind} color="#333" />
+                <Picker.Item key={ind} label={translateIndustry(ind, i18n.language)} value={ind} />
               ))}
             </Picker>
           </View>
@@ -435,7 +438,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 급여 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="cash-outline" size={16} color="#333" /> {t('form.salaryLabel')}
+            <Ionicons name="cash-outline" size={16}  /> {t('form.salaryLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -449,16 +452,17 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 고용 형태 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="time-outline" size={16} color="#333" /> {t('form.employmentTypeLabel')}
+            <Ionicons name="time-outline" size={16}  /> {t('form.employmentTypeLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={employmentType}
               onValueChange={setEmploymentType}
               style={styles.picker}
+              dropdownIconColor="#333"
             >
               {employmentTypes.map((type) => (
-                <Picker.Item key={type} label={type} value={type} color="#333" />
+                <Picker.Item key={type} label={translateEmploymentType(type, i18n.language)} value={type} />
               ))}
             </Picker>
           </View>
@@ -467,7 +471,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 근무지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="location-outline" size={16} color="#333" /> {t('form.cityLabel')}
+            <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
           </Text>
           <View style={styles.locationRow}>
             <View style={[styles.pickerWrapper, { flex: 1 }]}>
@@ -475,9 +479,10 @@ export default function AddJobScreen({ navigation, route }) {
                 selectedValue={selectedCity}
                 onValueChange={setSelectedCity}
                 style={styles.picker}
+                dropdownIconColor="#333"
               >
                 {cities.map((city) => (
-                  <Picker.Item key={city} label={city} value={city} color="#333" />
+                  <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
                 ))}
               </Picker>
             </View>
@@ -494,7 +499,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16} color="#333" /> {t('form.contactLabel')}
+            <Ionicons name="call-outline" size={16}  /> {t('form.contactLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -512,7 +517,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 마감일 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16} color="#333" /> {t('form.deadlineLabel')}
+            <Ionicons name="calendar-outline" size={16}  /> {t('form.deadlineLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -526,7 +531,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 상세 내용 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text-outline" size={16} color="#333" /> {t('form.descriptionLabel')}
+            <Ionicons name="document-text-outline" size={16}  /> {t('form.descriptionLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
@@ -544,7 +549,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 자격 요건 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="checkmark-circle-outline" size={16} color="#333" /> 
+            <Ionicons name="checkmark-circle-outline" size={16}  /> 
             {t('form.requirementsLabel')}
           </Text>
           <TextInput
@@ -562,7 +567,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 이미지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="images-outline" size={16} color="#333" /> {t('form.photoSection')} (5)
+            <Ionicons name="images-outline" size={16}  /> {t('form.photoSection')} (5)
           </Text>
           <Text style={styles.helperText}>
             {t('common:photoHelperText', '회사 사진, 근무환경 등을 등록하면 신뢰도가 올라갑니다')}
@@ -592,7 +597,7 @@ export default function AddJobScreen({ navigation, route }) {
         {isEditMode && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="flag-outline" size={16} color="#333" /> {t('form.statusLabel')}
+              <Ionicons name="flag-outline" size={16}  /> {t('form.statusLabel')}
             </Text>
             <View style={styles.statusContainer}>
               {["모집중", "마감임박", "마감"].map((s) => (
@@ -619,7 +624,7 @@ export default function AddJobScreen({ navigation, route }) {
                       }
                     ]}
                   >
-                    {s}
+                    {translateJobStatus(s, i18n.language)}
                   </Text>
                 </TouchableOpacity>
               ))}

@@ -14,10 +14,11 @@ import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/fire
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import TranslatedText from "../components/TranslatedText";
+import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
 
 export default function MyItemsScreen({ navigation }) {
   const { user } = useAuth();
-  const { t } = useTranslation('menu');
+  const { t, i18n } = useTranslation('menu');
   const [myItems, setMyItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, selling, sold
@@ -109,7 +110,7 @@ export default function MyItemsScreen({ navigation }) {
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("ko-KR").format(price) + "₫";
+    return formatPriceUtil(price, i18n.language);
   };
 
   const formatDate = (timestamp) => {

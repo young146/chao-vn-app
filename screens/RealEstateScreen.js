@@ -33,6 +33,9 @@ import {
 } from "firebase/firestore";
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
+import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
+import { translateCity } from "../utils/vietnamLocations";
+import { translatePropertyType, translateDealType } from "../utils/optionTranslations";
 
 // 검색바 컴포넌트
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -49,7 +52,7 @@ const SearchBar = memo(({ value, onChangeText, placeholder }) => (
 ));
 
 // 부동산 카드 컴포넌트
-const RealEstateCard = memo(({ item, onPress, index, t }) => {
+const RealEstateCard = memo(({ item, onPress, index, t, language }) => {
   const status = item.status || t('available');
   const originalImage = item.images?.[0];
 
@@ -80,19 +83,12 @@ const RealEstateCard = memo(({ item, onPress, index, t }) => {
 
   // 임대용: 만동 단위로 입력된 가격 포맷
   const formatPrice = (price, unit) => {
-    if (!price) return t('priceNegotiable');
-    const num = parseInt(price);
-    if (num >= 10000) {
-      return `${(num / 10000).toFixed(1)}억 ${unit || ''}`.trim();
-    }
-    return `${num.toLocaleString()}만 ${unit || ''}`.trim();
+    return formatRentPrice(price, language, unit);
   };
 
   // 매매용: 억동 단위로 입력된 가격 포맷
   const formatSalePrice = (price) => {
-    if (!price) return t('priceNegotiable');
-    const num = parseFloat(price);
-    return `💰 ${num}억`;
+    return formatSalePriceUtil(price, language);
   };
 
   return (
@@ -150,9 +146,9 @@ const RealEstateCard = memo(({ item, onPress, index, t }) => {
         {/* 위치 */}
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color="#666" />
-          <Text style={styles.locationText} numberOfLines={1}>
+          <TranslatedText style={styles.locationText} numberOfLines={1}>
             {item.city}{item.district ? ` · ${item.district}` : ''}
-          </Text>
+          </TranslatedText>
         </View>
 
         {/* 면적/방 정보 */}
@@ -161,13 +157,13 @@ const RealEstateCard = memo(({ item, onPress, index, t }) => {
             {item.area && (
               <>
                 <Ionicons name="resize-outline" size={14} color="#666" />
-                <Text style={styles.detailText}>{item.area}㎡</Text>
+                <TranslatedText style={styles.detailText}>{item.area}㎡</TranslatedText>
               </>
             )}
             {item.rooms && (
               <>
                 <Ionicons name="bed-outline" size={14} color="#666" style={{ marginLeft: 8 }} />
-                <Text style={styles.detailText}>{item.rooms}</Text>
+                <TranslatedText style={styles.detailText}>{item.rooms}</TranslatedText>
               </>
             )}
           </View>
@@ -179,7 +175,7 @@ const RealEstateCard = memo(({ item, onPress, index, t }) => {
 
 export default function RealEstateScreen({ navigation }) {
   const { user } = useAuth();
-  const { t } = useTranslation('realEstate');
+  const { t, i18n } = useTranslation('realEstate');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -353,13 +349,14 @@ export default function RealEstateScreen({ navigation }) {
         onPress={handleItemPress}
         index={index}
         t={t}
+        language={i18n.language}
       />
       {/* 2개마다 광고 삽입 */}
       {(index + 1) % 2 === 0 && (
         <InlineAdBanner position="realestate_inline" />
       )}
     </View>
-  ), [handleItemPress, t]);
+  ), [handleItemPress, t, i18n.language]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
@@ -402,9 +399,10 @@ export default function RealEstateScreen({ navigation }) {
             selectedValue={selectedCity}
             onValueChange={setSelectedCity}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : city} value={city} color="#333" />
+              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
             ))}
           </Picker>
         </View>
@@ -413,15 +411,16 @@ export default function RealEstateScreen({ navigation }) {
             selectedValue={selectedPropertyType}
             onValueChange={setSelectedPropertyType}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             {propertyTypes.map((type) => (
-              <Picker.Item key={type} label={type === "전체" ? `🏠 ${t('allTypes')}` : type} value={type} color="#333" />
+              <Picker.Item key={type} label={type === "전체" ? `🏠 ${t('allTypes')}` : translatePropertyType(type, i18n.language)} value={type} />
             ))}
           </Picker>
         </View>
       </View>
     </View>
-  ), [selectedCity, selectedPropertyType]);
+  ), [selectedCity, selectedPropertyType, colors.text, t, i18n.language]);
 
   // 리스트 헤더
   const ListHeader = useMemo(() => (

@@ -33,13 +33,14 @@ import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import AdBanner from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
+import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ItemDetailScreen({ route, navigation }) {
   const { item } = route.params;
   const { user, isAdmin } = useAuth();
-  const { t } = useTranslation(['danggn', 'common']);
+  const { t, i18n } = useTranslation(['danggn', 'common']);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
@@ -111,7 +112,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   }, [user, item.id]);
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("ko-KR").format(price) + "₫";
+    return formatPriceUtil(price, i18n.language);
   };
 
   const formatDate = (timestamp) => {
@@ -535,10 +536,10 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Text style={styles.sectionTitle}>{t('detail.tradeArea')}</Text>
             </View>
             <View style={styles.locationDetails}>
-              <Text style={styles.locationText}>
+              <TranslatedText style={styles.locationText}>
                 📍 {item.city} · {item.district}
                 {item.apartment && item.apartment !== "기타" ? ` · ${item.apartment}` : ''}
-              </Text>
+              </TranslatedText>
             </View>
           </View>
 
@@ -591,9 +592,9 @@ export default function ItemDetailScreen({ route, navigation }) {
                       {item.contact.phone && (
                         <View style={styles.contactItem}>
                           <Ionicons name="call-outline" size={18} color="#666" />
-                          <Text style={styles.contactText}>
+                          <TranslatedText style={styles.contactText}>
                             {item.contact.phone}
-                          </Text>
+                          </TranslatedText>
                         </View>
                       )}
                       {item.contact.kakaoId && (
@@ -603,9 +604,9 @@ export default function ItemDetailScreen({ route, navigation }) {
                             size={18}
                             color="#666"
                           />
-                          <Text style={styles.contactText}>
+                          <TranslatedText style={styles.contactText}>
                             {t('detail.kakaoPrefix')}: {item.contact.kakaoId}
-                          </Text>
+                          </TranslatedText>
                         </View>
                       )}
                       {item.contact.other && (
@@ -615,9 +616,9 @@ export default function ItemDetailScreen({ route, navigation }) {
                             size={18}
                             color="#666"
                           />
-                          <Text style={styles.contactText}>
+                          <TranslatedText style={styles.contactText}>
                             {item.contact.other}
-                          </Text>
+                          </TranslatedText>
                         </View>
                       )}
                     </View>

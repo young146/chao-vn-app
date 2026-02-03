@@ -33,6 +33,8 @@ import {
 } from "firebase/firestore";
 import AdBanner, { InlineAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
+import { translateCity } from "../utils/vietnamLocations";
+import { translateIndustry } from "../utils/optionTranslations";
 
 // 검색바 컴포넌트
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -111,7 +113,7 @@ const JobCard = memo(({ item, onPress, index, t }) => {
           </View>
           {item.industry && (
             <View style={styles.industryBadge}>
-              <Text style={styles.industryText}>{item.industry}</Text>
+              <TranslatedText style={styles.industryText}>{item.industry}</TranslatedText>
             </View>
           )}
         </View>
@@ -123,23 +125,23 @@ const JobCard = memo(({ item, onPress, index, t }) => {
         {item.salary && (
           <View style={styles.salaryRow}>
             <Ionicons name="cash-outline" size={14} color="#4CAF50" />
-            <Text style={styles.salaryText}>{item.salary}</Text>
+            <TranslatedText style={styles.salaryText}>{item.salary}</TranslatedText>
           </View>
         )}
 
         {/* 위치 */}
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color="#666" />
-          <Text style={styles.locationText} numberOfLines={1}>
+          <TranslatedText style={styles.locationText} numberOfLines={1}>
             {item.city}{item.district ? ` · ${item.district}` : ''}
-          </Text>
+          </TranslatedText>
         </View>
 
         {/* 고용 형태 */}
         {item.employmentType && (
           <View style={styles.employmentRow}>
             <Ionicons name="time-outline" size={14} color="#666" />
-            <Text style={styles.employmentText}>{item.employmentType}</Text>
+            <TranslatedText style={styles.employmentText}>{item.employmentType}</TranslatedText>
           </View>
         )}
       </View>
@@ -149,7 +151,7 @@ const JobCard = memo(({ item, onPress, index, t }) => {
 
 export default function JobsScreen({ navigation }) {
   const { user } = useAuth();
-  const { t } = useTranslation('jobs');
+  const { t, i18n } = useTranslation('jobs');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -380,9 +382,10 @@ export default function JobsScreen({ navigation }) {
             selectedValue={selectedCity}
             onValueChange={setSelectedCity}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : city} value={city} color="#333" />
+              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
             ))}
           </Picker>
         </View>
@@ -391,15 +394,16 @@ export default function JobsScreen({ navigation }) {
             selectedValue={selectedIndustry}
             onValueChange={setSelectedIndustry}
             style={styles.picker}
+            dropdownIconColor="#333"
           >
             {industries.map((ind) => (
-              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : ind} value={ind} color="#333" />
+              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} />
             ))}
           </Picker>
         </View>
       </View>
     </View>
-  ), [selectedCity, selectedIndustry]);
+  ), [selectedCity, selectedIndustry, colors.text, t, i18n.language]);
 
   // 리스트 헤더
   const ListHeader = useMemo(() => (

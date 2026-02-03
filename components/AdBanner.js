@@ -399,6 +399,8 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
   
   // 자체 광고가 있으면 자체 광고 표시 (최우선)
   if (hasSelfAd && ad?.imageUrl) {
+    // 썸네일 URL 사용 (있으면), 없으면 원본 사용
+    const imageUrl = ad?.thumbnails?.banner || ad.imageUrl;
     return (
       <TouchableOpacity 
         style={[styles.adPlaceholder, style]} 
@@ -406,7 +408,7 @@ export default function AdBanner({ position = "default", size, style, useAdMob =
         activeOpacity={0.8}
       >
         <Image 
-          source={{ uri: ad.imageUrl }} 
+          source={{ uri: imageUrl }} 
           style={styles.adImage}
           resizeMode="cover"
         />
@@ -506,6 +508,8 @@ export function InlineAdBanner({ position = "inline", style, useAdMob = true }) 
   
   // 자체 광고가 있으면 자체 광고 표시 (최우선)
   if (hasSelfAd && ad?.imageUrl) {
+    // 썸네일 URL 사용 (있으면), 없으면 원본 사용
+    const imageUrl = ad?.thumbnails?.inline || ad.imageUrl;
     return (
       <TouchableOpacity 
         style={[styles.inlineAdPlaceholder, style]} 
@@ -513,7 +517,7 @@ export function InlineAdBanner({ position = "inline", style, useAdMob = true }) 
         activeOpacity={0.8}
       >
         <Image 
-          source={{ uri: ad.imageUrl }} 
+          source={{ uri: imageUrl }} 
           style={styles.adImage}
           resizeMode="cover"
         />
@@ -596,6 +600,9 @@ export function SectionAdBanner({ position = "section", style }) {
     return null;
   }
   
+  // 썸네일 URL 사용 (있으면), 없으면 원본 사용
+  const imageUrl = ad?.thumbnails?.section || ad.imageUrl;
+  
   return (
     <TouchableOpacity 
       style={[styles.sectionAdPlaceholder, style]} 
@@ -603,7 +610,7 @@ export function SectionAdBanner({ position = "section", style }) {
       activeOpacity={0.8}
     >
       <Image 
-        source={{ uri: ad.imageUrl }} 
+        source={{ uri: imageUrl }} 
         style={styles.adImage}
         resizeMode="cover"
       />

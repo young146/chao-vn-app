@@ -31,10 +31,12 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { translateCity, translateOther } from "../utils/vietnamLocations";
+import { translatePropertyType, translateDealType, translateRealEstateStatus } from "../utils/optionTranslations";
 
 export default function AddRealEstateScreen({ navigation, route }) {
   const { user } = useAuth();
-  const { t } = useTranslation(['realEstate', 'common']);
+  const { t, i18n } = useTranslation(['realEstate', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   
@@ -369,7 +371,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 임대/매매 선택 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="swap-horizontal" size={16} color="#333" /> {t('form.dealTypeLabel')}
+            <Ionicons name="swap-horizontal" size={16}  /> {t('form.dealTypeLabel')}
           </Text>
           <View style={styles.dealTypeContainer}>
             {dealTypes.map((type) => (
@@ -402,16 +404,17 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 매물 유형 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="home-outline" size={16} color="#333" /> {t('form.propertyTypeLabel')}
+            <Ionicons name="home-outline" size={16}  /> {t('form.propertyTypeLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={propertyType}
               onValueChange={setPropertyType}
               style={styles.picker}
+              dropdownIconColor="#333"
             >
               {propertyTypes.map((type) => (
-                <Picker.Item key={type} label={type} value={type} color="#333" />
+                <Picker.Item key={type} label={translatePropertyType(type, i18n.language)} value={type} />
               ))}
             </Picker>
           </View>
@@ -420,7 +423,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 제목 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="create" size={16} color="#333" /> {t('form.titleLabel')}
+            <Ionicons name="create" size={16}  /> {t('form.titleLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -436,7 +439,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 가격 정보 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="cash-outline" size={16} color="#333" /> {dealType === "매매" ? t('form.priceLabel') : t('form.monthlyRentLabel')}
+            <Ionicons name="cash-outline" size={16}  /> {dealType === "매매" ? t('form.priceLabel') : t('form.monthlyRentLabel')}
           </Text>
           
           {dealType === "임대" ? (
@@ -485,16 +488,17 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 위치 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="location-outline" size={16} color="#333" /> {t('form.cityLabel')}
+            <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={selectedCity}
               onValueChange={setSelectedCity}
               style={styles.picker}
+              dropdownIconColor="#333"
             >
               {cities.map((city) => (
-                <Picker.Item key={city} label={city} value={city} color="#333" />
+                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
               ))}
             </Picker>
           </View>
@@ -510,7 +514,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 면적/방 정보 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="resize-outline" size={16} color="#333" /> {t('area')}
+            <Ionicons name="resize-outline" size={16}  /> {t('area')}
           </Text>
           <View style={styles.rowInputs}>
             <View style={styles.halfInput}>
@@ -547,7 +551,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 입주 가능일 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16} color="#333" /> {t('form.availableDateLabel')}
+            <Ionicons name="calendar-outline" size={16}  /> {t('form.availableDateLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -561,7 +565,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16} color="#333" /> {t('form.contactLabel')}
+            <Ionicons name="call-outline" size={16}  /> {t('form.contactLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -578,7 +582,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 상세 설명 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text-outline" size={16} color="#333" /> {t('form.descriptionLabel')}
+            <Ionicons name="document-text-outline" size={16}  /> {t('form.descriptionLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
@@ -595,7 +599,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 이미지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="images-outline" size={16} color="#333" /> {t('form.photoSection')} * (10)
+            <Ionicons name="images-outline" size={16}  /> {t('form.photoSection')} * (10)
           </Text>
           <Text style={styles.helperText}>
             {t('common:firstPhotoMain', '첫 번째 사진이 대표 이미지로 사용됩니다')}
@@ -630,7 +634,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {isEditMode && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="flag-outline" size={16} color="#333" /> {t('form.statusLabel')}
+              <Ionicons name="flag-outline" size={16}  /> {t('form.statusLabel')}
             </Text>
             <View style={styles.statusContainer}>
               {["거래가능", "예약중", "거래완료"].map((s) => (
@@ -657,7 +661,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
                       }
                     ]}
                   >
-                    {s}
+                    {translateRealEstateStatus(s, i18n.language)}
                   </Text>
                 </TouchableOpacity>
               ))}

@@ -7,13 +7,15 @@ import {
     TouchableOpacity,
     TextInput,
     ActivityIndicator,
+    useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { CITIES, INTEREST_OPTIONS } from "../../utils/constants";
-import { getDistrictsByCity, getApartmentsByDistrict } from "../../utils/vietnamLocations";
+import { getDistrictsByCity, getApartmentsByDistrict, translateCity, translateOther } from "../../utils/vietnamLocations";
+import { getColors } from "../../utils/colors";
 
 export default function ProfileEditForm({
     user,
@@ -44,7 +46,9 @@ export default function ProfileEditForm({
     isSaving,
     isAdmin,
 }) {
-    const { t } = useTranslation('profile');
+    const { t, i18n } = useTranslation('profile');
+    const colorScheme = useColorScheme();
+    const colors = getColors(colorScheme);
     const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
     const apartments = selectedCity && selectedDistrict ? getApartmentsByDistrict(selectedCity, selectedDistrict) : [];
 
@@ -126,6 +130,7 @@ export default function ProfileEditForm({
                                 selectedValue={ageGroup}
                                 onValueChange={setAgeGroup}
                                 style={styles.picker}
+                                dropdownIconColor="#333"
                             >
                                 <Picker.Item label={t('select')} value="" />
                                 <Picker.Item label={t('age20s')} value="20대" />
@@ -144,6 +149,7 @@ export default function ProfileEditForm({
                                 selectedValue={gender}
                                 onValueChange={setGender}
                                 style={styles.picker}
+                                dropdownIconColor="#333"
                             >
                                 <Picker.Item label={t('select')} value="" />
                                 <Picker.Item label={t('male')} value="남성" />
@@ -166,10 +172,11 @@ export default function ProfileEditForm({
                                 setSelectedApartment("");
                             }}
                             style={styles.picker}
+                            dropdownIconColor="#333"
                         >
                             <Picker.Item label={t('selectCity')} value="" />
                             {CITIES.map((city) => (
-                                <Picker.Item key={city} label={city} value={city} />
+                                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
                             ))}
                         </Picker>
                     </View>
@@ -186,10 +193,11 @@ export default function ProfileEditForm({
                                     setSelectedApartment("");
                                 }}
                                 style={styles.picker}
+                                dropdownIconColor="#333"
                             >
                                 <Picker.Item label={t('selectDistrict')} value="" />
                                 {districts.map((district) => (
-                                    <Picker.Item key={district} label={district} value={district} />
+                                    <Picker.Item key={district} label={translateOther(district, i18n.language)} value={district} />
                                 ))}
                             </Picker>
                         </View>
@@ -204,10 +212,11 @@ export default function ProfileEditForm({
                                 selectedValue={selectedApartment}
                                 onValueChange={setSelectedApartment}
                                 style={styles.picker}
+                                dropdownIconColor="#333"
                             >
                                 <Picker.Item label={t('selectApartment')} value="" />
                                 {apartments.map((apt) => (
-                                    <Picker.Item key={apt} label={apt} value={apt} />
+                                    <Picker.Item key={apt} label={translateOther(apt, i18n.language)} value={apt} />
                                 ))}
                             </Picker>
                         </View>
@@ -233,6 +242,7 @@ export default function ProfileEditForm({
                             selectedValue={residencePeriod}
                             onValueChange={setResidencePeriod}
                             style={styles.picker}
+                            dropdownIconColor="#333"
                         >
                             <Picker.Item label={t('pleaseSelect')} value="" />
                             <Picker.Item label={t('lessThan1Year')} value="1년 미만" />
@@ -251,6 +261,7 @@ export default function ProfileEditForm({
                             selectedValue={residencePurpose}
                             onValueChange={setResidencePurpose}
                             style={styles.picker}
+                            dropdownIconColor="#333"
                         >
                             <Picker.Item label={t('pleaseSelect')} value="" />
                             <Picker.Item label={t('business')} value="사업/주재원" />

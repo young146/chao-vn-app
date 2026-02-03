@@ -10,18 +10,25 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  useColorScheme,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  CITIES,
   getDistrictsByCity,
   getApartmentsByDistrict,
+  translateCity,
+  translateOther,
 } from "../utils/vietnamLocations";
+import { getColors } from "../utils/colors";
 
 export default function SignupScreen({ navigation }) {
-  const { t } = useTranslation('auth');
+  const { t, i18n } = useTranslation('auth');
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -243,12 +250,12 @@ export default function SignupScreen({ navigation }) {
                     setSelectedApartment("");
                   }}
                   style={styles.picker}
+                  dropdownIconColor="#333"
                 >
                   <Picker.Item label={t('selectCity')} value="" />
-                  <Picker.Item label="호치민" value="호치민" />
-                  <Picker.Item label="하노이" value="하노이" />
-                  <Picker.Item label="다낭" value="다낭" />
-                  <Picker.Item label="냐짱" value="냐짱" />
+                  {CITIES.map((city) => (
+                    <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
+                  ))}
                 </Picker>
               </View>
 
@@ -262,12 +269,13 @@ export default function SignupScreen({ navigation }) {
                       setSelectedApartment("");
                     }}
                     style={styles.picker}
+                    dropdownIconColor="#333"
                   >
                     <Picker.Item label={t('selectDistrict')} value="" />
                     {districts.map((district) => (
                       <Picker.Item
                         key={district}
-                        label={district}
+                        label={translateOther(district, i18n.language)}
                         value={district}
                       />
                     ))}
@@ -282,12 +290,13 @@ export default function SignupScreen({ navigation }) {
                     selectedValue={selectedApartment}
                     onValueChange={setSelectedApartment}
                     style={styles.picker}
+                    dropdownIconColor="#333"
                   >
                     <Picker.Item label={t('selectApartment')} value="" />
                     {apartments.map((apartment) => (
                       <Picker.Item
                         key={apartment}
-                        label={apartment}
+                        label={translateOther(apartment, i18n.language)}
                         value={apartment}
                       />
                     ))}
