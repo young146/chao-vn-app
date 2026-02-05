@@ -25,7 +25,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import AdBanner from "../components/AdBanner";
+import { DetailAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
 
@@ -267,7 +267,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 상단 광고 */}
-        <AdBanner position="realestate_detail_top" />
+        <DetailAdBanner position="top" screen="realestate" />
         
         {/* 이미지 영역 */}
         {images.length > 0 ? (
@@ -308,7 +308,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         )}
 
         {/* 광고 배너 */}
-        <AdBanner position="realestate_detail" style={{ marginTop: 12 }} />
+        <DetailAdBanner position="top" screen="realestate" style={{ marginTop: 12 }} />
 
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
@@ -475,7 +475,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         )}
 
         {/* 하단 광고 */}
-        <AdBanner position="realestate_detail_bottom" />
+        <DetailAdBanner position="bottom" screen="realestate" />
         
         <View style={{ height: 100 }} />
       </ScrollView>

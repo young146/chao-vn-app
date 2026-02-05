@@ -31,7 +31,7 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
-import AdBanner, { InlineAdBanner } from "../components/AdBanner";
+import AdBanner, { InlineAdBanner, DetailAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
 import { translateCity } from "../utils/vietnamLocations";
@@ -353,7 +353,7 @@ export default function RealEstateScreen({ navigation }) {
       />
       {/* 2개마다 광고 삽입 */}
       {(index + 1) % 2 === 0 && (
-        <InlineAdBanner position="realestate_inline" />
+        <InlineAdBanner screen="realestate" />
       )}
     </View>
   ), [handleItemPress, t, i18n.language]);
@@ -426,7 +426,7 @@ export default function RealEstateScreen({ navigation }) {
   const ListHeader = useMemo(() => (
     <View>
       {/* 광고 배너 */}
-      <AdBanner position="realestate_header" style={{ marginTop: 8 }} />
+      <AdBanner screen="realestate" style={{ marginTop: 8 }} />
       
       {/* 로그인 유도 배너 */}
       {!user && (

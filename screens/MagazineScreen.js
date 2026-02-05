@@ -18,27 +18,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
-import AdBanner, { SectionAdBanner, InlineAdBanner } from '../components/AdBanner';
+import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 
 const { width } = Dimensions.get('window');
-
-// 뉴스 섹션 카테고리 → 광고 position 매핑 (사이트와 동기화)
-const NEWS_SECTION_AD_MAP = {
-  'TopNews': 'news_after_topnews',     // 주요 뉴스 다음
-  'Economy': 'news_economy',           // 경제
-  'Society': 'news_society',           // 사회
-  'Culture': 'news_culture',           // 문화
-  'Politics': 'news_politics',         // 정치
-  'International': 'news_international', // 국제
-  'Korea-Vietnam': 'news_korea_vietnam', // 한-베
-  'Travel': 'news_travel',             // 여행
-  'Health': 'news_health',             // 건강
-  'Food': 'news_food',                 // 음식
-  'Community': 'news_community',       // 교민
-  'Real_Estate': 'news_real_estate',   // 부동산
-};
 
 const SEARCH_HISTORY_KEY = 'search_history';
 const MAX_HISTORY = 5;
@@ -538,9 +522,9 @@ export default function MagazineScreen({ navigation, route }) {
         renderItem={({ item, index }) => (
           <View>
             <MagazineCard item={item} onPress={handlePostPress} type={type} />
-            {/* 뉴스/게시판: 2개 기사마다 광고 삽입 */}
-            {(type === 'news' || type === 'board') && (index + 1) % 2 === 0 && (
-              <InlineAdBanner position={type === 'news' ? 'news_inline' : 'board_inline'} />
+            {/* 뉴스/게시판: 3개 기사마다 광고 삽입 */}
+            {(type === 'news' || type === 'board') && (index + 1) % 3 === 0 && (
+              <InlineAdBanner screen="news" />
             )}
           </View>
         )}
@@ -559,10 +543,11 @@ export default function MagazineScreen({ navigation, route }) {
         ListHeaderComponent={
           <View>
             {/* 🔥 메인 헤더 광고 */}
-            <AdBanner 
-              position={type === 'home' ? 'home_header' : type === 'news' ? 'news_header' : 'board_header'} 
-              style={{ marginBottom: 8 }} 
-            />
+            {type === 'home' ? (
+              <HomeBanner style={{ marginBottom: 8 }} />
+            ) : (
+              <AdBanner screen="news" style={{ marginBottom: 8 }} />
+            )}
 
             {type === 'news' && (
               <View style={styles.dateFilterContainer}>
@@ -600,7 +585,7 @@ export default function MagazineScreen({ navigation, route }) {
                 
                 {homeSections.map((section, sectionIndex) => (
                   <View key={section.id}>
-                    <SectionAdBanner position="home_section" />
+                    <HomeSectionAd />
                     <View style={styles.homeSection}>
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>{section.name}</Text>
@@ -648,11 +633,9 @@ export default function MagazineScreen({ navigation, route }) {
             {type === 'news' && !searchQuery && newsSections.length > 0 && (
               <View>
                 {newsSections.map((section, sectionIndex) => {
-                  // 현재 섹션의 광고 position 결정 (사이트와 동기화)
-                  const adPosition = NEWS_SECTION_AD_MAP[section.categoryKey] || 'news_section';
                   return (
                   <View key={`news-section-${section.categoryKey}`}>
-                    {sectionIndex > 0 && <SectionAdBanner position={adPosition} />}
+                    {sectionIndex > 0 && <HomeSectionAd />}
                     <View style={styles.homeSection}>
                       <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>{section.name} ({section.posts.length})</Text>
@@ -665,9 +648,9 @@ export default function MagazineScreen({ navigation, route }) {
                             onPress={handlePostPress} 
                             type="news" 
                           />
-                          {/* 2개 기사마다 인라인 광고 삽입 */}
-                          {(index + 1) % 2 === 0 && (
-                            <InlineAdBanner position="news_inline" />
+                          {/* 3개 기사마다 인라인 광고 삽입 */}
+                          {(index + 1) % 3 === 0 && (
+                            <InlineAdBanner screen="news" />
                           )}
                         </React.Fragment>
                       ))}

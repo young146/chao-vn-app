@@ -31,7 +31,7 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
-import AdBanner, { InlineAdBanner } from "../components/AdBanner";
+import AdBanner, { InlineAdBanner, DetailAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { translateCity } from "../utils/vietnamLocations";
 import { translateIndustry } from "../utils/optionTranslations";
@@ -336,7 +336,7 @@ export default function JobsScreen({ navigation }) {
       />
       {/* 2개마다 광고 삽입 */}
       {(index + 1) % 2 === 0 && (
-        <InlineAdBanner position="jobs_inline" />
+        <InlineAdBanner screen="job" />
       )}
     </View>
   ), [handleJobPress, t]);
@@ -409,7 +409,7 @@ export default function JobsScreen({ navigation }) {
   const ListHeader = useMemo(() => (
     <View>
       {/* 광고 배너 */}
-      <AdBanner position="jobs_header" style={{ marginTop: 8 }} />
+      <AdBanner screen="job" style={{ marginTop: 8 }} />
       
       {/* 로그인 유도 배너 */}
       {!user && (

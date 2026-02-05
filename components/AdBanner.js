@@ -2,12 +2,16 @@ import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform } from "react-native";
 import axios from "axios";
 
-// AdMob 배너 (Android만 사용)
+// ============================================
+// 🎯 ChaoVN 광고 시스템 v2.0
+// ACF + CPT 기반 단순화된 슬롯 시스템
+// ============================================
+
+// AdMob 배너 (Android만 사용, 자체 광고 없을 때 폴백)
 let BannerAd = null;
 let BannerAdSizeEnum = null;
 let TestIds = null;
 
-// Android에서만 AdMob 로드
 if (Platform.OS === 'android') {
   try {
     const GoogleMobileAds = require('react-native-google-mobile-ads');
@@ -15,727 +19,459 @@ if (Platform.OS === 'android') {
     BannerAdSizeEnum = GoogleMobileAds.BannerAdSize;
     TestIds = GoogleMobileAds.TestIds;
   } catch (e) {
-    console.log('AdMob 로드 실패, 자체 광고 사용:', e.message);
+    console.log('AdMob 로드 실패, 자체 광고만 사용:', e.message);
   }
 }
 
 // ============================================
-// 🏠 하이브리드 광고 시스템
-// 1. AdMob 먼저 시도 (Android만)
-// 2. 실패 시 ChaoVN Ad API (Ad Inserter 플러그인)
-// 3. 최종 폴백: WordPress Posts API
+// 설정
 // ============================================
-
-// AdMob 광고 단위 ID (실제 프로덕션용)
-const ADMOB_AD_UNITS = {
-  BANNER: 'ca-app-pub-7944314901202352/4705993110',           // 매인 상단 배너
-  INTERSTITIAL: 'ca-app-pub-7944314901202352/3814173100',     // 전면 광고
-  NATIVE_ADVANCED: 'ca-app-pub-7944314901202352/2867922944',  // 콘텐츠 광고 (네이티브)
-};
-
-// API URLs
-const CHAOVN_AD_API_URL = "https://chaovietnam.co.kr/wp-json/chaovn/v1/ads";
-const WP_POSTS_API_URL = "https://chaovietnam.co.kr/wp-json/wp/v2/posts";
-const WP_CATEGORIES_API = "https://chaovietnam.co.kr/wp-json/wp/v2/categories";
-const WP_TAGS_API = "https://chaovietnam.co.kr/wp-json/wp/v2/tags";
-
-// 광고 카테고리 ID (WordPress에서 생성 후 ID 확인 필요)
-let AD_CATEGORY_IDS = {
-  banner: null,   // AD-Banner 카테고리 ID
-  inline: null,   // AD-Inline 카테고리 ID  
-  section: null,  // AD-Section 카테고리 ID
-  all: 399,       // AD 카테고리 (기본값)
-};
-
-// 캐시된 태그 ID
-let AD_TAG_IDS = {};
-
-/**
- * 기본 광고 데이터 (API 로드 실패 시 사용)
- */
-const DEFAULT_ADS = {
-  banner: [
-    { imageUrl: "https://chaovietnam.co.kr/ads/banner_ad.png", linkUrl: "https://chaovietnam.co.kr" },
-  ],
-  inline: [
-    { imageUrl: "https://chaovietnam.co.kr/ads/inline_ad.png", linkUrl: "https://chaovietnam.co.kr" },
-  ],
-  section: [
-    { imageUrl: "https://chaovietnam.co.kr/ads/section_ad.png", linkUrl: "https://chaovietnam.co.kr" },
-  ],
-  // 뉴스 탭 전용 광고 (사이트와 동기화) - 기본값 없음 (없으면 일반 배너에서 랜덤)
-  news_header: [],           // jenny-ad-top
-  news_after_topnews: [],    // jenny-ad-after-topnews
-  news_economy: [],          // jenny-ad-economy-1
-  news_economy_2: [],        // jenny-ad-economy-2
-  news_society: [],          // jenny-ad-society-1
-  news_politics: [],         // jenny-ad-politics-1
-  news_korea_vietnam: [],    // jenny-ad-korea_vietnam-1
-  news_health: [],           // jenny-ad-health-1
-  news_food: [],             // jenny-ad-food-1
-  news_community: [],        // jenny-ad-community-1
-  news_culture: [],          // jenny-ad-culture-1
-  news_real_estate: [],      // jenny-ad-real_estate-1
-  news_travel: [],           // jenny-ad-travel-1
-  news_international: [],    // jenny-ad-international-1
-};
-
-/**
- * 배열에서 랜덤으로 하나 선택
- */
-const getRandomAd = (adsArray) => {
-  if (!adsArray || adsArray.length === 0) return null;
-  if (!Array.isArray(adsArray)) return adsArray;
-  const randomIndex = Math.floor(Math.random() * adsArray.length);
-  return adsArray[randomIndex];
-};
-
-// 캐시된 광고 데이터
-let cachedAds = null;
-let lastFetchTime = 0;
+const API_BASE_URL = "https://chaovietnam.co.kr/wp-json/chaovn/v2";
 const CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시
 
-/**
- * HTML content에서 이미지 URL 추출
- */
-const extractImageUrl = (content) => {
-  // img 태그에서 src 추출
-  const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (imgMatch) return imgMatch[1];
-  
-  // 이미지 URL 직접 찾기
-  const urlMatch = content.match(/(https?:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp))/i);
-  if (urlMatch) return urlMatch[1];
-  
-  return null;
+// AdMob 광고 단위 ID (자체 광고 없을 때만 사용)
+const ADMOB_AD_UNITS = {
+  BANNER: 'ca-app-pub-7944314901202352/4705993110',
+  INLINE: 'ca-app-pub-7944314901202352/2867922944',
 };
 
-/**
- * HTML content에서 링크 URL 추출 (외부 링크 우선)
- */
-const extractLinkUrl = (content) => {
-  // 모든 a 태그의 href 추출
-  const linkMatches = content.match(/<a[^>]+href=["']([^"']+)["']/gi);
-  
-  if (linkMatches && linkMatches.length > 0) {
-    // 각 매치에서 href 값 추출
-    for (const match of linkMatches) {
-      const hrefMatch = match.match(/href=["']([^"']+)["']/i);
-      if (hrefMatch && hrefMatch[1]) {
-        const url = hrefMatch[1];
-        // chaovietnam.co.kr 내부 링크가 아닌 외부 링크 우선
-        if (!url.includes('chaovietnam.co.kr') && url.startsWith('http')) {
-          return url;
-        }
-      }
-    }
-    
-    // 외부 링크가 없으면 첫 번째 링크 반환
-    const firstHref = linkMatches[0].match(/href=["']([^"']+)["']/i);
-    if (firstHref && firstHref[1] && firstHref[1].startsWith('http')) {
-      return firstHref[1];
-    }
-  }
-  
-  // URL 패턴으로 직접 찾기 (http로 시작하고 chaovietnam이 아닌 것)
-  const urlMatches = content.match(/https?:\/\/[^\s"'<>]+/gi);
-  if (urlMatches) {
-    for (const url of urlMatches) {
-      if (!url.includes('chaovietnam.co.kr') && !url.includes('.jpg') && !url.includes('.png') && !url.includes('.gif')) {
-        return url;
-      }
-    }
-  }
-  
-  return "https://chaovietnam.co.kr"; // 기본값
+// 광고 슬롯 정의 (WordPress와 동일)
+const AD_SLOTS = {
+  HOME_BANNER: 'home_banner',      // 홈 대형 배너
+  HOME_INLINE: 'home_inline',      // 홈 섹션 사이
+  HEADER: 'header',                // 리스트 상단 배너
+  INLINE: 'inline',                // 리스트 인라인 광고
+  DETAIL_TOP: 'detail_top',        // 상세 페이지 상단
+  DETAIL_BOTTOM: 'detail_bottom',  // 상세 페이지 하단
 };
 
-/**
- * 카테고리 ID 찾기 (슬러그로)
- */
-const findCategoryId = async (slug) => {
-  try {
-    const response = await axios.get(WP_CATEGORIES_API, {
-      params: { slug, _fields: "id" },
-      timeout: 5000,
-    });
-    if (response.data && response.data.length > 0) {
-      return response.data[0].id;
-    }
-  } catch (error) {
-    console.log(`카테고리 ${slug} 찾기 실패:`, error.message);
-  }
-  return null;
+// 화면(섹션) 정의
+const AD_SCREENS = {
+  ALL: 'all',
+  HOME: 'home',
+  NEWS: 'news',
+  JOB: 'job',
+  REALESTATE: 'realestate',
+  DANGGN: 'danggn',
 };
 
-/**
- * 태그 ID 찾기 (슬러그로)
- */
-const findTagId = async (slug) => {
-  // 캐시 확인
-  if (AD_TAG_IDS[slug]) return AD_TAG_IDS[slug];
-  
-  try {
-    const response = await axios.get(WP_TAGS_API, {
-      params: { slug, _fields: "id" },
-      timeout: 5000,
-    });
-    if (response.data && response.data.length > 0) {
-      AD_TAG_IDS[slug] = response.data[0].id;
-      return response.data[0].id;
-    }
-  } catch (error) {
-    console.log(`태그 ${slug} 찾기 실패:`, error.message);
-  }
-  return null;
-};
+// ============================================
+// 캐시
+// ============================================
+let cachedAds = null;
+let lastFetchTime = 0;
+let currentScreen = 'all';
+
+// ============================================
+// API 호출
+// ============================================
 
 /**
- * 특정 태그로 광고 가져오기 (WordPress Posts API)
+ * 광고 데이터 가져오기 (캐시 적용)
+ * @param {string} screen - 화면 타입 (all, home, news, job, realestate, danggn)
  */
-const fetchAdsByTag = async (tagSlug, categoryType = 'banner') => {
-  const tagId = await findTagId(tagSlug);
-  if (!tagId) return null; // 태그가 없으면 null 반환 (기본 광고로 대체)
-  
-  try {
-    // 카테고리 ID 확인
-    let categoryId = AD_CATEGORY_IDS[categoryType] || AD_CATEGORY_IDS.all;
-    
-    const response = await axios.get(WP_POSTS_API_URL, {
-      params: {
-        tags: tagId,
-        categories: categoryId,
-        per_page: 10,
-        _fields: "id,title,content,featured_media,link",
-      },
-      timeout: 8000,
-    });
-    
-    const posts = response.data || [];
-    const ads = posts.map(post => {
-      const content = post.content?.rendered || "";
-      return {
-        id: post.id,
-        title: post.title?.rendered || "",
-        imageUrl: extractImageUrl(content),
-        linkUrl: extractLinkUrl(content),
-      };
-    }).filter(ad => ad.imageUrl);
-    
-    console.log(`📍 태그 [${tagSlug}] 광고: ${ads.length}개`);
-    return ads.length > 0 ? ads : null;
-  } catch (error) {
-    console.log(`태그 ${tagSlug} 광고 로드 실패:`, error.message);
-    return null;
-  }
-};
-
-/**
- * 특정 카테고리에서 광고 가져오기 (WordPress Posts API)
- */
-const fetchAdsFromCategory = async (categoryId) => {
-  if (!categoryId) return [];
-  
-  try {
-    const response = await axios.get(WP_POSTS_API_URL, {
-      params: {
-        categories: categoryId,
-        per_page: 20,
-        _fields: "id,title,content,featured_media,link",
-      },
-      timeout: 8000,
-    });
-    
-    const posts = response.data || [];
-    return posts.map(post => {
-      const content = post.content?.rendered || "";
-      return {
-        id: post.id,
-        title: post.title?.rendered || "",
-        imageUrl: extractImageUrl(content),
-        linkUrl: extractLinkUrl(content),
-      };
-    }).filter(ad => ad.imageUrl);
-  } catch (error) {
-    console.log(`카테고리 ${categoryId} 광고 로드 실패:`, error.message);
-    return [];
-  }
-};
-
-/**
- * 광고 데이터 가져오기 (하이브리드 방식)
- * 1. ChaoVN Ad API 먼저 시도 (Ad Inserter 연동)
- * 2. 실패 시 WordPress Posts API 사용
- */
-const fetchAdConfig = async () => {
+const fetchAdConfig = async (screen = 'all') => {
   const now = Date.now();
   
-  // 캐시가 유효하면 캐시 반환
-  if (cachedAds && (now - lastFetchTime) < CACHE_DURATION) {
+  // 캐시가 유효하고 같은 screen이면 캐시 반환
+  if (cachedAds && (now - lastFetchTime) < CACHE_DURATION && currentScreen === screen) {
     return cachedAds;
   }
   
   try {
-    // 1. ChaoVN Ad API 시도 (Ad Inserter 플러그인)
-    console.log("📢 ChaoVN Ad API에서 광고 로드 시도...");
-    const response = await axios.get(CHAOVN_AD_API_URL, { timeout: 8000 });
+    console.log(`📢 광고 API 호출: screen=${screen}`);
+    const response = await axios.get(`${API_BASE_URL}/ads`, {
+      params: { screen },
+      timeout: 8000,
+    });
     
     if (response.data?.success && response.data?.data) {
-      const apiAds = response.data.data;
-      
-      cachedAds = {
-        banner: apiAds.banner?.length > 0 ? apiAds.banner : DEFAULT_ADS.banner,
-        inline: apiAds.inline?.length > 0 ? apiAds.inline : DEFAULT_ADS.inline,
-        section: apiAds.section?.length > 0 ? apiAds.section : DEFAULT_ADS.section,
-        // 뉴스 탭 전용 광고 (사이트와 동기화)
-        news_header: apiAds.news_header || [],
-        news_after_topnews: apiAds.news_after_topnews || [],
-        news_economy: apiAds.news_economy || [],
-        news_economy_2: apiAds.news_economy_2 || [],
-        news_society: apiAds.news_society || [],
-        news_politics: apiAds.news_politics || [],
-        news_korea_vietnam: apiAds.news_korea_vietnam || [],
-        news_health: apiAds.news_health || [],
-        news_food: apiAds.news_food || [],
-        news_community: apiAds.news_community || [],
-        news_culture: apiAds.news_culture || [],
-        news_real_estate: apiAds.news_real_estate || [],
-        news_travel: apiAds.news_travel || [],
-        news_international: apiAds.news_international || [],
-      };
-      
+      cachedAds = response.data.data;
       lastFetchTime = now;
-      const newsAdCount = Object.keys(cachedAds).filter(k => k.startsWith('news_')).reduce((sum, k) => sum + cachedAds[k].length, 0);
-      console.log(`✅ ChaoVN Ad API 성공: Banner ${cachedAds.banner.length}, Inline ${cachedAds.inline.length}, Section ${cachedAds.section.length}, News광고 ${newsAdCount}개`);
+      currentScreen = screen;
+      
+      // 광고 수 로깅
+      const counts = Object.entries(cachedAds)
+        .map(([slot, ads]) => `${slot}:${ads.length}`)
+        .join(', ');
+      console.log(`✅ 광고 로드 완료: ${counts}`);
+      
       return cachedAds;
     }
   } catch (error) {
-    console.log("ChaoVN Ad API 실패, WordPress Posts API로 fallback:", error.message);
+    console.log('❌ 광고 API 실패:', error.message);
   }
+  
+  // 실패 시 빈 슬롯 반환
+  return {
+    home_banner: [],
+    home_inline: [],
+    header: [],
+    inline: [],
+    detail_top: [],
+    detail_bottom: [],
+  };
+};
+
+/**
+ * 광고 클릭 추적
+ * @param {object} ad - 광고 객체
+ */
+const trackAdClick = async (ad) => {
+  if (!ad?.id) return;
   
   try {
-    // 2. WordPress Posts API 시도 (카테고리 기반)
-    console.log("📢 WordPress Posts API에서 광고 로드 시도...");
-    
-    // 카테고리 ID 찾기 (처음 한 번만)
-    if (!AD_CATEGORY_IDS.banner) {
-      AD_CATEGORY_IDS.banner = await findCategoryId("ad-banner");
-      AD_CATEGORY_IDS.inline = await findCategoryId("ad-inline");
-      AD_CATEGORY_IDS.section = await findCategoryId("ad-section");
-      console.log("📂 광고 카테고리 ID:", AD_CATEGORY_IDS);
-    }
-    
-    // 위치별 광고 가져오기
-    const [bannerAds, inlineAds, sectionAds, allAds] = await Promise.all([
-      fetchAdsFromCategory(AD_CATEGORY_IDS.banner),
-      fetchAdsFromCategory(AD_CATEGORY_IDS.inline),
-      fetchAdsFromCategory(AD_CATEGORY_IDS.section),
-      fetchAdsFromCategory(AD_CATEGORY_IDS.all),
-    ]);
-    
-    // 위치별 카테고리가 없으면 전체 AD 카테고리에서 가져옴
-    cachedAds = {
-      banner: bannerAds.length > 0 ? bannerAds : allAds.length > 0 ? allAds : DEFAULT_ADS.banner,
-      inline: inlineAds.length > 0 ? inlineAds : allAds.length > 0 ? allAds : DEFAULT_ADS.inline,
-      section: sectionAds.length > 0 ? sectionAds : allAds.length > 0 ? allAds : DEFAULT_ADS.section,
-      // 뉴스 탭 전용은 WordPress Posts API fallback에서는 비어있음 (Ad Inserter 전용)
-      news_header: [],
-      news_after_topnews: [],
-      news_economy: [],
-      news_economy_2: [],
-      news_society: [],
-      news_politics: [],
-      news_korea_vietnam: [],
-      news_health: [],
-      news_food: [],
-      news_community: [],
-      news_culture: [],
-      news_real_estate: [],
-      news_travel: [],
-      news_international: [],
-    };
-    
-    lastFetchTime = now;
-    console.log(`✅ WordPress Posts API 성공: Banner ${cachedAds.banner.length}, Inline ${cachedAds.inline.length}, Section ${cachedAds.section.length}`);
-    return cachedAds;
+    await axios.post(`${API_BASE_URL}/ads/${ad.id}/click`);
+    console.log(`📊 광고 클릭 추적: ${ad.id}`);
   } catch (error) {
-    console.log("WordPress Posts API도 실패, 기본값 사용:", error.message);
+    console.log('클릭 추적 실패:', error.message);
   }
-  
-  return DEFAULT_ADS;
 };
 
 /**
  * 광고 클릭 핸들러
  */
-const handleAdPress = async (url) => {
-  if (url) {
+const handleAdPress = async (ad) => {
+  if (!ad) return;
+  
+  // 클릭 추적 (비동기)
+  trackAdClick(ad);
+  
+  // 링크 열기
+  if (ad.linkUrl) {
     try {
-      await Linking.openURL(url);
+      await Linking.openURL(ad.linkUrl);
     } catch (error) {
-      console.log("광고 링크 열기 실패:", error);
+      console.log('광고 링크 열기 실패:', error.message);
     }
   }
 };
 
 /**
- * 광고 배너 컴포넌트 (하이브리드 방식)
- * ✅ 자체 광고 우선 (사이트 계약 광고)
- * ✅ 자체 광고가 없으면 AdMob으로 채움 (Android만)
- * 
- * @param {string} position - 광고 위치 태그 (예: "home_header", "news_header")
- * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부 (기본: true, Android만)
+ * 우선순위 기반 랜덤 선택
+ * 우선순위가 높은 광고가 선택될 확률이 높음
+ * @param {array} ads - 광고 배열
  */
-export default function AdBanner({ position = "default", size, style, useAdMob = true }) {
-  const [ad, setAd] = useState(null);
-  const [hasSelfAd, setHasSelfAd] = useState(true); // 자체 광고 존재 여부
-  const [isLoading, setIsLoading] = useState(true);
+const getRandomAdByPriority = (ads) => {
+  if (!ads || ads.length === 0) return null;
+  if (ads.length === 1) return ads[0];
   
-  // Android에서 AdMob 사용 가능 여부 (자체 광고가 없을 때만)
-  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
+  // 우선순위 가중치로 랜덤 선택
+  const totalWeight = ads.reduce((sum, ad) => sum + (ad.priority || 10), 0);
+  let random = Math.random() * totalWeight;
   
-  useEffect(() => {
-    const loadSelfAd = async () => {
-      setIsLoading(true);
-      try {
-        // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
-        const ads = await fetchAdConfig();
-        
-        // 2. position에 따라 적절한 광고 풀 선택
-        let targetAds = [];
-        
-        // news_로 시작하는 position은 해당 섹션 배열 사용 (사이트 동기화)
-        if (position && position.startsWith('news_')) {
-          targetAds = ads?.[position] || [];
-          if (targetAds.length === 0) {
-            // 해당 섹션 광고가 없으면 일반 banner에서 랜덤
-            targetAds = ads?.banner || [];
-          }
-        } else {
-          // 그 외: 일반 banner에서 랜덤
-          targetAds = ads?.banner || [];
-        }
-        
-        // 기본 광고(DEFAULT_ADS)는 진짜 광고가 아니므로 제외
-        const realAds = targetAds.filter(ad => 
-          ad.imageUrl && !ad.imageUrl.includes('/ads/banner_ad.png')
-        );
-        
-        if (realAds.length > 0) {
-          setAd(getRandomAd(realAds));
-          setHasSelfAd(true);
-          setIsLoading(false);
-          return;
-        }
-        
-        // 3. 자체 광고 없으면 위치별 태그로 광고 찾기 (예: "home_header")
-        if (position && position !== "default") {
-          const tagAds = await fetchAdsByTag(position, 'banner');
-          if (tagAds && tagAds.length > 0) {
-            setAd(getRandomAd(tagAds));
-            setHasSelfAd(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // 4. 둘 다 없음 → AdMob 사용
-        console.log("📢 자체 광고 없음, AdMob으로 대체");
-        setHasSelfAd(false);
-      } catch (error) {
-        console.log("배너 광고 로드 실패:", error.message);
-        setHasSelfAd(false); // 에러 시 AdMob 사용
-      }
-      setIsLoading(false);
-    };
-    
-    loadSelfAd();
-  }, [position]);
-  
-  // 로딩 중이면 빈 공간
-  if (isLoading) {
-    return <View style={[styles.adPlaceholder, style]} />;
+  for (const ad of ads) {
+    random -= (ad.priority || 10);
+    if (random <= 0) return ad;
   }
   
-  // 자체 광고가 있으면 자체 광고 표시 (최우선)
-  if (hasSelfAd && ad?.imageUrl) {
-    // 썸네일 URL 사용 (있으면), 없으면 원본 사용
-    const imageUrl = ad?.thumbnails?.banner || ad.imageUrl;
-    return (
-      <TouchableOpacity 
-        style={[styles.adPlaceholder, style]} 
-        onPress={() => handleAdPress(ad?.linkUrl)}
-        activeOpacity={0.8}
-      >
-        <Image 
-          source={{ uri: imageUrl }} 
-          style={styles.adImage}
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
-    );
-  }
-  
-  // 자체 광고가 없고 AdMob 사용 가능하면 AdMob 표시
-  if (canUseAdMob) {
-    return (
-      <View style={[styles.adPlaceholder, style]}>
-        <BannerAd
-          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.BANNER}
-          size={BannerAdSizeEnum.BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-          onAdLoaded={() => {
-            console.log('✅ AdMob 배너 로드 성공 (자체 광고 빈 자리 채움)');
-          }}
-          onAdFailedToLoad={(error) => {
-            console.log('❌ AdMob 배너도 실패:', error.message);
-          }}
-        />
-      </View>
-    );
-  }
-  
-  // 아무 광고도 없으면 렌더링 안 함
-  return null;
-}
+  return ads[0];
+};
+
+// ============================================
+// 📌 광고 컴포넌트들
+// ============================================
 
 /**
- * 인라인 광고 (리스트 중간에 삽입용)
- * ✅ 자체 광고 우선 (사이트 계약 광고)
- * ✅ 자체 광고가 없으면 AdMob으로 채움 (Android만)
- * 
- * @param {string} position - 광고 위치 태그 (예: "news_inline", "board_inline")
- * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부 (기본: true, Android만)
+ * 홈 대형 배너 (홈 화면 전용)
  */
-export function InlineAdBanner({ position = "inline", style, useAdMob = true }) {
+export function HomeBanner({ style }) {
   const [ad, setAd] = useState(null);
-  const [hasSelfAd, setHasSelfAd] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Android에서 AdMob 사용 가능 여부 (자체 광고가 없을 때만)
-  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
-  
-  useEffect(() => {
-    const loadSelfAd = async () => {
-      setIsLoading(true);
-      try {
-        // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
-        const ads = await fetchAdConfig();
-        const inlineAds = ads?.inline || [];
-        
-        // 기본 광고는 진짜 광고가 아니므로 제외
-        const realAds = inlineAds.filter(ad => 
-          ad.imageUrl && !ad.imageUrl.includes('/ads/inline_ad.png')
-        );
-        
-        if (realAds.length > 0) {
-          setAd(getRandomAd(realAds));
-          setHasSelfAd(true);
-          setIsLoading(false);
-          return;
-        }
-        
-        // 2. 자체 광고 없으면 위치별 태그로 광고 찾기
-        if (position && position !== "inline") {
-          const tagAds = await fetchAdsByTag(position, 'inline');
-          if (tagAds && tagAds.length > 0) {
-            setAd(getRandomAd(tagAds));
-            setHasSelfAd(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // 3. 둘 다 없음 → AdMob 사용
-        console.log("📢 자체 인라인 광고 없음, AdMob으로 대체");
-        setHasSelfAd(false);
-      } catch (error) {
-        console.log("인라인 광고 로드 실패:", error.message);
-        setHasSelfAd(false);
-      }
-      setIsLoading(false);
-    };
-    
-    loadSelfAd();
-  }, [position]);
-  
-  // 로딩 중이면 빈 공간
-  if (isLoading) {
-    return <View style={[styles.inlineAdPlaceholder, style]} />;
-  }
-  
-  // 자체 광고가 있으면 자체 광고 표시 (최우선)
-  if (hasSelfAd && ad?.imageUrl) {
-    // 썸네일 URL 사용 (있으면), 없으면 원본 사용
-    const imageUrl = ad?.thumbnails?.inline || ad.imageUrl;
-    return (
-      <TouchableOpacity 
-        style={[styles.inlineAdPlaceholder, style]} 
-        onPress={() => handleAdPress(ad?.linkUrl)}
-        activeOpacity={0.8}
-      >
-        <Image 
-          source={{ uri: imageUrl }} 
-          style={styles.adImage}
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
-    );
-  }
-  
-  // 자체 광고가 없고 AdMob 사용 가능하면 AdMob 표시
-  if (canUseAdMob) {
-    return (
-      <View style={[styles.inlineAdPlaceholder, style, { height: 250, justifyContent: 'center', alignItems: 'center' }]}>
-        <BannerAd
-          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.NATIVE_ADVANCED}
-          size={BannerAdSizeEnum.MEDIUM_RECTANGLE}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-          onAdLoaded={() => {
-            console.log('✅ AdMob 인라인 광고 로드 성공 (빈 자리 채움)');
-          }}
-          onAdFailedToLoad={(error) => {
-            console.log('❌ AdMob 인라인도 실패:', error.message);
-          }}
-        />
-      </View>
-    );
-  }
-  
-  // 아무 광고도 없으면 렌더링 안 함
-  return null;
-}
-
-/**
- * 섹션 구분 광고 (홈 화면 섹션 사이에 배치)
- * ✅ 여러 광고 중 랜덤 표시
- * ✅ news_section은 사이트와 동기화
- * 
- * @param {string} position - 광고 위치 태그 (예: "home_section", "news_section")
- */
-export function SectionAdBanner({ position = "section", style }) {
-  const [ad, setAd] = useState(getRandomAd(DEFAULT_ADS.section));
   
   useEffect(() => {
     const loadAd = async () => {
-      try {
-        // 1. 🚀 ChaoVN Ad API 먼저 시도 (자체 광고 우선)
-        const ads = await fetchAdConfig();
-        
-        // 2. position에 따라 적절한 광고 풀 선택
-        let targetAds = [];
-        
-        // news_로 시작하는 position은 해당 섹션 배열 사용 (사이트 동기화)
-        if (position && position.startsWith('news_')) {
-          targetAds = ads?.[position] || [];
-          if (targetAds.length === 0) {
-            // 해당 섹션 광고가 없으면 일반 section에서 랜덤
-            targetAds = ads?.section || [];
-          }
-        } else {
-          // 그 외: 일반 section에서 랜덤
-          targetAds = ads?.section || [];
-        }
-        
-        // 기본 광고 제외
-        const realAds = targetAds.filter(ad => 
-          ad.imageUrl && !ad.imageUrl.includes('/ads/section_ad.png')
-        );
-        
-        if (realAds.length > 0) {
-          setAd(getRandomAd(realAds));
-          return;
-        }
-        
-        // 3. 자체 광고 없으면 위치별 태그로 광고 찾기
-        if (position && position !== "section") {
-          const tagAds = await fetchAdsByTag(position, 'section');
-          if (tagAds && tagAds.length > 0) {
-            setAd(getRandomAd(tagAds));
-            return;
-          }
-        }
-        
-        // 4. 둘 다 없으면 기본 광고
-        setAd(getRandomAd(DEFAULT_ADS.section));
-      } catch (error) {
-        console.log("섹션 광고 로드 실패:", error.message);
-      }
+      setIsLoading(true);
+      const ads = await fetchAdConfig('home');
+      const homeBannerAds = ads?.home_banner || [];
+      setAd(getRandomAdByPriority(homeBannerAds));
+      setIsLoading(false);
     };
-    
     loadAd();
-  }, [position]);
+  }, []);
   
-  // 광고 데이터가 없으면 렌더링하지 않음
-  if (!ad?.imageUrl) {
-    return null;
-  }
+  if (isLoading) return <View style={[styles.homeBanner, style]} />;
+  if (!ad?.imageUrl) return null;
   
-  // 썸네일 URL 사용 (있으면), 없으면 원본 사용
-  const imageUrl = ad?.thumbnails?.section || ad.imageUrl;
+  const imageUrl = ad.thumbnails?.home_banner || ad.imageUrl;
   
   return (
     <TouchableOpacity 
-      style={[styles.sectionAdPlaceholder, style]} 
-      onPress={() => handleAdPress(ad?.linkUrl)}
+      style={[styles.homeBanner, style]} 
+      onPress={() => handleAdPress(ad)}
       activeOpacity={0.8}
     >
-      <Image 
-        source={{ uri: imageUrl }} 
-        style={styles.adImage}
-        resizeMode="cover"
-      />
+      <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
     </TouchableOpacity>
   );
 }
 
-// BannerAdSize는 더 이상 사용하지 않으므로 더미 객체로 export
+/**
+ * 홈 섹션 사이 광고 (홈 화면 전용)
+ */
+export function HomeSectionAd({ style }) {
+  const [ad, setAd] = useState(null);
+  
+  useEffect(() => {
+    const loadAd = async () => {
+      const ads = await fetchAdConfig('home');
+      const homeInlineAds = ads?.home_inline || [];
+      setAd(getRandomAdByPriority(homeInlineAds));
+    };
+    loadAd();
+  }, []);
+  
+  if (!ad?.imageUrl) return null;
+  
+  const imageUrl = ad.thumbnails?.section || ad.imageUrl;
+  
+  return (
+    <TouchableOpacity 
+      style={[styles.sectionAd, style]} 
+      onPress={() => handleAdPress(ad)}
+      activeOpacity={0.8}
+    >
+      <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * 리스트 상단 배너 (모든 리스트 화면 공통)
+ * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
+ * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부
+ */
+export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
+  const [ad, setAd] = useState(null);
+  const [hasSelfAd, setHasSelfAd] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
+  
+  useEffect(() => {
+    const loadAd = async () => {
+      setIsLoading(true);
+      const ads = await fetchAdConfig(screen);
+      const headerAds = ads?.header || [];
+      
+      if (headerAds.length > 0) {
+        setAd(getRandomAdByPriority(headerAds));
+        setHasSelfAd(true);
+      } else {
+        setHasSelfAd(false);
+      }
+      setIsLoading(false);
+    };
+    loadAd();
+  }, [screen]);
+  
+  if (isLoading) return <View style={[styles.headerBanner, style]} />;
+  
+  // 자체 광고가 있으면 표시
+  if (hasSelfAd && ad?.imageUrl) {
+    const imageUrl = ad.thumbnails?.banner || ad.imageUrl;
+    return (
+      <TouchableOpacity 
+        style={[styles.headerBanner, style]} 
+        onPress={() => handleAdPress(ad)}
+        activeOpacity={0.8}
+      >
+        <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+      </TouchableOpacity>
+    );
+  }
+  
+  // 자체 광고 없고 AdMob 사용 가능하면 AdMob 표시
+  if (canUseAdMob) {
+    return (
+      <View style={[styles.headerBanner, style]}>
+        <BannerAd
+          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.BANNER}
+          size={BannerAdSizeEnum.BANNER}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          onAdLoaded={() => console.log('✅ AdMob 헤더 배너 로드')}
+          onAdFailedToLoad={(error) => console.log('❌ AdMob 헤더 실패:', error.message)}
+        />
+      </View>
+    );
+  }
+  
+  return null;
+}
+
+/**
+ * 인라인 광고 (리스트 중간 삽입)
+ * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
+ * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부
+ */
+export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
+  const [ad, setAd] = useState(null);
+  const [hasSelfAd, setHasSelfAd] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
+  
+  useEffect(() => {
+    const loadAd = async () => {
+      setIsLoading(true);
+      const ads = await fetchAdConfig(screen);
+      const inlineAds = ads?.inline || [];
+      
+      if (inlineAds.length > 0) {
+        setAd(getRandomAdByPriority(inlineAds));
+        setHasSelfAd(true);
+      } else {
+        setHasSelfAd(false);
+      }
+      setIsLoading(false);
+    };
+    loadAd();
+  }, [screen]);
+  
+  if (isLoading) return <View style={[styles.inlineAd, style]} />;
+  
+  // 자체 광고가 있으면 표시
+  if (hasSelfAd && ad?.imageUrl) {
+    const imageUrl = ad.thumbnails?.inline || ad.imageUrl;
+    return (
+      <TouchableOpacity 
+        style={[styles.inlineAd, style]} 
+        onPress={() => handleAdPress(ad)}
+        activeOpacity={0.8}
+      >
+        <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+      </TouchableOpacity>
+    );
+  }
+  
+  // 자체 광고 없고 AdMob 사용 가능하면 AdMob 표시
+  if (canUseAdMob) {
+    return (
+      <View style={[styles.inlineAd, style, { justifyContent: 'center', alignItems: 'center' }]}>
+        <BannerAd
+          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.INLINE}
+          size={BannerAdSizeEnum.MEDIUM_RECTANGLE}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          onAdLoaded={() => console.log('✅ AdMob 인라인 로드')}
+          onAdFailedToLoad={(error) => console.log('❌ AdMob 인라인 실패:', error.message)}
+        />
+      </View>
+    );
+  }
+  
+  return null;
+}
+
+/**
+ * 상세 페이지 광고 (상단/하단)
+ * @param {string} position - 'top' 또는 'bottom'
+ * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
+ */
+export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
+  const [ad, setAd] = useState(null);
+  const slot = position === 'top' ? 'detail_top' : 'detail_bottom';
+  
+  useEffect(() => {
+    const loadAd = async () => {
+      const ads = await fetchAdConfig(screen);
+      const detailAds = ads?.[slot] || [];
+      setAd(getRandomAdByPriority(detailAds));
+    };
+    loadAd();
+  }, [position, screen]);
+  
+  if (!ad?.imageUrl) return null;
+  
+  const imageUrl = ad.thumbnails?.banner || ad.imageUrl;
+  
+  return (
+    <TouchableOpacity 
+      style={[styles.headerBanner, style]} 
+      onPress={() => handleAdPress(ad)}
+      activeOpacity={0.8}
+    >
+      <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+    </TouchableOpacity>
+  );
+}
+
+// ============================================
+// 하위 호환성 (기존 코드 지원)
+// ============================================
+
+/**
+ * @deprecated SectionAdBanner는 HomeSectionAd로 대체됨
+ */
+export function SectionAdBanner({ style }) {
+  return <HomeSectionAd style={style} />;
+}
+
+// BannerAdSize export (하위 호환성)
 export const BannerAdSize = {
   BANNER: "BANNER",
   LARGE_BANNER: "LARGE_BANNER",
   MEDIUM_RECTANGLE: "MEDIUM_RECTANGLE",
 };
 
+// ============================================
+// 스타일 (비율 기반 + 최대 높이 제한)
+// ============================================
 const styles = StyleSheet.create({
-  adPlaceholder: {
-    height: 150,
+  // 홈 대형 배너: 750x300 비율 (2.5:1)
+  homeBanner: {
+    width: "100%",
+    aspectRatio: 750 / 300,
+    maxHeight: 200,
     backgroundColor: "#f5f5f5",
     marginVertical: 8,
     overflow: "hidden",
-    // 그림자 효과
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Android용
+    elevation: 3,
   },
-  inlineAdPlaceholder: {
-    height: 250,
+  // 리스트 헤더/상세 배너: 750x200 비율 (3.75:1)
+  headerBanner: {
+    width: "100%",
+    aspectRatio: 750 / 200,
+    maxHeight: 150,
+    backgroundColor: "#f5f5f5",
+    marginVertical: 8,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  // 인라인 광고: 750x400 비율 (1.875:1)
+  inlineAd: {
+    width: "100%",
+    aspectRatio: 750 / 400,
+    maxHeight: 280,
     backgroundColor: "#fff",
     marginVertical: 16,
     overflow: "hidden",
-    // 그림자 효과
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
-    elevation: 4, // Android용
+    elevation: 4,
   },
-  sectionAdPlaceholder: {
-    height: 100,
+  // 홈 섹션 사이: 750x150 비율 (5:1)
+  sectionAd: {
+    width: "100%",
+    aspectRatio: 750 / 150,
+    maxHeight: 100,
     backgroundColor: "#fff",
-    marginVertical: 20,
+    marginVertical: 12,
     overflow: "hidden",
-    // 그림자 효과
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Android용
+    elevation: 3,
   },
   adImage: {
     width: "100%",

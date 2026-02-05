@@ -35,7 +35,7 @@ import {
   getDistrictsByCity,
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
-import AdBanner, { InlineAdBanner } from "../components/AdBanner";
+import AdBanner, { InlineAdBanner, DetailAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice } from "../utils/priceFormatter";
 import { translateCity, translateOther } from "../utils/vietnamLocations";
@@ -468,7 +468,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const listHeader = useMemo(() => (
     <View>
       {/* 🔥 메인 헤더 광고 */}
-      <AdBanner position="nanum_header" style={{ marginTop: 8 }} />
+      <AdBanner screen="danggn" style={{ marginTop: 8 }} />
       {headerBanners}
       <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
       {headerFilters}

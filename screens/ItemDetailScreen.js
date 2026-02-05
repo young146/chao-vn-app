@@ -31,7 +31,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import AdBanner from "../components/AdBanner";
+import { DetailAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
 
@@ -445,7 +445,7 @@ export default function ItemDetailScreen({ route, navigation }) {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* 상단 광고 */}
-        <AdBanner position="item_detail_top" />
+        <DetailAdBanner position="top" screen="danggn" />
         
         {/* 이미지 갤러리 */}
         <View style={styles.imageContainer}>
@@ -501,7 +501,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         </View>
 
         {/* 🔥 물품 상세 광고 */}
-        <AdBanner position="item_detail" style={{ marginVertical: 12 }} />
+        <DetailAdBanner position="top" screen="danggn" style={{ marginVertical: 12 }} />
 
         {/* 물품 정보 */}
         <View style={styles.contentContainer}>
@@ -704,7 +704,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         </View>
         
         {/* 하단 광고 */}
-        <AdBanner position="item_detail_bottom" />
+        <DetailAdBanner position="bottom" screen="danggn" />
         
         <View style={{ height: 100 }} />
       </ScrollView>

@@ -26,7 +26,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import AdBanner from "../components/AdBanner";
+import { DetailAdBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -253,7 +253,7 @@ export default function JobDetailScreen({ route, navigation }) {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 상단 광고 */}
-        <AdBanner position="job_detail_top" />
+        <DetailAdBanner position="top" screen="job" />
         
         {/* 이미지 영역 */}
         {images.length > 0 ? (
@@ -294,7 +294,7 @@ export default function JobDetailScreen({ route, navigation }) {
         )}
 
         {/* 광고 배너 */}
-        <AdBanner position="job_detail" style={{ marginTop: 12 }} />
+        <DetailAdBanner position="top" screen="job" style={{ marginTop: 12 }} />
 
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
@@ -446,7 +446,7 @@ export default function JobDetailScreen({ route, navigation }) {
         )}
 
         {/* 하단 광고 */}
-        <AdBanner position="job_detail_bottom" />
+        <DetailAdBanner position="bottom" screen="job" />
         
         <View style={{ height: 100 }} />
       </ScrollView>
