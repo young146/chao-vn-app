@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
-import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd } from '../components/AdBanner';
+import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 
@@ -332,6 +332,8 @@ export default function MagazineScreen({ navigation, route }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPopup, setShowPopup] = useState(false); // 🎯 팝업 상태
+  const popupShownRef = useRef(false); // 세션 중 한 번만 표시
   
   // 날짜 선택 관련 state
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -442,6 +444,16 @@ export default function MagazineScreen({ navigation, route }) {
       fetchPosts(1, false, '', null);
     }
   }, [resetSearch]);
+
+  // 🎯 홈 화면 진입 시 팝업 광고 표시 (세션 중 한 번만)
+  useEffect(() => {
+    if (type === 'home' && !popupShownRef.current && !loading) {
+      popupShownRef.current = true;
+      // 약간의 딜레이 후 팝업 표시 (화면 로드 후)
+      const timer = setTimeout(() => setShowPopup(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [type, loading]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -736,6 +748,16 @@ export default function MagazineScreen({ navigation, route }) {
           ) : null
         }
       />
+      
+      {/* 🎯 홈 화면 팝업 광고 (10초 후 자동 닫힘) */}
+      {type === 'home' && (
+        <PopupAd 
+          visible={showPopup} 
+          onClose={() => setShowPopup(false)}
+          screen="home"
+          autoCloseSeconds={10}
+        />
+      )}
     </SafeAreaView>
   );
 }

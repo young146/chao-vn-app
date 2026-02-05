@@ -180,6 +180,7 @@ const setupNotificationChannels = async () => {
 setupNotificationChannels();
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { PopupAd } from "./components/AdBanner";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import FindIdScreen from "./screens/FindIdScreen";
@@ -216,7 +217,9 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showLanguageSelect, setShowLanguageSelect] = useState(false);
+  const [showStartupPopup, setShowStartupPopup] = useState(false);
   const updatesCheckedRef = useRef(false);
+  const popupShownRef = useRef(false);
 
   // 🚀 캐시 우선 로딩 전략
   useEffect(() => {
@@ -403,6 +406,18 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [isReady]); // isReady가 true가 된 후에만 실행
 
+  // 🎯 앱 시작 5초 후 전면 팝업 광고 표시
+  useEffect(() => {
+    if (!isReady || showLanguageSelect || popupShownRef.current) return;
+    
+    const timer = setTimeout(() => {
+      popupShownRef.current = true;
+      setShowStartupPopup(true);
+    }, 5000); // 5초 후 팝업 표시
+    
+    return () => clearTimeout(timer);
+  }, [isReady, showLanguageSelect]);
+
   // ✅ iOS 크래시 수정: Firebase 초기화 완료 전에는 AuthProvider를 렌더링하지 않음
   // AuthProvider 내부의 onAuthStateChanged가 null auth를 참조하면 크래시 발생
   if (!isReady) {
@@ -494,6 +509,14 @@ export default function App() {
           <StatusBar barStyle="dark-content" backgroundColor="#fff" />
           <RootNavigator />
         </NavigationContainer>
+        
+        {/* 🎯 앱 시작 5초 후 전면 팝업 광고 (10초 후 자동 닫힘) */}
+        <PopupAd 
+          visible={showStartupPopup} 
+          onClose={() => setShowStartupPopup(false)}
+          screen="startup"
+          autoCloseSeconds={10}
+        />
       </SafeAreaProvider>
     </AuthProvider>
   );

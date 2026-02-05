@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import CommentsSection from '../components/commentsSection';
 import TranslatedText from '../components/TranslatedText';
 import { translateText } from '../services/TranslationService';
+import { PopupAd } from '../components/AdBanner';
 
 export default function PostDetailScreen({ route }) {
   const { t, i18n } = useTranslation('menu');
@@ -29,6 +30,7 @@ export default function PostDetailScreen({ route }) {
   
   const [translatedContent, setTranslatedContent] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
+  const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
 
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
   
@@ -292,6 +294,14 @@ export default function PostDetailScreen({ route }) {
 
         <CommentsSection articleId={post.id} />
       </ScrollView>
+      
+      {/* 🎯 뉴스 상세 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
+      <PopupAd 
+        visible={showPopup} 
+        onClose={() => setShowPopup(false)}
+        screen="news"
+        autoCloseSeconds={10}
+      />
     </SafeAreaView>
   );
 }

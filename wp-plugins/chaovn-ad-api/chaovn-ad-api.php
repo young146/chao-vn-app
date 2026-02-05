@@ -56,6 +56,11 @@ function chaovn_get_ad_slots() {
             'size' => 'app-banner',
             'dimensions' => array(750, 200),
         ),
+        'popup' => array(
+            'label' => '전면 팝업 광고',
+            'size' => 'app-popup',
+            'dimensions' => array(600, 800),
+        ),
     );
 }
 
@@ -63,6 +68,7 @@ function chaovn_get_ad_slots() {
 function chaovn_get_ad_screens() {
     return array(
         'all' => '전체 섹션 노출',
+        'startup' => '앱 시작 팝업 전용',
         'home' => '홈 화면 전용',
         'news' => '뉴스/매거진',
         'job' => '구인구직',
@@ -78,6 +84,7 @@ add_action('after_setup_theme', function() {
     add_image_size('app-home-banner', 750, 300, true);  // 홈 대형 배너
     add_image_size('app-banner', 750, 200, true);       // 일반 배너
     add_image_size('app-inline', 750, 400, true);       // 인라인
+    add_image_size('app-popup', 600, 800, true);        // 전면 팝업
     add_image_size('app-section', 750, 150, true);      // 섹션
 });
 
@@ -260,6 +267,7 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
                 'banner' => isset($ad_image['sizes']['app-banner']) ? $ad_image['sizes']['app-banner'] : $ad_image['url'],
                 'inline' => isset($ad_image['sizes']['app-inline']) ? $ad_image['sizes']['app-inline'] : $ad_image['url'],
                 'section' => isset($ad_image['sizes']['app-section']) ? $ad_image['sizes']['app-section'] : $ad_image['url'],
+                'popup' => isset($ad_image['sizes']['app-popup']) ? $ad_image['sizes']['app-popup'] : $ad_image['url'],
             ),
         );
         

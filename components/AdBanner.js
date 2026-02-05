@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform } from "react-native";
+import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions } from "react-native";
 import axios from "axios";
 
 // ============================================
@@ -43,6 +43,7 @@ const AD_SLOTS = {
   INLINE: 'inline',                // 리스트 인라인 광고
   DETAIL_TOP: 'detail_top',        // 상세 페이지 상단
   DETAIL_BOTTOM: 'detail_bottom',  // 상세 페이지 하단
+  POPUP: 'popup',                  // 전면 팝업 광고
 };
 
 // 화면(섹션) 정의
@@ -110,6 +111,7 @@ const fetchAdConfig = async (screen = 'all') => {
     inline: [],
     detail_top: [],
     detail_bottom: [],
+    popup: [],
   };
 };
 
@@ -396,6 +398,119 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
 }
 
 // ============================================
+// 📌 전면 팝업 광고
+// ============================================
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+/**
+ * 전면 팝업 광고 컴포넌트
+ * @param {boolean} visible - 팝업 표시 여부
+ * @param {function} onClose - 닫기 콜백
+ * @param {string} screen - 화면 타입 (all, home, news, job, realestate, danggn)
+ * @param {number} autoCloseSeconds - 자동 닫힘 시간 (초), 0이면 자동 닫힘 비활성화
+ */
+export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 10 }) {
+  const [ad, setAd] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [countdown, setCountdown] = useState(autoCloseSeconds);
+  
+  // 광고 로드
+  useEffect(() => {
+    if (visible) {
+      const loadAd = async () => {
+        setIsLoading(true);
+        setCountdown(autoCloseSeconds);
+        const ads = await fetchAdConfig(screen);
+        const popupAds = ads?.popup || [];
+        
+        if (popupAds.length > 0) {
+          setAd(getRandomAdByPriority(popupAds));
+        } else {
+          setAd(null);
+          // 팝업 광고가 없으면 자동으로 닫기
+          if (onClose) onClose();
+        }
+        setIsLoading(false);
+      };
+      loadAd();
+    }
+  }, [visible, screen]);
+  
+  // 자동 닫힘 타이머
+  useEffect(() => {
+    if (!visible || isLoading || !ad || autoCloseSeconds <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (onClose) onClose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [visible, isLoading, ad, autoCloseSeconds, onClose]);
+  
+  // 광고 클릭 핸들러
+  const handlePopupPress = async () => {
+    if (ad) {
+      await handleAdPress(ad);
+    }
+    if (onClose) onClose();
+  };
+  
+  // 광고가 없거나 로딩 중이면 표시하지 않음
+  if (!visible || isLoading || !ad?.imageUrl) {
+    return null;
+  }
+  
+  const imageUrl = ad.thumbnails?.popup || ad.imageUrl;
+  
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.popupOverlay}>
+        <View style={styles.popupContainer}>
+          {/* 닫기 버튼 - 카운트다운 표시 */}
+          <TouchableOpacity 
+            style={styles.popupCloseButton} 
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <View style={styles.popupCloseCircle}>
+              <Text style={styles.popupCloseText}>
+                {countdown > 0 ? countdown : '✕'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          
+          {/* 광고 이미지 */}
+          <TouchableOpacity 
+            onPress={handlePopupPress}
+            activeOpacity={0.9}
+            style={styles.popupImageWrapper}
+          >
+            <Image 
+              source={{ uri: imageUrl }} 
+              style={styles.popupImage} 
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ============================================
 // 하위 호환성 (기존 코드 지원)
 // ============================================
 
@@ -474,6 +589,58 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   adImage: {
+    width: "100%",
+    height: "100%",
+  },
+  // 전면 팝업 광고 스타일
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popupContainer: {
+    width: screenWidth * 0.85,
+    maxWidth: 400,
+    maxHeight: screenHeight * 0.75,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  popupCloseButton: {
+    position: "absolute",
+    top: -15,
+    right: -15,
+    zIndex: 10,
+  },
+  popupCloseCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  popupCloseText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  popupImageWrapper: {
+    width: "100%",
+    aspectRatio: 600 / 800,
+  },
+  popupImage: {
     width: "100%",
     height: "100%",
   },

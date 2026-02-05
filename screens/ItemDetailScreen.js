@@ -31,7 +31,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import { DetailAdBanner } from "../components/AdBanner";
+import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
 
@@ -46,6 +46,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(item.status || "판매중"); // ✅ 상태 관리
+  const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
 
   const images = item.images || (item.imageUri ? [item.imageUri] : []);
   const isMyItem = item.userId === user?.uid;
@@ -785,6 +786,14 @@ export default function ItemDetailScreen({ route, navigation }) {
           </>
         )}
       </View>
+      
+      {/* 🎯 상세 페이지 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
+      <PopupAd 
+        visible={showPopup} 
+        onClose={() => setShowPopup(false)}
+        screen="danggn"
+        autoCloseSeconds={10}
+      />
     </View>
   );
 }
