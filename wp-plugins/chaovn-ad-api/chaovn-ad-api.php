@@ -232,11 +232,15 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
         $ad_slot = get_field('ad_slot', $post_id);
         $ad_screen = get_field('ad_screen', $post_id);
         $ad_image = get_field('ad_image', $post_id);
+        $ad_video = get_field('ad_video', $post_id); // 비디오 URL
         $ad_link = get_field('ad_link', $post_id);
         $ad_priority = get_field('ad_priority', $post_id);
         
-        // 이미지 없으면 스킵
-        if (!$ad_image || !is_array($ad_image) || empty($ad_image['url'])) {
+        // 이미지나 비디오 중 하나라도 있어야 함
+        $has_image = $ad_image && is_array($ad_image) && !empty($ad_image['url']);
+        $has_video = !empty($ad_video);
+        
+        if (!$has_image && !$has_video) {
             continue;
         }
         
@@ -259,17 +263,20 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
         $ad_data = array(
             'id' => $post_id,
             'name' => get_the_title(),
-            'imageUrl' => $ad_image['url'],
+            'imageUrl' => $has_image ? $ad_image['url'] : null,
+            'videoUrl' => $has_video ? $ad_video : null, // 비디오 URL 추가
+            'mediaType' => $has_video ? 'video' : 'image', // 미디어 타입 (video 우선)
             'linkUrl' => !empty($ad_link) ? $ad_link : 'https://chaovietnam.co.kr',
             'priority' => intval($ad_priority) ?: 10,
             'screen' => $ad_screens_array,
-            'thumbnails' => array(
+            'thumbnails' => $has_image ? array(
                 'home_banner' => isset($ad_image['sizes']['app-home-banner']) ? $ad_image['sizes']['app-home-banner'] : $ad_image['url'],
+                'header' => isset($ad_image['sizes']['app-header']) ? $ad_image['sizes']['app-header'] : $ad_image['url'],
                 'banner' => isset($ad_image['sizes']['app-banner']) ? $ad_image['sizes']['app-banner'] : $ad_image['url'],
                 'inline' => isset($ad_image['sizes']['app-inline']) ? $ad_image['sizes']['app-inline'] : $ad_image['url'],
                 'section' => isset($ad_image['sizes']['app-section']) ? $ad_image['sizes']['app-section'] : $ad_image['url'],
                 'popup' => isset($ad_image['sizes']['app-popup']) ? $ad_image['sizes']['app-popup'] : $ad_image['url'],
-            ),
+            ) : null,
         );
         
         // 각 슬롯에 광고 추가 (다중 슬롯 지원)

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions } from "react-native";
+import { Video, ResizeMode } from "expo-av";
 import axios from "axios";
 
 // ============================================
@@ -87,6 +88,64 @@ const setInlineAdsCount = (count) => {
 // 현재 인덱스가 광고 수를 초과하는지 확인
 const isInlineAdAvailable = (index) => {
   return index < inlineAdsCount;
+};
+
+// ============================================
+// 광고 미디어 렌더링 (비디오/이미지)
+// ============================================
+
+/**
+ * 광고 미디어 컴포넌트 (비디오 우선, 이미지 폴백)
+ * @param {object} ad - 광고 데이터
+ * @param {object} style - 스타일
+ * @param {string} thumbnailKey - 썸네일 키 (home_banner, header, inline, etc.)
+ */
+const AdMedia = ({ ad, style, thumbnailKey = null }) => {
+  const videoRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(true);
+  
+  // 비디오가 있으면 비디오 재생
+  if (ad?.videoUrl) {
+    return (
+      <View style={[style, { position: 'relative' }]}>
+        <Video
+          ref={videoRef}
+          source={{ uri: ad.videoUrl }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay={true}
+          isLooping={true}
+          isMuted={isMuted}
+          useNativeControls={false}
+        />
+        {/* 음소거 토글 버튼 */}
+        <TouchableOpacity
+          style={styles.muteButton}
+          onPress={() => setIsMuted(!isMuted)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  
+  // 이미지 표시
+  const imageUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey] 
+    ? ad.thumbnails[thumbnailKey] 
+    : ad?.imageUrl;
+  
+  if (imageUrl) {
+    return (
+      <Image 
+        source={{ uri: imageUrl }} 
+        style={style} 
+        resizeMode="cover" 
+      />
+    );
+  }
+  
+  return null;
 };
 
 // ============================================
@@ -219,9 +278,7 @@ export function HomeBanner({ style }) {
   }, []);
   
   if (isLoading) return <View style={[styles.homeBanner, style]} />;
-  if (!ad?.imageUrl) return null;
-  
-  const imageUrl = ad.thumbnails?.home_banner || ad.imageUrl;
+  if (!ad?.imageUrl && !ad?.videoUrl) return null;
   
   return (
     <TouchableOpacity 
@@ -229,7 +286,7 @@ export function HomeBanner({ style }) {
       onPress={() => handleAdPress(ad)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+      <AdMedia ad={ad} style={styles.adImage} thumbnailKey="home_banner" />
     </TouchableOpacity>
   );
 }
@@ -249,9 +306,7 @@ export function HomeSectionAd({ style }) {
     loadAd();
   }, []);
   
-  if (!ad?.imageUrl) return null;
-  
-  const imageUrl = ad.thumbnails?.section || ad.imageUrl;
+  if (!ad?.imageUrl && !ad?.videoUrl) return null;
   
   return (
     <TouchableOpacity 
@@ -259,7 +314,7 @@ export function HomeSectionAd({ style }) {
       onPress={() => handleAdPress(ad)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+      <AdMedia ad={ad} style={styles.adImage} thumbnailKey="section" />
     </TouchableOpacity>
   );
 }
@@ -282,8 +337,8 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
       const ads = await fetchAdConfig(screen);
       const headerAds = ads?.header || [];
       
-      // 이미지가 있는 광고만 필터링
-      const validAds = headerAds.filter(a => a?.imageUrl);
+      // 이미지나 비디오가 있는 광고만 필터링
+      const validAds = headerAds.filter(a => a?.imageUrl || a?.videoUrl);
       
       if (validAds.length > 0) {
         setAd(getRandomAdByPriority(validAds));
@@ -299,16 +354,15 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
   
   if (isLoading) return <View style={[styles.headerBanner, style]} />;
   
-  // 자체 광고가 있으면 표시
-  if (hasSelfAd && ad?.imageUrl) {
-    const imageUrl = ad.thumbnails?.banner || ad.imageUrl;
+  // 자체 광고가 있으면 표시 (이미지 또는 비디오)
+  if (hasSelfAd && (ad?.imageUrl || ad?.videoUrl)) {
     return (
       <TouchableOpacity 
         style={[styles.headerBanner, style]} 
         onPress={() => handleAdPress(ad)}
         activeOpacity={0.8}
       >
-        <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+        <AdMedia ad={ad} style={styles.adImage} thumbnailKey="header" />
       </TouchableOpacity>
     );
   }
@@ -353,8 +407,8 @@ export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
       const ads = await fetchAdConfig(screen);
       const inlineAds = ads?.inline || [];
       
-      // 이미지가 있는 광고만 필터링
-      const validAds = inlineAds.filter(a => a?.imageUrl);
+      // 이미지나 비디오가 있는 광고만 필터링
+      const validAds = inlineAds.filter(a => a?.imageUrl || a?.videoUrl);
       
       // 사용 가능한 광고 수 저장 (첫 번째 컴포넌트에서)
       if (adIndex === 0) {
@@ -383,16 +437,15 @@ export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
   
   if (isLoading) return <View style={[styles.inlineAd, style]} />;
   
-  // 자체 광고가 있으면 표시
-  if (hasSelfAd && ad?.imageUrl) {
-    const imageUrl = ad.thumbnails?.inline || ad.imageUrl;
+  // 자체 광고가 있으면 표시 (이미지 또는 비디오)
+  if (hasSelfAd && (ad?.imageUrl || ad?.videoUrl)) {
     return (
       <TouchableOpacity 
         style={[styles.inlineAd, style]} 
         onPress={() => handleAdPress(ad)}
         activeOpacity={0.8}
       >
-        <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+        <AdMedia ad={ad} style={styles.adImage} thumbnailKey="inline" />
       </TouchableOpacity>
     );
   }
@@ -433,9 +486,7 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
     loadAd();
   }, [position, screen]);
   
-  if (!ad?.imageUrl) return null;
-  
-  const imageUrl = ad.thumbnails?.banner || ad.imageUrl;
+  if (!ad?.imageUrl && !ad?.videoUrl) return null;
   
   return (
     <TouchableOpacity 
@@ -443,7 +494,7 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
       onPress={() => handleAdPress(ad)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: imageUrl }} style={styles.adImage} resizeMode="cover" />
+      <AdMedia ad={ad} style={styles.adImage} thumbnailKey="banner" />
     </TouchableOpacity>
   );
 }
@@ -515,11 +566,9 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
   };
   
   // 광고가 없거나 로딩 중이면 표시하지 않음
-  if (!visible || isLoading || !ad?.imageUrl) {
+  if (!visible || isLoading || (!ad?.imageUrl && !ad?.videoUrl)) {
     return null;
   }
-  
-  const imageUrl = ad.thumbnails?.popup || ad.imageUrl;
   
   return (
     <Modal
@@ -543,17 +592,13 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
             </View>
           </TouchableOpacity>
           
-          {/* 광고 이미지 */}
+          {/* 광고 미디어 (비디오/이미지) */}
           <TouchableOpacity 
             onPress={handlePopupPress}
             activeOpacity={0.9}
             style={styles.popupImageWrapper}
           >
-            <Image 
-              source={{ uri: imageUrl }} 
-              style={styles.popupImage} 
-              resizeMode="contain"
-            />
+            <AdMedia ad={ad} style={styles.popupImage} thumbnailKey="popup" />
           </TouchableOpacity>
         </View>
       </View>
@@ -642,6 +687,21 @@ const styles = StyleSheet.create({
   adImage: {
     width: "100%",
     height: "100%",
+  },
+  // 비디오 음소거 버튼
+  muteButton: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  muteIcon: {
+    fontSize: 16,
   },
   // 전면 팝업 광고 스타일
   popupOverlay: {
