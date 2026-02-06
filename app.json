@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "41",
+      "buildNumber": "43",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
@@ -95,7 +95,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 58,
+      "versionCode": 59,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
