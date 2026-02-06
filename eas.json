@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 16.17.4",
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
     "production": {
@@ -9,6 +9,7 @@
         "disabled": true
       },
       "channel": "production",
+      "autoSubmit": true,
       "android": {
         "buildType": "app-bundle",
         "autoIncrement": true
@@ -29,6 +30,10 @@
   },
   "submit": {
     "production": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "completed"
+      },
       "ios": {
         "appleId": "xinchao.id@gmail.com",
         "ascAppId": "6480538597"
