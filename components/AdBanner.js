@@ -64,6 +64,32 @@ let lastFetchTime = 0;
 let currentScreen = 'all';
 
 // ============================================
+// 인라인 광고 중복 방지 (인덱스 기반)
+// ============================================
+let inlineAdCounter = 0;
+let lastInlineScreen = null;
+let inlineAdsCount = 0; // 사용 가능한 인라인 광고 수
+
+// 화면 전환 시 카운터 초기화
+const getInlineAdIndex = (screen) => {
+  if (lastInlineScreen !== screen) {
+    inlineAdCounter = 0;
+    lastInlineScreen = screen;
+  }
+  return inlineAdCounter++;
+};
+
+// 인라인 광고 수 설정
+const setInlineAdsCount = (count) => {
+  inlineAdsCount = count;
+};
+
+// 현재 인덱스가 광고 수를 초과하는지 확인
+const isInlineAdAvailable = (index) => {
+  return index < inlineAdsCount;
+};
+
+// ============================================
 // API 호출
 // ============================================
 
@@ -256,10 +282,14 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
       const ads = await fetchAdConfig(screen);
       const headerAds = ads?.header || [];
       
-      if (headerAds.length > 0) {
-        setAd(getRandomAdByPriority(headerAds));
+      // 이미지가 있는 광고만 필터링
+      const validAds = headerAds.filter(a => a?.imageUrl);
+      
+      if (validAds.length > 0) {
+        setAd(getRandomAdByPriority(validAds));
         setHasSelfAd(true);
       } else {
+        setAd(null);
         setHasSelfAd(false);
       }
       setIsLoading(false);
@@ -313,22 +343,43 @@ export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
   
   const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
   
+  // 컴포넌트 마운트 시 인덱스 할당 (동기적)
+  const adIndex = React.useMemo(() => getInlineAdIndex(screen), [screen]);
+  
   useEffect(() => {
     const loadAd = async () => {
       setIsLoading(true);
+      
       const ads = await fetchAdConfig(screen);
       const inlineAds = ads?.inline || [];
       
-      if (inlineAds.length > 0) {
-        setAd(getRandomAdByPriority(inlineAds));
+      // 이미지가 있는 광고만 필터링
+      const validAds = inlineAds.filter(a => a?.imageUrl);
+      
+      // 사용 가능한 광고 수 저장 (첫 번째 컴포넌트에서)
+      if (adIndex === 0) {
+        setInlineAdsCount(validAds.length);
+      }
+      
+      // 인덱스가 광고 수보다 작을 때만 자체 광고 표시 (중복 방지)
+      if (validAds.length > 0 && adIndex < validAds.length) {
+        // 우선순위로 정렬 (높은 순)
+        const sortedAds = [...validAds].sort((a, b) => (b.priority || 10) - (a.priority || 10));
+        
+        // 인덱스 기반으로 다른 광고 선택
+        const selectedAd = sortedAds[adIndex];
+        
+        setAd(selectedAd);
         setHasSelfAd(true);
       } else {
+        // 광고 부족 → AdMob 폴백
+        setAd(null);
         setHasSelfAd(false);
       }
       setIsLoading(false);
     };
     loadAd();
-  }, [screen]);
+  }, [screen, adIndex]);
   
   if (isLoading) return <View style={[styles.inlineAd, style]} />;
   

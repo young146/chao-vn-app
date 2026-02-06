@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 // 상수 정의
 // ========================================
 define('CHAOVN_AD_VERSION', '2.0.0');
-define('CHAOVN_AD_CPT', 'app-ads');  // CPT UI에서 설정한 slug
+define('CHAOVN_AD_CPT', 'app_ads');  // CPT UI에서 설정한 slug
 
 // ========================================
 // 광고 슬롯 정의 (중앙 관리)

@@ -647,6 +647,7 @@ export default function MagazineScreen({ navigation, route }) {
                 {newsSections.map((section, sectionIndex) => {
                   return (
                   <View key={`news-section-${section.categoryKey}`}>
+                    {/* 두 번째 섹션(경제 뉴스)부터 섹션 사이 광고 표시 */}
                     {sectionIndex > 0 && <HomeSectionAd />}
                     <View style={styles.homeSection}>
                       <View style={styles.sectionHeader}>
@@ -667,6 +668,10 @@ export default function MagazineScreen({ navigation, route }) {
                         </React.Fragment>
                       ))}
                     </View>
+                    {/* 첫 번째 섹션(주요뉴스) 끝나고 인라인 광고 (경제 섹션 전) */}
+                    {sectionIndex === 0 && newsSections.length > 1 && (
+                      <InlineAdBanner screen="news" style={{ marginTop: 16, marginBottom: 8 }} />
+                    )}
                   </View>
                   );
                 })}

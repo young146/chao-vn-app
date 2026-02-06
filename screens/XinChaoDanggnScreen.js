@@ -301,6 +301,31 @@ export default function XinChaoDanggnScreen({ navigation }) {
     });
   }, [items, searchText, selectedCategory, selectedCity, selectedDistrict, selectedApartment]);
 
+  // 아이템을 2개씩 묶어서 행(row) 단위로 변환 + 광고 삽입
+  const rowsWithAds = useMemo(() => {
+    const result = [];
+    const AD_ROW_INTERVAL = 2; // 2행(4개 아이템)마다 광고
+    let rowCount = 0;
+    
+    for (let i = 0; i < filteredItems.length; i += 2) {
+      // 2개씩 묶어서 행 생성
+      const row = {
+        type: 'row',
+        items: filteredItems.slice(i, i + 2),
+        key: `row-${i}`,
+      };
+      result.push(row);
+      rowCount++;
+      
+      // 2행(4개 아이템)마다 광고 삽입
+      if (rowCount % AD_ROW_INTERVAL === 0 && i + 2 < filteredItems.length) {
+        result.push({ type: 'ad', key: `ad-${rowCount}` });
+      }
+    }
+    
+    return result;
+  }, [filteredItems]);
+
   const formatPriceLocal = useCallback((price) => {
     return formatPrice(price, i18n.language);
   }, [i18n.language]);
@@ -370,15 +395,31 @@ export default function XinChaoDanggnScreen({ navigation }) {
     navigation.navigate("물품 상세", { item: serializableItem });
   }, [navigation]);
 
-  const renderItem = useCallback(({ item, index }) => (
-    <ItemCard
-      item={item}
-      onPress={handleItemPress}
-      formatPrice={formatPriceLocal}
-      getStatusColor={getStatusColor}
-      index={index}
-    />
-  ), [handleItemPress, formatPrice, getStatusColor]);
+  // 행(row) 또는 광고(ad) 렌더링
+  const renderRowOrAd = useCallback(({ item }) => {
+    if (item.type === 'ad') {
+      // 인라인 광고 (전체 너비)
+      return <InlineAdBanner screen="danggn" style={{ marginVertical: 8 }} />;
+    }
+    
+    // 아이템 행 (2개씩)
+    return (
+      <View style={styles.itemRow}>
+        {item.items.map((rowItem, idx) => (
+          <ItemCard
+            key={rowItem.id}
+            item={rowItem}
+            onPress={handleItemPress}
+            formatPrice={formatPriceLocal}
+            getStatusColor={getStatusColor}
+            index={idx}
+          />
+        ))}
+        {/* 홀수 개일 때 빈 공간 채우기 */}
+        {item.items.length === 1 && <View style={styles.emptyCard} />}
+      </View>
+    );
+  }, [handleItemPress, formatPriceLocal, getStatusColor]);
 
   const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
@@ -479,10 +520,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
+        data={rowsWithAds}
+        renderItem={renderRowOrAd}
+        keyExtractor={(item) => item.key}
         ListHeaderComponent={listHeader}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContainer}
@@ -625,6 +665,11 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 8,
   },
+  // 아이템 행 (2개씩 가로 배치)
+  itemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   itemCard: {
     flex: 1,
     backgroundColor: "#fff",
@@ -633,6 +678,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#e0e0e0",
+    maxWidth: "48%",
+  },
+  // 홀수 개일 때 빈 공간
+  emptyCard: {
+    flex: 1,
+    margin: 4,
     maxWidth: "48%",
   },
   imagePlaceholder: {
