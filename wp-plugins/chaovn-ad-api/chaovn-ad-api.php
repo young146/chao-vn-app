@@ -38,13 +38,13 @@ function chaovn_get_ad_slots() {
         ),
         'header' => array(
             'label' => '리스트 상단 배너',
-            'size' => 'app-banner',
-            'dimensions' => array(750, 200),
+            'size' => 'app-header',
+            'dimensions' => array(750, 300),
         ),
         'inline' => array(
             'label' => '리스트 인라인 광고',
             'size' => 'app-inline',
-            'dimensions' => array(750, 400),
+            'dimensions' => array(750, 200),
         ),
         'detail_top' => array(
             'label' => '상세 페이지 상단',
@@ -82,8 +82,9 @@ function chaovn_get_ad_screens() {
 // ========================================
 add_action('after_setup_theme', function() {
     add_image_size('app-home-banner', 750, 300, true);  // 홈 대형 배너
+    add_image_size('app-header', 750, 300, true);       // 헤더 배너 (750x300)
     add_image_size('app-banner', 750, 200, true);       // 일반 배너
-    add_image_size('app-inline', 750, 400, true);       // 인라인
+    add_image_size('app-inline', 750, 200, true);       // 인라인 (750x200으로 축소)
     add_image_size('app-popup', 600, 800, true);        // 전면 팝업
     add_image_size('app-section', 750, 150, true);      // 섹션
 });

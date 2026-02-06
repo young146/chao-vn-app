@@ -19,6 +19,32 @@ if (!isExpoGo) {
   }
 }
 
+// AdMob SDK 초기화 (Android에서만 사용)
+let mobileAds = null;
+if (Platform.OS === 'android') {
+  try {
+    mobileAds = require('react-native-google-mobile-ads').default;
+  } catch (e) {
+    console.log("⚠️ AdMob SDK 로드 실패:", e.message);
+  }
+}
+
+const initializeAdMob = async () => {
+  if (Platform.OS !== 'android' || !mobileAds) {
+    console.log("ℹ️ AdMob 초기화 스킵 (Android 아님 또는 SDK 없음)");
+    return false;
+  }
+  
+  try {
+    const adapterStatuses = await mobileAds().initialize();
+    console.log("✅ AdMob SDK 초기화 완료:", adapterStatuses);
+    return true;
+  } catch (e) {
+    console.log("❌ AdMob SDK 초기화 실패:", e.message);
+    return false;
+  }
+};
+
 // Firebase Remote Config deprecated 경고 무시 (기능은 정상 작동)
 LogBox.ignoreLogs([
   "This method is deprecated",
@@ -249,6 +275,8 @@ export default function App() {
             waitForFirebase(2000),
             initializeFirebase(),
             !__DEV__ && initializeAppCheck(),
+            // AdMob SDK 초기화 (Android)
+            initializeAdMob(),
             // 데이터 갱신
             getHomeDataCached(true),
             // 광고 동의 (백그라운드)
@@ -287,6 +315,8 @@ export default function App() {
           waitForFirebase(1500),
           initializeFirebase(),
           !__DEV__ && initializeAppCheck(),
+          // AdMob SDK 초기화 (Android)
+          initializeAdMob(),
           getHomeDataCached(),
           // 광고 동의도 병렬로
           Platform.OS === "ios" && requestTrackingPermissionsAsync?.(),

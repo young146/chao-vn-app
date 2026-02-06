@@ -31,8 +31,8 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시
 
 // AdMob 광고 단위 ID (자체 광고 없을 때만 사용)
 const ADMOB_AD_UNITS = {
-  BANNER: 'ca-app-pub-7944314901202352/4705993110',
-  INLINE: 'ca-app-pub-7944314901202352/2867922944',
+  BANNER: 'ca-app-pub-7944314901202352/4259843310',    // 헤더 배너 (새로 생성)
+  INLINE: 'ca-app-pub-7944314901202352/8698508125',    // 인라인 배너 (새로 생성)
 };
 
 // 광고 슬롯 정의 (WordPress와 동일)
@@ -597,11 +597,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  // 리스트 헤더/상세 배너: 750x200 비율 (3.75:1)
+  // 리스트 헤더/상세 배너: 750x300 비율 (2.5:1)
   headerBanner: {
     width: "100%",
-    aspectRatio: 750 / 200,
-    maxHeight: 150,
+    aspectRatio: 750 / 300,
+    maxHeight: 180,
     backgroundColor: "#f5f5f5",
     marginVertical: 8,
     overflow: "hidden",
@@ -611,13 +611,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  // 인라인 광고: 750x400 비율 (1.875:1)
+  // 인라인 광고: 750x200 비율 (3.75:1)
   inlineAd: {
     width: "100%",
-    aspectRatio: 750 / 400,
-    maxHeight: 280,
+    aspectRatio: 750 / 200,
+    maxHeight: 150,
     backgroundColor: "#fff",
-    marginVertical: 16,
+    marginVertical: 12,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
