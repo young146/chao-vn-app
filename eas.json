@@ -9,7 +9,6 @@
         "disabled": true
       },
       "channel": "production",
-      "autoSubmit": true,
       "android": {
         "buildType": "app-bundle",
         "autoIncrement": true
