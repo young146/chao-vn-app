@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 16.17.4",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "production": {
