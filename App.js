@@ -1,5 +1,5 @@
 import "react-native-gesture-handler";
-import { LogBox, Platform, Alert } from "react-native";
+import { LogBox, Platform, Alert, Linking } from "react-native";
 
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
@@ -495,10 +495,13 @@ export default function App() {
         <NavigationContainer
           linking={{
             prefixes: [
+              "chaovietnam://",
               "xinchao://",
               "com.yourname.chaovnapp://",
               "exp+chao-vn-app://",
               "https://auth.expo.io/@young146/chao-vn-app",
+              "https://chaovietnam.co.kr",
+              "https://chaovietnam.co.kr/app/share",
             ],
             config: {
               screens: {
@@ -526,7 +529,39 @@ export default function App() {
                         },
                       },
                     },
-                    씬짜오나눔: "danggn",
+                    씬짜오나눔: {
+                      screens: {
+                        씬짜오나눔메인: "danggn",
+                        물품상세: {
+                          path: "danggn/:id",
+                          parse: {
+                            id: (id) => `${id}`,
+                          },
+                        },
+                      },
+                    },
+                    구인구직: {
+                      screens: {
+                        Jobs메인: "job",
+                        Jobs상세: {
+                          path: "job/:id",
+                          parse: {
+                            id: (id) => `${id}`,
+                          },
+                        },
+                      },
+                    },
+                    부동산: {
+                      screens: {
+                        부동산메인: "realestate",
+                        부동산상세: {
+                          path: "realestate/:id",
+                          parse: {
+                            id: (id) => `${id}`,
+                          },
+                        },
+                      },
+                    },
                     Chat: "chat",
                     Menu: "menu",
                   },

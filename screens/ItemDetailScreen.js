@@ -202,6 +202,25 @@ export default function ItemDetailScreen({ route, navigation }) {
     });
   }, [user, item, images, navigation, t]);
 
+  // 📤 SNS 공유 핸들러
+  const handleShare = useCallback(async (platform = 'more') => {
+    const { shareItem } = require('../utils/deepLinkUtils');
+    
+    try {
+      const result = await shareItem('danggn', item.id, item, platform);
+      if (result && !result.success) {
+        if (result.error === 'kakao_not_installed') {
+          Alert.alert('KakaoTalk', t('detail.installKakao'));
+        } else if (result.error === 'zalo_not_installed') {
+          Alert.alert('Zalo', t('detail.zaloNotInstalled'));
+        }
+      }
+    } catch (error) {
+      console.error("공유 실패:", error);
+      Alert.alert(t('common:error'), t('detail.shareFailed'));
+    }
+  }, [item, t]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
@@ -212,41 +231,45 @@ export default function ItemDetailScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
       ),
-    });
-
-    if (!isMyItem && user) {
-      navigation.setOptions({
-        headerRight: () => (
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {/* 공유 버튼 (항상 표시) */}
           <TouchableOpacity
-            onPress={handleChat}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginRight: 12,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}
+            onPress={handleShare}
+            style={{ marginRight: !isMyItem && user ? 8 : 12 }}
           >
-            <Ionicons name="chatbubble" size={20} color="#fff" />
-            <Text
+            <Ionicons name="share-social-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          {/* 채팅 버튼 (내 물건이 아닐 때만) */}
+          {!isMyItem && user && (
+            <TouchableOpacity
+              onPress={handleChat}
               style={{
-                color: "#fff",
-                fontSize: 14,
-                fontWeight: "600",
-                marginLeft: 4,
+                flexDirection: "row",
+                alignItems: "center",
+                marginRight: 12,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
               }}
             >
-              {t('detail.chatWithSeller')}
-            </Text>
-          </TouchableOpacity>
-        ),
-      });
-    } else {
-      navigation.setOptions({
-        headerRight: undefined,
-      });
-    }
-  }, [isMyItem, user, navigation, handleChat]);
+              <Ionicons name="chatbubble" size={20} color="#fff" />
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: "600",
+                  marginLeft: 4,
+                }}
+              >
+                {t('detail.chatWithSeller')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ),
+    });
+  }, [isMyItem, user, navigation, handleChat, handleShare, t]);
 
   const handleContactOption = (type, value) => {
     if (!value) return;

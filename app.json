@@ -5,7 +5,7 @@
     "owner": "young146",
     "version": "2.2.1",
     "newArchEnabled": false,
-    "scheme": "xinchao",
+    "scheme": "chaovietnam",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "44",
+      "buildNumber": "47",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
@@ -37,6 +37,7 @@
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
+              "chaovietnam",
               "xinchao"
             ]
           },
@@ -95,7 +96,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 60,
+      "versionCode": 61,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",

@@ -183,20 +183,24 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  // 공유하기
-  const handleShare = async () => {
+  // 📤 SNS 공유 핸들러
+  const handleShare = useCallback(async (platform = 'more') => {
+    const { shareItem } = require('../utils/deepLinkUtils');
+    
     try {
-      const priceText = item.dealType === "임대"
-        ? `${t('detail.deposit')} ${formatPrice(item.deposit)} / ${t('detail.monthlyRent')} ${formatPrice(item.monthlyRent)}`
-        : `${t('detail.salePrice')} ${formatSalePrice(item.price)}`;
-      
-      await Share.share({
-        message: `[${item.dealType}] ${item.title}\n\n📍 ${item.city}${item.district ? ` ${item.district}` : ''}\n💰 ${priceText}\n\nXinChao Vietnam App`,
-      });
+      const result = await shareItem('realestate', item.id, item, platform);
+      if (result && !result.success) {
+        if (result.error === 'kakao_not_installed') {
+          Alert.alert('KakaoTalk', t('detail.installKakao'));
+        } else if (result.error === 'zalo_not_installed') {
+          Alert.alert('Zalo', t('detail.zaloNotInstalled'));
+        }
+      }
     } catch (error) {
       console.error("공유 실패:", error);
+      Alert.alert(t('common:error'), t('detail.shareFailed'));
     }
-  };
+  }, [item, t]);
 
   // 수정하기
   const handleEdit = () => {
