@@ -3,7 +3,7 @@
  * Plugin Name: ChaoVN Ad API
  * Plugin URI: https://chaovietnam.co.kr
  * Description: ACF + CPT 기반 광고 관리 API - 모바일 앱용
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: ChaoVietnam
  * Author URI: https://chaovietnam.co.kr
  * License: GPL v2 or later
@@ -18,8 +18,8 @@ if (!defined('ABSPATH')) {
 // ========================================
 // 상수 정의
 // ========================================
-define('CHAOVN_AD_VERSION', '2.0.0');
-define('CHAOVN_AD_CPT', 'app_ads');  // CPT UI에서 설정한 slug
+define('CHAOVN_AD_VERSION', '2.0.1');
+define('CHAOVN_AD_CPT', 'app_ads');  // CPT UI 또는 ACF에서 설정한 slug
 
 // ========================================
 // 광고 슬롯 정의 (중앙 관리)
@@ -445,19 +445,33 @@ function chaovn_get_ads_debug_v2() {
 }
 
 // ========================================
-// 관리자 컬럼 추가 (광고 목록에서 정보 표시)
+// 관리자 컬럼 추가 (ACF 필드 기반 자동 생성)
 // ========================================
 add_filter('manage_' . CHAOVN_AD_CPT . '_posts_columns', function($columns) {
     $new_columns = array();
     foreach ($columns as $key => $value) {
         $new_columns[$key] = $value;
         if ($key === 'title') {
-            $new_columns['ad_thumbnail'] = '이미지';
-            $new_columns['ad_slot'] = '노출 위치';
-            $new_columns['ad_screen'] = '노출 섹션';
-            $new_columns['ad_period'] = '게시 기간';
-            $new_columns['ad_priority'] = '우선순위';
-            $new_columns['ad_clicks'] = '클릭수';
+            // ACF 필드 그룹에서 필드 정보 가져오기
+            $field_groups = acf_get_field_groups(array('post_type' => CHAOVN_AD_CPT));
+            
+            if ($field_groups) {
+                foreach ($field_groups as $field_group) {
+                    $fields = acf_get_fields($field_group['key']);
+                    if ($fields) {
+                        foreach ($fields as $field) {
+                            // 특정 필드만 컬럼으로 표시
+                            $display_fields = array('ad_image', 'ad_video', 'ad_slot', 'ad_screen', 'ad_priority', 'ad_clicks_count', 'ad_active');
+                            if (in_array($field['name'], $display_fields)) {
+                                $new_columns['acf_' . $field['name']] = $field['label'];
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 기간과 상태는 커스텀 추가 (복합 필드)
+            $new_columns['ad_period'] = '광고 기간';
             $new_columns['ad_status'] = '상태';
         }
     }
@@ -468,58 +482,92 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
     $slots = chaovn_get_ad_slots();
     $screens = chaovn_get_ad_screens();
     
-    switch ($column) {
-        case 'ad_thumbnail':
-            $image = get_field('ad_image', $post_id);
-            if ($image && isset($image['sizes']['thumbnail'])) {
-                echo '<img src="' . esc_url($image['sizes']['thumbnail']) . '" style="max-width:80px;height:auto;" />';
-    } else {
-                echo '-';
-            }
-            break;
-            
-        case 'ad_slot':
-            $slot = get_field('ad_slot', $post_id);
-            echo isset($slots[$slot]) ? esc_html($slots[$slot]['label']) : esc_html($slot);
-            break;
-            
-        case 'ad_screen':
-            $screen = get_field('ad_screen', $post_id);
-            echo isset($screens[$screen]) ? esc_html($screens[$screen]) : esc_html($screen);
-            break;
-            
-        case 'ad_period':
-            $start = get_field('ad_start_date', $post_id);
-            $end = get_field('ad_end_date', $post_id);
-            $start_text = $start ?: '시작일 없음';
-            $end_text = $end ?: '종료일 없음';
-            echo esc_html($start_text) . '<br>~<br>' . esc_html($end_text);
-            break;
-            
-        case 'ad_priority':
-            echo intval(get_field('ad_priority', $post_id)) ?: 10;
-            break;
-            
-        case 'ad_clicks':
-            echo number_format(intval(get_field('ad_clicks_count', $post_id)) ?: 0);
-            break;
-            
-        case 'ad_status':
-            $active = get_field('ad_active', $post_id);
-            $today = date('Y-m-d');
-            $start = get_field('ad_start_date', $post_id);
-            $end = get_field('ad_end_date', $post_id);
-            
-            if (!$active) {
-                echo '<span style="color:#999;">⏸️ 비활성</span>';
-            } elseif ($start && $start > $today) {
-                echo '<span style="color:#f39c12;">⏳ 예약</span>';
-            } elseif ($end && $end < $today) {
-                echo '<span style="color:#e74c3c;">⏹️ 만료</span>';
-            } else {
-                echo '<span style="color:#27ae60;">✅ 게시중</span>';
-            }
-            break;
+    // ACF 필드 기반 컬럼
+    if (strpos($column, 'acf_') === 0) {
+        $field_name = str_replace('acf_', '', $column);
+        $value = get_field($field_name, $post_id);
+        
+        switch ($field_name) {
+            case 'ad_image':
+                if ($value && isset($value['sizes']['thumbnail'])) {
+                    echo '<img src="' . esc_url($value['sizes']['thumbnail']) . '" style="max-width:80px;height:auto;" />';
+                } else {
+                    echo '-';
+                }
+                break;
+                
+            case 'ad_video':
+                if ($value) {
+                    echo '<a href="' . esc_url($value) . '" target="_blank">🎥 비디오</a>';
+                } else {
+                    echo '-';
+                }
+                break;
+                
+            case 'ad_slot':
+                if (is_array($value)) {
+                    $labels = array();
+                    foreach ($value as $s) {
+                        $labels[] = isset($slots[$s]) ? $slots[$s]['label'] : $s;
+                    }
+                    echo esc_html(implode(', ', $labels));
+                } else {
+                    echo isset($slots[$value]) ? esc_html($slots[$value]['label']) : ($value ?: '-');
+                }
+                break;
+                
+            case 'ad_screen':
+                if (is_array($value)) {
+                    $labels = array();
+                    foreach ($value as $s) {
+                        $labels[] = isset($screens[$s]) ? $screens[$s] : $s;
+                    }
+                    echo esc_html(implode(', ', $labels));
+                } else {
+                    echo isset($screens[$value]) ? esc_html($screens[$value]) : ($value ?: '-');
+                }
+                break;
+                
+            case 'ad_priority':
+                echo intval($value) ?: 10;
+                break;
+                
+            case 'ad_clicks_count':
+                echo number_format(intval($value) ?: 0);
+                break;
+                
+            case 'ad_active':
+                echo $value ? '✅ 활성' : '⏸️ 비활성';
+                break;
+                
+            default:
+                echo esc_html($value ?: '-');
+                break;
+        }
+    }
+    // 커스텀 복합 컬럼
+    elseif ($column === 'ad_period') {
+        $start = get_field('ad_start_date', $post_id);
+        $end = get_field('ad_end_date', $post_id);
+        $start_text = $start ?: '-';
+        $end_text = $end ?: '-';
+        echo esc_html($start_text) . '<br>~<br>' . esc_html($end_text);
+    }
+    elseif ($column === 'ad_status') {
+        $active = get_field('ad_active', $post_id);
+        $today = date('Y-m-d');
+        $start = get_field('ad_start_date', $post_id);
+        $end = get_field('ad_end_date', $post_id);
+        
+        if (!$active) {
+            echo '<span style="color:#999;">⏸️ 비활성</span>';
+        } elseif ($start && $start > $today) {
+            echo '<span style="color:#f39c12;">⏳ 예약</span>';
+        } elseif ($end && $end < $today) {
+            echo '<span style="color:#e74c3c;">⏹️ 만료</span>';
+        } else {
+            echo '<span style="color:#27ae60;">✅ 게시중</span>';
+        }
     }
 }, 10, 2);
 
