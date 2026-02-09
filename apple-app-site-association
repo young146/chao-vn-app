@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "9NAKBDVGPP.com.yourname.chaovnapp",
+        "paths": [
+          "/app/share/danggn/*",
+          "/app/share/job/*",
+          "/app/share/realestate/*"
+        ]
+      }
+    ]
+  }
+}

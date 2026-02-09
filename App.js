@@ -247,6 +247,28 @@ export default function App() {
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
 
+  // 🔗 딥링크 처리
+  useEffect(() => {
+    const handleDeepLink = (event) => {
+      const url = event.url;
+      console.log('🔗 딥링크 수신:', url);
+      Alert.alert('딥링크 수신', url);
+    };
+
+    // 초기 URL 확인 (앱이 닫혀있다가 딥링크로 열린 경우)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('🔗 초기 딥링크:', url);
+        Alert.alert('초기 딥링크', url);
+      }
+    });
+
+    // URL 이벤트 리스너 (앱이 실행 중일 때 딥링크 수신)
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    return () => subscription.remove();
+  }, []);
+
   // 🚀 캐시 우선 로딩 전략
   useEffect(() => {
     const initializeApp = async () => {

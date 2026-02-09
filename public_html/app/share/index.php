@@ -83,19 +83,17 @@ $deeplink = 'chaovietnam://' . $type . '/' . $id;
     
     <script>
         const appScheme = '<?php echo $deeplink; ?>';
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                window.location.href = appScheme;
-                setTimeout(function() {
-                    if (!document.hidden) {
-                        document.getElementById('installSection').style.display = 'block';
-                    }
-                }, 2000);
-            }, 1000);
-        });
+        
+        // 버튼 클릭 시 앱 열기 시도
         document.getElementById('openApp').addEventListener('click', function() {
-            window.location.href = appScheme;
+            window.location = appScheme;
+            
+            // 2.5초 후 페이지에 남아있으면 앱 없음
+            setTimeout(function() {
+                document.getElementById('installSection').style.display = 'block';
+            }, 2500);
         });
+        
         document.getElementById('goToWebsite').addEventListener('click', function() {
             if (confirm('지금 보시는 사이트는 씬짜오베트남 홈페이지입니다.\n\n당근/나눔, 구인구직, 부동산은 앱에서만 볼 수 있습니다.\n\n그래도 홈페이지로 이동하시겠습니까?')) {
                 window.location.href = 'https://chaovietnam.co.kr';

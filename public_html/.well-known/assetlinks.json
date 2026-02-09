@@ -1,0 +1,9 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.yourname.chaovnapp",
+    "sha256_cert_fingerprints":
+    ["34:DE:B6:01:95:A0:CE:87:9C:E5:24:AB:58:09:75:71:70:91:A8:67:C2:44:5E:5B:E0:7C:43:06:C8:9C:43:FC"]
+  }
+}]
