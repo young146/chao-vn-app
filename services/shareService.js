@@ -17,11 +17,12 @@ export const shareToSNS = async (platform, title, message, url) => {
             case 'kakao':
                 const canOpenKakao = await Linking.canOpenURL('kakaolink://');
                 if (canOpenKakao) {
-                    // 카카오톡으로 공유 (URL만 전달 - 카드만 표시)
-                    await Share.share({
-                        message: url,  // URL만 전달
-                        title: title
-                    });
+                    // iOS: url 속성으로 카드만 표시
+                    // Android: message로 텍스트 전달 (카카오톡이 자동으로 링크 카드 생성)
+                    const shareOptions = Platform.OS === 'ios'
+                        ? { url: url, title: title }
+                        : { message: `${message}\n\n앱에서 보기 👉 ${url}` };
+                    await Share.share(shareOptions);
                 } else {
                     return { success: false, error: 'kakao_not_installed' };
                 }
@@ -42,10 +43,10 @@ export const shareToSNS = async (platform, title, message, url) => {
             case 'zalo':
                 const zaloInstalled = await Linking.canOpenURL('zalo://');
                 if (zaloInstalled) {
-                    await Share.share({
-                        message: url,  // URL만 전달
-                        title: title
-                    });
+                    const shareOptions = Platform.OS === 'ios'
+                        ? { url: url, title: title }
+                        : { message: `${message}\n\n앱에서 보기 👉 ${url}` };
+                    await Share.share(shareOptions);
                 } else {
                     return { success: false, error: 'zalo_not_installed' };
                 }
@@ -61,12 +62,12 @@ export const shareToSNS = async (platform, title, message, url) => {
 
             case 'more':
             default:
-                // 기본 공유 시트 (URL만 전달)
-                await Share.share({
-                    message: url,  // URL만 전달
-                    title: title,
-                    url: url
-                });
+                // iOS는 url 속성으로 깔끔한 카드 표시
+                // Android는 message로 전달 (자동으로 링크 미리보기 생성)
+                const shareOptions = Platform.OS === 'ios'
+                    ? { url: url, title: title }
+                    : { message: `${message}\n\n앱에서 보기 👉 ${url}` };
+                await Share.share(shareOptions);
                 break;
         }
         return { success: true };

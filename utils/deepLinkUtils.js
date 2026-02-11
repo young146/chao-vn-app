@@ -15,7 +15,7 @@ const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
 export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
   
-  // 짧은 웹 링크 (파라미터 없이)
+  // 깔끔한 짧은 URL (파라미터 없이)
   const webLink = `${WEB_BASE_URL}${type}/${id}`;
   
   const shareMessage = generateShareMessage(type, item);
