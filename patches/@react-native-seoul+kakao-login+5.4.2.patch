@@ -1,0 +1,21 @@
+diff --git a/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt b/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt
+index ad0ffcd..c2400a7 100644
+--- a/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt
++++ b/node_modules/@react-native-seoul/kakao-login/android/src/main/java/com/dooboolab/kakaologins/RNKakaoLoginsModule.kt
+@@ -7,6 +7,7 @@ import com.kakao.sdk.user.UserApiClient
+ import com.kakao.sdk.user.model.User
+ import com.kakao.sdk.user.model.UserShippingAddresses
+ import com.kakao.sdk.auth.TokenManagerProvider
++import com.kakao.sdk.auth.model.Prompt
+ import java.text.SimpleDateFormat
+ import java.util.*
+ 
+@@ -89,7 +90,7 @@ class RNKakaoLoginsModule(private val reactContext: ReactApplicationContext) : R
+ 
+     @ReactMethod
+     private fun loginWithKakaoAccount(promise: Promise) {
+-        UserApiClient.instance.loginWithKakaoAccount(reactContext) { token, error: Throwable? ->
++        UserApiClient.instance.loginWithKakaoAccount(reactContext, prompts = listOf(Prompt.LOGIN)) { token, error: Throwable? ->
+             if (error != null) {
+                 promise.reject("RNKakaoLogins", error.message, error)
+                 return@loginWithKakaoAccount

@@ -17,22 +17,31 @@ export default function MyPageScreen({ navigation }) {
   const { user } = useAuth();
   const { t } = useTranslation('menu');
   const [profileImage, setProfileImage] = useState(null);
+  const [displayName, setDisplayName] = useState(null);
+  const [displayEmail, setDisplayEmail] = useState(null);
 
   useEffect(() => {
-    const loadProfileImage = async () => {
+    const loadUserProfile = async () => {
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
-            setProfileImage(userDoc.data().profileImage);
+            const data = userDoc.data();
+            setProfileImage(data.profileImage || null);
+            setDisplayName(data.displayName || data.name || null);
+            setDisplayEmail(data.email || user.email || null);
           }
         } catch (error) {
-          console.error("프로필 이미지 로드 실패:", error);
+          console.error("프로필 로드 실패:", error);
         }
+      } else {
+        setProfileImage(null);
+        setDisplayName(null);
+        setDisplayEmail(null);
       }
     };
-    loadProfileImage();
-  }, [user]);
+    loadUserProfile();
+  }, [user?.uid]);
 
   const myPageItems = [
     {
@@ -93,9 +102,9 @@ export default function MyPageScreen({ navigation }) {
           )}
         </View>
         <Text style={styles.userName}>
-          {user?.email ? user.email.split("@")[0] : t('user')}
+          {displayName || (user?.email ? user.email.split("@")[0] : t('user'))}
         </Text>
-        <Text style={styles.userEmail}>{user?.email || ""}</Text>
+        <Text style={styles.userEmail}>{displayEmail || user?.email || ""}</Text>
       </View>
 
       {/* My Page 메뉴 */}

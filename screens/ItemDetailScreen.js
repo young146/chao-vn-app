@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import ImageViewing from "react-native-image-viewing";
 import { useTranslation } from "react-i18next";
 import {
   doc,
@@ -47,6 +48,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(item.status || "판매중"); // ✅ 상태 관리
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
+  const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
 
   const images = item.images || (item.imageUri ? [item.imageUri] : []);
   const isMyItem = item.userId === user?.uid;
@@ -483,14 +485,22 @@ export default function ItemDetailScreen({ route, navigation }) {
                 scrollEventThrottle={16}
               >
                 {images.map((uri, index) => (
-                  <Image
+                  <TouchableOpacity
                     key={index}
-                    source={{ uri }}
-                    style={styles.image}
-                    contentFit="cover"
-                    transition={300}
-                    cachePolicy="memory-disk"
-                  />
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      setCurrentImageIndex(index);
+                      setIsImageViewVisible(true);
+                    }}
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={styles.image}
+                      contentFit="cover"
+                      transition={300}
+                      cachePolicy="memory-disk"
+                    />
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
 
@@ -515,6 +525,14 @@ export default function ItemDetailScreen({ route, navigation }) {
                   ))}
                 </View>
               )}
+
+              {/* 🔍 이미지 확대 뷰어 */}
+              <ImageViewing
+                images={images.map((uri) => ({ uri }))}
+                imageIndex={currentImageIndex}
+                visible={isImageViewVisible}
+                onRequestClose={() => setIsImageViewVisible(false)}
+              />
             </>
           ) : (
             <View style={styles.noImageContainer}>

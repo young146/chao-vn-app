@@ -16,6 +16,7 @@ import {
 import RenderHtml from 'react-native-render-html';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
+import ImageViewing from 'react-native-image-viewing';
 import { Ionicons, FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import CommentsSection from '../components/commentsSection';
@@ -31,6 +32,7 @@ export default function PostDetailScreen({ route }) {
   const [translatedContent, setTranslatedContent] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
+  const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
 
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
   
@@ -202,13 +204,26 @@ export default function PostDetailScreen({ route }) {
         </View>
 
         {featuredImage ? (
-          <Image
-            source={{ uri: featuredImage }}
-            style={styles.featuredImage}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="disk"
-          />
+          <>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setIsImageViewVisible(true)}
+            >
+              <Image
+                source={{ uri: featuredImage }}
+                style={styles.featuredImage}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="disk"
+              />
+            </TouchableOpacity>
+            <ImageViewing
+              images={[{ uri: featuredImage }]}
+              imageIndex={0}
+              visible={isImageViewVisible}
+              onRequestClose={() => setIsImageViewVisible(false)}
+            />
+          </>
         ) : (
           <View style={styles.placeholderContainer}>
             <Image

@@ -27,8 +27,9 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [kakaoLoading, setKakaoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, googleLogin, appleLogin } = useAuth();
+  const { login, googleLogin, appleLogin, kakaoLogin } = useAuth();
 
   // Google Sign-In 초기화 (Android + iOS 둘 다 활성화)
   useEffect(() => {
@@ -123,6 +124,27 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const handleKakaoLogin = async () => {
+    try {
+      setKakaoLoading(true);
+      const result = await kakaoLogin();
+      
+      if (result.success) {
+        Alert.alert(t('loginSuccess'), t('welcome'), [
+          { text: t('common:confirm'), onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        const msg = result.error || "카카오 로그인에 실패했습니다.";
+        Alert.alert(t('kakaoLoginFailed') || "카카오 로그인 실패", msg);
+      }
+    } catch (error) {
+      console.error("카카오 로그인 에러:", error);
+      Alert.alert(t('common:error'), "카카오 로그인 중 오류가 발생했습니다.");
+    } finally {
+      setKakaoLoading(false);
+    }
+  };
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert(t('common:loginRequired'), t('emailRequired'));
@@ -201,6 +223,25 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.divider} />
           </View>
 
+          {/* 카카오 로그인 (Android + iOS) */}
+          <TouchableOpacity
+            style={[styles.kakaoButton, kakaoLoading && { opacity: 0.7 }]}
+            onPress={handleKakaoLogin}
+            disabled={kakaoLoading || googleLoading || appleLoading}
+          >
+            {kakaoLoading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ActivityIndicator color="#381E1F" />
+                <Text style={[styles.kakaoButtonText, { marginLeft: 10 }]}>{t('loggingIn')}</Text>
+              </View>
+            ) : (
+              <>
+                <Ionicons name="chatbubble" size={20} color="#381E1F" />
+                <Text style={styles.kakaoButtonText}>{t('kakaoLogin') || "카카오 로그인"}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
           {/* Google 로그인 (Android + iOS) */}
           <TouchableOpacity
             style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
@@ -276,6 +317,8 @@ const styles = StyleSheet.create({
   dividerContainer: { flexDirection: "row", alignItems: "center", marginVertical: 24 },
   divider: { flex: 1, height: 1, backgroundColor: "#e0e0e0" },
   dividerText: { marginHorizontal: 12, fontSize: 14, color: "#999" },
+  kakaoButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#FEE500", borderRadius: 8, paddingVertical: 14, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  kakaoButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "600", color: "#381E1F" },
   googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000", borderRadius: 8, paddingVertical: 14, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
   googleButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "600", color: "#fff" },
   appleButton: { width: '100%', height: 50, marginBottom: 16 },

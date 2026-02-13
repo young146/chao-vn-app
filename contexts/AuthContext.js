@@ -12,6 +12,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as KakaoLogin from "@react-native-seoul/kakao-login";
 
 const AuthContext = createContext({});
 
@@ -21,6 +22,7 @@ const ADMIN_EMAILS = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsProfileComplete, setNeedsProfileComplete] = useState(false);
 
   useEffect(() => {
     // ✅ iOS 크래시 방어: auth가 null인 경우 초기화 대기
@@ -38,8 +40,23 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         await AsyncStorage.setItem("@user_id", currentUser.uid);
         // 🔔 알림 토큰 등록은 NotificationService에서 전담하므로 여기서 중복 호출하지 않음
+
+        // 📝 프로필 완성 여부 체크
+        try {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
+            setNeedsProfileComplete(isIncomplete);
+          } else {
+            setNeedsProfileComplete(true);
+          }
+        } catch (e) {
+          console.log("프로필 체크 실패:", e);
+        }
       } else {
         await AsyncStorage.removeItem("@user_id");
+        setNeedsProfileComplete(false);
       }
       setLoading(false);
     });
@@ -265,9 +282,90 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // 카카오 로그인
+  const kakaoLogin = async () => {
+    try {
+      // 카카오 로그인 (계정 선택 화면 표시)
+      const token = await KakaoLogin.loginWithKakaoAccount();
+      
+      // 카카오 프로필 정보 가져오기
+      const profile = await KakaoLogin.getProfile();
+      console.log("✅ 카카오 로그인 성공:", profile.nickname);
+
+      // Firebase Auth 로그인용 이메일/비밀번호 생성
+      const kakaoEmail = `kakao_${profile.id}@chaovietnam.co.kr`;
+      const kakaoPassword = `kakao_login_sec_${profile.id}`;
+
+      let userCredential;
+      let isNewUser = false;
+      
+      try {
+        // 기존 사용자 로그인
+        userCredential = await signInWithEmailAndPassword(auth, kakaoEmail, kakaoPassword);
+      } catch (error) {
+        if (error.code === "auth/user-not-found" || error.code === "auth/invalid-credential") {
+          // 신규 사용자 생성
+          userCredential = await createUserWithEmailAndPassword(auth, kakaoEmail, kakaoPassword);
+          isNewUser = true;
+        } else {
+          throw error;
+        }
+      }
+
+      const user = userCredential.user;
+
+      // Firestore에 사용자 정보 저장
+      const userRef = doc(db, "users", user.uid);
+      const userData = {
+        uid: user.uid,
+        email: profile.email || kakaoEmail,
+        name: profile.nickname || "Kakao 사용자",
+        displayName: profile.nickname || "Kakao 사용자",
+        profileImage: profile.profileImageUrl || null,
+        provider: "kakao",
+        kakaoId: profile.id,
+        profileCompleted: false,
+        createdAt: serverTimestamp(),
+      };
+
+      // 신규 사용자: users + notificationSettings 생성
+      // 기존 사용자: 프로필 정보만 업데이트
+      if (isNewUser) {
+        await Promise.all([
+          setDoc(userRef, userData),
+          setDoc(doc(db, "notificationSettings", user.uid), {
+            userId: user.uid,
+            nearbyItems: false,
+            favorites: true,
+            reviews: true,
+            chat: true,
+            adminAlerts: true,
+          })
+        ]);
+      } else {
+        // 기존 사용자는 프로필 정보만 업데이트
+        await setDoc(userRef, {
+          name: userData.name,
+          displayName: userData.displayName,
+          profileImage: userData.profileImage,
+          email: userData.email,
+        }, { merge: true });
+      }
+
+      return { success: true, user };
+
+    } catch (error) {
+      console.error("❌ 카카오 로그인 오류:", error);
+      if (error.code === 'E_CANCELLED_OPERATION') {
+        return { success: false, error: "로그인이 취소되었습니다." };
+      }
+      return { success: false, error: "카카오 로그인에 실패했습니다." };
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, isAdmin, signup, login, logout, findId, findPassword, googleLogin, appleLogin }}
+      value={{ user, loading, isAdmin, signup, login, logout, findId, findPassword, googleLogin, appleLogin, kakaoLogin, needsProfileComplete, setNeedsProfileComplete }}
     >
       {children}
     </AuthContext.Provider>

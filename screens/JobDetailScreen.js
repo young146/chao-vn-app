@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import ImageViewing from "react-native-image-viewing";
 import { useTranslation } from "react-i18next";
 import {
   doc,
@@ -38,6 +39,7 @@ export default function JobDetailScreen({ route, navigation }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(job.status || "모집중");
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
+  const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
 
   const images = job.images || [];
   const isMyJob = job.userId === user?.uid;
@@ -278,13 +280,21 @@ export default function JobDetailScreen({ route, navigation }) {
               scrollEventThrottle={16}
             >
               {images.map((uri, index) => (
-                <Image
+                <TouchableOpacity
                   key={index}
-                  source={{ uri }}
-                  style={styles.image}
-                  contentFit="cover"
-                  transition={200}
-                />
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    setCurrentImageIndex(index);
+                    setIsImageViewVisible(true);
+                  }}
+                >
+                  <Image
+                    source={{ uri }}
+                    style={styles.image}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                </TouchableOpacity>
               ))}
             </ScrollView>
             {images.length > 1 && (
@@ -294,6 +304,13 @@ export default function JobDetailScreen({ route, navigation }) {
                 </Text>
               </View>
             )}
+            {/* 🔍 이미지 확대 뷰어 */}
+            <ImageViewing
+              images={images.map((uri) => ({ uri }))}
+              imageIndex={currentImageIndex}
+              visible={isImageViewVisible}
+              onRequestClose={() => setIsImageViewVisible(false)}
+            />
           </View>
         ) : (
           <View style={styles.noImageContainer}>

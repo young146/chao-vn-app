@@ -136,7 +136,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
@@ -594,6 +594,7 @@ export default function App() {
           }}
         >
           <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+          <ProfileCompletionPrompt />
           <RootNavigator />
         </NavigationContainer>
         
@@ -1240,6 +1241,70 @@ const GlobalChatNotificationListener = () => {
     notificationService.initialize();
     console.log("🔔 Global Notification Service 활성화됨");
   }, []);
+  return null;
+};
+
+// 📝 로그인 후 프로필 미작성 유저에게 프로필 작성 유도 팝업 (하루 1회)
+const ProfileCompletionPrompt = () => {
+  const { user, needsProfileComplete, setNeedsProfileComplete } = useAuth();
+  const navigation = useNavigation();
+  const promptShownRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !needsProfileComplete || promptShownRef.current) return;
+
+    const checkAndShow = async () => {
+      try {
+        // 마지막 팝업 표시 시간 확인 (하루 1회 제한)
+        const lastShown = await AsyncStorage.getItem("@profile_prompt_last");
+        if (lastShown) {
+          const lastDate = new Date(lastShown).toDateString();
+          const today = new Date().toDateString();
+          if (lastDate === today) return; // 오늘 이미 보여줌
+        }
+
+        promptShownRef.current = true;
+        await AsyncStorage.setItem("@profile_prompt_last", new Date().toISOString());
+
+        // 로그인 성공 Alert가 먼저 닫힌 후 표시 (2초 딜레이)
+        setTimeout(() => {
+          Alert.alert(
+            "📝 프로필을 작성해주세요",
+            "프로필을 완성하면 내 주변 물품, 지역 정보 등 맞춤 서비스를 받을 수 있습니다.",
+            [
+              {
+                text: "나중에",
+                style: "cancel",
+              },
+              {
+                text: "지금 작성",
+                style: "default",
+                onPress: () => {
+                  setNeedsProfileComplete(false);
+                  navigation.navigate("메뉴", { screen: "프로필" });
+                },
+              },
+            ]
+          );
+        }, 2000);
+      } catch (e) {
+        console.log("프로필 프롬프트 체크 실패:", e);
+      }
+    };
+
+    checkAndShow();
+
+    // 로그아웃 시 리셋
+    return () => {};
+  }, [user, needsProfileComplete]);
+
+  // 로그아웃 시 리셋
+  useEffect(() => {
+    if (!user) {
+      promptShownRef.current = false;
+    }
+  }, [user]);
+
   return null;
 };
 

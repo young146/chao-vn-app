@@ -75,9 +75,11 @@ export default function ProfileScreen({ navigation }) {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadStats();
-    loadUserProfile();
-  }, []);
+    if (user?.uid) {
+      loadStats();
+      loadUserProfile();
+    }
+  }, [user?.uid]);
 
   const loadStats = async () => {
     try {
