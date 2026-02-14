@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "54",
+      "buildNumber": "55",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
@@ -30,6 +30,7 @@
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
       },
       "infoPlist": {
+        "KAKAO_APP_KEY": "f62e4f5ddf705fb25094caae8d35d748",
         "UIBackgroundModes": [
           "remote-notification"
         ],
@@ -106,7 +107,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 66,
+      "versionCode": 67,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
