@@ -285,12 +285,16 @@ export const AuthProvider = ({ children }) => {
   // 카카오 로그인
   const kakaoLogin = async () => {
     try {
+      console.log("🔵 카카오 로그인 시작");
+      
       // 카카오 로그인 (계정 선택 화면 표시)
       const token = await KakaoLogin.loginWithKakaoAccount();
+      console.log("✅ 카카오 토큰 받음:", token ? "있음" : "없음");
       
       // 카카오 프로필 정보 가져오기
+      console.log("🔵 프로필 가져오는 중...");
       const profile = await KakaoLogin.getProfile();
-      console.log("✅ 카카오 로그인 성공:", profile.nickname);
+      console.log("✅ 카카오 프로필 받음:", profile.nickname, profile.id);
 
       // Firebase Auth 로그인용 이메일/비밀번호 생성
       const kakaoEmail = `kakao_${profile.id}@chaovietnam.co.kr`;
@@ -356,6 +360,8 @@ export const AuthProvider = ({ children }) => {
 
     } catch (error) {
       console.error("❌ 카카오 로그인 오류:", error);
+      console.error("❌ 에러 코드:", error.code);
+      console.error("❌ 에러 메시지:", error.message);
       if (error.code === 'E_CANCELLED_OPERATION') {
         return { success: false, error: "로그인이 취소되었습니다." };
       }

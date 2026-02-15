@@ -13,6 +13,7 @@
   "pastNewsHint": "Sử dụng 'Xem tin tức theo ngày' để xem tin tức cũ",
   "todayNewsEnd": "Đây là tin tức Việt Nam hôm nay từ XinChao Vietnam",
   "dateNewsEnd": "Đây là tin tức Việt Nam ngày {{day}}/{{month}}/{{year}}",
+  "sectionNavTitle": "Xem tin theo chủ đề",
   "sections": {
     "community": "Tin cộng đồng",
     "business": "Kinh doanh & Xã hội",

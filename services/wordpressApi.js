@@ -71,7 +71,9 @@ const getAllCategories = async () => {
     return cachedCategories;
   }).catch(error => {
     categoriesFetchPromise = null;
-    console.error('카테고리 로드 실패:', error);
+    console.error('❌ 카테고리 로드 실패:', error.response?.status, error.message);
+    // 빈 배열 캐시해서 재시도 방지
+    cachedCategories = [];
     return [];
   });
   
@@ -566,6 +568,64 @@ export const wordpressApi = {
       console.error('getCategories error:', error);
       throw error;
     }
+  }
+};
+
+// ============================================================================
+// 뉴스 섹션 기능 (앱 전용)
+// ============================================================================
+
+const JENNY_API_URL = 'https://chaovietnam.co.kr/wp-json/jenny/v1';
+
+/**
+ * 섹션 목록 가져오기 (WordPress에서 동적으로 로드)
+ */
+let cachedSections = null;
+export const getSectionsList = async () => {
+  try {
+    // 캐시가 있으면 반환
+    if (cachedSections) {
+      return cachedSections;
+    }
+    
+    const response = await api.get(`${JENNY_API_URL}/sections`);
+    if (response.data.success) {
+      cachedSections = response.data.data;
+      return cachedSections;
+    }
+    return [];
+  } catch (error) {
+    console.error('Failed to fetch sections list:', error);
+    return [];
+  }
+};
+
+/**
+ * 특정 섹션의 뉴스 가져오기
+ */
+export const getSectionNews = async (sectionKey, categoryId, page = 1) => {
+  try {
+    const response = await api.get(`${JENNY_API_URL}/section-news`, {
+      params: {
+        section: sectionKey,
+        category: categoryId,
+        page: page,
+        per_page: 10,
+      },
+    });
+    
+    if (response.data.success) {
+      return {
+        posts: response.data.posts || [],
+        hasMore: response.data.has_more || false,
+        totalPages: response.data.total_pages || 1,
+      };
+    }
+    
+    return { posts: [], hasMore: false, totalPages: 1 };
+  } catch (error) {
+    console.error('Failed to fetch section news:', error);
+    return { posts: [], hasMore: false, totalPages: 1 };
   }
 };
 

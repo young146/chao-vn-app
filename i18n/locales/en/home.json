@@ -13,6 +13,7 @@
   "pastNewsHint": "Use 'View news by date' for past news",
   "todayNewsEnd": "That's today's Vietnam news from XinChao Vietnam",
   "dateNewsEnd": "That's Vietnam news for {{month}}/{{day}}/{{year}}",
+  "sectionNavTitle": "Browse News by Category",
   "sections": {
     "community": "Community News",
     "business": "Business & Society",

@@ -17,10 +17,11 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
+import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached, getSectionsList, getSectionNews } from '../services/wordpressApi';
 import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
+import SectionNewsModal from '../components/SectionNewsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -340,6 +341,11 @@ export default function MagazineScreen({ navigation, route }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
   const [showingYesterdayNews, setShowingYesterdayNews] = useState(false);
+  
+  // 섹션 모달 관련 state
+  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [dynamicSections, setDynamicSections] = useState([]);
 
   const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
     try {
@@ -454,6 +460,24 @@ export default function MagazineScreen({ navigation, route }) {
       return () => clearTimeout(timer);
     }
   }, [type, loading]);
+
+  // 🗞️ 뉴스 섹션 목록 로드 (WordPress에서 동적으로 가져오기)
+  useEffect(() => {
+    if (type === 'news') {
+      loadDynamicSections();
+    }
+  }, [type]);
+
+  const loadDynamicSections = async () => {
+    try {
+      const sections = await getSectionsList();
+      if (sections && sections.length > 0) {
+        setDynamicSections(sections);
+      }
+    } catch (error) {
+      console.error('섹션 목록 로드 실패:', error);
+    }
+  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -644,6 +668,30 @@ export default function MagazineScreen({ navigation, route }) {
             {/* 🗞️ 뉴스 탭: 카테고리별 섹션 (WordPress 사이트와 동일) */}
             {type === 'news' && !searchQuery && newsSections.length > 0 && (
               <View>
+                {/* 📍 섹션 네비게이션 (항목별 뉴스 보기) */}
+                {dynamicSections.length > 0 && (
+                  <View style={styles.sectionNavContainer}>
+                    <View style={styles.sectionNavHeader}>
+                      <Ionicons name="location-outline" size={18} color="#92400e" />
+                      <Text style={styles.sectionNavTitle}>{t('sectionNavTitle') || '뉴스 항목별 기사 보기'}</Text>
+                    </View>
+                    <View style={styles.sectionNavList}>
+                      {dynamicSections.map((section) => (
+                        <TouchableOpacity
+                          key={`nav-${section.key}`}
+                          style={styles.sectionNavItem}
+                          onPress={() => {
+                            setSelectedSection({ key: section.key, title: section.label });
+                            setShowSectionModal(true);
+                          }}
+                        >
+                          <Text style={styles.sectionNavItemText}>{section.icon} {section.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
                 {newsSections.map((section, sectionIndex) => {
                   return (
                   <View key={`news-section-${section.categoryKey}`}>
@@ -763,6 +811,16 @@ export default function MagazineScreen({ navigation, route }) {
           autoCloseSeconds={10}
         />
       )}
+
+      {/* 📍 섹션별 뉴스 모달 */}
+      <SectionNewsModal
+        isVisible={showSectionModal}
+        onClose={() => setShowSectionModal(false)}
+        sectionKey={selectedSection?.key}
+        sectionTitle={selectedSection?.title}
+        categoryId={categoryId}
+        navigation={navigation}
+      />
     </SafeAreaView>
   );
 }
@@ -1099,6 +1157,44 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     textAlign: 'center',
+  },
+  // 섹션 네비게이션 스타일
+  sectionNavContainer: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  sectionNavHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 6,
+  },
+  sectionNavTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#92400e',
+  },
+  sectionNavList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sectionNavItem: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  sectionNavItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#d97706',
   },
 });
 

@@ -13,6 +13,7 @@
   "pastNewsHint": "지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요",
   "todayNewsEnd": "이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다",
   "dateNewsEnd": "이상, {{year}}년 {{month}}월 {{day}}일 베트남 뉴스입니다",
+  "sectionNavTitle": "뉴스 항목별 기사 보기",
   "sections": {
     "community": "교민소식",
     "business": "비즈니스 & 사회",
