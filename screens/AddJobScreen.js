@@ -421,15 +421,15 @@ export default function AddJobScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>
             <Ionicons name="briefcase-outline" size={16}  /> {t('form.industryLabel')}
           </Text>
-          <View style={styles.pickerWrapper}>
+          <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
             <Picker
               selectedValue={industry}
               onValueChange={setIndustry}
-              style={styles.picker}
-              dropdownIconColor="#333"
+              style={[styles.picker, { color: colors.text }]}
+              dropdownIconColor={colors.textSecondary}
             >
               {industries.map((ind) => (
-                <Picker.Item key={ind} label={translateIndustry(ind, i18n.language)} value={ind} />
+                <Picker.Item key={ind} label={translateIndustry(ind, i18n.language)} value={ind} color={colors.text} />
               ))}
             </Picker>
           </View>
@@ -454,15 +454,15 @@ export default function AddJobScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>
             <Ionicons name="time-outline" size={16}  /> {t('form.employmentTypeLabel')}
           </Text>
-          <View style={styles.pickerWrapper}>
+          <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
             <Picker
               selectedValue={employmentType}
               onValueChange={setEmploymentType}
-              style={styles.picker}
-              dropdownIconColor="#333"
+              style={[styles.picker, { color: colors.text }]}
+              dropdownIconColor={colors.textSecondary}
             >
               {employmentTypes.map((type) => (
-                <Picker.Item key={type} label={translateEmploymentType(type, i18n.language)} value={type} />
+                <Picker.Item key={type} label={translateEmploymentType(type, i18n.language)} value={type} color={colors.text} />
               ))}
             </Picker>
           </View>
@@ -474,15 +474,15 @@ export default function AddJobScreen({ navigation, route }) {
             <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
           </Text>
           <View style={styles.locationRow}>
-            <View style={[styles.pickerWrapper, { flex: 1 }]}>
+            <View style={[styles.pickerWrapper, { flex: 1, backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
               <Picker
                 selectedValue={selectedCity}
                 onValueChange={setSelectedCity}
-                style={styles.picker}
-                dropdownIconColor="#333"
+                style={[styles.picker, { color: colors.text }]}
+                dropdownIconColor={colors.textSecondary}
               >
                 {cities.map((city) => (
-                  <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
+                  <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} color={colors.text} />
                 ))}
               </Picker>
             </View>
@@ -757,16 +757,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pickerWrapper: {
-    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     height: 56,
     justifyContent: "center",
   },
   picker: {
     height: 56,
-    color: "#333",
     marginLeft: -8,
   },
   locationRow: {

@@ -455,9 +455,15 @@ class NotificationService {
       const { onAuthStateChanged } = require("firebase/auth");
       onAuthStateChanged(auth, (user) => {
         if (user) {
-          this.registerTokens(user);
+          // 알림 권한 요청은 로그인 성공 Alert가 닫힌 후 실행 (5초 딜레이)
+          // 로그인 직후 시스템 팝업이 겹쳐서 로그인 Alert가 dismiss되는 문제 방지
+          if (this._tokenTimeout) clearTimeout(this._tokenTimeout);
+          this._tokenTimeout = setTimeout(() => {
+            this.registerTokens(user);
+          }, 5000);
           this.startChatRoomsListener(user.uid);
         } else {
+          if (this._tokenTimeout) clearTimeout(this._tokenTimeout);
           this.stopChatRoomsListener();
         }
       });

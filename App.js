@@ -1266,7 +1266,8 @@ const ProfileCompletionPrompt = () => {
         promptShownRef.current = true;
         await AsyncStorage.setItem("@profile_prompt_last", new Date().toISOString());
 
-        // 로그인 성공 Alert가 먼저 닫힌 후 표시 (2초 딜레이)
+        // 로그인 성공 Alert(~3초) + 알림 권한 팝업(5초 후) 이후에 표시 (8초 딜레이)
+        // 다른 팝업과 겹치지 않도록 충분한 간격 확보
         setTimeout(() => {
           Alert.alert(
             "📝 프로필을 작성해주세요",
@@ -1286,7 +1287,7 @@ const ProfileCompletionPrompt = () => {
               },
             ]
           );
-        }, 2000);
+        }, 8000);
       } catch (e) {
         console.log("프로필 프롬프트 체크 실패:", e);
       }

@@ -406,15 +406,15 @@ export default function AddRealEstateScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>
             <Ionicons name="home-outline" size={16}  /> {t('form.propertyTypeLabel')}
           </Text>
-          <View style={styles.pickerWrapper}>
+          <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
             <Picker
               selectedValue={propertyType}
               onValueChange={setPropertyType}
-              style={styles.picker}
-              dropdownIconColor="#333"
+              style={[styles.picker, { color: colors.text }]}
+              dropdownIconColor={colors.textSecondary}
             >
               {propertyTypes.map((type) => (
-                <Picker.Item key={type} label={translatePropertyType(type, i18n.language)} value={type} />
+                <Picker.Item key={type} label={translatePropertyType(type, i18n.language)} value={type} color={colors.text} />
               ))}
             </Picker>
           </View>
@@ -490,15 +490,15 @@ export default function AddRealEstateScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>
             <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
           </Text>
-          <View style={styles.pickerWrapper}>
+          <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
             <Picker
               selectedValue={selectedCity}
               onValueChange={setSelectedCity}
-              style={styles.picker}
-              dropdownIconColor="#333"
+              style={[styles.picker, { color: colors.text }]}
+              dropdownIconColor={colors.textSecondary}
             >
               {cities.map((city) => (
-                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
+                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} color={colors.text} />
               ))}
             </Picker>
           </View>
@@ -786,16 +786,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pickerWrapper: {
-    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     height: 56,
     justifyContent: "center",
   },
   picker: {
     height: 56,
-    color: "#333",
     marginLeft: -8,
   },
   priceRow: {

@@ -648,31 +648,31 @@ export default function AddItemScreen({ navigation, route }) {
         />
 
         <Text style={styles.label}>{t('form.categoryLabel')}</Text>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <Picker
             selectedValue={category}
             onValueChange={setCategory}
-            style={styles.picker}
-            dropdownIconColor="#333"
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.textSecondary}
           >
-            <Picker.Item label={t('categories.free')} value="무료나눔" />
-            <Picker.Item label={`🔍 ${t('categories.hiring')}`} value="구인" />
-            <Picker.Item label={`💼 ${t('categories.seeking')}`} value="구직" />
-            <Picker.Item label={`🏠 ${t('categories.rentProperty')}`} value="부동산 임대" />
-            <Picker.Item label={`🏡 ${t('categories.sellProperty')}`} value="부동산 판매" />
-            <Picker.Item label={t('categories.electronics')} value="전자제품" />
-            <Picker.Item label={t('categories.furniture')} value="가구/인테리어" />
-            <Picker.Item label={t('categories.clothing')} value="의류/잡화" />
-            <Picker.Item label={t('categories.household')} value="생활용품" />
-            <Picker.Item label={t('categories.books')} value="도서/문구" />
-            <Picker.Item label={t('categories.baby')} value="유아용품" />
-            <Picker.Item label={t('categories.pet')} value="펫 용품" />
-            <Picker.Item label={t('categories.other')} value="기타" />
+            <Picker.Item label={t('categories.free')} value="무료나눔" color={colors.text} />
+            <Picker.Item label={`🔍 ${t('categories.hiring')}`} value="구인" color={colors.text} />
+            <Picker.Item label={`💼 ${t('categories.seeking')}`} value="구직" color={colors.text} />
+            <Picker.Item label={`🏠 ${t('categories.rentProperty')}`} value="부동산 임대" color={colors.text} />
+            <Picker.Item label={`🏡 ${t('categories.sellProperty')}`} value="부동산 판매" color={colors.text} />
+            <Picker.Item label={t('categories.electronics')} value="전자제품" color={colors.text} />
+            <Picker.Item label={t('categories.furniture')} value="가구/인테리어" color={colors.text} />
+            <Picker.Item label={t('categories.clothing')} value="의류/잡화" color={colors.text} />
+            <Picker.Item label={t('categories.household')} value="생활용품" color={colors.text} />
+            <Picker.Item label={t('categories.books')} value="도서/문구" color={colors.text} />
+            <Picker.Item label={t('categories.baby')} value="유아용품" color={colors.text} />
+            <Picker.Item label={t('categories.pet')} value="펫 용품" color={colors.text} />
+            <Picker.Item label={t('categories.other')} value="기타" color={colors.text} />
           </Picker>
         </View>
 
         <Text style={styles.label}>{t('form.cityLabel')}</Text>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <Picker
             selectedValue={selectedCity}
             onValueChange={(value) => {
@@ -680,30 +680,30 @@ export default function AddItemScreen({ navigation, route }) {
               setSelectedDistrict("");
               setSelectedApartment("");
             }}
-            style={styles.picker}
-            dropdownIconColor="#333"
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.textSecondary}
           >
-            <Picker.Item label={t('form.selectCity')} value="" />
+            <Picker.Item label={t('form.selectCity')} value="" color={colors.text} />
             {CITIES.map((city) => (
-              <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
+              <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} color={colors.text} />
             ))}
           </Picker>
         </View>
 
         <Text style={styles.label}>{t('form.districtLabel')}</Text>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <Picker
             selectedValue={selectedDistrict}
             onValueChange={(value) => {
               setSelectedDistrict(value);
               setSelectedApartment("");
             }}
-            style={styles.picker}
-            dropdownIconColor="#333"
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.textSecondary}
           >
-            <Picker.Item label={t('form.selectDistrict')} value="" />
+            <Picker.Item label={t('form.selectDistrict')} value="" color={colors.text} />
             {districts.map((district) => (
-              <Picker.Item key={district} label={translateOther(district, i18n.language)} value={district} />
+              <Picker.Item key={district} label={translateOther(district, i18n.language)} value={district} color={colors.text} />
             ))}
           </Picker>
         </View>
@@ -712,19 +712,20 @@ export default function AddItemScreen({ navigation, route }) {
           <>
             <Text style={styles.label}>{t('form.apartmentLabel')} *</Text>
             <Text style={styles.helperText}>💡 {t('common:apartmentNotice', '아파트명을 선택하면 같은 아파트 주민에게 알림이 갑니다!')}</Text>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
               <Picker
                 selectedValue={selectedApartment}
                 onValueChange={setSelectedApartment}
-                style={styles.picker}
-                dropdownIconColor="#333"
+                style={[styles.picker, { color: colors.text }]}
+                dropdownIconColor={colors.textSecondary}
               >
-                <Picker.Item label={`🏠 ${t('form.selectApartment')}`} value="" />
+                <Picker.Item label={`🏠 ${t('form.selectApartment')}`} value="" color={colors.text} />
                 {apartments.map((apartment) => (
                   <Picker.Item
                     key={apartment}
                     label={translateOther(apartment, i18n.language)}
                     value={apartment}
+                    color={colors.text}
                   />
                 ))}
               </Picker>
@@ -900,9 +901,7 @@ const styles = StyleSheet.create({
   pickerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 10,
@@ -912,7 +911,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 56,
     fontSize: 16,
-    color: "#333",
   },
   contactSection: {
     marginTop: 20,

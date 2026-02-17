@@ -375,35 +375,35 @@ export default function JobsScreen({ navigation }) {
 
   // 필터 영역
   const FilterSection = useMemo(() => (
-    <View style={styles.filterSection}>
+    <View style={[styles.filterSection, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
       <View style={styles.filterRow}>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <Picker
             selectedValue={selectedCity}
             onValueChange={setSelectedCity}
-            style={styles.picker}
-            dropdownIconColor="#333"
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.textSecondary}
           >
             {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
+              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} color={colors.text} />
             ))}
           </Picker>
         </View>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
           <Picker
             selectedValue={selectedIndustry}
             onValueChange={setSelectedIndustry}
-            style={styles.picker}
-            dropdownIconColor="#333"
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.textSecondary}
           >
             {industries.map((ind) => (
-              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} />
+              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} color={colors.text} />
             ))}
           </Picker>
         </View>
       </View>
     </View>
-  ), [selectedCity, selectedIndustry, colors.text, t, i18n.language]);
+  ), [selectedCity, selectedIndustry, colors, t, i18n.language]);
 
   // 리스트 헤더
   const ListHeader = useMemo(() => (
@@ -549,9 +549,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
   },
@@ -559,7 +557,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#333",
   },
   listContainer: {
     paddingBottom: 80,

@@ -241,7 +241,7 @@ export default function SignupScreen({ navigation }) {
               <Text style={styles.sectionTitle}>{t('addressOptional')}</Text>
 
               {/* 도시 */}
-              <View style={styles.pickerWrapper}>
+              <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
                 <Picker
                   selectedValue={selectedCity}
                   onValueChange={(value) => {
@@ -249,34 +249,35 @@ export default function SignupScreen({ navigation }) {
                     setSelectedDistrict("");
                     setSelectedApartment("");
                   }}
-                  style={styles.picker}
-                  dropdownIconColor="#333"
+                  style={[styles.picker, { color: colors.text }]}
+                  dropdownIconColor={colors.textSecondary}
                 >
-                  <Picker.Item label={t('selectCity')} value="" />
+                  <Picker.Item label={t('selectCity')} value="" color={colors.text} />
                   {CITIES.map((city) => (
-                    <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
+                    <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} color={colors.text} />
                   ))}
                 </Picker>
               </View>
 
               {/* 구/군 */}
               {selectedCity && (
-                <View style={styles.pickerWrapper}>
+                <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
                   <Picker
                     selectedValue={selectedDistrict}
                     onValueChange={(value) => {
                       setSelectedDistrict(value);
                       setSelectedApartment("");
                     }}
-                    style={styles.picker}
-                    dropdownIconColor="#333"
+                    style={[styles.picker, { color: colors.text }]}
+                    dropdownIconColor={colors.textSecondary}
                   >
-                    <Picker.Item label={t('selectDistrict')} value="" />
+                    <Picker.Item label={t('selectDistrict')} value="" color={colors.text} />
                     {districts.map((district) => (
                       <Picker.Item
                         key={district}
                         label={translateOther(district, i18n.language)}
                         value={district}
+                        color={colors.text}
                       />
                     ))}
                   </Picker>
@@ -285,19 +286,20 @@ export default function SignupScreen({ navigation }) {
 
               {/* 아파트/지역 */}
               {selectedDistrict && apartments.length > 0 && (
-                <View style={styles.pickerWrapper}>
+                <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
                   <Picker
                     selectedValue={selectedApartment}
                     onValueChange={setSelectedApartment}
-                    style={styles.picker}
-                    dropdownIconColor="#333"
+                    style={[styles.picker, { color: colors.text }]}
+                    dropdownIconColor={colors.textSecondary}
                   >
-                    <Picker.Item label={t('selectApartment')} value="" />
+                    <Picker.Item label={t('selectApartment')} value="" color={colors.text} />
                     {apartments.map((apartment) => (
                       <Picker.Item
                         key={apartment}
                         label={translateOther(apartment, i18n.language)}
                         value={apartment}
+                        color={colors.text}
                       />
                     ))}
                   </Picker>
@@ -411,9 +413,7 @@ const styles = StyleSheet.create({
   pickerWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 12,
@@ -422,7 +422,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#333",
   },
   signupButton: {
     backgroundColor: "#FF6B35",
