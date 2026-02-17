@@ -375,35 +375,33 @@ export default function JobsScreen({ navigation }) {
 
   // 필터 영역
   const FilterSection = useMemo(() => (
-    <View style={[styles.filterSection, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+    <View style={styles.filterSection}>
       <View style={styles.filterRow}>
-        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+        <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedCity}
             onValueChange={setSelectedCity}
-            style={[styles.picker, { color: colors.text }]}
-            dropdownIconColor={colors.textSecondary}
+            style={styles.picker}
           >
             {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} color={colors.text} />
+              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
             ))}
           </Picker>
         </View>
-        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+        <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedIndustry}
             onValueChange={setSelectedIndustry}
-            style={[styles.picker, { color: colors.text }]}
-            dropdownIconColor={colors.textSecondary}
+            style={styles.picker}
           >
             {industries.map((ind) => (
-              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} color={colors.text} />
+              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} />
             ))}
           </Picker>
         </View>
       </View>
     </View>
-  ), [selectedCity, selectedIndustry, colors, t, i18n.language]);
+  ), [selectedCity, selectedIndustry, t, i18n.language]);
 
   // 리스트 헤더
   const ListHeader = useMemo(() => (
@@ -552,10 +550,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
+    height: Platform.OS === "ios" ? 120 : undefined,
   },
   picker: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: Platform.OS === "ios" ? 0 : 8,
     fontSize: 14,
   },
   listContainer: {

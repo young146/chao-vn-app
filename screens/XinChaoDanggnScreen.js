@@ -451,44 +451,42 @@ export default function XinChaoDanggnScreen({ navigation }) {
   ), [user, showProfilePrompt, navigation, handleProfilePrompt, t]);
 
   const headerFilters = useMemo(() => (
-    <View style={[styles.filterSection, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-      <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+    <View style={styles.filterSection}>
+      <View style={styles.pickerContainer}>
         <Picker
           selectedValue={selectedCity}
           onValueChange={(v) => { setSelectedCity(v); setSelectedDistrict("전체"); setSelectedApartment("전체"); }}
-          style={[styles.picker, { color: colors.text }]}
-          dropdownIconColor={colors.textSecondary}
+          style={styles.picker}
         >
-          <Picker.Item label={t('allCities')} value="전체" color={colors.text} />
-          <Picker.Item label={translateCity("호치민", i18n.language)} value="호치민" color={colors.text} />
-          <Picker.Item label={translateCity("하노이", i18n.language)} value="하노이" color={colors.text} />
-          <Picker.Item label={translateCity("다낭", i18n.language)} value="다낭" color={colors.text} />
-          <Picker.Item label={translateCity("냐짱", i18n.language)} value="냐짱" color={colors.text} />
+          <Picker.Item label={t('allCities')} value="전체" />
+          <Picker.Item label={translateCity("호치민", i18n.language)} value="호치민" />
+          <Picker.Item label={translateCity("하노이", i18n.language)} value="하노이" />
+          <Picker.Item label={translateCity("다낭", i18n.language)} value="다낭" />
+          <Picker.Item label={translateCity("냐짱", i18n.language)} value="냐짱" />
         </Picker>
       </View>
       {selectedCity !== "전체" && (
-        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+        <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedDistrict}
             onValueChange={(v) => { setSelectedDistrict(v); setSelectedApartment("전체"); }}
-            style={[styles.picker, { color: colors.text }]}
-            dropdownIconColor={colors.textSecondary}
+            style={styles.picker}
           >
-            <Picker.Item label={t('allDistricts')} value="전체" color={colors.text} />
-            {districts.map((d) => <Picker.Item key={d} label={translateOther(d, i18n.language)} value={d} color={colors.text} />)}
+            <Picker.Item label={t('allDistricts')} value="전체" />
+            {districts.map((d) => <Picker.Item key={d} label={translateOther(d, i18n.language)} value={d} />)}
           </Picker>
         </View>
       )}
       {selectedDistrict !== "전체" && apartments.length > 0 && (
-        <View style={[styles.pickerContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
-          <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={[styles.picker, { color: colors.text }]} dropdownIconColor={colors.textSecondary}>
-            <Picker.Item label={t('allApartments')} value="전체" color={colors.text} />
-            {apartments.map((a) => <Picker.Item key={a} label={translateOther(a, i18n.language)} value={a} color={colors.text} />)}
+        <View style={styles.pickerContainer}>
+          <Picker selectedValue={selectedApartment} onValueChange={setSelectedApartment} style={styles.picker}>
+            <Picker.Item label={t('allApartments')} value="전체" />
+            {apartments.map((a) => <Picker.Item key={a} label={translateOther(a, i18n.language)} value={a} />)}
           </Picker>
         </View>
       )}
     </View>
-  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments, t, i18n.language, colors]);
+  ), [selectedCity, selectedDistrict, selectedApartment, districts, apartments, t, i18n.language]);
 
   const headerCategories = useMemo(() => (
     <View style={styles.categoriesContainer}>
@@ -626,10 +624,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 6,
+    height: Platform.OS === "ios" ? 120 : undefined,
   },
   picker: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: Platform.OS === "ios" ? 0 : 8,
     fontSize: 14,
   },
   categoriesContainer: {

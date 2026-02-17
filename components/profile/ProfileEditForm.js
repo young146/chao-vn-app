@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     TextInput,
     ActivityIndicator,
-    useColorScheme,
+    Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,7 +15,6 @@ import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { CITIES, INTEREST_OPTIONS } from "../../utils/constants";
 import { getDistrictsByCity, getApartmentsByDistrict, translateCity, translateOther } from "../../utils/vietnamLocations";
-import { getColors } from "../../utils/colors";
 
 export default function ProfileEditForm({
     user,
@@ -47,8 +46,6 @@ export default function ProfileEditForm({
     isAdmin,
 }) {
     const { t, i18n } = useTranslation('profile');
-    const colorScheme = useColorScheme();
-    const colors = getColors(colorScheme);
     const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
     const apartments = selectedCity && selectedDistrict ? getApartmentsByDistrict(selectedCity, selectedDistrict) : [];
 
@@ -125,35 +122,33 @@ export default function ProfileEditForm({
                 <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
                         <Text style={styles.label}>{t('ageGroup')}</Text>
-                        <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                        <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={ageGroup}
                                 onValueChange={setAgeGroup}
-                                style={[styles.picker, { color: colors.text }]}
-                                dropdownIconColor={colors.textSecondary}
+                                style={styles.picker}
                             >
-                                <Picker.Item label={t('select')} value="" color={colors.text} />
-                                <Picker.Item label={t('age20s')} value="20대" color={colors.text} />
-                                <Picker.Item label={t('age30s')} value="30대" color={colors.text} />
-                                <Picker.Item label={t('age40s')} value="40대" color={colors.text} />
-                                <Picker.Item label={t('age50s')} value="50대" color={colors.text} />
-                                <Picker.Item label={t('age60plus')} value="60대 이상" color={colors.text} />
+                                <Picker.Item label={t('select')} value="" />
+                                <Picker.Item label={t('age20s')} value="20대" />
+                                <Picker.Item label={t('age30s')} value="30대" />
+                                <Picker.Item label={t('age40s')} value="40대" />
+                                <Picker.Item label={t('age50s')} value="50대" />
+                                <Picker.Item label={t('age60plus')} value="60대 이상" />
                             </Picker>
                         </View>
                     </View>
 
                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
                         <Text style={styles.label}>{t('gender')}</Text>
-                        <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                        <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={gender}
                                 onValueChange={setGender}
-                                style={[styles.picker, { color: colors.text }]}
-                                dropdownIconColor={colors.textSecondary}
+                                style={styles.picker}
                             >
-                                <Picker.Item label={t('select')} value="" color={colors.text} />
-                                <Picker.Item label={t('male')} value="남성" color={colors.text} />
-                                <Picker.Item label={t('female')} value="여성" color={colors.text} />
+                                <Picker.Item label={t('select')} value="" />
+                                <Picker.Item label={t('male')} value="남성" />
+                                <Picker.Item label={t('female')} value="여성" />
                             </Picker>
                         </View>
                     </View>
@@ -163,7 +158,7 @@ export default function ProfileEditForm({
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>{t('city')} <Text style={styles.required}>{t('required')}</Text></Text>
-                    <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                    <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={selectedCity}
                             onValueChange={(value) => {
@@ -171,12 +166,11 @@ export default function ProfileEditForm({
                                 setSelectedDistrict("");
                                 setSelectedApartment("");
                             }}
-                            style={[styles.picker, { color: colors.text }]}
-                            dropdownIconColor={colors.textSecondary}
+                            style={styles.picker}
                         >
-                            <Picker.Item label={t('selectCity')} value="" color={colors.text} />
+                            <Picker.Item label={t('selectCity')} value="" />
                             {CITIES.map((city) => (
-                                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} color={colors.text} />
+                                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
                             ))}
                         </Picker>
                     </View>
@@ -185,19 +179,18 @@ export default function ProfileEditForm({
                 {selectedCity && (
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>{t('district')} <Text style={styles.required}>{t('required')}</Text></Text>
-                        <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                        <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={selectedDistrict}
                                 onValueChange={(value) => {
                                     setSelectedDistrict(value);
                                     setSelectedApartment("");
                                 }}
-                                style={[styles.picker, { color: colors.text }]}
-                                dropdownIconColor={colors.textSecondary}
+                                style={styles.picker}
                             >
-                                <Picker.Item label={t('selectDistrict')} value="" color={colors.text} />
+                                <Picker.Item label={t('selectDistrict')} value="" />
                                 {districts.map((district) => (
-                                    <Picker.Item key={district} label={translateOther(district, i18n.language)} value={district} color={colors.text} />
+                                    <Picker.Item key={district} label={translateOther(district, i18n.language)} value={district} />
                                 ))}
                             </Picker>
                         </View>
@@ -207,16 +200,15 @@ export default function ProfileEditForm({
                 {selectedDistrict && apartments.length > 0 && (
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>{t('apartment')}</Text>
-                        <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                        <View style={styles.pickerWrapper}>
                             <Picker
                                 selectedValue={selectedApartment}
                                 onValueChange={setSelectedApartment}
-                                style={[styles.picker, { color: colors.text }]}
-                                dropdownIconColor={colors.textSecondary}
+                                style={styles.picker}
                             >
-                                <Picker.Item label={t('selectApartment')} value="" color={colors.text} />
+                                <Picker.Item label={t('selectApartment')} value="" />
                                 {apartments.map((apt) => (
-                                    <Picker.Item key={apt} label={translateOther(apt, i18n.language)} value={apt} color={colors.text} />
+                                    <Picker.Item key={apt} label={translateOther(apt, i18n.language)} value={apt} />
                                 ))}
                             </Picker>
                         </View>
@@ -237,39 +229,37 @@ export default function ProfileEditForm({
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>{t('residencePeriod')} <Text style={styles.required}>{t('required')}</Text></Text>
-                    <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                    <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={residencePeriod}
                             onValueChange={setResidencePeriod}
-                            style={[styles.picker, { color: colors.text }]}
-                            dropdownIconColor={colors.textSecondary}
+                            style={styles.picker}
                         >
-                            <Picker.Item label={t('pleaseSelect')} value="" color={colors.text} />
-                            <Picker.Item label={t('lessThan1Year')} value="1년 미만" color={colors.text} />
-                            <Picker.Item label={t('oneToThreeYears')} value="1년 ~ 3년" color={colors.text} />
-                            <Picker.Item label={t('threeToFiveYears')} value="3년 ~ 5년" color={colors.text} />
-                            <Picker.Item label={t('fiveToTenYears')} value="5년 ~ 10년" color={colors.text} />
-                            <Picker.Item label={t('moreThan10Years')} value="10년 이상" color={colors.text} />
+                            <Picker.Item label={t('pleaseSelect')} value="" />
+                            <Picker.Item label={t('lessThan1Year')} value="1년 미만" />
+                            <Picker.Item label={t('oneToThreeYears')} value="1년 ~ 3년" />
+                            <Picker.Item label={t('threeToFiveYears')} value="3년 ~ 5년" />
+                            <Picker.Item label={t('fiveToTenYears')} value="5년 ~ 10년" />
+                            <Picker.Item label={t('moreThan10Years')} value="10년 이상" />
                         </Picker>
                     </View>
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>{t('residencePurpose')} <Text style={styles.required}>{t('required')}</Text></Text>
-                    <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                    <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={residencePurpose}
                             onValueChange={setResidencePurpose}
-                            style={[styles.picker, { color: colors.text }]}
-                            dropdownIconColor={colors.textSecondary}
+                            style={styles.picker}
                         >
-                            <Picker.Item label={t('pleaseSelect')} value="" color={colors.text} />
-                            <Picker.Item label={t('business')} value="사업/주재원" color={colors.text} />
-                            <Picker.Item label={t('employment')} value="취업/직장" color={colors.text} />
-                            <Picker.Item label={t('study')} value="학업/유학" color={colors.text} />
-                            <Picker.Item label={t('family')} value="결혼/가족" color={colors.text} />
-                            <Picker.Item label={t('retirement')} value="은퇴/요양" color={colors.text} />
-                            <Picker.Item label={t('other')} value="기타" color={colors.text} />
+                            <Picker.Item label={t('pleaseSelect')} value="" />
+                            <Picker.Item label={t('business')} value="사업/주재원" />
+                            <Picker.Item label={t('employment')} value="취업/직장" />
+                            <Picker.Item label={t('study')} value="학업/유학" />
+                            <Picker.Item label={t('family')} value="결혼/가족" />
+                            <Picker.Item label={t('retirement')} value="은퇴/요양" />
+                            <Picker.Item label={t('other')} value="기타" />
                         </Picker>
                     </View>
                 </View>
@@ -482,9 +472,12 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: "hidden",
         justifyContent: "center",
+        alignItems: "center",
+        height: Platform.OS === "ios" ? 150 : undefined,
     },
     picker: {
-        height: 60,
+        height: Platform.OS === "ios" ? 150 : 50,
+        width: "100%",
     },
     interestsContainer: {
         flexDirection: "row",

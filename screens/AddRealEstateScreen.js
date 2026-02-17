@@ -11,13 +11,11 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import { getColors } from "../utils/colors";
 import {
   collection,
   addDoc,
@@ -37,9 +35,7 @@ import { translatePropertyType, translateDealType, translateRealEstateStatus } f
 export default function AddRealEstateScreen({ navigation, route }) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation(['realEstate', 'common']);
-  const colorScheme = useColorScheme();
-  const colors = getColors(colorScheme);
-  
+
   const editItem = route?.params?.editItem;
   const isEditMode = !!editItem;
 
@@ -406,15 +402,14 @@ export default function AddRealEstateScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>
             <Ionicons name="home-outline" size={16}  /> {t('form.propertyTypeLabel')}
           </Text>
-          <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+          <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={propertyType}
               onValueChange={setPropertyType}
-              style={[styles.picker, { color: colors.text }]}
-              dropdownIconColor={colors.textSecondary}
+              style={styles.picker}
             >
               {propertyTypes.map((type) => (
-                <Picker.Item key={type} label={translatePropertyType(type, i18n.language)} value={type} color={colors.text} />
+                <Picker.Item key={type} label={translatePropertyType(type, i18n.language)} value={type} />
               ))}
             </Picker>
           </View>
@@ -490,15 +485,14 @@ export default function AddRealEstateScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>
             <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
           </Text>
-          <View style={[styles.pickerWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+          <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={selectedCity}
               onValueChange={setSelectedCity}
-              style={[styles.picker, { color: colors.text }]}
-              dropdownIconColor={colors.textSecondary}
+              style={styles.picker}
             >
               {cities.map((city) => (
-                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} color={colors.text} />
+                <Picker.Item key={city} label={translateCity(city, i18n.language)} value={city} />
               ))}
             </Picker>
           </View>
@@ -788,12 +782,12 @@ const styles = StyleSheet.create({
   pickerWrapper: {
     borderRadius: 8,
     borderWidth: 1,
-    height: 56,
+    height: Platform.OS === "ios" ? 120 : 56,
     justifyContent: "center",
   },
   picker: {
-    height: 56,
-    marginLeft: -8,
+    height: Platform.OS === "ios" ? 120 : 56,
+    marginLeft: Platform.OS === "ios" ? 0 : -8,
   },
   priceRow: {
     flexDirection: "row",
