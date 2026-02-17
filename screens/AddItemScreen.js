@@ -896,7 +896,9 @@ const styles = StyleSheet.create({
   pickerContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 10,
@@ -906,6 +908,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: Platform.OS === "ios" ? 120 : 56,
     fontSize: 16,
+    color: "#333",
   },
   contactSection: {
     marginTop: 20,

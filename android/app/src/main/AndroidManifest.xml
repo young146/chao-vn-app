@@ -55,15 +55,13 @@
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
     </activity>
-    <activity
-        android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
-        android:exported="true">
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:host="oauth" android:scheme="kakaof62e4f5ddf705fb25094caae8d35d748" />
-        </intent-filter>
+    <activity android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:host="oauth" android:scheme="kakaof62e4f5ddf705fb25094caae8d35d748"/>
+      </intent-filter>
     </activity>
     <uses-library android:name="org.apache.http.legacy" android:required="false"/>
   </application>

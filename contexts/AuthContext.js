@@ -10,7 +10,7 @@ import {
   signInWithCredential,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
-import { auth, db } from "../firebase/config";
+import { auth, db, initializeFirebase } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as KakaoLogin from "@react-native-seoul/kakao-login";
 
@@ -25,43 +25,53 @@ export const AuthProvider = ({ children }) => {
   const [needsProfileComplete, setNeedsProfileComplete] = useState(false);
 
   useEffect(() => {
-    // ✅ iOS 크래시 방어: auth가 null인 경우 초기화 대기
-    // App.js에서 initializeFirebase() 완료 후 AuthProvider가 렌더링되므로
-    // 일반적으로는 auth가 null이 아니지만, 추가 방어 코드로 안전성 확보
-    if (!auth) {
-      console.log("⚠️ AuthContext: auth가 아직 초기화되지 않음, 대기 중...");
-      setLoading(false);
-      return;
-    }
+    let unsubscribe = null;
 
-    // Firebase Auth 상태 변화 감지
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await AsyncStorage.setItem("@user_id", currentUser.uid);
-        // 🔔 알림 토큰 등록은 NotificationService에서 전담하므로 여기서 중복 호출하지 않음
-
-        // 📝 프로필 완성 여부 체크
-        try {
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
-            setNeedsProfileComplete(isIncomplete);
-          } else {
-            setNeedsProfileComplete(true);
-          }
-        } catch (e) {
-          console.log("프로필 체크 실패:", e);
-        }
-      } else {
-        await AsyncStorage.removeItem("@user_id");
-        setNeedsProfileComplete(false);
+    const setupAuthListener = async () => {
+      // auth가 아직 null이면 initializeFirebase()로 초기화 완료 대기
+      if (!auth) {
+        console.log("⏳ AuthContext: auth 초기화 대기 중...");
+        await initializeFirebase();
       }
-      setLoading(false);
-    });
 
-    return unsubscribe;
+      if (!auth) {
+        console.log("⚠️ AuthContext: Firebase 초기화 후에도 auth가 null");
+        setLoading(false);
+        return;
+      }
+
+      // Firebase Auth 상태 변화 감지
+      unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        setUser(currentUser);
+        if (currentUser) {
+          await AsyncStorage.setItem("@user_id", currentUser.uid);
+
+          // 📝 프로필 완성 여부 체크
+          try {
+            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
+              setNeedsProfileComplete(isIncomplete);
+            } else {
+              setNeedsProfileComplete(true);
+            }
+          } catch (e) {
+            console.log("프로필 체크 실패:", e);
+          }
+        } else {
+          await AsyncStorage.removeItem("@user_id");
+          setNeedsProfileComplete(false);
+        }
+        setLoading(false);
+      });
+    };
+
+    setupAuthListener();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Admin 권한 확인

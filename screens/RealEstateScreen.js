@@ -564,7 +564,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
     height: Platform.OS === "ios" ? 120 : undefined,
@@ -573,6 +575,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Platform.OS === "ios" ? 0 : 8,
     fontSize: 14,
+    color: "#333",
   },
   listContainer: {
     paddingBottom: 80,

@@ -11,7 +11,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
-  useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,7 +18,6 @@ import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import { getColors } from "../utils/colors";
 import { db } from "../firebase/config";
 import {
   collection,
@@ -110,8 +108,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
 export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation('danggn');
-  const colorScheme = useColorScheme();
-  const colors = getColors(colorScheme);
+
   
   const [items, setItems] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -611,16 +608,20 @@ const styles = StyleSheet.create({
     color: "#000", // ✅ 다크모드 대응: 텍스트 색상 명시
   },
   filterSection: {
+    backgroundColor: "#fff",
     marginHorizontal: 12,
     marginBottom: 8,
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   pickerContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 6,
@@ -630,6 +631,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Platform.OS === "ios" ? 0 : 8,
     fontSize: 14,
+    color: "#333",
   },
   categoriesContainer: {
     backgroundColor: "#fff",

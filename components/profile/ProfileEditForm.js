@@ -468,16 +468,18 @@ const styles = StyleSheet.create({
         color: "#999",
     },
     pickerWrapper: {
+        backgroundColor: "#fff",
         borderWidth: 1,
+        borderColor: "#ddd",
         borderRadius: 8,
         overflow: "hidden",
         justifyContent: "center",
-        alignItems: "center",
-        height: Platform.OS === "ios" ? 150 : undefined,
+        height: Platform.OS === "ios" ? 150 : 60,
     },
     picker: {
-        height: Platform.OS === "ios" ? 150 : 50,
+        height: Platform.OS === "ios" ? 150 : 60,
         width: "100%",
+        color: "#333",
     },
     interestsContainer: {
         flexDirection: "row",

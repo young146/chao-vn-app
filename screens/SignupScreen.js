@@ -408,7 +408,9 @@ const styles = StyleSheet.create({
   pickerWrapper: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 12,
@@ -418,6 +420,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Platform.OS === "ios" ? 0 : 8,
     fontSize: 14,
+    color: "#333",
   },
   signupButton: {
     backgroundColor: "#FF6B35",

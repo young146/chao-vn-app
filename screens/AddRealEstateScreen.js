@@ -780,14 +780,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pickerWrapper: {
+    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
+    borderColor: "#e0e0e0",
     height: Platform.OS === "ios" ? 120 : 56,
     justifyContent: "center",
   },
   picker: {
     height: Platform.OS === "ios" ? 120 : 56,
     marginLeft: Platform.OS === "ios" ? 0 : -8,
+    color: "#333",
   },
   priceRow: {
     flexDirection: "row",
