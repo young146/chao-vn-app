@@ -55,16 +55,16 @@ exports.sendChatNotification = onDocumentCreated(
       }
 
       const userData = userDoc.data();
-      
+
       // 토큰 배열에서 가져오기 (배열이 없으면 기존 방식으로 fallback)
-      const expoPushTokens = Array.isArray(userData.expoPushTokens) 
+      const expoPushTokens = Array.isArray(userData.expoPushTokens)
         ? userData.expoPushTokens
         : [
             userData.expoPushToken,
             userData.expoPushTokenDev,
             userData.expoPushTokenProd,
           ].filter(Boolean);
-      
+
       const fcmTokens = Array.isArray(userData.fcmTokens)
         ? userData.fcmTokens
         : [
@@ -72,7 +72,7 @@ exports.sendChatNotification = onDocumentCreated(
             userData.fcmTokenDev,
             userData.fcmTokenProd,
           ].filter(Boolean);
-      
+
       const platform = userData.platform || "android";
 
       console.log("📱 수신자 토큰 정보:");
@@ -153,10 +153,18 @@ exports.sendChatNotification = onDocumentCreated(
           };
 
           const fcmResult = await getMessaging().send(fcmMessage);
-          console.log("✅ FCM 직접 전송 성공 (토큰:", token.substring(0, 20) + "...):", fcmResult);
+          console.log(
+            "✅ FCM 직접 전송 성공 (토큰:",
+            token.substring(0, 20) + "...):",
+            fcmResult,
+          );
           return { success: true, token };
         } catch (fcmError) {
-          console.error("❌ FCM 전송 실패 (토큰:", token.substring(0, 20) + "...):", fcmError.message);
+          console.error(
+            "❌ FCM 전송 실패 (토큰:",
+            token.substring(0, 20) + "...):",
+            fcmError.message,
+          );
           return { success: false, token, error: fcmError.message };
         }
       });
@@ -168,9 +176,11 @@ exports.sendChatNotification = onDocumentCreated(
 
       // === Expo Push 전송 (백업 / 호환성) ===
       // 모든 Expo 토큰에 알림 전송
-      const validExpoTokens = expoPushTokens.filter(token => Expo.isExpoPushToken(token));
+      const validExpoTokens = expoPushTokens.filter((token) =>
+        Expo.isExpoPushToken(token),
+      );
       if (validExpoTokens.length > 0) {
-        const messages = validExpoTokens.map(token => ({
+        const messages = validExpoTokens.map((token) => ({
           to: token,
           sound: "default",
           title: `${titleText} - ${senderName}`,
@@ -200,13 +210,15 @@ exports.sendChatNotification = onDocumentCreated(
         console.log("  - 수신자 ID:", receiverId);
         console.log(
           "  - 사용자 문서 데이터:",
-          JSON.stringify(userData, null, 2)
+          JSON.stringify(userData, null, 2),
         );
       } else {
-        console.log(`✅ 푸시 토큰 확인 완료 - FCM ${fcmTokens.length}개, Expo ${expoPushTokens.length}개 알림 전송 시도`);
+        console.log(
+          `✅ 푸시 토큰 확인 완료 - FCM ${fcmTokens.length}개, Expo ${expoPushTokens.length}개 알림 전송 시도`,
+        );
       }
     } catch (error) {
       console.error("Error in sendChatNotification:", error);
     }
-  }
+  },
 );

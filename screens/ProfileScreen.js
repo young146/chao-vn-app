@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Alert,
-  Linking,
-  ActivityIndicator,
-} from "react-native";
+import { View, Alert, Linking, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,7 +20,7 @@ import ProfileEditForm from "../components/profile/ProfileEditForm";
 
 export default function ProfileScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
-  const { t } = useTranslation(['menu', 'common']);
+  const { t } = useTranslation(["menu", "common"]);
   const scrollViewRef = useRef(null);
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -85,11 +80,11 @@ export default function ProfileScreen({ navigation }) {
     try {
       const bookmarksQuery = query(
         collection(db, "bookmarks"),
-        where("userId", "==", user?.uid)
+        where("userId", "==", user?.uid),
       );
       const commentsQuery = query(
         collection(db, "comments"),
-        where("userId", "==", user?.uid)
+        where("userId", "==", user?.uid),
       );
 
       const [bookmarksSnapshot, commentsSnapshot] = await Promise.all([
@@ -153,15 +148,11 @@ export default function ProfileScreen({ navigation }) {
             discounts: false,
             surveys: false,
             partnerships: false,
-          }
+          },
         );
 
         const isComplete =
-          data.email &&
-          data.name &&
-          data.phone &&
-          data.city &&
-          data.district;
+          data.email && data.name && data.phone && data.city && data.district;
 
         setIsProfileComplete(isComplete);
         setIsEditMode(!isComplete);
@@ -216,7 +207,7 @@ export default function ProfileScreen({ navigation }) {
       await setDoc(
         doc(db, "users", user.uid),
         { profileImage: downloadURL },
-        { merge: true }
+        { merge: true },
       );
 
       setProfileImage(downloadURL);
@@ -241,7 +232,7 @@ export default function ProfileScreen({ navigation }) {
     if (!email || !name || !phone) {
       Alert.alert(
         "입력 오류",
-        "이메일, 이름, 전화번호는 필수 입력 항목입니다."
+        "이메일, 이름, 전화번호는 필수 입력 항목입니다.",
       );
       return;
     }
@@ -254,10 +245,7 @@ export default function ProfileScreen({ navigation }) {
     try {
       setIsSaving(true);
 
-      const isProfileIncomplete =
-        !email ||
-        !selectedCity ||
-        !selectedDistrict;
+      const isProfileIncomplete = !email || !selectedCity || !selectedDistrict;
 
       await setDoc(
         doc(db, "users", user.uid),
@@ -292,7 +280,7 @@ export default function ProfileScreen({ navigation }) {
           profileCompletedAt: new Date().toISOString(),
           updatedAt: new Date(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       const userDocCheck = await getDoc(doc(db, "users", user.uid));
@@ -300,7 +288,7 @@ export default function ProfileScreen({ navigation }) {
         await setDoc(
           doc(db, "users", user.uid),
           { createdAt: new Date() },
-          { merge: true }
+          { merge: true },
         );
       }
 
@@ -328,7 +316,7 @@ export default function ProfileScreen({ navigation }) {
       Alert.alert(
         "프로필 미완성",
         "프로필을 완성해야 다른 기능을 사용할 수 있습니다.",
-        [{ text: "확인" }]
+        [{ text: "확인" }],
       );
     }
   };
@@ -349,7 +337,7 @@ export default function ProfileScreen({ navigation }) {
           text: "웹사이트 방문",
           onPress: () => Linking.openURL("https://chaovietnam.co.kr"),
         },
-      ]
+      ],
     );
   };
 
@@ -369,11 +357,23 @@ export default function ProfileScreen({ navigation }) {
               await deleteDoc(userRef);
 
               // Reset local state
-              setEmail(""); setName(""); setPhone(""); setAgeGroup(""); setGender("");
-              setSelectedCity(""); setSelectedDistrict(""); setSelectedApartment("");
-              setDetailedAddress(""); setPostalCode("");
-              setResidencePeriod(""); setResidencePurpose(""); setOccupation("");
-              setKakaoId(""); setZaloId(""); setFacebook(""); setInstagram("");
+              setEmail("");
+              setName("");
+              setPhone("");
+              setAgeGroup("");
+              setGender("");
+              setSelectedCity("");
+              setSelectedDistrict("");
+              setSelectedApartment("");
+              setDetailedAddress("");
+              setPostalCode("");
+              setResidencePeriod("");
+              setResidencePurpose("");
+              setOccupation("");
+              setKakaoId("");
+              setZaloId("");
+              setFacebook("");
+              setInstagram("");
               setInterests([]);
               setProfileImage(null);
               setIsProfileComplete(false);
@@ -388,7 +388,7 @@ export default function ProfileScreen({ navigation }) {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -402,7 +402,7 @@ export default function ProfileScreen({ navigation }) {
           text: "이메일 보내기",
           onPress: () => Linking.openURL("mailto:info@chaovietnam.co.kr"),
         },
-      ]
+      ],
     );
   };
 
@@ -442,24 +442,42 @@ export default function ProfileScreen({ navigation }) {
       user={user}
       profileImage={profileImage}
       uploading={uploading}
-      name={name} setName={setName}
-      email={email} setEmail={setEmail}
-      phone={phone} setPhone={setPhone}
-      ageGroup={ageGroup} setAgeGroup={setAgeGroup}
-      gender={gender} setGender={setGender}
-      selectedCity={selectedCity} setSelectedCity={setSelectedCity}
-      selectedDistrict={selectedDistrict} setSelectedDistrict={setSelectedDistrict}
-      selectedApartment={selectedApartment} setSelectedApartment={setSelectedApartment}
-      detailedAddress={detailedAddress} setDetailedAddress={setDetailedAddress}
-      postalCode={postalCode} setPostalCode={setPostalCode}
-      residencePeriod={residencePeriod} setResidencePeriod={setResidencePeriod}
-      residencePurpose={residencePurpose} setResidencePurpose={setResidencePurpose}
-      occupation={occupation} setOccupation={setOccupation}
-      kakaoId={kakaoId} setKakaoId={setKakaoId}
-      zaloId={zaloId} setZaloId={setZaloId}
-      facebook={facebook} setFacebook={setFacebook}
-      instagram={instagram} setInstagram={setInstagram}
-      interests={interests} toggleInterest={toggleInterest}
+      name={name}
+      setName={setName}
+      email={email}
+      setEmail={setEmail}
+      phone={phone}
+      setPhone={setPhone}
+      ageGroup={ageGroup}
+      setAgeGroup={setAgeGroup}
+      gender={gender}
+      setGender={setGender}
+      selectedCity={selectedCity}
+      setSelectedCity={setSelectedCity}
+      selectedDistrict={selectedDistrict}
+      setSelectedDistrict={setSelectedDistrict}
+      selectedApartment={selectedApartment}
+      setSelectedApartment={setSelectedApartment}
+      detailedAddress={detailedAddress}
+      setDetailedAddress={setDetailedAddress}
+      postalCode={postalCode}
+      setPostalCode={setPostalCode}
+      residencePeriod={residencePeriod}
+      setResidencePeriod={setResidencePeriod}
+      residencePurpose={residencePurpose}
+      setResidencePurpose={setResidencePurpose}
+      occupation={occupation}
+      setOccupation={setOccupation}
+      kakaoId={kakaoId}
+      setKakaoId={setKakaoId}
+      zaloId={zaloId}
+      setZaloId={setZaloId}
+      facebook={facebook}
+      setFacebook={setFacebook}
+      instagram={instagram}
+      setInstagram={setInstagram}
+      interests={interests}
+      toggleInterest={toggleInterest}
       onPickImage={pickImage}
       onSave={saveProfile}
       onCancel={handleCancelEdit}
