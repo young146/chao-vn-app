@@ -161,10 +161,7 @@ export default function ProfileScreen({ navigation }) {
           data.name &&
           data.phone &&
           data.city &&
-          data.district &&
-          data.residencePeriod &&
-          data.residencePurpose &&
-          data.occupation;
+          data.district;
 
         setIsProfileComplete(isComplete);
         setIsEditMode(!isComplete);
@@ -260,10 +257,7 @@ export default function ProfileScreen({ navigation }) {
       const isProfileIncomplete =
         !email ||
         !selectedCity ||
-        !selectedDistrict ||
-        !residencePeriod ||
-        !residencePurpose ||
-        !occupation;
+        !selectedDistrict;
 
       await setDoc(
         doc(db, "users", user.uid),

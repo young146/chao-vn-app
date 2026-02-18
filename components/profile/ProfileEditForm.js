@@ -228,7 +228,7 @@ export default function ProfileEditForm({
                 <Text style={styles.sectionTitle}>{t('residenceJob')}</Text>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>{t('residencePeriod')} <Text style={styles.required}>{t('required')}</Text></Text>
+                    <Text style={styles.label}>{t('residencePeriod')}</Text>
                     <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={residencePeriod}
@@ -246,7 +246,7 @@ export default function ProfileEditForm({
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>{t('residencePurpose')} <Text style={styles.required}>{t('required')}</Text></Text>
+                    <Text style={styles.label}>{t('residencePurpose')}</Text>
                     <View style={styles.pickerWrapper}>
                         <Picker
                             selectedValue={residencePurpose}
@@ -265,7 +265,7 @@ export default function ProfileEditForm({
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>{t('occupation')} <Text style={styles.required}>{t('required')}</Text></Text>
+                    <Text style={styles.label}>{t('occupation')}</Text>
                     <TextInput
                         style={styles.input}
                         value={occupation}
