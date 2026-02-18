@@ -563,7 +563,7 @@ export default function MagazineScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {categoryId ? (
+      {categoryId && type === 'category' ? (
         // 🏷️ 카테고리 페이지: 뒤로 가기 + 제목
         <CategoryHeader 
           title={categoryName || '더보기'}
@@ -650,7 +650,7 @@ export default function MagazineScreen({ navigation, route }) {
                     <View style={styles.homeSection}>
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>{section.name}</Text>
-                      <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, categoryName: section.name, type: 'category' } })}>
+                      <TouchableOpacity onPress={() => navigation.push('홈메인', { categoryId: section.id, categoryName: section.name, type: 'category' })}>
                         <Text style={styles.seeMore}>{t('seeMore')} {'>'}</Text>
                       </TouchableOpacity>
                     </View>
