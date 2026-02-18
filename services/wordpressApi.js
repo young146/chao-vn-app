@@ -136,25 +136,32 @@ const findCategoryWithChildren = (config, allCategories) => {
   }
 };
 
-// 각 섹션별 포스트 가져오기 (부모+하위 카테고리 포함, 3개월 이내, 최신순, 최대 4개)
+// 각 섹션별 포스트 가져오기 (부모+하위 카테고리 포함, 최신순, 최대 4개)
 const getPostsForSection = async (section) => {
   if (!section.id) {
     return [];
   }
 
   try {
-    const threeMonthsAgo = getThreeMonthsAgoDate();
     const allCategoryIds = [section.id, ...(section.childIds || [])].join(',');
     
+    // 🐾 Pet World 섹션은 시간 제한 없음 (기사가 적은 카테고리)
+    const params = {
+      categories: allCategoryIds,
+      per_page: 4, // 2x2 그리드용
+      orderby: 'date',
+      order: 'desc',
+      _embed: 1,
+    };
+    
+    // 다른 섹션들은 3개월 이내 기사만 로드 (성능 최적화)
+    if (section.id !== 456) { // 456 = Pet World ID
+      const threeMonthsAgo = getThreeMonthsAgoDate();
+      params.after = `${threeMonthsAgo}T00:00:00`;
+    }
+    
     const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
-      params: {
-        categories: allCategoryIds,
-        per_page: 4, // 2x2 그리드용
-        after: `${threeMonthsAgo}T00:00:00`,
-        orderby: 'date',
-        order: 'desc',
-        _embed: 1,
-      },
+      params,
     });
     
     return response.data.slice(0, 4); // 최대 4개
