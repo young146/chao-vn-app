@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Linking,
+  Platform,
+  Modal,
+  Text,
+  Dimensions,
+} from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import axios from "axios";
 
@@ -13,14 +23,14 @@ let BannerAd = null;
 let BannerAdSizeEnum = null;
 let TestIds = null;
 
-if (Platform.OS === 'android') {
+if (Platform.OS === "android") {
   try {
-    const GoogleMobileAds = require('react-native-google-mobile-ads');
+    const GoogleMobileAds = require("react-native-google-mobile-ads");
     BannerAd = GoogleMobileAds.BannerAd;
     BannerAdSizeEnum = GoogleMobileAds.BannerAdSize;
     TestIds = GoogleMobileAds.TestIds;
   } catch (e) {
-    console.log('AdMob 로드 실패, 자체 광고만 사용:', e.message);
+    console.log("AdMob 로드 실패, 자체 광고만 사용:", e.message);
   }
 }
 
@@ -32,29 +42,29 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시
 
 // AdMob 광고 단위 ID (자체 광고 없을 때만 사용)
 const ADMOB_AD_UNITS = {
-  BANNER: 'ca-app-pub-7944314901202352/4259843310',    // 헤더 배너 (새로 생성)
-  INLINE: 'ca-app-pub-7944314901202352/8698508125',    // 인라인 배너 (새로 생성)
+  BANNER: "ca-app-pub-7944314901202352/4259843310", // 헤더 배너 (새로 생성)
+  INLINE: "ca-app-pub-7944314901202352/8698508125", // 인라인 배너 (새로 생성)
 };
 
 // 광고 슬롯 정의 (WordPress와 동일)
 const AD_SLOTS = {
-  HOME_BANNER: 'home_banner',      // 홈 대형 배너
-  HOME_INLINE: 'home_inline',      // 홈 섹션 사이
-  HEADER: 'header',                // 리스트 상단 배너
-  INLINE: 'inline',                // 리스트 인라인 광고
-  DETAIL_TOP: 'detail_top',        // 상세 페이지 상단
-  DETAIL_BOTTOM: 'detail_bottom',  // 상세 페이지 하단
-  POPUP: 'popup',                  // 전면 팝업 광고
+  HOME_BANNER: "home_banner", // 홈 대형 배너
+  HOME_INLINE: "home_inline", // 홈 섹션 사이
+  HEADER: "header", // 리스트 상단 배너
+  INLINE: "inline", // 리스트 인라인 광고
+  DETAIL_TOP: "detail_top", // 상세 페이지 상단
+  DETAIL_BOTTOM: "detail_bottom", // 상세 페이지 하단
+  POPUP: "popup", // 전면 팝업 광고
 };
 
 // 화면(섹션) 정의
 const AD_SCREENS = {
-  ALL: 'all',
-  HOME: 'home',
-  NEWS: 'news',
-  JOB: 'job',
-  REALESTATE: 'realestate',
-  DANGGN: 'danggn',
+  ALL: "all",
+  HOME: "home",
+  NEWS: "news",
+  JOB: "job",
+  REALESTATE: "realestate",
+  DANGGN: "danggn",
 };
 
 // ============================================
@@ -62,7 +72,7 @@ const AD_SCREENS = {
 // ============================================
 let cachedAds = null;
 let lastFetchTime = 0;
-let currentScreen = 'all';
+let currentScreen = "all";
 
 // ============================================
 // 인라인 광고 중복 방지 (인덱스 기반)
@@ -99,19 +109,24 @@ const isInlineAdAvailable = (index) => {
  * @param {object} ad - 광고 데이터
  * @param {object} style - 스타일
  * @param {string} thumbnailKey - 썸네일 키 (home_banner, header, inline, etc.)
+ * @param {function} onVideoPress - 비디오 클릭 시 콜백 (전체 화면 재생용)
  */
-const AdMedia = ({ ad, style, thumbnailKey = null }) => {
+const AdMedia = ({ ad, style, thumbnailKey = null, onVideoPress = null }) => {
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(true);
-  
+
   // 비디오가 있으면 비디오 재생
   if (ad?.videoUrl) {
     return (
-      <View style={[style, { position: 'relative' }]}>
+      <TouchableOpacity
+        style={[style, { position: "relative" }]}
+        onPress={() => onVideoPress?.(ad)}
+        activeOpacity={0.9}
+      >
         <Video
           ref={videoRef}
           source={{ uri: ad.videoUrl }}
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: "100%", height: "100%" }}
           resizeMode={ResizeMode.COVER}
           shouldPlay={true}
           isLooping={true}
@@ -121,30 +136,30 @@ const AdMedia = ({ ad, style, thumbnailKey = null }) => {
         {/* 음소거 토글 버튼 */}
         <TouchableOpacity
           style={styles.muteButton}
-          onPress={() => setIsMuted(!isMuted)}
+          onPress={(e) => {
+            e.stopPropagation();
+            setIsMuted(!isMuted);
+          }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
+          <Text style={styles.muteIcon}>{isMuted ? "🔇" : "🔊"}</Text>
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     );
   }
-  
+
   // 이미지 표시
-  const imageUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey] 
-    ? ad.thumbnails[thumbnailKey] 
-    : ad?.imageUrl;
-  
+  const imageUrl =
+    thumbnailKey && ad?.thumbnails?.[thumbnailKey]
+      ? ad.thumbnails[thumbnailKey]
+      : ad?.imageUrl;
+
   if (imageUrl) {
     return (
-      <Image 
-        source={{ uri: imageUrl }} 
-        style={style} 
-        resizeMode="cover" 
-      />
+      <Image source={{ uri: imageUrl }} style={style} resizeMode="cover" />
     );
   }
-  
+
   return null;
 };
 
@@ -156,38 +171,42 @@ const AdMedia = ({ ad, style, thumbnailKey = null }) => {
  * 광고 데이터 가져오기 (캐시 적용)
  * @param {string} screen - 화면 타입 (all, home, news, job, realestate, danggn)
  */
-const fetchAdConfig = async (screen = 'all') => {
+const fetchAdConfig = async (screen = "all") => {
   const now = Date.now();
-  
+
   // 캐시가 유효하고 같은 screen이면 캐시 반환
-  if (cachedAds && (now - lastFetchTime) < CACHE_DURATION && currentScreen === screen) {
+  if (
+    cachedAds &&
+    now - lastFetchTime < CACHE_DURATION &&
+    currentScreen === screen
+  ) {
     return cachedAds;
   }
-  
+
   try {
     console.log(`📢 광고 API 호출: screen=${screen}`);
     const response = await axios.get(`${API_BASE_URL}/ads`, {
       params: { screen },
       timeout: 8000,
     });
-    
+
     if (response.data?.success && response.data?.data) {
       cachedAds = response.data.data;
       lastFetchTime = now;
       currentScreen = screen;
-      
+
       // 광고 수 로깅
       const counts = Object.entries(cachedAds)
         .map(([slot, ads]) => `${slot}:${ads.length}`)
-        .join(', ');
+        .join(", ");
       console.log(`✅ 광고 로드 완료: ${counts}`);
-      
+
       return cachedAds;
     }
   } catch (error) {
-    console.log('❌ 광고 API 실패:', error.message);
+    console.log("❌ 광고 API 실패:", error.message);
   }
-  
+
   // 실패 시 빈 슬롯 반환
   return {
     home_banner: [],
@@ -206,12 +225,12 @@ const fetchAdConfig = async (screen = 'all') => {
  */
 const trackAdClick = async (ad) => {
   if (!ad?.id) return;
-  
+
   try {
     await axios.post(`${API_BASE_URL}/ads/${ad.id}/click`);
     console.log(`📊 광고 클릭 추적: ${ad.id}`);
   } catch (error) {
-    console.log('클릭 추적 실패:', error.message);
+    console.log("클릭 추적 실패:", error.message);
   }
 };
 
@@ -220,16 +239,16 @@ const trackAdClick = async (ad) => {
  */
 const handleAdPress = async (ad) => {
   if (!ad) return;
-  
+
   // 클릭 추적 (비동기)
   trackAdClick(ad);
-  
+
   // 링크 열기
   if (ad.linkUrl) {
     try {
       await Linking.openURL(ad.linkUrl);
     } catch (error) {
-      console.log('광고 링크 열기 실패:', error.message);
+      console.log("광고 링크 열기 실패:", error.message);
     }
   }
 };
@@ -242,18 +261,94 @@ const handleAdPress = async (ad) => {
 const getRandomAdByPriority = (ads) => {
   if (!ads || ads.length === 0) return null;
   if (ads.length === 1) return ads[0];
-  
+
   // 우선순위 가중치로 랜덤 선택
   const totalWeight = ads.reduce((sum, ad) => sum + (ad.priority || 10), 0);
   let random = Math.random() * totalWeight;
-  
+
   for (const ad of ads) {
-    random -= (ad.priority || 10);
+    random -= ad.priority || 10;
     if (random <= 0) return ad;
   }
-  
+
   return ads[0];
 };
+
+/**
+ * 우선순위 기반 정렬 (높은 순서대로)
+ * 인라인 광고처럼 순차적으로 배치할 때 사용
+ * @param {array} ads - 광고 배열
+ * @returns {array} - 우선순위 높은 순서로 정렬된 배열
+ */
+const getSortedAdsByPriority = (ads) => {
+  if (!ads || ads.length === 0) return [];
+
+  // 우선순위로 정렬 (높은 순)
+  return [...ads].sort((a, b) => (b.priority || 10) - (a.priority || 10));
+};
+
+// ============================================
+// 📌 전체 화면 비디오 플레이어 모달
+// ============================================
+
+/**
+ * 비디오 광고 전체 화면 플레이어
+ */
+function VideoPlayerModal({ visible, video, onClose }) {
+  const videoRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(false); // 전체 화면은 음소거 기본값 false
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  if (!visible || !video?.videoUrl) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={false}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      {/* 검은 배경 */}
+      <View style={styles.fullscreenVideoContainer}>
+        {/* 비디오 플레이어 */}
+        <Video
+          ref={videoRef}
+          source={{ uri: video.videoUrl }}
+          style={styles.fullscreenVideo}
+          resizeMode={ResizeMode.CONTAIN}
+          shouldPlay={isPlaying}
+          isLooping={true}
+          isMuted={isMuted}
+          useNativeControls={true}
+          progressUpdateIntervalMillis={500}
+          onPlaybackStatusUpdate={(status) => {
+            if (status.isLoaded && !status.isPlaying && status.didJustFinish) {
+              // 비디오 종료 시 처리 (필요시)
+            }
+          }}
+        />
+
+        {/* 클로즈 버튼 */}
+        <TouchableOpacity
+          style={styles.fullscreenCloseButton}
+          onPress={onClose}
+          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+        >
+          <Text style={styles.fullscreenCloseIcon}>✕</Text>
+        </TouchableOpacity>
+
+        {/* 음소거 토글 */}
+        <TouchableOpacity
+          style={styles.fullscreenMuteButton}
+          onPress={() => setIsMuted(!isMuted)}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Text style={styles.fullscreenMuteIcon}>{isMuted ? "🔇" : "🔊"}</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
 
 // ============================================
 // 📌 광고 컴포넌트들
@@ -265,29 +360,59 @@ const getRandomAdByPriority = (ads) => {
 export function HomeBanner({ style }) {
   const [ad, setAd] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+
   useEffect(() => {
     const loadAd = async () => {
       setIsLoading(true);
-      const ads = await fetchAdConfig('home');
+      const ads = await fetchAdConfig("home");
       const homeBannerAds = ads?.home_banner || [];
       setAd(getRandomAdByPriority(homeBannerAds));
       setIsLoading(false);
     };
     loadAd();
   }, []);
-  
+
   if (isLoading) return <View style={[styles.homeBanner, style]} />;
   if (!ad?.imageUrl && !ad?.videoUrl) return null;
-  
+
+  const handleVideoPress = (video) => {
+    setShowVideoPlayer(true);
+  };
+
+  const handleAdPress = async (adData) => {
+    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
+    if (!adData?.videoUrl && adData?.linkUrl) {
+      trackAdClick(adData);
+      try {
+        await Linking.openURL(adData.linkUrl);
+      } catch (error) {
+        console.log("광고 링크 열기 실패:", error.message);
+      }
+    }
+  };
+
   return (
-    <TouchableOpacity 
-      style={[styles.homeBanner, style]} 
-      onPress={() => handleAdPress(ad)}
-      activeOpacity={0.8}
-    >
-      <AdMedia ad={ad} style={styles.adImage} thumbnailKey="home_banner" />
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.homeBanner, style]}
+        onPress={() => handleAdPress(ad)}
+        activeOpacity={0.8}
+      >
+        <AdMedia
+          ad={ad}
+          style={styles.adImage}
+          thumbnailKey="home_banner"
+          onVideoPress={handleVideoPress}
+        />
+      </TouchableOpacity>
+
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={ad}
+        onClose={() => setShowVideoPlayer(false)}
+      />
+    </>
   );
 }
 
@@ -296,26 +421,56 @@ export function HomeBanner({ style }) {
  */
 export function HomeSectionAd({ style }) {
   const [ad, setAd] = useState(null);
-  
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+
   useEffect(() => {
     const loadAd = async () => {
-      const ads = await fetchAdConfig('home');
+      const ads = await fetchAdConfig("home");
       const homeInlineAds = ads?.home_inline || [];
       setAd(getRandomAdByPriority(homeInlineAds));
     };
     loadAd();
   }, []);
-  
+
   if (!ad?.imageUrl && !ad?.videoUrl) return null;
-  
+
+  const handleVideoPress = (video) => {
+    setShowVideoPlayer(true);
+  };
+
+  const handleAdPress = async (adData) => {
+    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
+    if (!adData?.videoUrl && adData?.linkUrl) {
+      trackAdClick(adData);
+      try {
+        await Linking.openURL(adData.linkUrl);
+      } catch (error) {
+        console.log("광고 링크 열기 실패:", error.message);
+      }
+    }
+  };
+
   return (
-    <TouchableOpacity 
-      style={[styles.sectionAd, style]} 
-      onPress={() => handleAdPress(ad)}
-      activeOpacity={0.8}
-    >
-      <AdMedia ad={ad} style={styles.adImage} thumbnailKey="section" />
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.sectionAd, style]}
+        onPress={() => handleAdPress(ad)}
+        activeOpacity={0.8}
+      >
+        <AdMedia
+          ad={ad}
+          style={styles.adImage}
+          thumbnailKey="section"
+          onVideoPress={handleVideoPress}
+        />
+      </TouchableOpacity>
+
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={ad}
+        onClose={() => setShowVideoPlayer(false)}
+      />
+    </>
   );
 }
 
@@ -324,22 +479,28 @@ export function HomeSectionAd({ style }) {
  * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
  * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부
  */
-export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
+export default function AdBanner({ screen = "all", style, useAdMob = true }) {
   const [ad, setAd] = useState(null);
   const [hasSelfAd, setHasSelfAd] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
-  
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+
+  const canUseAdMob =
+    Platform.OS === "android" &&
+    BannerAd &&
+    useAdMob &&
+    !hasSelfAd &&
+    !isLoading;
+
   useEffect(() => {
     const loadAd = async () => {
       setIsLoading(true);
       const ads = await fetchAdConfig(screen);
       const headerAds = ads?.header || [];
-      
+
       // 이미지나 비디오가 있는 광고만 필터링
-      const validAds = headerAds.filter(a => a?.imageUrl || a?.videoUrl);
-      
+      const validAds = headerAds.filter((a) => a?.imageUrl || a?.videoUrl);
+
       if (validAds.length > 0) {
         setAd(getRandomAdByPriority(validAds));
         setHasSelfAd(true);
@@ -351,22 +512,51 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
     };
     loadAd();
   }, [screen]);
-  
+
   if (isLoading) return <View style={[styles.headerBanner, style]} />;
-  
+
+  const handleVideoPress = (video) => {
+    setShowVideoPlayer(true);
+  };
+
+  const handleAdPress = async (adData) => {
+    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
+    if (!adData?.videoUrl && adData?.linkUrl) {
+      trackAdClick(adData);
+      try {
+        await Linking.openURL(adData.linkUrl);
+      } catch (error) {
+        console.log("광고 링크 열기 실패:", error.message);
+      }
+    }
+  };
+
   // 자체 광고가 있으면 표시 (이미지 또는 비디오)
   if (hasSelfAd && (ad?.imageUrl || ad?.videoUrl)) {
     return (
-      <TouchableOpacity 
-        style={[styles.headerBanner, style]} 
-        onPress={() => handleAdPress(ad)}
-        activeOpacity={0.8}
-      >
-        <AdMedia ad={ad} style={styles.adImage} thumbnailKey="header" />
-      </TouchableOpacity>
+      <>
+        <TouchableOpacity
+          style={[styles.headerBanner, style]}
+          onPress={() => handleAdPress(ad)}
+          activeOpacity={0.8}
+        >
+          <AdMedia
+            ad={ad}
+            style={styles.adImage}
+            thumbnailKey="header"
+            onVideoPress={handleVideoPress}
+          />
+        </TouchableOpacity>
+
+        <VideoPlayerModal
+          visible={showVideoPlayer}
+          video={ad}
+          onClose={() => setShowVideoPlayer(false)}
+        />
+      </>
     );
   }
-  
+
   // 자체 광고 없고 AdMob 사용 가능하면 AdMob 표시
   if (canUseAdMob) {
     return (
@@ -375,13 +565,15 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
           unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.BANNER}
           size={BannerAdSizeEnum.BANNER}
           requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdLoaded={() => console.log('✅ AdMob 헤더 배너 로드')}
-          onAdFailedToLoad={(error) => console.log('❌ AdMob 헤더 실패:', error.message)}
+          onAdLoaded={() => console.log("✅ AdMob 헤더 배너 로드")}
+          onAdFailedToLoad={(error) =>
+            console.log("❌ AdMob 헤더 실패:", error.message)
+          }
         />
       </View>
     );
   }
-  
+
   return null;
 }
 
@@ -390,39 +582,45 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true }) {
  * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
  * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부
  */
-export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
+export function InlineAdBanner({ screen = "all", style, useAdMob = true }) {
   const [ad, setAd] = useState(null);
   const [hasSelfAd, setHasSelfAd] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !hasSelfAd && !isLoading;
-  
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+
+  const canUseAdMob =
+    Platform.OS === "android" &&
+    BannerAd &&
+    useAdMob &&
+    !hasSelfAd &&
+    !isLoading;
+
   // 컴포넌트 마운트 시 인덱스 할당 (동기적)
   const adIndex = React.useMemo(() => getInlineAdIndex(screen), [screen]);
-  
+
   useEffect(() => {
     const loadAd = async () => {
       setIsLoading(true);
-      
+
       const ads = await fetchAdConfig(screen);
       const inlineAds = ads?.inline || [];
-      
+
       // 이미지나 비디오가 있는 광고만 필터링
-      const validAds = inlineAds.filter(a => a?.imageUrl || a?.videoUrl);
-      
+      const validAds = inlineAds.filter((a) => a?.imageUrl || a?.videoUrl);
+
+      // 우선순위 높은 순서대로 정렬
+      const sortedAds = getSortedAdsByPriority(validAds);
+
       // 사용 가능한 광고 수 저장 (첫 번째 컴포넌트에서)
       if (adIndex === 0) {
-        setInlineAdsCount(validAds.length);
+        setInlineAdsCount(sortedAds.length);
       }
-      
-      // 인덱스가 광고 수보다 작을 때만 자체 광고 표시 (중복 방지)
-      if (validAds.length > 0 && adIndex < validAds.length) {
-        // 우선순위로 정렬 (높은 순)
-        const sortedAds = [...validAds].sort((a, b) => (b.priority || 10) - (a.priority || 10));
-        
-        // 인덱스 기반으로 다른 광고 선택
+
+      // 인덱스가 광고 수보다 작을 때만 자체 광고 표시 (순서대로)
+      if (sortedAds.length > 0 && adIndex < sortedAds.length) {
+        // 우선순위 높은 순서대로 이미 정렬되어 있으므로 그냥 인덱스로 선택
         const selectedAd = sortedAds[adIndex];
-        
+
         setAd(selectedAd);
         setHasSelfAd(true);
       } else {
@@ -434,37 +632,74 @@ export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
     };
     loadAd();
   }, [screen, adIndex]);
-  
+
   if (isLoading) return <View style={[styles.inlineAd, style]} />;
-  
+
+  const handleVideoPress = (video) => {
+    setShowVideoPlayer(true);
+  };
+
+  const handleAdPress = async (adData) => {
+    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
+    if (!adData?.videoUrl && adData?.linkUrl) {
+      trackAdClick(adData);
+      try {
+        await Linking.openURL(adData.linkUrl);
+      } catch (error) {
+        console.log("광고 링크 열기 실패:", error.message);
+      }
+    }
+  };
+
   // 자체 광고가 있으면 표시 (이미지 또는 비디오)
   if (hasSelfAd && (ad?.imageUrl || ad?.videoUrl)) {
     return (
-      <TouchableOpacity 
-        style={[styles.inlineAd, style]} 
-        onPress={() => handleAdPress(ad)}
-        activeOpacity={0.8}
-      >
-        <AdMedia ad={ad} style={styles.adImage} thumbnailKey="inline" />
-      </TouchableOpacity>
+      <>
+        <TouchableOpacity
+          style={[styles.inlineAd, style]}
+          onPress={() => handleAdPress(ad)}
+          activeOpacity={0.8}
+        >
+          <AdMedia
+            ad={ad}
+            style={styles.adImage}
+            thumbnailKey="inline"
+            onVideoPress={handleVideoPress}
+          />
+        </TouchableOpacity>
+
+        <VideoPlayerModal
+          visible={showVideoPlayer}
+          video={ad}
+          onClose={() => setShowVideoPlayer(false)}
+        />
+      </>
     );
   }
-  
+
   // 자체 광고 없고 AdMob 사용 가능하면 AdMob 표시
   if (canUseAdMob) {
     return (
-      <View style={[styles.inlineAd, style, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View
+        style={[
+          styles.inlineAd,
+          style,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
         <BannerAd
           unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.INLINE}
           size={BannerAdSizeEnum.MEDIUM_RECTANGLE}
           requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdLoaded={() => console.log('✅ AdMob 인라인 로드')}
-          onAdFailedToLoad={(error) => console.log('❌ AdMob 인라인 실패:', error.message)}
+          onAdLoaded={() => console.log("✅ AdMob 인라인 로드")}
+          onAdFailedToLoad={(error) =>
+            console.log("❌ AdMob 인라인 실패:", error.message)
+          }
         />
       </View>
     );
   }
-  
+
   return null;
 }
 
@@ -473,10 +708,11 @@ export function InlineAdBanner({ screen = 'all', style, useAdMob = true }) {
  * @param {string} position - 'top' 또는 'bottom'
  * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
  */
-export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
+export function DetailAdBanner({ position = "top", screen = "all", style }) {
   const [ad, setAd] = useState(null);
-  const slot = position === 'top' ? 'detail_top' : 'detail_bottom';
-  
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const slot = position === "top" ? "detail_top" : "detail_bottom";
+
   useEffect(() => {
     const loadAd = async () => {
       const ads = await fetchAdConfig(screen);
@@ -485,17 +721,46 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
     };
     loadAd();
   }, [position, screen]);
-  
+
   if (!ad?.imageUrl && !ad?.videoUrl) return null;
-  
+
+  const handleVideoPress = (video) => {
+    setShowVideoPlayer(true);
+  };
+
+  const handleAdPress = async (adData) => {
+    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
+    if (!adData?.videoUrl && adData?.linkUrl) {
+      trackAdClick(adData);
+      try {
+        await Linking.openURL(adData.linkUrl);
+      } catch (error) {
+        console.log("광고 링크 열기 실패:", error.message);
+      }
+    }
+  };
+
   return (
-    <TouchableOpacity 
-      style={[styles.headerBanner, style]} 
-      onPress={() => handleAdPress(ad)}
-      activeOpacity={0.8}
-    >
-      <AdMedia ad={ad} style={styles.adImage} thumbnailKey="banner" />
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.headerBanner, style]}
+        onPress={() => handleAdPress(ad)}
+        activeOpacity={0.8}
+      >
+        <AdMedia
+          ad={ad}
+          style={styles.adImage}
+          thumbnailKey="banner"
+          onVideoPress={handleVideoPress}
+        />
+      </TouchableOpacity>
+
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={ad}
+        onClose={() => setShowVideoPlayer(false)}
+      />
+    </>
   );
 }
 
@@ -503,7 +768,7 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style }) {
 // 📌 전면 팝업 광고
 // ============================================
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 /**
  * 전면 팝업 광고 컴포넌트
@@ -512,11 +777,17 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
  * @param {string} screen - 화면 타입 (all, home, news, job, realestate, danggn)
  * @param {number} autoCloseSeconds - 자동 닫힘 시간 (초), 0이면 자동 닫힘 비활성화
  */
-export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 10 }) {
+export function PopupAd({
+  visible,
+  onClose,
+  screen = "all",
+  autoCloseSeconds = 10,
+}) {
   const [ad, setAd] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(autoCloseSeconds);
-  
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+
   // 광고 로드
   useEffect(() => {
     if (visible) {
@@ -525,7 +796,7 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
         setCountdown(autoCloseSeconds);
         const ads = await fetchAdConfig(screen);
         const popupAds = ads?.popup || [];
-        
+
         if (popupAds.length > 0) {
           setAd(getRandomAdByPriority(popupAds));
         } else {
@@ -538,13 +809,13 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
       loadAd();
     }
   }, [visible, screen]);
-  
+
   // 자동 닫힘 타이머
   useEffect(() => {
     if (!visible || isLoading || !ad || autoCloseSeconds <= 0) return;
-    
+
     const timer = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           if (onClose) onClose();
@@ -553,56 +824,79 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [visible, isLoading, ad, autoCloseSeconds, onClose]);
-  
+
+  // 비디오 클릭 핸들러
+  const handleVideoPress = (video) => {
+    setShowVideoPlayer(true);
+  };
+
   // 광고 클릭 핸들러
   const handlePopupPress = async () => {
-    if (ad) {
-      await handleAdPress(ad);
+    if (!ad?.videoUrl && ad?.linkUrl) {
+      trackAdClick(ad);
+      try {
+        await Linking.openURL(ad.linkUrl);
+      } catch (error) {
+        console.log("광고 링크 열기 실패:", error.message);
+      }
     }
     if (onClose) onClose();
   };
-  
+
   // 광고가 없거나 로딩 중이면 표시하지 않음
   if (!visible || isLoading || (!ad?.imageUrl && !ad?.videoUrl)) {
     return null;
   }
-  
+
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.popupOverlay}>
-        <View style={styles.popupContainer}>
-          {/* 닫기 버튼 - 카운트다운 표시 */}
-          <TouchableOpacity 
-            style={styles.popupCloseButton} 
-            onPress={onClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <View style={styles.popupCloseCircle}>
-              <Text style={styles.popupCloseText}>
-                {countdown > 0 ? countdown : '✕'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          
-          {/* 광고 미디어 (비디오/이미지) */}
-          <TouchableOpacity 
-            onPress={handlePopupPress}
-            activeOpacity={0.9}
-            style={styles.popupImageWrapper}
-          >
-            <AdMedia ad={ad} style={styles.popupImage} thumbnailKey="popup" />
-          </TouchableOpacity>
+    <>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+            {/* 닫기 버튼 - 카운트다운 표시 */}
+            <TouchableOpacity
+              style={styles.popupCloseButton}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={styles.popupCloseCircle}>
+                <Text style={styles.popupCloseText}>
+                  {countdown > 0 ? countdown : "✕"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* 광고 미디어 (비디오/이미지) */}
+            <TouchableOpacity
+              onPress={handlePopupPress}
+              activeOpacity={0.9}
+              style={styles.popupImageWrapper}
+            >
+              <AdMedia
+                ad={ad}
+                style={styles.popupImage}
+                thumbnailKey="popup"
+                onVideoPress={handleVideoPress}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <VideoPlayerModal
+        visible={showVideoPlayer}
+        video={ad}
+        onClose={() => setShowVideoPlayer(false)}
+      />
+    </>
   );
 }
 
@@ -688,7 +982,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  // 비디오 음소거 버튼
+  // 비디오 음소거 버튼 (미니 사이즈)
   muteButton: {
     position: "absolute",
     bottom: 8,
@@ -702,6 +996,50 @@ const styles = StyleSheet.create({
   },
   muteIcon: {
     fontSize: 16,
+  },
+  // 전체 화면 비디오 플레이어
+  fullscreenVideoContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenVideo: {
+    width: "100%",
+    height: "100%",
+  },
+  // 전체 화면 클로즈 버튼 (좌상단)
+  fullscreenCloseButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 100,
+  },
+  fullscreenCloseIcon: {
+    fontSize: 32,
+    color: "#fff",
+    fontWeight: "bold",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    lineHeight: 44,
+    textAlign: "center",
+  },
+  // 전체 화면 음소거 버튼 (우하단)
+  fullscreenMuteButton: {
+    position: "absolute",
+    bottom: 40,
+    right: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenMuteIcon: {
+    fontSize: 24,
   },
   // 전면 팝업 광고 스타일
   popupOverlay: {
