@@ -28,6 +28,22 @@ const { width } = Dimensions.get('window');
 const SEARCH_HISTORY_KEY = 'search_history';
 const MAX_HISTORY = 5;
 
+// 🏷️ 카테고리 상단 헤더 (더보기 화면용)
+const CategoryHeader = ({ title, onBack }) => {
+  return (
+    <View style={styles.categoryHeaderContainer}>
+      <TouchableOpacity 
+        onPress={onBack}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="chevron-back" size={28} color="#FF6B35" />
+      </TouchableOpacity>
+      <Text style={styles.categoryHeaderTitle}>{title}</Text>
+      <View style={styles.categoryHeaderSpacer} />
+    </View>
+  );
+};
+
 const SearchHeader = ({ onSearch, onClear, isSearching }) => {
   const { t } = useTranslation('menu');
   const [text, setText] = useState('');
@@ -322,7 +338,7 @@ const MagazineCard = ({ item, onPress, type }) => {
 
 export default function MagazineScreen({ navigation, route }) {
   const { t } = useTranslation('home');
-  const { type = 'magazine', categoryId, resetSearch } = route.params || {};
+  const { type = 'magazine', categoryId, categoryName, resetSearch } = route.params || {};
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
@@ -547,11 +563,20 @@ export default function MagazineScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SearchHeader 
-        onSearch={handleSearch} 
-        onClear={handleClearSearch}
-        isSearching={searchQuery.length > 0}
-      />
+      {categoryId ? (
+        // 🏷️ 카테고리 페이지: 뒤로 가기 + 제목
+        <CategoryHeader 
+          title={categoryName || '더보기'}
+          onBack={() => navigation.goBack()}
+        />
+      ) : (
+        // 🏠 홈/뉴스/게시판: 검색 헤더
+        <SearchHeader 
+          onSearch={handleSearch} 
+          onClear={handleClearSearch}
+          isSearching={searchQuery.length > 0}
+        />
+      )}
       
       <FlatList
         data={type === 'home' && !searchQuery ? [] : posts}
@@ -625,7 +650,7 @@ export default function MagazineScreen({ navigation, route }) {
                     <View style={styles.homeSection}>
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>{section.name}</Text>
-                      <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
+                      <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, categoryName: section.name, type: 'category' } })}>
                         <Text style={styles.seeMore}>{t('seeMore')} {'>'}</Text>
                       </TouchableOpacity>
                     </View>
@@ -863,6 +888,27 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#333',
+  },
+  // 🏷️ 카테고리 헤더 스타일
+  categoryHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  categoryHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    flex: 1,
+    marginLeft: 12,
+  },
+  categoryHeaderSpacer: {
+    width: 28, // 뒤로 가기 버튼 너비와 동일 (정렬 맞춤)
   },
   // 🔍 검색 히스토리 스타일
   historyContainer: {
