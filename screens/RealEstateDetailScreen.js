@@ -3,6 +3,7 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -20,6 +21,7 @@ import ImageViewing from "react-native-image-viewing";
 import { useTranslation } from "react-i18next";
 import {
   doc,
+  getDoc,
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
@@ -33,18 +35,39 @@ import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../util
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function RealEstateDetailScreen({ route, navigation }) {
-  const { item } = route.params;
+  const { item: initialItem } = route.params;
   const { user, isAdmin } = useAuth();
   const { t, i18n } = useTranslation(['realEstate', 'common']);
+  const [item, setItem] = useState(initialItem);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState(item.status || "거래가능");
-  const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
-  const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
+  const [currentStatus, setCurrentStatus] = useState(initialItem.status || "거래가능");
+  const [showPopup, setShowPopup] = useState(true);
+  const [isImageViewVisible, setIsImageViewVisible] = useState(false);
+
+  // 화면이 포커스될 때마다 최신 데이터 재로드 (수정 후 자동 갱신)
+  useFocusEffect(
+    useCallback(() => {
+      const fetchLatest = async () => {
+        try {
+          const docRef = doc(db, "RealEstate", initialItem.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const fresh = { id: docSnap.id, ...docSnap.data() };
+            setItem(fresh);
+            setCurrentStatus(fresh.status || "거래가능");
+          }
+        } catch (e) {
+          // 네트워크 오류 등은 무시하고 기존 데이터 유지
+        }
+      };
+      fetchLatest();
+    }, [initialItem.id])
+  );
 
   const images = item.images || [];
   const isMyItem = item.userId === user?.uid;
   const canDelete = isMyItem || isAdmin();
-  const canEdit = isMyItem;
+  const canEdit = isMyItem || isAdmin();
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
@@ -77,9 +100,14 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     return formatRentPrice(price, i18n.language, unit);
   };
 
-  // 매매용: 억동 단위로 입력된 가격 포맷
-  const formatSalePrice = (price) => {
-    return formatSalePriceUtil(price, i18n.language);
+  // 가격 표시: 쿨자 입력한 텍스트 그대로 표시 (군 존재시 콤마 포맷)
+  const displayPrice = (value) => {
+    if (!value) return '-';
+    // 숫자면 코마 포맷, 텍스트면 그대로 표시
+    if (!isNaN(Number(value)) && String(value).trim() !== '') {
+      return Number(value).toLocaleString() + ' ₫';
+    }
+    return String(value);
   };
 
   const getStatusColor = (status) => {
@@ -188,7 +216,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   // 📤 SNS 공유 핸들러
   const handleShare = useCallback(async (platform = 'more') => {
     const { shareItem } = require('../utils/deepLinkUtils');
-    
+
     try {
       const result = await shareItem('realestate', item.id, item, platform);
       if (result && !result.success) {
@@ -275,7 +303,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 상단 광고 */}
         <DetailAdBanner position="top" screen="realestate" />
-        
+
         {/* 이미지 영역 */}
         {images.length > 0 ? (
           <View style={styles.imageContainer}>
@@ -358,17 +386,17 @@ export default function RealEstateDetailScreen({ route, navigation }) {
               <>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>{t('detail.deposit')}</Text>
-                  <Text style={styles.priceValue}>{formatPrice(item.deposit)}</Text>
+                  <Text style={styles.priceValue}>{displayPrice(item.deposit)}</Text>
                 </View>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>{t('detail.monthlyRent')}</Text>
-                  <Text style={styles.priceValue}>{formatPrice(item.monthlyRent)}</Text>
+                  <Text style={styles.priceValue}>{displayPrice(item.monthlyRent)}</Text>
                 </View>
               </>
             ) : (
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>{t('detail.salePrice')}</Text>
-                <Text style={styles.priceValue}>{formatSalePrice(item.price)}</Text>
+                <Text style={styles.priceValue}>{displayPrice(item.price)}</Text>
               </View>
             )}
           </View>
@@ -496,9 +524,22 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* 관리자 수정 버튼 (내 매물이 아닐 때만) */}
+        {!isMyItem && isAdmin() && (
+          <View style={styles.ownerActions}>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFF3E0', flex: 1 }]}
+              onPress={handleEdit}
+            >
+              <Ionicons name="shield-checkmark-outline" size={20} color="#FF9800" />
+              <Text style={[styles.editButtonText, { color: '#FF9800' }]}>관리자 수정</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* 하단 광고 */}
         <DetailAdBanner position="bottom" screen="realestate" />
-        
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -520,10 +561,10 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
-      
+
       {/* 🎯 상세 페이지 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
-      <PopupAd 
-        visible={showPopup} 
+      <PopupAd
+        visible={showPopup}
         onClose={() => setShowPopup(false)}
         screen="realestate"
         autoCloseSeconds={10}

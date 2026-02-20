@@ -304,6 +304,10 @@ export default function AddRealEstateScreen({ navigation, route }) {
           ...itemData,
           updatedAt: serverTimestamp(),
         });
+        console.log("✅ 부동산 수정 완료!");
+
+        // 캐시 무효화 (수정 후 최신 데이터 표시)
+        await AsyncStorage.removeItem("cached_realestate");
 
         Alert.alert(t('form.success'), t('form.propertyUpdated'), [
           {
@@ -334,8 +338,9 @@ export default function AddRealEstateScreen({ navigation, route }) {
         ]);
       }
     } catch (error) {
-      console.error("등록 실패:", error);
-      Alert.alert(t('form.error'), t('form.errorMessage'));
+      console.error("❌ 부동산 등록/수정 실패:", error);
+      console.error("❌ 에러 상세:", error.message);
+      Alert.alert(t('form.error'), `${t('form.errorMessage')}\n${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -367,7 +372,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 임대/매매 선택 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="swap-horizontal" size={16}  /> {t('form.dealTypeLabel')}
+            <Ionicons name="swap-horizontal" size={16} /> {t('form.dealTypeLabel')}
           </Text>
           <View style={styles.dealTypeContainer}>
             {dealTypes.map((type) => (
@@ -400,7 +405,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 매물 유형 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="home-outline" size={16}  /> {t('form.propertyTypeLabel')}
+            <Ionicons name="home-outline" size={16} /> {t('form.propertyTypeLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -418,7 +423,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 제목 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="create" size={16}  /> {t('form.titleLabel')}
+            <Ionicons name="create" size={16} /> {t('form.titleLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -434,34 +439,32 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 가격 정보 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="cash-outline" size={16}  /> {dealType === "매매" ? t('form.priceLabel') : t('form.monthlyRentLabel')}
+            <Ionicons name="cash-outline" size={16} /> {dealType === "매매" ? t('form.priceLabel') : t('form.monthlyRentLabel')}
           </Text>
-          
+
           {dealType === "임대" ? (
             <>
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>{t('deposit')}</Text>
                 <TextInput
                   style={[styles.textInput, styles.priceInput]}
-                  placeholder={t('form.depositPlaceholder')}
+                  placeholder="예) 1,000만동 / 500 USD / 협의"
                   placeholderTextColor="#999"
                   value={deposit}
                   onChangeText={setDeposit}
-                  keyboardType="numeric"
+                  keyboardType="default"
                 />
-                <Text style={styles.priceUnit}>VND</Text>
               </View>
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>{t('monthlyRent')}</Text>
                 <TextInput
                   style={[styles.textInput, styles.priceInput]}
-                  placeholder={t('form.monthlyRentPlaceholder')}
+                  placeholder="예) 300만동 / 200 USD / 협의"
                   placeholderTextColor="#999"
                   value={monthlyRent}
                   onChangeText={setMonthlyRent}
-                  keyboardType="numeric"
+                  keyboardType="default"
                 />
-                <Text style={styles.priceUnit}>VND</Text>
               </View>
             </>
           ) : (
@@ -469,13 +472,12 @@ export default function AddRealEstateScreen({ navigation, route }) {
               <Text style={styles.priceLabel}>{t('form.priceLabel')}</Text>
               <TextInput
                 style={[styles.textInput, styles.priceInput]}
-                placeholder={t('form.pricePlaceholder')}
+                placeholder="예) 30억동 / 15만 USD / 협의"
                 placeholderTextColor="#999"
                 value={price}
                 onChangeText={setPrice}
-                keyboardType="numeric"
+                keyboardType="default"
               />
-              <Text style={styles.priceUnit}>VND</Text>
             </View>
           )}
         </View>
@@ -483,7 +485,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 위치 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
+            <Ionicons name="location-outline" size={16} /> {t('form.cityLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -508,7 +510,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 면적/방 정보 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="resize-outline" size={16}  /> {t('area')}
+            <Ionicons name="resize-outline" size={16} /> {t('area')}
           </Text>
           <View style={styles.rowInputs}>
             <View style={styles.halfInput}>
@@ -545,7 +547,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 입주 가능일 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16}  /> {t('form.availableDateLabel')}
+            <Ionicons name="calendar-outline" size={16} /> {t('form.availableDateLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -559,7 +561,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16}  /> {t('form.contactLabel')}
+            <Ionicons name="call-outline" size={16} /> {t('form.contactLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -576,7 +578,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 상세 설명 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text-outline" size={16}  /> {t('form.descriptionLabel')}
+            <Ionicons name="document-text-outline" size={16} /> {t('form.descriptionLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
@@ -593,7 +595,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 이미지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="images-outline" size={16}  /> {t('form.photoSection')} * (10)
+            <Ionicons name="images-outline" size={16} /> {t('form.photoSection')} * (10)
           </Text>
           <Text style={styles.helperText}>
             {t('common:firstPhotoMain', '첫 번째 사진이 대표 이미지로 사용됩니다')}
@@ -628,7 +630,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {isEditMode && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="flag-outline" size={16}  /> {t('form.statusLabel')}
+              <Ionicons name="flag-outline" size={16} /> {t('form.statusLabel')}
             </Text>
             <View style={styles.statusContainer}>
               {["거래가능", "예약중", "거래완료"].map((s) => (
@@ -640,7 +642,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
                     status === s && {
                       backgroundColor:
                         s === "거래가능" ? "#E8F5E9" :
-                        s === "예약중" ? "#FFF3E0" : "#F5F5F5"
+                          s === "예약중" ? "#FFF3E0" : "#F5F5F5"
                     }
                   ]}
                   onPress={() => setStatus(s)}
@@ -651,7 +653,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
                       status === s && {
                         color:
                           s === "거래가능" ? "#4CAF50" :
-                          s === "예약중" ? "#FF9800" : "#9E9E9E"
+                            s === "예약중" ? "#FF9800" : "#9E9E9E"
                       }
                     ]}
                   >

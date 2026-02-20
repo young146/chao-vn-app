@@ -207,7 +207,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   // 📤 SNS 공유 핸들러
   const handleShare = useCallback(async (platform = 'more') => {
     const { shareItem } = require('../utils/deepLinkUtils');
-    
+
     try {
       const result = await shareItem('danggn', item.id, item, platform);
       if (result && !result.success) {
@@ -472,7 +472,7 @@ export default function ItemDetailScreen({ route, navigation }) {
       <ScrollView style={styles.scrollView}>
         {/* 상단 광고 */}
         <DetailAdBanner position="top" screen="danggn" />
-        
+
         {/* 이미지 갤러리 */}
         <View style={styles.imageContainer}>
           {images.length > 0 ? (
@@ -744,10 +744,10 @@ export default function ItemDetailScreen({ route, navigation }) {
             )}
           </View>
         </View>
-        
+
         {/* 하단 광고 */}
         <DetailAdBanner position="bottom" screen="danggn" />
-        
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -811,6 +811,20 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Text style={styles.buttonText}>{t('detail.reviewBtn')}</Text>
             </TouchableOpacity>
 
+            {/* Admin 수정 버튼 */}
+            {isAdmin() && (
+              <>
+                <View style={{ width: 8 }} />
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#FF9800' }]}
+                  onPress={handleEdit}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>관리자 수정</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             {/* Admin 삭제 버튼 */}
             {isAdmin() && (
               <>
@@ -827,10 +841,10 @@ export default function ItemDetailScreen({ route, navigation }) {
           </>
         )}
       </View>
-      
+
       {/* 🎯 상세 페이지 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
-      <PopupAd 
-        visible={showPopup} 
+      <PopupAd
+        visible={showPopup}
         onClose={() => setShowPopup(false)}
         screen="danggn"
         autoCloseSeconds={10}

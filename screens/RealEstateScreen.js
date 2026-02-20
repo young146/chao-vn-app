@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   StyleSheet,
   View,
@@ -81,14 +82,13 @@ const RealEstateCard = memo(({ item, onPress, index, t, language }) => {
 
   const badge = getTypeBadge(item.dealType);
 
-  // 임대용: 만동 단위로 입력된 가격 포맷
-  const formatPrice = (price, unit) => {
-    return formatRentPrice(price, language, unit);
-  };
-
-  // 매매용: 억동 단위로 입력된 가격 포맷
-  const formatSalePrice = (price) => {
-    return formatSalePriceUtil(price, language);
+  // 가격 표시: 텍스트 그대로, 숫자면 코마 포맷
+  const displayPrice = (value) => {
+    if (!value) return '-';
+    if (!isNaN(Number(value)) && String(value).trim() !== '') {
+      return Number(value).toLocaleString() + ' ₫';
+    }
+    return String(value);
   };
 
   return (
@@ -136,9 +136,9 @@ const RealEstateCard = memo(({ item, onPress, index, t, language }) => {
         <View style={styles.priceRow}>
           <Ionicons name="pricetag" size={14} color="#E91E63" />
           <Text style={styles.priceText}>
-            {item.dealType === "임대" 
-              ? `${formatPrice(item.deposit, '')} / ${formatPrice(item.monthlyRent, '월')}`
-              : formatSalePrice(item.price)
+            {item.dealType === "임대"
+              ? `${displayPrice(item.deposit)} / ${displayPrice(item.monthlyRent)}월`
+              : displayPrice(item.price)
             }
           </Text>
         </View>
@@ -178,7 +178,7 @@ export default function RealEstateScreen({ navigation }) {
   const { t, i18n } = useTranslation('realEstate');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
-  
+
   const [items, setItems] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedDealType, setSelectedDealType] = useState("전체");
@@ -249,7 +249,7 @@ export default function RealEstateScreen({ navigation }) {
       }
 
       const snapshot = await getDocs(q);
-      
+
       const fetchedItems = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -287,14 +287,14 @@ export default function RealEstateScreen({ navigation }) {
     }
   };
 
-  // 한 번만 실행
-  useEffect(() => {
-    let isMounted = true;
-    if (isMounted) {
+  // 화면 포커스될 때 자동 재로드 (수정 후 목록 자동 갱신)
+  useFocusEffect(
+    useCallback(() => {
       fetchItems(true);
-    }
-    return () => { isMounted = false; };
-  }, []);
+    }, [])
+  );
+
+  // 재시도 없이 한 번만 실행 (이제 useFocusEffect로 대체됨)
 
   const onRefresh = () => {
     fetchItems(true);
@@ -307,7 +307,7 @@ export default function RealEstateScreen({ navigation }) {
   // 필터링
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = !searchText || 
+      const matchesSearch = !searchText ||
         item.title?.toLowerCase().includes(searchText.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchText.toLowerCase());
       const matchesDealType = selectedDealType === "전체" || item.dealType === selectedDealType;
@@ -425,7 +425,7 @@ export default function RealEstateScreen({ navigation }) {
     <View>
       {/* 광고 배너 */}
       <AdBanner screen="realestate" style={{ marginTop: 8 }} />
-      
+
       {/* 로그인 유도 배너 */}
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
@@ -474,7 +474,7 @@ export default function RealEstateScreen({ navigation }) {
         maxToRenderPerBatch={10}
         windowSize={10}
       />
-      
+
       {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddItem}>
         <Ionicons name="add" size={24} color="#fff" />

@@ -49,12 +49,13 @@ export default function AddItemScreen({ navigation, route }) {
   const { t, i18n } = useTranslation(['danggn', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
-  
+
   const editItem = route?.params?.item;
   const isEditMode = !!editItem;
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [priceDisplay, setPriceDisplay] = useState(""); // 천 단위 콤마 포맷용
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("전자제품");
   const [selectedCity, setSelectedCity] = useState("");
@@ -73,7 +74,9 @@ export default function AddItemScreen({ navigation, route }) {
       console.log("📝 수정 모드: 기존 데이터 로드", editItem);
 
       setTitle(editItem.title || "");
-      setPrice(editItem.price ? String(editItem.price) : "");
+      const rawPrice = editItem.price ? String(editItem.price) : "";
+      setPrice(rawPrice);
+      setPriceDisplay(rawPrice ? Number(rawPrice).toLocaleString() : "");
       setDescription(editItem.description || "");
       setCategory(editItem.category || "전자제품");
       setSelectedCity(editItem.city || "호치민");
@@ -398,6 +401,15 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
+  // 수자 콤마 포맷팅 함수
+  const handlePriceChange = (text) => {
+    // 코마와 비숫자 제거
+    const raw = text.replace(/[^0-9]/g, "");
+    setPrice(raw);
+    // 천 단위 코마 표시
+    setPriceDisplay(raw ? Number(raw).toLocaleString() : "");
+  };
+
   const handleSubmit = async () => {
     if (!title || !price || !description || !selectedApartment) {
       Alert.alert(t('form.requiredFields'), t('form.fillRequiredFields'));
@@ -421,12 +433,16 @@ export default function AddItemScreen({ navigation, route }) {
       const uploadedImageUrls = [];
 
       for (let i = 0; i < images.length; i++) {
-        console.log(`📷 이미지 ${i + 1}/${images.length} 처리 중...`);
+        // 이미 업로드된 이미지(https://)는 재업로드 없이 그대로 사용
+        if (images[i].startsWith("https://")) {
+          uploadedImageUrls.push(images[i]);
+          console.log(`⏭️ 이미지 ${i + 1} 건너뜀 (이미 업로드됨)`);
+          continue;
+        }
 
-        // 리사이징 적용
+        console.log(`📷 이미지 ${i + 1}/${images.length} 처리 중...`);
         const resizedUri = await resizeImage(images[i]);
         const url = await uploadImageToStorage(resizedUri);
-
         uploadedImageUrls.push(url);
         console.log(`✅ 이미지 ${i + 1} 완료`);
       }
@@ -638,14 +654,17 @@ export default function AddItemScreen({ navigation, route }) {
         />
 
         <Text style={styles.label}>{t('form.priceLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t('form.pricePlaceholder')}
-          placeholderTextColor="rgba(0, 0, 0, 0.38)"
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
+        <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 12 }]}>
+          <TextInput
+            style={[{ flex: 1, fontSize: 15, color: '#333', paddingVertical: 12 }]}
+            placeholder={t('form.pricePlaceholder')}
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
+            value={priceDisplay}
+            onChangeText={handlePriceChange}
+            keyboardType="numeric"
+          />
+          <Text style={{ color: '#888', fontSize: 13, marginLeft: 4 }}>₫ VND</Text>
+        </View>
 
         <Text style={styles.label}>{t('form.categoryLabel')}</Text>
         <View style={styles.pickerContainer}>

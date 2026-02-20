@@ -44,7 +44,7 @@ export default function JobDetailScreen({ route, navigation }) {
   const images = job.images || [];
   const isMyJob = job.userId === user?.uid;
   const canDelete = isMyJob || isAdmin();
-  const canEdit = isMyJob;
+  const canEdit = isMyJob || isAdmin();
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
@@ -178,7 +178,7 @@ export default function JobDetailScreen({ route, navigation }) {
   // 📤 SNS 공유 핸들러
   const handleShare = useCallback(async (platform = 'more') => {
     const { shareItem } = require('../utils/deepLinkUtils');
-    
+
     try {
       const result = await shareItem('job', job.id, job, platform);
       if (result && !result.success) {
@@ -265,7 +265,7 @@ export default function JobDetailScreen({ route, navigation }) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 상단 광고 */}
         <DetailAdBanner position="top" screen="job" />
-        
+
         {/* 이미지 영역 */}
         {images.length > 0 ? (
           <View style={styles.imageContainer}>
@@ -471,9 +471,22 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* 관리자 수정 버튼 (내 공고가 아닐 때만) */}
+        {!isMyJob && isAdmin() && (
+          <View style={styles.ownerActions}>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFF3E0', flex: 1 }]}
+              onPress={handleEdit}
+            >
+              <Ionicons name="shield-checkmark-outline" size={20} color="#FF9800" />
+              <Text style={[styles.editButtonText, { color: '#FF9800' }]}>관리자 수정</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* 하단 광고 */}
         <DetailAdBanner position="bottom" screen="job" />
-        
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -495,10 +508,10 @@ export default function JobDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
-      
+
       {/* 🎯 상세 페이지 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
-      <PopupAd 
-        visible={showPopup} 
+      <PopupAd
+        visible={showPopup}
         onClose={() => setShowPopup(false)}
         screen="job"
         autoCloseSeconds={10}
