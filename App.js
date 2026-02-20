@@ -821,6 +821,15 @@ function JobsStack() {
           headerTintColor: "#fff",
         }}
       />
+      <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{
+          title: t('common:chat'),
+          headerStyle: { backgroundColor: "#2196F3" },
+          headerTintColor: "#fff",
+        }}
+      />
     </Stack.Navigator>
   );
 }
@@ -877,6 +886,15 @@ function RealEstateStack() {
         component={AddRealEstateScreen}
         options={{
           title: t('realEstate:addProperty'),
+          headerStyle: { backgroundColor: "#E91E63" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{
+          title: t('common:chat'),
           headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
         }}

@@ -68,6 +68,7 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const isFocused = useIsFocused(); // 현재 화면이 활성화되어 있는지 확인
   const [chatRoomId, setChatRoomId] = useState(initialChatRoomId);
+  const chatRoomCreatedRef = useRef(!!initialChatRoomId); // 채팅방이 이미 생성됐는지 추적
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -139,12 +140,12 @@ export default function ChatRoomScreen({ route, navigation }) {
     };
   }, []);
 
-  // 채팅방 생성 또는 가져오기
+  // 채팅방 ID 계산 (새 채팅방은 문서를 즉시 생성하지 않음)
   useEffect(() => {
     const initChatRoom = async () => {
       if (chatRoomId) return;
 
-      // 🛡️ 무결성 체크: 필수 값이 없으면 생성 중단
+      // 🛡️ 무결성 체크: 필수 값이 없으면 중단
       if (!sellerId || !currentUserId || !itemId) {
         console.error("❌ 채팅방 생성 불가: 필수 정보 누락", { sellerId, currentUserId, itemId });
         alert(t('chatRoom.chatRoomLoadFailed'));
@@ -157,31 +158,16 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       console.log("📌 채팅방 ID:", newChatRoomId);
 
+      // 기존 채팅방인지 확인
       const chatRoomRef = doc(db, "chatRooms", newChatRoomId);
       const chatRoomSnap = await getDoc(chatRoomRef);
 
-      if (!chatRoomSnap.exists()) {
-        console.log("✅ 새 채팅방 생성");
-        await setDoc(chatRoomRef, {
-          participants: [sellerId, currentUserId],
-          itemId,
-          itemTitle,
-          itemImage: itemImage || "",
-          sellerId,
-          sellerName:
-            sellerId === currentUserId ? currentUserName : otherUserName,
-          buyerId: sellerId === currentUserId ? otherUserId : currentUserId,
-          buyerName:
-            sellerId === currentUserId ? otherUserName : currentUserName,
-          lastMessage: "",
-          lastMessageAt: serverTimestamp(),
-          lastMessageSenderId: "",
-          unreadCount: 0,
-          sellerRead: true,
-          buyerRead: true,
-        });
-      } else {
+      if (chatRoomSnap.exists()) {
         console.log("✅ 기존 채팅방 사용");
+        chatRoomCreatedRef.current = true;
+      } else {
+        console.log("📌 새 채팅방 - 첫 메시지 전송 시 생성됨");
+        chatRoomCreatedRef.current = false;
       }
 
       setChatRoomId(newChatRoomId);
@@ -189,6 +175,31 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     initChatRoom();
   }, []);
+
+  // 채팅방 문서 생성 (첫 메시지 전송 시 호출)
+  const ensureChatRoomExists = async (roomId) => {
+    if (chatRoomCreatedRef.current) return;
+
+    console.log("✅ 새 채팅방 문서 생성");
+    const chatRoomRef = doc(db, "chatRooms", roomId);
+    await setDoc(chatRoomRef, {
+      participants: [sellerId, currentUserId],
+      itemId,
+      itemTitle,
+      itemImage: itemImage || "",
+      sellerId,
+      sellerName: sellerId === currentUserId ? currentUserName : otherUserName,
+      buyerId: sellerId === currentUserId ? otherUserId : currentUserId,
+      buyerName: sellerId === currentUserId ? otherUserName : currentUserName,
+      lastMessage: "",
+      lastMessageAt: serverTimestamp(),
+      lastMessageSenderId: "",
+      unreadCount: 0,
+      sellerRead: true,
+      buyerRead: true,
+    });
+    chatRoomCreatedRef.current = true;
+  };
 
   // 알림 재생 함수
   const playNotification = async (messageText) => {
@@ -286,6 +297,9 @@ export default function ChatRoomScreen({ route, navigation }) {
     setIsUploading(true);
 
     try {
+      // 새 채팅방이면 첫 메시지 전송 시 문서 생성
+      await ensureChatRoomExists(chatRoomId);
+
       let downloadURL = null;
 
       // 이미지가 있다면 업로드
@@ -378,7 +392,7 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const renderMessage = ({ item }) => {
     const isMyMessage = item.senderId === currentUserId;
-    
+
     let messageDate = null;
     if (item.timestamp) {
       if (item.timestamp.toDate) {
@@ -387,7 +401,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         messageDate = new Date(item.timestamp);
       }
     }
-    
+
     const messageTime = messageDate
       ? format(messageDate, "HH:mm", { locale: ko })
       : "";

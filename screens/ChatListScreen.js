@@ -60,7 +60,9 @@ export default function ChatListScreen({ navigation }) {
       }));
 
       // 중복 방지를 위해 Map을 사용하여 ID 기준 유일값 추출
-      const uniqueRooms = Array.from(new Map(rooms.map(room => [room.id, room])).values());
+      // 메시지가 없는 빈 채팅방은 목록에서 제외
+      const uniqueRooms = Array.from(new Map(rooms.map(room => [room.id, room])).values())
+        .filter(room => !!room.lastMessageSenderId);
 
       // 클라이언트 사이드 정렬 (lastMessageAt 기준 내림차순)
       uniqueRooms.sort((a, b) => {
