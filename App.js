@@ -34,7 +34,7 @@ const initializeAdMob = async () => {
     console.log("ℹ️ AdMob 초기화 스킵 (Android 아님 또는 SDK 없음)");
     return false;
   }
-  
+
   try {
     const adapterStatuses = await mobileAds().initialize();
     console.log("✅ AdMob SDK 초기화 완료:", adapterStatuses);
@@ -238,6 +238,38 @@ import AddRealEstateScreen from "./screens/AddRealEstateScreen";
 import AdminScreen from "./screens/AdminScreen";
 import LanguageSelectScreen from "./screens/LanguageSelectScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import AdInquiryModal from "./components/AdInquiryModal";
+
+// ============================================
+// 📢 광고문의 헤더 버튼 (모든 탭에서 공유)
+// ============================================
+function AdInquiryHeaderButton({ color = "#fff" }) {
+  const [showModal, setShowModal] = React.useState(false);
+  return (
+    <>
+      <TouchableOpacity
+        onPress={() => setShowModal(true)}
+        style={{
+          marginRight: 8,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          backgroundColor: "rgba(255,255,255,0.22)",
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.5)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        activeOpacity={0.75}
+      >
+        <Text style={{ color, fontSize: 12, fontWeight: "700", letterSpacing: 0.2 }}>
+          📢 광고문의
+        </Text>
+      </TouchableOpacity>
+      <AdInquiryModal visible={showModal} onClose={() => setShowModal(false)} />
+    </>
+  );
+}
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -310,10 +342,10 @@ export default function App() {
                   const { preloadInterstitialAd } = require("./services/InterstitialAdService");
                   preloadInterstitialAd();
                 }
-              } catch (e) {}
+              } catch (e) { }
             })(),
           ]).then(() => console.log("✅ 백그라운드 초기화 완료"));
-          
+
           console.log(`⏱️ 즉시 진입: ${Date.now() - startTime}ms`);
           return;
         }
@@ -346,11 +378,11 @@ export default function App() {
             try {
               const { requestAdConsent } = require("./services/AdConsentService");
               await requestAdConsent();
-            } catch (e) {}
+            } catch (e) { }
           })(),
         ]);
 
-        const timeoutPromise = new Promise(resolve => 
+        const timeoutPromise = new Promise(resolve =>
           setTimeout(() => resolve('timeout'), MAX_INIT_TIME)
         );
 
@@ -385,7 +417,7 @@ export default function App() {
         // 이미 숨겨졌거나 에러 시 무시
       });
     }, 100); // 100ms 후 스플래시 숨김 → 프로그레스 바 로딩 화면 표시
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -393,45 +425,45 @@ export default function App() {
   // "content appeared" 이벤트 이후에 실행하여 ErrorRecovery 크래시 방지
   useEffect(() => {
     if (!isReady) return; // 아직 준비 안됨
-    
+
     // 첫 화면 렌더링 완료 대기 (content appeared 이벤트 이후)
     const timer = setTimeout(async () => {
       if (!updatesCheckedRef.current && !__DEV__ && Updates.isEnabled) {
         updatesCheckedRef.current = true;
-        
+
         try {
           console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작...");
-          
+
           // 타임아웃과 함께 안전하게 체크
           const update = await Promise.race([
             Updates.checkForUpdateAsync(),
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Updates check timeout')), 10000)
             )
           ]);
-          
+
           if (update && update.isAvailable) {
             console.log("📦 새 업데이트 발견, 다운로드 중...");
             await Promise.race([
               Updates.fetchUpdateAsync(),
-              new Promise((_, reject) => 
+              new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Updates fetch timeout')), 15000)
               )
             ]);
             console.log("✅ 업데이트 다운로드 완료");
-            
+
             // 🔔 업데이트 완료 팝업 표시 (지금 적용이 기본 선택)
             Alert.alert(
               "🎉 새로운 업데이트",
               "새로운 기능이 추가되었습니다!\n지금 업데이트를 적용하시겠습니까?",
               [
-                { 
-                  text: "나중에", 
+                {
+                  text: "나중에",
                   style: "cancel",
                   onPress: () => console.log("업데이트 나중에 적용")
                 },
-                { 
-                  text: "지금 적용", 
+                {
+                  text: "지금 적용",
                   style: "default",
                   isPreferred: true,
                   onPress: async () => {
@@ -454,19 +486,19 @@ export default function App() {
         }
       }
     }, 3000); // 첫 화면 렌더링 후 3초 대기 (content appeared 이벤트 확실히 발생 후)
-    
+
     return () => clearTimeout(timer);
   }, [isReady]); // isReady가 true가 된 후에만 실행
 
   // 🎯 앱 시작 5초 후 전면 팝업 광고 표시
   useEffect(() => {
     if (!isReady || showLanguageSelect || popupShownRef.current) return;
-    
+
     const timer = setTimeout(() => {
       popupShownRef.current = true;
       setShowStartupPopup(true);
     }, 5000); // 5초 후 팝업 표시
-    
+
     return () => clearTimeout(timer);
   }, [isReady, showLanguageSelect]);
 
@@ -597,10 +629,10 @@ export default function App() {
           <ProfileCompletionPrompt />
           <RootNavigator />
         </NavigationContainer>
-        
+
         {/* 🎯 앱 시작 5초 후 전면 팝업 광고 (10초 후 자동 닫힘) */}
-        <PopupAd 
-          visible={showStartupPopup} 
+        <PopupAd
+          visible={showStartupPopup}
           onClose={() => setShowStartupPopup(false)}
           screen="startup"
           autoCloseSeconds={10}
@@ -649,6 +681,7 @@ function HomeStack() {
           headerTintColor: "#fff",
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
               <LanguageSwitcher />
               <TouchableOpacity
                 onPress={() => navigation.navigate("메뉴")}
@@ -706,6 +739,7 @@ function NewsStack() {
           headerTintColor: "#fff",
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
               <LanguageSwitcher />
               <TouchableOpacity
                 onPress={() => navigation.navigate("메뉴")}
@@ -756,6 +790,7 @@ function JobsStack() {
           headerTintColor: "#fff",
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
               <LanguageSwitcher />
               <TouchableOpacity
                 onPress={() => navigation.navigate("메뉴")}
@@ -815,6 +850,7 @@ function RealEstateStack() {
           headerTintColor: "#fff",
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
               <LanguageSwitcher />
               <TouchableOpacity
                 onPress={() => navigation.navigate("메뉴", { screen: "메뉴메인" })}
@@ -872,7 +908,19 @@ function DanggnStack() {
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: () => <DanggnHeaderRight navigation={navigation} />,
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
+              <LanguageSwitcher />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("메뉴")}
+                style={{ marginRight: 16, alignItems: "center" }}
+              >
+                <Ionicons name="menu" size={22} color="#fff" />
+                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
+              </TouchableOpacity>
+            </View>
+          ),
         })}
       />
       <Stack.Screen
@@ -1296,7 +1344,7 @@ const ProfileCompletionPrompt = () => {
     checkAndShow();
 
     // 로그아웃 시 리셋
-    return () => {};
+    return () => { };
   }, [user, needsProfileComplete]);
 
   // 로그아웃 시 리셋

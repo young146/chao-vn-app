@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "57",
+      "buildNumber": "58",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",

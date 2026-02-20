@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import axios from "axios";
+import AdInquiryModal from "./AdInquiryModal";
 
 // ============================================
 // 🎯 ChaoVN 광고 시스템 v2.0
@@ -361,6 +362,7 @@ export function HomeBanner({ style }) {
   const [ad, setAd] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showInquiry, setShowInquiry] = useState(false);
 
   useEffect(() => {
     const loadAd = async () => {
@@ -374,44 +376,80 @@ export function HomeBanner({ style }) {
   }, []);
 
   if (isLoading) return <View style={[styles.homeBanner, style]} />;
-  if (!ad?.imageUrl && !ad?.videoUrl) return null;
+  if (!ad?.imageUrl && !ad?.videoUrl) {
+    // 자체 광고 없어도 광고 문의 버튼은 표시
+    return (
+      <>
+        <TouchableOpacity
+          style={[styles.inquiryOnlyBanner, style]}
+          onPress={() => setShowInquiry(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.inquiryOnlyIcon}>📢</Text>
+          <Text style={styles.inquiryOnlyText}>Xinchao 광고 문의하기</Text>
+          <Text style={styles.inquiryOnlyArrow}>→</Text>
+        </TouchableOpacity>
+        <AdInquiryModal visible={showInquiry} onClose={() => setShowInquiry(false)} />
+      </>
+    );
+  }
 
+  // 비디오 클릭 (기존 동작 유지 - 영상 크게 보기)
   const handleVideoPress = (video) => {
     setShowVideoPlayer(true);
   };
 
+  // 이미지 광고 클릭:
+  //  - linkUrl 없음 또는 자체 도메인(chaovietnam.co.kr) → 앱 내 광고 문의 폼 오픈
+  //  - 외부 linkUrl 있음 → 브라우저로 열기
   const handleAdPress = async (adData) => {
-    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
-    if (!adData?.videoUrl && adData?.linkUrl) {
-      trackAdClick(adData);
-      try {
-        await Linking.openURL(adData.linkUrl);
-      } catch (error) {
-        console.log("광고 링크 열기 실패:", error.message);
-      }
+    if (adData?.videoUrl) return; // 비디오는 handleVideoPress에서 처리
+    const isSelfLink = !adData?.linkUrl || adData.linkUrl.includes("chaovietnam.co.kr");
+    if (isSelfLink) {
+      setShowInquiry(true);
+      return;
+    }
+    trackAdClick(adData);
+    try {
+      await Linking.openURL(adData.linkUrl);
+    } catch (error) {
+      console.log("광고 링크 열기 실패:", error.message);
     }
   };
 
   return (
     <>
-      <TouchableOpacity
-        style={[styles.homeBanner, style]}
-        onPress={() => handleAdPress(ad)}
-        activeOpacity={0.8}
-      >
-        <AdMedia
-          ad={ad}
-          style={styles.adImage}
-          thumbnailKey="home_banner"
-          onVideoPress={handleVideoPress}
-        />
-      </TouchableOpacity>
+      <View style={[styles.homeBanner, style]}>
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          onPress={() => handleAdPress(ad)}
+          activeOpacity={0.8}
+        >
+          <AdMedia
+            ad={ad}
+            style={styles.adImage}
+            thumbnailKey="home_banner"
+            onVideoPress={handleVideoPress}
+          />
+        </TouchableOpacity>
+
+        {/* 광고 문의 버튼 - 배너 하단 고정 */}
+        <TouchableOpacity
+          style={styles.inquiryBtn}
+          onPress={() => setShowInquiry(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.inquiryBtnText}>📢 광고 문의하기</Text>
+        </TouchableOpacity>
+      </View>
 
       <VideoPlayerModal
         visible={showVideoPlayer}
         video={ad}
         onClose={() => setShowVideoPlayer(false)}
       />
+
+      <AdInquiryModal visible={showInquiry} onClose={() => setShowInquiry(false)} />
     </>
   );
 }
@@ -422,6 +460,7 @@ export function HomeBanner({ style }) {
 export function HomeSectionAd({ style }) {
   const [ad, setAd] = useState(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showInquiry, setShowInquiry] = useState(false);
 
   useEffect(() => {
     const loadAd = async () => {
@@ -439,14 +478,17 @@ export function HomeSectionAd({ style }) {
   };
 
   const handleAdPress = async (adData) => {
-    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
-    if (!adData?.videoUrl && adData?.linkUrl) {
-      trackAdClick(adData);
-      try {
-        await Linking.openURL(adData.linkUrl);
-      } catch (error) {
-        console.log("광고 링크 열기 실패:", error.message);
-      }
+    if (adData?.videoUrl) return;
+    const isSelfLink = !adData?.linkUrl || adData.linkUrl.includes("chaovietnam.co.kr");
+    if (isSelfLink) {
+      setShowInquiry(true);
+      return;
+    }
+    trackAdClick(adData);
+    try {
+      await Linking.openURL(adData.linkUrl);
+    } catch (error) {
+      console.log("광고 링크 열기 실패:", error.message);
     }
   };
 
@@ -470,6 +512,7 @@ export function HomeSectionAd({ style }) {
         video={ad}
         onClose={() => setShowVideoPlayer(false)}
       />
+      <AdInquiryModal visible={showInquiry} onClose={() => setShowInquiry(false)} />
     </>
   );
 }
@@ -484,6 +527,7 @@ export default function AdBanner({ screen = "all", style, useAdMob = true }) {
   const [hasSelfAd, setHasSelfAd] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showInquiry, setShowInquiry] = useState(false);
 
   const canUseAdMob =
     Platform.OS === "android" &&
@@ -520,14 +564,17 @@ export default function AdBanner({ screen = "all", style, useAdMob = true }) {
   };
 
   const handleAdPress = async (adData) => {
-    // 비디오 광고는 전체 화면 플레이어로, 이미지는 링크로
-    if (!adData?.videoUrl && adData?.linkUrl) {
-      trackAdClick(adData);
-      try {
-        await Linking.openURL(adData.linkUrl);
-      } catch (error) {
-        console.log("광고 링크 열기 실패:", error.message);
-      }
+    if (adData?.videoUrl) return;
+    const isSelfLink = !adData?.linkUrl || adData.linkUrl.includes("chaovietnam.co.kr");
+    if (isSelfLink) {
+      setShowInquiry(true);
+      return;
+    }
+    trackAdClick(adData);
+    try {
+      await Linking.openURL(adData.linkUrl);
+    } catch (error) {
+      console.log("광고 링크 열기 실패:", error.message);
     }
   };
 
@@ -553,6 +600,7 @@ export default function AdBanner({ screen = "all", style, useAdMob = true }) {
           video={ad}
           onClose={() => setShowVideoPlayer(false)}
         />
+        <AdInquiryModal visible={showInquiry} onClose={() => setShowInquiry(false)} />
       </>
     );
   }
@@ -1093,4 +1141,43 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  // 광고 문의 버튼 (배너 하단 고정)
+  inquiryBtn: {
+    backgroundColor: "rgba(211, 47, 47, 0.92)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  inquiryBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  // 광고 없을 때 문의 전용 배너
+  inquiryOnlyBanner: {
+    height: 52,
+    backgroundColor: "#d32f2f",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  inquiryOnlyIcon: {
+    fontSize: 18,
+  },
+  inquiryOnlyText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+    flex: 1,
+    textAlign: "center",
+  },
+  inquiryOnlyArrow: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });
+
