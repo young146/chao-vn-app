@@ -144,12 +144,13 @@ export default function AdInquiryModal({ visible, onClose }) {
 
         {/* 키보드 회피 영역: 카드만 감싸서 위로 밀어줌 */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+          style={styles.keyboardView}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.card}>
-              {/* 헤더 */}
+          <View style={styles.card}>
+            {/* 헤더 */}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.header}>
                 <View style={styles.handle} />
                 <Text style={styles.title}>📢 광고 문의</Text>
@@ -158,184 +159,186 @@ export default function AdInquiryModal({ visible, onClose }) {
                   <Text style={styles.closeBtnText}>✕</Text>
                 </TouchableOpacity>
               </View>
+            </TouchableWithoutFeedback>
 
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="interactive"
-                contentContainerStyle={styles.scrollContent}
-                bounces={false}
-              >
-                {/* 성공 메시지 */}
-                {success && (
-                  <View style={styles.successBox}>
-                    <Text style={styles.successText}>
-                      ✅ 문의가 접수되었습니다!{"\n"}
-                      빠른 시간 내에 담당자가 연락드리겠습니다.
-                    </Text>
-                  </View>
-                )}
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              contentContainerStyle={styles.scrollContent}
+              bounces={true}
+              nestedScrollEnabled={true}
+              scrollEventThrottle={16}
+            >
+              {/* 성공 메시지 */}
+              {success && (
+                <View style={styles.successBox}>
+                  <Text style={styles.successText}>
+                    ✅ 문의가 접수되었습니다!{"\n"}
+                    빠른 시간 내에 담당자가 연락드리겠습니다.
+                  </Text>
+                </View>
+              )}
 
-                {/* 에러 메시지 */}
-                {errors.submit && (
-                  <View style={styles.errorBox}>
-                    <Text style={styles.errorBoxText}>{errors.submit}</Text>
-                  </View>
-                )}
+              {/* 에러 메시지 */}
+              {errors.submit && (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorBoxText}>{errors.submit}</Text>
+                </View>
+              )}
 
-                {!success && (
-                  <>
-                    {/* 회사 정보 */}
-                    <Text style={styles.sectionTitle}>📋 회사 정보</Text>
+              {!success && (
+                <>
+                  {/* 회사 정보 */}
+                  <Text style={styles.sectionTitle}>📋 회사 정보</Text>
 
-                    <Field label="회사명" required error={errors.customerName}>
-                      <TextInput
-                        style={[styles.input, errors.customerName && styles.inputError]}
-                        placeholder="예: 삼성전자"
-                        value={form.customerName}
-                        onChangeText={(v) => handleChange("customerName", v)}
-                        returnKeyType="next"
-                      />
-                    </Field>
+                  <Field label="회사명" required error={errors.customerName}>
+                    <TextInput
+                      style={[styles.input, errors.customerName && styles.inputError]}
+                      placeholder="예: 삼성전자"
+                      value={form.customerName}
+                      onChangeText={(v) => handleChange("customerName", v)}
+                      returnKeyType="next"
+                    />
+                  </Field>
 
-                    <View style={styles.row}>
-                      <View style={styles.half}>
-                        <Field label="담당자명" required error={errors.contact}>
-                          <TextInput
-                            style={[styles.input, errors.contact && styles.inputError]}
-                            placeholder="예: 박영수"
-                            value={form.contact}
-                            onChangeText={(v) => handleChange("contact", v)}
-                            returnKeyType="next"
-                          />
-                        </Field>
-                      </View>
-                      <View style={styles.half}>
-                        <Field label="전화" required error={errors.phone}>
-                          <TextInput
-                            style={[styles.input, errors.phone && styles.inputError]}
-                            placeholder="예: 090-1234-5678"
-                            value={form.phone}
-                            onChangeText={(v) => handleChange("phone", v)}
-                            keyboardType="phone-pad"
-                            returnKeyType="next"
-                          />
-                        </Field>
-                      </View>
+                  <View style={styles.row}>
+                    <View style={styles.half}>
+                      <Field label="담당자명" required error={errors.contact}>
+                        <TextInput
+                          style={[styles.input, errors.contact && styles.inputError]}
+                          placeholder="예: 박영수"
+                          value={form.contact}
+                          onChangeText={(v) => handleChange("contact", v)}
+                          returnKeyType="next"
+                        />
+                      </Field>
                     </View>
-
-                    <Field label="이메일">
-                      <TextInput
-                        style={styles.input}
-                        placeholder="예: contact@company.com"
-                        value={form.email}
-                        onChangeText={(v) => handleChange("email", v)}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        returnKeyType="next"
-                      />
-                    </Field>
-
-                    {/* 광고 정보 */}
-                    <Text style={styles.sectionTitle}>📰 광고 정보</Text>
-
-                    <View style={styles.row}>
-                      <View style={styles.half}>
-                        <Field label="광고 유형">
-                          <TouchableOpacity
-                            style={styles.select}
-                            onPress={() => { setAdTypeOpen(!adTypeOpen); setSizeOpen(false); }}
-                          >
-                            <Text style={form.adType ? styles.selectText : styles.selectPlaceholder}>
-                              {AD_TYPES.find(t => t.value === form.adType)?.label || "선택하세요"}
-                            </Text>
-                            <Text style={styles.selectArrow}>{adTypeOpen ? "▲" : "▼"}</Text>
-                          </TouchableOpacity>
-                          {adTypeOpen && (
-                            <View style={styles.dropdown}>
-                              {AD_TYPES.slice(1).map((t) => (
-                                <TouchableOpacity
-                                  key={t.value}
-                                  style={[styles.dropdownItem, form.adType === t.value && styles.dropdownItemSelected]}
-                                  onPress={() => { handleChange("adType", t.value); setAdTypeOpen(false); }}
-                                >
-                                  <Text style={[styles.dropdownText, form.adType === t.value && styles.dropdownTextSelected]}>
-                                    {t.label}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          )}
-                        </Field>
-                      </View>
-                      <View style={styles.half}>
-                        <Field label="광고 크기">
-                          <TouchableOpacity
-                            style={styles.select}
-                            onPress={() => { setSizeOpen(!sizeOpen); setAdTypeOpen(false); }}
-                          >
-                            <Text style={form.size ? styles.selectText : styles.selectPlaceholder}>
-                              {AD_SIZES.find(s => s.value === form.size)?.label || "선택하세요"}
-                            </Text>
-                            <Text style={styles.selectArrow}>{sizeOpen ? "▲" : "▼"}</Text>
-                          </TouchableOpacity>
-                          {sizeOpen && (
-                            <View style={styles.dropdown}>
-                              {AD_SIZES.slice(1).map((s) => (
-                                <TouchableOpacity
-                                  key={s.value}
-                                  style={[styles.dropdownItem, form.size === s.value && styles.dropdownItemSelected]}
-                                  onPress={() => { handleChange("size", s.value); setSizeOpen(false); }}
-                                >
-                                  <Text style={[styles.dropdownText, form.size === s.value && styles.dropdownTextSelected]}>
-                                    {s.label}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          )}
-                        </Field>
-                      </View>
+                    <View style={styles.half}>
+                      <Field label="전화" required error={errors.phone}>
+                        <TextInput
+                          style={[styles.input, errors.phone && styles.inputError]}
+                          placeholder="예: 090-1234-5678"
+                          value={form.phone}
+                          onChangeText={(v) => handleChange("phone", v)}
+                          keyboardType="phone-pad"
+                          returnKeyType="next"
+                        />
+                      </Field>
                     </View>
+                  </View>
 
-                    {/* 문의 내용 */}
-                    <Text style={styles.sectionTitle}>💬 문의 내용</Text>
+                  <Field label="이메일">
+                    <TextInput
+                      style={styles.input}
+                      placeholder="예: contact@company.com"
+                      value={form.email}
+                      onChangeText={(v) => handleChange("email", v)}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      returnKeyType="next"
+                    />
+                  </Field>
 
-                    <Field label="문의 내용">
-                      <TextInput
-                        style={[styles.input, styles.textarea]}
-                        placeholder="광고 문의사항을 자유롭게 적어주세요. 예산, 기간, 컨셉 등"
-                        value={form.remark}
-                        onChangeText={(v) => handleChange("remark", v)}
-                        multiline
-                        numberOfLines={4}
-                        textAlignVertical="top"
-                        scrollEnabled={false}
-                      />
-                    </Field>
+                  {/* 광고 정보 */}
+                  <Text style={styles.sectionTitle}>📰 광고 정보</Text>
 
-                    {/* 버튼 */}
-                    <View style={styles.buttonRow}>
-                      <TouchableOpacity
-                        style={styles.submitBtn}
-                        onPress={handleSubmit}
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <ActivityIndicator color="#fff" />
-                        ) : (
-                          <Text style={styles.submitText}>문의 제출</Text>
+                  <View style={styles.row}>
+                    <View style={styles.half}>
+                      <Field label="광고 유형">
+                        <TouchableOpacity
+                          style={styles.select}
+                          onPress={() => { setAdTypeOpen(!adTypeOpen); setSizeOpen(false); }}
+                        >
+                          <Text style={form.adType ? styles.selectText : styles.selectPlaceholder}>
+                            {AD_TYPES.find(t => t.value === form.adType)?.label || "선택하세요"}
+                          </Text>
+                          <Text style={styles.selectArrow}>{adTypeOpen ? "▲" : "▼"}</Text>
+                        </TouchableOpacity>
+                        {adTypeOpen && (
+                          <View style={styles.dropdown}>
+                            {AD_TYPES.slice(1).map((t) => (
+                              <TouchableOpacity
+                                key={t.value}
+                                style={[styles.dropdownItem, form.adType === t.value && styles.dropdownItemSelected]}
+                                onPress={() => { handleChange("adType", t.value); setAdTypeOpen(false); }}
+                              >
+                                <Text style={[styles.dropdownText, form.adType === t.value && styles.dropdownTextSelected]}>
+                                  {t.label}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
                         )}
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
-                        <Text style={styles.cancelText}>취소</Text>
-                      </TouchableOpacity>
+                      </Field>
                     </View>
-                  </>
-                )}
-              </ScrollView>
-            </View>
-          </TouchableWithoutFeedback>
+                    <View style={styles.half}>
+                      <Field label="광고 크기">
+                        <TouchableOpacity
+                          style={styles.select}
+                          onPress={() => { setSizeOpen(!sizeOpen); setAdTypeOpen(false); }}
+                        >
+                          <Text style={form.size ? styles.selectText : styles.selectPlaceholder}>
+                            {AD_SIZES.find(s => s.value === form.size)?.label || "선택하세요"}
+                          </Text>
+                          <Text style={styles.selectArrow}>{sizeOpen ? "▲" : "▼"}</Text>
+                        </TouchableOpacity>
+                        {sizeOpen && (
+                          <View style={styles.dropdown}>
+                            {AD_SIZES.slice(1).map((s) => (
+                              <TouchableOpacity
+                                key={s.value}
+                                style={[styles.dropdownItem, form.size === s.value && styles.dropdownItemSelected]}
+                                onPress={() => { handleChange("size", s.value); setSizeOpen(false); }}
+                              >
+                                <Text style={[styles.dropdownText, form.size === s.value && styles.dropdownTextSelected]}>
+                                  {s.label}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </Field>
+                    </View>
+                  </View>
+
+                  {/* 문의 내용 */}
+                  <Text style={styles.sectionTitle}>💬 문의 내용</Text>
+
+                  <Field label="문의 내용">
+                    <TextInput
+                      style={[styles.input, styles.textarea]}
+                      placeholder="광고 문의사항을 자유롭게 적어주세요. 예산, 기간, 컨셉 등"
+                      value={form.remark}
+                      onChangeText={(v) => handleChange("remark", v)}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                      scrollEnabled={false}
+                    />
+                  </Field>
+
+                  {/* 버튼 */}
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                      style={styles.submitBtn}
+                      onPress={handleSubmit}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.submitText}>문의 제출</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
+                      <Text style={styles.cancelText}>취소</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -366,13 +369,16 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
-  // keyboardView 제거: KeyboardAvoidingView는 카드 바로 위에만 위치
+  keyboardView: {
+    width: "100%",
+  },
   card: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: SCREEN_HEIGHT * 0.85,
     paddingHorizontal: 20,
+    overflow: "hidden",
   },
   scrollContent: {
     paddingBottom: Platform.OS === "ios" ? 60 : 80,
