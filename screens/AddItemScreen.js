@@ -478,7 +478,7 @@ export default function AddItemScreen({ navigation, route }) {
           console.log("💸 가격 할인 감지! 상태를 '가격 조정됨'으로 변경");
         }
 
-        console.log("💾 물품 수정 중...");
+        console.log("💾 당근/나눔 수정 중...");
         const itemRef = doc(db, "XinChaoDanggn", editItem.id);
         await updateDoc(itemRef, {
           ...itemData,
@@ -499,7 +499,7 @@ export default function AddItemScreen({ navigation, route }) {
             editItem.createdAt?.toDate?.()?.toISOString() || editItem.createdAt,
         };
 
-        console.log("✅ 물품 수정 완료!");
+        console.log("✅ 당근/나눔 수정 완료!");
 
         setUploading(false);
 
@@ -507,20 +507,20 @@ export default function AddItemScreen({ navigation, route }) {
           {
             text: "확인",
             onPress: () => {
-              // 스택 리셋: 씬짜오나눔메인 → 물품 상세
+              // 스택 리셋: 당근/나눔 메인 → 당근/나눔 상세
               navigation.reset({
                 index: 1,
                 routes: [
-                  { name: "씬짜오나눔메인" },
-                  { name: "물품 상세", params: { item: resultItem } },
+                  { name: "당근/나눔 메인" },
+                  { name: "당근/나눔 상세", params: { item: resultItem } },
                 ],
               });
             },
           },
         ]);
       } else {
-        // 새 물품 등록
-        console.log("💾 물품 등록 중...");
+        // 새 당근/나눔 등록
+        console.log("💾 당근/나눔 등록 중...");
         const docRef = await addDoc(collection(db, "XinChaoDanggn"), {
           ...itemData,
           userId: user.uid,
@@ -557,7 +557,7 @@ export default function AddItemScreen({ navigation, route }) {
           status: "판매중",
         };
 
-        console.log("✅ 물품 등록 완료! ID:", docRef.id);
+        console.log("✅ 당근/나눔 등록 완료! ID:", docRef.id);
 
         setUploading(false);
 
@@ -565,7 +565,7 @@ export default function AddItemScreen({ navigation, route }) {
           {
             text: "확인",
             onPress: () => {
-              navigation.navigate("물품 상세", { item: resultItem });
+              navigation.navigate("당근/나눔 상세", { item: resultItem });
             },
           },
         ]);

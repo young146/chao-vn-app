@@ -234,7 +234,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
   // 수정하기
   const handleEdit = () => {
-    navigation.navigate("부동산등록", { editItem: item });
+    navigation.navigate("부동산 등록", { editItem: item });
   };
 
   // 삭제하기

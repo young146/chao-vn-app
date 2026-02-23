@@ -340,7 +340,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   };
 
   const handleEdit = () => {
-    navigation.navigate("물품 수정", { item });
+    navigation.navigate("당근/나눔 수정", { item });
   };
 
   const handleDelete = () => {
@@ -542,7 +542,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* 🔥 물품 상세 광고 */}
+        {/* 🔥 당근/나눔 상세 광고 */}
         <DetailAdBanner position="top" screen="danggn" style={{ marginVertical: 12 }} />
 
         {/* 물품 정보 */}

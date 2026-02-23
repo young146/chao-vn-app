@@ -109,7 +109,7 @@ export default function MyFavoritesScreen({ navigation }) {
           ...itemData,
           createdAt: itemData.createdAt?.toDate?.()?.toISOString() || itemData.createdAt,
         };
-        navigation.navigate("물품 상세", { item: serializableItem });
+        navigation.navigate("당근/나눔 상세", { item: serializableItem });
       } else {
         Alert.alert(t('notice'), t('itemNotFound'));
       }

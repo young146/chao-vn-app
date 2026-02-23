@@ -196,7 +196,7 @@ export default function JobDetailScreen({ route, navigation }) {
 
   // 수정하기
   const handleEdit = () => {
-    navigation.navigate("Jobs등록", { editJob: job });
+    navigation.navigate("구인구직 등록", { editJob: job });
   };
 
   // 삭제하기

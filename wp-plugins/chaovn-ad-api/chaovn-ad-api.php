@@ -24,7 +24,8 @@ define('CHAOVN_AD_CPT', 'app_ads');  // CPT UI 또는 ACF에서 설정한 slug
 // ========================================
 // 광고 슬롯 정의 (중앙 관리)
 // ========================================
-function chaovn_get_ad_slots() {
+function chaovn_get_ad_slots()
+{
     return array(
         'home_banner' => array(
             'label' => '홈 대형 배너',
@@ -61,11 +62,18 @@ function chaovn_get_ad_slots() {
             'size' => 'app-popup',
             'dimensions' => array(600, 800),
         ),
+        // ── 고정 배너 슬롯 ──
+        'fixed_bottom' => array(
+            'label' => '고정 하단 배너 (전체화면 항상 노출)',
+            'size' => 'app-fixed-bottom',
+            'dimensions' => array(750, 250),
+        ),
     );
 }
 
 // 광고 화면(섹션) 정의
-function chaovn_get_ad_screens() {
+function chaovn_get_ad_screens()
+{
     return array(
         'all' => '전체 섹션 노출',
         'startup' => '앱 시작 팝업 전용',
@@ -80,21 +88,22 @@ function chaovn_get_ad_screens() {
 // ========================================
 // 앱용 이미지 사이즈 등록
 // ========================================
-add_action('after_setup_theme', function() {
-    add_image_size('app-home-banner', 750, 300, true);  // 홈 대형 배너
-    add_image_size('app-header', 750, 300, true);       // 헤더 배너 (750x300)
-    add_image_size('app-banner', 750, 200, true);       // 일반 배너
-    add_image_size('app-inline', 750, 200, true);       // 인라인 (750x200으로 축소)
-    add_image_size('app-popup', 600, 800, true);        // 전면 팝업
-    add_image_size('app-section', 750, 150, true);      // 섹션
+add_action('after_setup_theme', function () {
+    add_image_size('app-home-banner', 750, 300, true);   // 홈 대형 배너
+    add_image_size('app-header', 750, 300, true);        // 헤더 배너
+    add_image_size('app-banner', 750, 200, true);        // 일반 배너
+    add_image_size('app-inline', 750, 200, true);        // 인라인
+    add_image_size('app-popup', 600, 800, true);         // 전면 팝업
+    add_image_size('app-section', 750, 150, true);       // 섹션
+    add_image_size('app-fixed-bottom', 750, 250, true);  // 고정 하단 배너 (신규)
 });
 
 // ========================================
 // REST API 엔드포인트 등록
 // ========================================
-add_action('rest_api_init', function() {
+add_action('rest_api_init', function () {
     // v2 API - ACF/CPT 기반
-    
+
     // 광고 목록 (슬롯별 그룹화)
     register_rest_route('chaovn/v2', '/ads', array(
         'methods' => 'GET',
@@ -107,7 +116,7 @@ add_action('rest_api_init', function() {
             ),
         ),
     ));
-    
+
     // 특정 슬롯의 광고만 조회
     register_rest_route('chaovn/v2', '/ads/slot/(?P<slot>[a-z_]+)', array(
         'methods' => 'GET',
@@ -120,28 +129,28 @@ add_action('rest_api_init', function() {
             ),
         ),
     ));
-    
+
     // 광고 클릭 추적
     register_rest_route('chaovn/v2', '/ads/(?P<id>\d+)/click', array(
         'methods' => 'POST',
         'callback' => 'chaovn_track_ad_click',
         'permission_callback' => '__return_true',
     ));
-    
+
     // 슬롯 목록 조회 (앱에서 슬롯 정보 확인용)
     register_rest_route('chaovn/v2', '/ads/slots', array(
         'methods' => 'GET',
         'callback' => 'chaovn_get_slots_info',
         'permission_callback' => '__return_true',
     ));
-    
+
     // 디버그용 (임시 공개 - 테스트 후 다시 제한할 것)
     register_rest_route('chaovn/v2', '/ads/debug', array(
         'methods' => 'GET',
         'callback' => 'chaovn_get_ads_debug_v2',
         'permission_callback' => '__return_true',
     ));
-    
+
     // 하위 호환성: v1 API도 v2로 리다이렉트
     register_rest_route('chaovn/v1', '/ads', array(
         'methods' => 'GET',
@@ -153,19 +162,20 @@ add_action('rest_api_init', function() {
 // ========================================
 // 메인 광고 API (v2)
 // ========================================
-function chaovn_get_ads_v2(WP_REST_Request $request) {
+function chaovn_get_ads_v2(WP_REST_Request $request)
+{
     $screen = $request->get_param('screen') ?: 'all';
     $slots = chaovn_get_ad_slots();
-    
+
     // 슬롯별 빈 배열 초기화
     $ads = array();
     foreach (array_keys($slots) as $slot) {
         $ads[$slot] = array();
     }
-    
+
     // 현재 날짜
     $today = date('Y-m-d');
-    
+
     // ACF 기반 광고 포스트 조회
     $query_args = array(
         'post_type' => CHAOVN_AD_CPT,
@@ -181,7 +191,7 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
             ),
         ),
     );
-    
+
     // 시작일 조건 추가
     $query_args['meta_query'][] = array(
         'relation' => 'OR',
@@ -201,7 +211,7 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
             'type' => 'DATE',
         ),
     );
-    
+
     // 종료일 조건 추가
     $query_args['meta_query'][] = array(
         'relation' => 'OR',
@@ -221,13 +231,13 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
             'type' => 'DATE',
         ),
     );
-    
+
     $query = new WP_Query($query_args);
-    
+
     while ($query->have_posts()) {
         $query->the_post();
         $post_id = get_the_ID();
-        
+
         // ACF 필드 가져오기
         $ad_slot = get_field('ad_slot', $post_id);
         $ad_screen = get_field('ad_screen', $post_id);
@@ -235,39 +245,43 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
         $ad_video = get_field('ad_video', $post_id); // 비디오 URL
         $ad_link = get_field('ad_link', $post_id);
         $ad_priority = get_field('ad_priority', $post_id);
-        
+        // 인라인 광고 위치 (0=모든 자리, 1~N=특정 자리 전용)
+        $ad_inline_position = intval(get_field('ad_inline_position', $post_id)) ?: 0;
+
         // 이미지나 비디오 중 하나라도 있어야 함
         $has_image = $ad_image && is_array($ad_image) && !empty($ad_image['url']);
         $has_video = !empty($ad_video);
-        
+
         if (!$has_image && !$has_video) {
             continue;
         }
-        
+
         // ad_slot과 ad_screen을 배열로 정규화
         $ad_slots_array = is_array($ad_slot) ? $ad_slot : array($ad_slot);
         $ad_screens_array = is_array($ad_screen) ? $ad_screen : array($ad_screen);
-        
+
         // 화면(섹션) 필터링
         // ad_screen에 'all'이 포함되면 모든 화면에 표시
         // 그렇지 않으면 요청된 screen과 일치하거나 'all' 요청일 때만 표시
-        $screen_match = in_array('all', $ad_screens_array) || 
-                        $screen === 'all' || 
-                        in_array($screen, $ad_screens_array);
-        
+        $screen_match = in_array('all', $ad_screens_array) ||
+            $screen === 'all' ||
+            in_array($screen, $ad_screens_array);
+
         if (!$screen_match) {
             continue;
         }
-        
+
         // 광고 데이터 구성
         $ad_data = array(
             'id' => $post_id,
             'name' => get_the_title(),
             'imageUrl' => $has_image ? $ad_image['url'] : null,
-            'videoUrl' => $has_video ? $ad_video : null, // 비디오 URL 추가
-            'mediaType' => $has_video ? 'video' : 'image', // 미디어 타입 (video 우선)
+            'videoUrl' => $has_video ? $ad_video : null,
+            'mediaType' => $has_video ? 'video' : 'image',
             'linkUrl' => !empty($ad_link) ? $ad_link : 'https://chaovietnam.co.kr',
             'priority' => intval($ad_priority) ?: 10,
+            // 인라인 위치: 0=모든 자리, 1~N=특정 자리 전용
+            'inlinePosition' => $ad_inline_position,
             'screen' => $ad_screens_array,
             'thumbnails' => $has_image ? array(
                 'home_banner' => isset($ad_image['sizes']['app-home-banner']) ? $ad_image['sizes']['app-home-banner'] : $ad_image['url'],
@@ -278,7 +292,7 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
                 'popup' => isset($ad_image['sizes']['app-popup']) ? $ad_image['sizes']['app-popup'] : $ad_image['url'],
             ) : null,
         );
-        
+
         // 각 슬롯에 광고 추가 (다중 슬롯 지원)
         foreach ($ad_slots_array as $single_slot) {
             if (isset($ads[$single_slot])) {
@@ -287,21 +301,21 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
         }
     }
     wp_reset_postdata();
-    
+
     // 각 슬롯별로 우선순위 정렬 (높은 순)
     foreach ($ads as $slot => &$slot_ads) {
-        usort($slot_ads, function($a, $b) {
+        usort($slot_ads, function ($a, $b) {
             return $b['priority'] - $a['priority'];
         });
     }
     unset($slot_ads);
-    
+
     // 전체 광고 수 계산
     $total = 0;
     foreach ($ads as $slot_ads) {
         $total += count($slot_ads);
     }
-    
+
     return new WP_REST_Response(array(
         'success' => true,
         'data' => $ads,
@@ -318,11 +332,12 @@ function chaovn_get_ads_v2(WP_REST_Request $request) {
 // ========================================
 // 특정 슬롯 광고 API
 // ========================================
-function chaovn_get_ads_by_slot(WP_REST_Request $request) {
+function chaovn_get_ads_by_slot(WP_REST_Request $request)
+{
     $slot = $request->get_param('slot');
     $screen = $request->get_param('screen') ?: 'all';
     $slots = chaovn_get_ad_slots();
-    
+
     if (!isset($slots[$slot])) {
         return new WP_REST_Response(array(
             'success' => false,
@@ -330,11 +345,11 @@ function chaovn_get_ads_by_slot(WP_REST_Request $request) {
             'available_slots' => array_keys($slots),
         ), 400);
     }
-    
+
     // 전체 광고 가져온 후 해당 슬롯만 필터링
     $all_ads = chaovn_get_ads_v2($request);
     $data = $all_ads->get_data();
-    
+
     return new WP_REST_Response(array(
         'success' => true,
         'data' => $data['data'][$slot] ?? array(),
@@ -346,9 +361,10 @@ function chaovn_get_ads_by_slot(WP_REST_Request $request) {
 // ========================================
 // 광고 클릭 추적 API
 // ========================================
-function chaovn_track_ad_click(WP_REST_Request $request) {
+function chaovn_track_ad_click(WP_REST_Request $request)
+{
     $ad_id = intval($request->get_param('id'));
-    
+
     // 유효성 검사
     if (!$ad_id || get_post_type($ad_id) !== CHAOVN_AD_CPT) {
         return new WP_REST_Response(array(
@@ -356,14 +372,14 @@ function chaovn_track_ad_click(WP_REST_Request $request) {
             'message' => '유효하지 않은 광고입니다.',
         ), 400);
     }
-    
+
     // 클릭 수 증가
     $current_clicks = intval(get_field('ad_clicks_count', $ad_id)) ?: 0;
     update_field('ad_clicks_count', $current_clicks + 1, $ad_id);
-    
+
     // 링크 가져오기
     $link = get_field('ad_link', $ad_id);
-    
+
     return new WP_REST_Response(array(
         'success' => true,
         'clicks' => $current_clicks + 1,
@@ -374,7 +390,8 @@ function chaovn_track_ad_click(WP_REST_Request $request) {
 // ========================================
 // 슬롯 정보 API
 // ========================================
-function chaovn_get_slots_info() {
+function chaovn_get_slots_info()
+{
     return new WP_REST_Response(array(
         'success' => true,
         'slots' => chaovn_get_ad_slots(),
@@ -385,7 +402,8 @@ function chaovn_get_slots_info() {
 // ========================================
 // 디버그 API (v2)
 // ========================================
-function chaovn_get_ads_debug_v2() {
+function chaovn_get_ads_debug_v2()
+{
     $debug = array(
         'version' => CHAOVN_AD_VERSION,
         'cpt_slug' => CHAOVN_AD_CPT,
@@ -394,23 +412,23 @@ function chaovn_get_ads_debug_v2() {
         'acf_active' => function_exists('get_field'),
         'today' => date('Y-m-d'),
     );
-    
+
     // 모든 광고 포스트 조회 (상태 무관)
     $query = new WP_Query(array(
         'post_type' => CHAOVN_AD_CPT,
         'post_status' => array('publish', 'draft', 'pending'),
         'posts_per_page' => -1,
     ));
-    
+
     $debug['total_ads'] = $query->found_posts;
     $debug['ads'] = array();
-    
+
     while ($query->have_posts()) {
         $query->the_post();
         $post_id = get_the_ID();
-        
+
         $ad_image = get_field('ad_image', $post_id);
-        
+
         $image_data = null;
         if ($ad_image && is_array($ad_image)) {
             $image_data = array(
@@ -419,7 +437,7 @@ function chaovn_get_ads_debug_v2() {
                 'sizes' => isset($ad_image['sizes']) && is_array($ad_image['sizes']) ? array_keys($ad_image['sizes']) : array(),
             );
         }
-        
+
         $debug['ads'][] = array(
             'id' => $post_id,
             'title' => get_the_title(),
@@ -436,7 +454,7 @@ function chaovn_get_ads_debug_v2() {
         );
     }
     wp_reset_postdata();
-    
+
     return new WP_REST_Response(array(
         'success' => true,
         'debug' => $debug,
@@ -447,14 +465,14 @@ function chaovn_get_ads_debug_v2() {
 // ========================================
 // 관리자 컬럼 추가 (ACF 필드 기반 자동 생성)
 // ========================================
-add_filter('manage_' . CHAOVN_AD_CPT . '_posts_columns', function($columns) {
+add_filter('manage_' . CHAOVN_AD_CPT . '_posts_columns', function ($columns) {
     $new_columns = array();
     foreach ($columns as $key => $value) {
         $new_columns[$key] = $value;
         if ($key === 'title') {
             // ACF 필드 그룹에서 필드 정보 가져오기
             $field_groups = acf_get_field_groups(array('post_type' => CHAOVN_AD_CPT));
-            
+
             if ($field_groups) {
                 foreach ($field_groups as $field_group) {
                     $fields = acf_get_fields($field_group['key']);
@@ -469,7 +487,7 @@ add_filter('manage_' . CHAOVN_AD_CPT . '_posts_columns', function($columns) {
                     }
                 }
             }
-            
+
             // 기간과 상태는 커스텀 추가 (복합 필드)
             $new_columns['ad_period'] = '광고 기간';
             $new_columns['ad_status'] = '상태';
@@ -478,15 +496,15 @@ add_filter('manage_' . CHAOVN_AD_CPT . '_posts_columns', function($columns) {
     return $new_columns;
 });
 
-add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column, $post_id) {
+add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function ($column, $post_id) {
     $slots = chaovn_get_ad_slots();
     $screens = chaovn_get_ad_screens();
-    
+
     // ACF 필드 기반 컬럼
     if (strpos($column, 'acf_') === 0) {
         $field_name = str_replace('acf_', '', $column);
         $value = get_field($field_name, $post_id);
-        
+
         switch ($field_name) {
             case 'ad_image':
                 if ($value && isset($value['sizes']['thumbnail'])) {
@@ -495,7 +513,7 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
                     echo '-';
                 }
                 break;
-                
+
             case 'ad_video':
                 if ($value) {
                     echo '<a href="' . esc_url($value) . '" target="_blank">🎥 비디오</a>';
@@ -503,7 +521,7 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
                     echo '-';
                 }
                 break;
-                
+
             case 'ad_slot':
                 if (is_array($value)) {
                     $labels = array();
@@ -515,7 +533,7 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
                     echo isset($slots[$value]) ? esc_html($slots[$value]['label']) : ($value ?: '-');
                 }
                 break;
-                
+
             case 'ad_screen':
                 if (is_array($value)) {
                     $labels = array();
@@ -527,19 +545,19 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
                     echo isset($screens[$value]) ? esc_html($screens[$value]) : ($value ?: '-');
                 }
                 break;
-                
+
             case 'ad_priority':
                 echo intval($value) ?: 10;
                 break;
-                
+
             case 'ad_clicks_count':
                 echo number_format(intval($value) ?: 0);
                 break;
-                
+
             case 'ad_active':
                 echo $value ? '✅ 활성' : '⏸️ 비활성';
                 break;
-                
+
             default:
                 echo esc_html($value ?: '-');
                 break;
@@ -552,13 +570,12 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
         $start_text = $start ?: '-';
         $end_text = $end ?: '-';
         echo esc_html($start_text) . '<br>~<br>' . esc_html($end_text);
-    }
-    elseif ($column === 'ad_status') {
+    } elseif ($column === 'ad_status') {
         $active = get_field('ad_active', $post_id);
         $today = date('Y-m-d');
         $start = get_field('ad_start_date', $post_id);
         $end = get_field('ad_end_date', $post_id);
-        
+
         if (!$active) {
             echo '<span style="color:#999;">⏸️ 비활성</span>';
         } elseif ($start && $start > $today) {
@@ -572,7 +589,7 @@ add_action('manage_' . CHAOVN_AD_CPT . '_posts_custom_column', function($column,
 }, 10, 2);
 
 // 컬럼 정렬 가능하게 설정
-add_filter('manage_edit-' . CHAOVN_AD_CPT . '_sortable_columns', function($columns) {
+add_filter('manage_edit-' . CHAOVN_AD_CPT . '_sortable_columns', function ($columns) {
     $columns['ad_priority'] = 'ad_priority';
     $columns['ad_clicks'] = 'ad_clicks_count';
     return $columns;
@@ -581,10 +598,10 @@ add_filter('manage_edit-' . CHAOVN_AD_CPT . '_sortable_columns', function($colum
 // ========================================
 // 플러그인 활성화/비활성화
 // ========================================
-register_activation_hook(__FILE__, function() {
+register_activation_hook(__FILE__, function () {
     flush_rewrite_rules();
 });
 
-register_deactivation_hook(__FILE__, function() {
+register_deactivation_hook(__FILE__, function () {
     flush_rewrite_rules();
 });

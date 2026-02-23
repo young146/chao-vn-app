@@ -314,7 +314,7 @@ export default function JobsScreen({ navigation }) {
         ]
       );
     } else {
-      navigation.navigate("Jobs등록");
+      navigation.navigate("구인구직 등록");
     }
   }, [user, navigation, t]);
 
@@ -323,7 +323,7 @@ export default function JobsScreen({ navigation }) {
       ...job,
       createdAt: job.createdAt,
     };
-    navigation.navigate("Jobs상세", { job: serializableJob });
+    navigation.navigate("구인구직 상세", { job: serializableJob });
   }, [navigation]);
 
   const renderItem = useCallback(({ item, index }) => (

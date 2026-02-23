@@ -105,9 +105,9 @@ export default function NotificationsScreen({ navigation }) {
         );
       }
 
-      // 물품 상세 화면으로 이동
+      // 당근/나눔 상세 화면으로 이동
       if (notification.itemId) {
-        // 물품 정보 가져오기
+        // 당근/나눔 정보 가져오기
         const itemsRef = collection(db, "XinChaoDanggn");
         const q = query(itemsRef, where("__name__", "==", notification.itemId));
         const snapshot = await getDocs(q);
@@ -132,7 +132,7 @@ export default function NotificationsScreen({ navigation }) {
             createdAt: itemData.createdAt?.toDate?.()?.toISOString() || itemData.createdAt,
           };
 
-          navigation.navigate("물품 상세", { item });
+          navigation.navigate("당근/나눔 상세", { item });
         }
       }
     } catch (error) {

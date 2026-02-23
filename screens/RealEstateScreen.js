@@ -334,12 +334,12 @@ export default function RealEstateScreen({ navigation }) {
         ]
       );
     } else {
-      navigation.navigate("부동산등록");
+      navigation.navigate("부동산 등록");
     }
   }, [user, navigation, t]);
 
   const handleItemPress = useCallback((item) => {
-    navigation.navigate("부동산상세", { item });
+    navigation.navigate("부동산 상세", { item });
   }, [navigation]);
 
   const renderItem = useCallback(({ item, index }) => (

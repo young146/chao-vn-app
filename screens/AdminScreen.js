@@ -147,7 +147,7 @@ export default function AdminScreen({ navigation }) {
       ...item,
       createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
     };
-    navigation.navigate("물품 상세", { item: serializableItem });
+    navigation.navigate("당근/나눔 상세", { item: serializableItem });
   };
 
   const formatPrice = (price) => {

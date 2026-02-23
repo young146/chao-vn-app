@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,54 +12,24 @@ import {
   TextInput,
   Keyboard,
   Platform,
-} from "react-native";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
-import { useTranslation } from "react-i18next";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import {
-  wordpressApi,
-  MAGAZINE_BASE_URL,
-  BOARD_BASE_URL,
-  getHomeDataCached,
-  getNewsSectionsCached,
-  getSectionsList,
-  getSectionNews,
-} from "../services/wordpressApi";
-import AdBanner, {
-  InlineAdBanner,
-  HomeBanner,
-  HomeSectionAd,
-  PopupAd,
-} from "../components/AdBanner";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import TranslatedText from "../components/TranslatedText";
-import SectionNewsModal from "../components/SectionNewsModal";
+} from 'react-native';
+import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
+import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd } from '../components/AdBanner';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import TranslatedText from '../components/TranslatedText';
 
-const { width } = Dimensions.get("window");
+const { width } = Dimensions.get('window');
 
-const SEARCH_HISTORY_KEY = "search_history";
+const SEARCH_HISTORY_KEY = 'search_history';
 const MAX_HISTORY = 5;
 
-// 🏷️ 카테고리 상단 헤더 (더보기 화면용)
-const CategoryHeader = ({ title, onBack }) => {
-  return (
-    <View style={styles.categoryHeaderContainer}>
-      <TouchableOpacity
-        onPress={onBack}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="chevron-back" size={28} color="#FF6B35" />
-      </TouchableOpacity>
-      <Text style={styles.categoryHeaderTitle}>{title}</Text>
-      <View style={styles.categoryHeaderSpacer} />
-    </View>
-  );
-};
-
 const SearchHeader = ({ onSearch, onClear, isSearching }) => {
-  const { t } = useTranslation("menu");
-  const [text, setText] = useState("");
+  const { t } = useTranslation('menu');
+  const [text, setText] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -75,29 +45,23 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
         setSearchHistory(JSON.parse(history));
       }
     } catch (error) {
-      console.log("검색 히스토리 로드 실패:", error);
+      console.log('검색 히스토리 로드 실패:', error);
     }
   };
 
   const saveSearchHistory = async (newHistory) => {
     try {
-      await AsyncStorage.setItem(
-        SEARCH_HISTORY_KEY,
-        JSON.stringify(newHistory),
-      );
+      await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
       setSearchHistory(newHistory);
     } catch (error) {
-      console.log("검색 히스토리 저장 실패:", error);
+      console.log('검색 히스토리 저장 실패:', error);
     }
   };
 
   const handleSubmit = () => {
     if (text.trim()) {
       // 검색 히스토리에 추가 (중복 제거, 최대 5개)
-      const newHistory = [
-        text.trim(),
-        ...searchHistory.filter((h) => h !== text.trim()),
-      ].slice(0, MAX_HISTORY);
+      const newHistory = [text.trim(), ...searchHistory.filter(h => h !== text.trim())].slice(0, MAX_HISTORY);
       saveSearchHistory(newHistory);
       onSearch(text.trim());
       setShowHistory(false);
@@ -113,13 +77,13 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
   };
 
   const removeHistoryItem = async (query) => {
-    const newHistory = searchHistory.filter((h) => h !== query);
+    const newHistory = searchHistory.filter(h => h !== query);
     saveSearchHistory(newHistory);
   };
 
   // 검색 취소 및 홈으로 복귀
   const handleClear = () => {
-    setText("");
+    setText('');
     setShowHistory(false);
     if (onClear) {
       onClear();
@@ -129,15 +93,10 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
   return (
     <View style={styles.searchHeaderContainer}>
       <View style={styles.searchBarWrapper}>
-        <Ionicons
-          name="search-outline"
-          size={20}
-          color="#999"
-          style={styles.searchIcon}
-        />
+        <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           style={styles.searchTextInput}
-          placeholder={t("magazine.searchPlaceholder")}
+          placeholder={t('magazine.searchPlaceholder')}
           placeholderTextColor="#999"
           value={text}
           onChangeText={setText}
@@ -147,10 +106,7 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
         />
         {/* 검색어 입력 중이거나 검색 결과 표시 중일 때 X 버튼 표시 */}
         {(text.length > 0 || isSearching) && (
-          <TouchableOpacity
-            onPress={handleClear}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
+          <TouchableOpacity onPress={handleClear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="close-circle" size={22} color="#FF6B35" />
           </TouchableOpacity>
         )}
@@ -159,9 +115,7 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
       {/* 🔍 최근 검색어 */}
       {showHistory && searchHistory.length > 0 && !isSearching && (
         <View style={styles.historyContainer}>
-          <Text style={styles.historyTitle}>
-            {t("magazine.recentSearches")}
-          </Text>
+          <Text style={styles.historyTitle}>{t('magazine.recentSearches')}</Text>
           {searchHistory.map((query, index) => (
             <View key={index} style={styles.historyItem}>
               <TouchableOpacity
@@ -212,15 +166,12 @@ const HomeSlider = ({ posts, onPress }) => {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => {
-          const newIndex = Math.round(
-            e.nativeEvent.contentOffset.x / (width - 32),
-          );
+          const newIndex = Math.round(e.nativeEvent.contentOffset.x / (width - 32));
           setActiveIndex(newIndex);
         }}
         keyExtractor={(item) => `slide-${item.id}`}
         renderItem={({ item }) => {
-          const featuredImage =
-            item._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+          const featuredImage = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
           return (
             <TouchableOpacity
               activeOpacity={0.9}
@@ -234,9 +185,7 @@ const HomeSlider = ({ posts, onPress }) => {
               />
               <View style={styles.slideOverlay}>
                 <TranslatedText style={styles.slideTitle} numberOfLines={2}>
-                  {item.title.rendered.replace(/&#[0-9]+;/g, (match) =>
-                    String.fromCharCode(match.match(/[0-9]+/)),
-                  )}
+                  {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
                 </TranslatedText>
               </View>
             </TouchableOpacity>
@@ -247,10 +196,7 @@ const HomeSlider = ({ posts, onPress }) => {
         {posts.map((_, index) => (
           <View
             key={index}
-            style={[
-              styles.paginationDot,
-              activeIndex === index && styles.paginationDotActive,
-            ]}
+            style={[styles.paginationDot, activeIndex === index && styles.paginationDotActive]}
           />
         ))}
       </View>
@@ -259,12 +205,12 @@ const HomeSlider = ({ posts, onPress }) => {
 };
 
 const MagazineCard = ({ item, onPress, type }) => {
-  const { t } = useTranslation("home");
+  const { t } = useTranslation('home');
   // WordPress API에서 특성 이미지 가져오기 (_embed: 1 필요)
-  const featuredImage = item._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+  const featuredImage = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
 
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
-  let dateStr = t("noDateInfo");
+  let dateStr = t('noDateInfo');
   try {
     if (item.date) {
       const dateObj = new Date(item.date);
@@ -273,43 +219,43 @@ const MagazineCard = ({ item, onPress, type }) => {
       }
     }
   } catch (e) {
-    console.log("Date parse error:", e);
+    console.log('Date parse error:', e);
   }
 
   // 카테고리와 출처 추출 (WordPress meta 필드 사용)
   const getCategoryAndSource = () => {
     // 영어 카테고리 → 번역 키 매핑
     const categoryKeyMap = {
-      Society: "society",
-      Economy: "economy",
-      Culture: "culture",
-      Politics: "politics",
-      International: "international",
-      "Korea-Vietnam": "koreaVietnam",
-      Community: "community",
-      Travel: "travel",
-      Health: "health",
-      Food: "food",
-      Other: "other",
-      Sports: "sports",
-      Technology: "technology",
-      Education: "education",
-      Entertainment: "entertainment",
-      Business: "business",
-      World: "world",
-      Life: "life",
-      Pet: "pet",
-      Weather: "weather",
-      Opinion: "opinion",
-      "Real Estate": "realEstate",
-      Lifestyle: "lifestyle",
-      Wellness: "wellness",
-      Recipe: "recipe",
+      'Society': 'society',
+      'Economy': 'economy',
+      'Culture': 'culture',
+      'Politics': 'politics',
+      'International': 'international',
+      'Korea-Vietnam': 'koreaVietnam',
+      'Community': 'community',
+      'Travel': 'travel',
+      'Health': 'health',
+      'Food': 'food',
+      'Other': 'other',
+      'Sports': 'sports',
+      'Technology': 'technology',
+      'Education': 'education',
+      'Entertainment': 'entertainment',
+      'Business': 'business',
+      'World': 'world',
+      'Life': 'life',
+      'Pet': 'pet',
+      'Weather': 'weather',
+      'Opinion': 'opinion',
+      'Real Estate': 'realEstate',
+      'Lifestyle': 'lifestyle',
+      'Wellness': 'wellness',
+      'Recipe': 'recipe',
     };
 
     // 1. meta 필드에서 카테고리와 출처 가져오기
-    const newsCategory = item.meta?.news_category || "";
-    const newsSource = item.meta?.news_source || "";
+    const newsCategory = item.meta?.news_category || '';
+    const newsSource = item.meta?.news_source || '';
 
     // 카테고리 번역
     const categoryKey = categoryKeyMap[newsCategory];
@@ -331,12 +277,9 @@ const MagazineCard = ({ item, onPress, type }) => {
 
     // 기본값
     switch (type) {
-      case "news":
-        return t("types.news");
-      case "board":
-        return t("types.board");
-      default:
-        return t("types.magazine");
+      case 'news': return t('types.news');
+      case 'board': return t('types.board');
+      default: return t('types.magazine');
     }
   };
 
@@ -354,7 +297,7 @@ const MagazineCard = ({ item, onPress, type }) => {
         ) : (
           <View style={styles.imagePlaceholder}>
             <Image
-              source={require("../assets/icon.png")}
+              source={require('../assets/icon.png')}
               style={styles.placeholderLogo}
               contentFit="contain"
             />
@@ -363,9 +306,7 @@ const MagazineCard = ({ item, onPress, type }) => {
       </View>
       <View style={styles.contentContainer}>
         <TranslatedText style={styles.title} numberOfLines={2}>
-          {item.title.rendered.replace(/&#[0-9]+;/g, (match) =>
-            String.fromCharCode(match.match(/[0-9]+/)),
-          )}
+          {item.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
         </TranslatedText>
         <View style={styles.footer}>
           <Text style={styles.date}>{dateStr}</Text>
@@ -379,13 +320,8 @@ const MagazineCard = ({ item, onPress, type }) => {
 };
 
 export default function MagazineScreen({ navigation, route }) {
-  const { t } = useTranslation("home");
-  const {
-    type = "magazine",
-    categoryId,
-    categoryName,
-    resetSearch,
-  } = route.params || {};
+  const { t } = useTranslation('home');
+  const { type = 'magazine', categoryId, resetSearch } = route.params || {};
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
@@ -395,7 +331,7 @@ export default function MagazineScreen({ navigation, route }) {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [showPopup, setShowPopup] = useState(false); // 🎯 팝업 상태
   const popupShownRef = useRef(false); // 세션 중 한 번만 표시
 
@@ -405,22 +341,12 @@ export default function MagazineScreen({ navigation, route }) {
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
   const [showingYesterdayNews, setShowingYesterdayNews] = useState(false);
 
-  // 섹션 모달 관련 state
-  const [showSectionModal, setShowSectionModal] = useState(false);
-  const [selectedSection, setSelectedSection] = useState(null);
-  const [dynamicSections, setDynamicSections] = useState([]);
-
-  const fetchPosts = async (
-    pageNum = 1,
-    isRefresh = false,
-    query = searchQuery,
-    date = null,
-  ) => {
+  const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
     try {
       if (pageNum === 1) {
         if (!isRefresh) setLoading(true);
         // 홈 화면이고 검색어가 없을 때만 슬라이더 및 섹션 데이터 가져옴
-        if (type === "home" && !query) {
+        if (type === 'home' && !query) {
           const homeData = await getHomeDataCached(isRefresh);
           setSlides(homeData.slideshowPosts || []);
           setHomeSections(homeData.homeSections || []);
@@ -429,7 +355,7 @@ export default function MagazineScreen({ navigation, route }) {
         }
 
         // 🗞️ 뉴스 탭: 카테고리별 섹션으로 표시 (WordPress 사이트와 동일)
-        if (type === "news" && !query) {
+        if (type === 'news' && !query) {
           let targetDate = date || selectedDate;
           if (!isFilteredByDate) {
             targetDate = new Date(); // 오늘 날짜
@@ -454,25 +380,20 @@ export default function MagazineScreen({ navigation, route }) {
           return;
         }
       } else {
-        if (type === "home" && !query) return;
-        if (type === "news" && !query) return; // 뉴스 섹션 뷰에서는 추가 로딩 없음
+        if (type === 'home' && !query) return;
+        if (type === 'news' && !query) return; // 뉴스 섹션 뷰에서는 추가 로딩 없음
         setLoadingMore(true);
       }
 
       let newPosts = [];
       if (query) {
         newPosts = await wordpressApi.searchPosts(query, pageNum);
-      } else if (type === "board") {
+      } else if (type === 'board') {
         newPosts = await wordpressApi.getBoardPosts(pageNum);
       } else if (categoryId) {
         // 카테고리별 포스트 (뉴스 외)
-        const dateStr = date ? date.toISOString().split("T")[0] : null;
-        newPosts = await wordpressApi.getPostsByCategory(
-          categoryId,
-          pageNum,
-          10,
-          dateStr,
-        );
+        const dateStr = date ? date.toISOString().split('T')[0] : null;
+        newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, dateStr);
       } else {
         newPosts = await wordpressApi.getMagazinePosts(pageNum);
       }
@@ -482,7 +403,7 @@ export default function MagazineScreen({ navigation, route }) {
       }
 
       // 뉴스 탭: 뉴스가 더 이상 없으면 종료
-      if (type === "news" && newPosts.length === 0 && pageNum === 1) {
+      if (type === 'news' && newPosts.length === 0 && pageNum === 1) {
         setHasMore(false);
       }
 
@@ -490,14 +411,14 @@ export default function MagazineScreen({ navigation, route }) {
         setPosts(newPosts);
       } else {
         // 중복 제거: 기존 posts에 없는 항목만 추가
-        setPosts((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id));
-          const uniqueNewPosts = newPosts.filter((p) => !existingIds.has(p.id));
+        setPosts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
           return [...prev, ...uniqueNewPosts];
         });
       }
     } catch (error) {
-      console.error("Fetch posts error:", error);
+      console.error('Fetch posts error:', error);
       // 🔧 에러 시 무한 루프 방지
       setHasMore(false);
     } finally {
@@ -514,43 +435,25 @@ export default function MagazineScreen({ navigation, route }) {
   // 🔙 탭을 누르면 검색 초기화 및 데이터 새로고침
   useEffect(() => {
     if (resetSearch) {
-      setSearchQuery("");
+      setSearchQuery('');
       setIsFilteredByDate(false);
       setShowingYesterdayNews(false);
       setSelectedDate(new Date());
       setPage(1);
       setHasMore(true);
-      fetchPosts(1, false, "", null);
+      fetchPosts(1, false, '', null);
     }
   }, [resetSearch]);
 
   // 🎯 홈 화면 진입 시 팝업 광고 표시 (세션 중 한 번만)
   useEffect(() => {
-    if (type === "home" && !popupShownRef.current && !loading) {
+    if (type === 'home' && !popupShownRef.current && !loading) {
       popupShownRef.current = true;
       // 약간의 딜레이 후 팝업 표시 (화면 로드 후)
       const timer = setTimeout(() => setShowPopup(true), 500);
       return () => clearTimeout(timer);
     }
   }, [type, loading]);
-
-  // 🗞️ 뉴스 섹션 목록 로드 (WordPress에서 동적으로 가져오기)
-  useEffect(() => {
-    if (type === "news") {
-      loadDynamicSections();
-    }
-  }, [type]);
-
-  const loadDynamicSections = async () => {
-    try {
-      const sections = await getSectionsList();
-      if (sections && sections.length > 0) {
-        setDynamicSections(sections);
-      }
-    } catch (error) {
-      console.error("섹션 목록 로드 실패:", error);
-    }
-  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -569,10 +472,10 @@ export default function MagazineScreen({ navigation, route }) {
 
   // 🔙 검색 취소 및 홈으로 복귀
   const handleClearSearch = () => {
-    setSearchQuery("");
+    setSearchQuery('');
     setPage(1);
     setHasMore(true);
-    fetchPosts(1, false, ""); // 홈 화면 데이터 다시 로드
+    fetchPosts(1, false, ''); // 홈 화면 데이터 다시 로드
   };
 
   const onDateChange = (event, date) => {
@@ -580,10 +483,10 @@ export default function MagazineScreen({ navigation, route }) {
     if (date) {
       setSelectedDate(date);
       setIsFilteredByDate(true);
-      setSearchQuery(""); // 날짜 선택 시 검색어 해제
+      setSearchQuery(''); // 날짜 선택 시 검색어 해제
       setPage(1);
       setHasMore(true);
-      fetchPosts(1, false, "", date);
+      fetchPosts(1, false, '', date);
     }
   };
 
@@ -599,19 +502,14 @@ export default function MagazineScreen({ navigation, route }) {
     if (!loadingMore && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchPosts(
-        nextPage,
-        false,
-        searchQuery,
-        isFilteredByDate ? selectedDate : null,
-      );
+      fetchPosts(nextPage, false, searchQuery, isFilteredByDate ? selectedDate : null);
     }
   };
 
   const handlePostPress = (post) => {
-    navigation.navigate("PostDetail", {
+    navigation.navigate('PostDetail', {
       post,
-      baseUrl: type === "board" ? BOARD_BASE_URL : MAGAZINE_BASE_URL,
+      baseUrl: type === 'board' ? BOARD_BASE_URL : MAGAZINE_BASE_URL
     });
   };
 
@@ -625,83 +523,52 @@ export default function MagazineScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {categoryId && type === "category" ? (
-        // 🏷️ 카테고리 페이지: 뒤로 가기 + 제목
-        <CategoryHeader
-          title={categoryName || "더보기"}
-          onBack={() => navigation.goBack()}
-        />
-      ) : (
-        // 🏠 홈/뉴스/게시판: 검색 헤더
-        <SearchHeader
-          onSearch={handleSearch}
-          onClear={handleClearSearch}
-          isSearching={searchQuery.length > 0}
-        />
-      )}
+      {/* 🔥 홈 배너: FlatList 밖에 위치 → 스크롤해도 항상 상단 고정 */}
+      {type === 'home' && <HomeBanner style={{ marginBottom: 4 }} />}
+
+      <SearchHeader
+        onSearch={handleSearch}
+        onClear={handleClearSearch}
+        isSearching={searchQuery.length > 0}
+      />
 
       <FlatList
-        data={type === "home" && !searchQuery ? [] : posts}
+        data={type === 'home' && !searchQuery ? [] : posts}
         renderItem={({ item, index }) => (
           <View>
             <MagazineCard item={item} onPress={handlePostPress} type={type} />
             {/* 뉴스/게시판: 3개 기사마다 광고 삽입 */}
-            {(type === "news" || type === "board") && (index + 1) % 3 === 0 && (
+            {(type === 'news' || type === 'board') && (index + 1) % 3 === 0 && (
               <InlineAdBanner screen="news" />
             )}
           </View>
         )}
         keyExtractor={(item, index) => {
-          // 고유 키 생성: id가 있으면 사용, 없으면 index와 link 조합
-          if (item.id) {
-            return item.id.toString();
-          }
-          // link가 있으면 link + index 조합 사용
-          if (item.link) {
-            return `item-${item.link}-${index}`;
-          }
+          if (item.id) return item.id.toString();
+          if (item.link) return `item-${item.link}-${index}`;
           return `item-${index}`;
         }}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            {/* 🔥 메인 헤더 광고 */}
-            {type === "home" ? (
-              <HomeBanner style={{ marginBottom: 8 }} />
-            ) : (
+            {/* 🔥 메인 헤더 광고: 뉴스/기타 탭에서만 표시 (홈은 위에서 처리) */}
+            {type !== 'home' && (
               <AdBanner screen="news" style={{ marginBottom: 8 }} />
             )}
 
-            {type === "news" && (
+            {type === 'news' && (
               <View style={styles.dateFilterContainer}>
                 <TouchableOpacity
-                  style={[
-                    styles.dateButton,
-                    isFilteredByDate && styles.dateButtonActive,
-                  ]}
+                  style={[styles.dateButton, isFilteredByDate && styles.dateButtonActive]}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Ionicons
-                    name="calendar-outline"
-                    size={20}
-                    color={isFilteredByDate ? "#fff" : "#FF6B35"}
-                  />
-                  <Text
-                    style={[
-                      styles.dateButtonText,
-                      isFilteredByDate && styles.dateButtonTextActive,
-                    ]}
-                  >
-                    {isFilteredByDate
-                      ? selectedDate.toLocaleDateString()
-                      : t("viewByDate")}
+                  <Ionicons name="calendar-outline" size={20} color={isFilteredByDate ? "#fff" : "#FF6B35"} />
+                  <Text style={[styles.dateButtonText, isFilteredByDate && styles.dateButtonTextActive]}>
+                    {isFilteredByDate ? selectedDate.toLocaleDateString() : t('viewByDate')}
                   </Text>
                 </TouchableOpacity>
                 {isFilteredByDate && (
-                  <TouchableOpacity
-                    style={styles.resetButton}
-                    onPress={resetDateFilter}
-                  >
+                  <TouchableOpacity style={styles.resetButton} onPress={resetDateFilter}>
                     <Ionicons name="refresh-circle" size={24} color="#999" />
                   </TouchableOpacity>
                 )}
@@ -717,7 +584,7 @@ export default function MagazineScreen({ navigation, route }) {
               </View>
             )}
 
-            {type === "home" && !searchQuery && (
+            {type === 'home' && !searchQuery && (
               <View>
                 {slides.length > 0 && (
                   <HomeSlider posts={slides} onPress={handlePostPress} />
@@ -729,18 +596,8 @@ export default function MagazineScreen({ navigation, route }) {
                     <View style={styles.homeSection}>
                       <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>{section.name}</Text>
-                        <TouchableOpacity
-                          onPress={() =>
-                            navigation.push("홈메인", {
-                              categoryId: section.id,
-                              categoryName: section.name,
-                              type: "category",
-                            })
-                          }
-                        >
-                          <Text style={styles.seeMore}>
-                            {t("seeMore")} {">"}
-                          </Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
+                          <Text style={styles.seeMore}>{t('seeMore')} {'>'}</Text>
                         </TouchableOpacity>
                       </View>
                       <View style={styles.gridContainer}>
@@ -756,25 +613,12 @@ export default function MagazineScreen({ navigation, route }) {
                               {post ? (
                                 <>
                                   <Image
-                                    source={{
-                                      uri: post._embedded?.[
-                                        "wp:featuredmedia"
-                                      ]?.[0]?.source_url,
-                                    }}
+                                    source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url }}
                                     style={styles.gridCardImage}
                                     contentFit="cover"
                                   />
-                                  <TranslatedText
-                                    style={styles.gridCardTitle}
-                                    numberOfLines={2}
-                                  >
-                                    {post.title.rendered.replace(
-                                      /&#[0-9]+;/g,
-                                      (match) =>
-                                        String.fromCharCode(
-                                          match.match(/[0-9]+/),
-                                        ),
-                                    )}
+                                  <TranslatedText style={styles.gridCardTitle} numberOfLines={2}>
+                                    {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
                                   </TranslatedText>
                                 </>
                               ) : (
@@ -793,43 +637,8 @@ export default function MagazineScreen({ navigation, route }) {
             )}
 
             {/* 🗞️ 뉴스 탭: 카테고리별 섹션 (WordPress 사이트와 동일) */}
-            {type === "news" && !searchQuery && newsSections.length > 0 && (
+            {type === 'news' && !searchQuery && newsSections.length > 0 && (
               <View>
-                {/* 📍 섹션 네비게이션 (항목별 뉴스 보기) */}
-                {dynamicSections.length > 0 && (
-                  <View style={styles.sectionNavContainer}>
-                    <View style={styles.sectionNavHeader}>
-                      <Ionicons
-                        name="location-outline"
-                        size={18}
-                        color="#92400e"
-                      />
-                      <Text style={styles.sectionNavTitle}>
-                        {t("sectionNavTitle") || "뉴스 항목별 기사 보기"}
-                      </Text>
-                    </View>
-                    <View style={styles.sectionNavList}>
-                      {dynamicSections.map((section) => (
-                        <TouchableOpacity
-                          key={`nav-${section.key}`}
-                          style={styles.sectionNavItem}
-                          onPress={() => {
-                            setSelectedSection({
-                              key: section.key,
-                              title: section.label,
-                            });
-                            setShowSectionModal(true);
-                          }}
-                        >
-                          <Text style={styles.sectionNavItemText}>
-                            {section.icon} {section.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
                 {newsSections.map((section, sectionIndex) => {
                   return (
                     <View key={`news-section-${section.categoryKey}`}>
@@ -837,15 +646,11 @@ export default function MagazineScreen({ navigation, route }) {
                       {sectionIndex > 0 && <HomeSectionAd />}
                       <View style={styles.homeSection}>
                         <View style={styles.sectionHeader}>
-                          <Text style={styles.sectionTitle}>
-                            {section.name} ({section.posts.length})
-                          </Text>
+                          <Text style={styles.sectionTitle}>{section.name} ({section.posts.length})</Text>
                         </View>
                         {/* 모든 뉴스 표시 (제한 없음) */}
                         {section.posts.map((post, index) => (
-                          <React.Fragment
-                            key={`news-${section.categoryKey}-${post.id}-${index}`}
-                          >
+                          <React.Fragment key={`news-${section.categoryKey}-${post.id}-${index}`}>
                             <MagazineCard
                               item={post}
                               onPress={handlePostPress}
@@ -860,10 +665,7 @@ export default function MagazineScreen({ navigation, route }) {
                       </View>
                       {/* 첫 번째 섹션(주요뉴스) 끝나고 인라인 광고 (경제 섹션 전) */}
                       {sectionIndex === 0 && newsSections.length > 1 && (
-                        <InlineAdBanner
-                          screen="news"
-                          style={{ marginTop: 16, marginBottom: 8 }}
-                        />
+                        <InlineAdBanner screen="news" style={{ marginTop: 16, marginBottom: 8 }} />
                       )}
                     </View>
                   );
@@ -872,13 +674,14 @@ export default function MagazineScreen({ navigation, route }) {
                 {/* 마지막 멘트 */}
                 <View style={styles.endMessageContainer}>
                   <Text style={styles.endMessageText}>
-                    {isFilteredByDate || showingYesterdayNews
-                      ? `✨ ${t("dateNewsEnd", { year: selectedDate.getFullYear(), month: selectedDate.getMonth() + 1, day: selectedDate.getDate() })} ✨`
-                      : `✨ ${t("todayNewsEnd")} ✨`}
+                    {(isFilteredByDate || showingYesterdayNews)
+                      ? `✨ ${t('dateNewsEnd', { year: selectedDate.getFullYear(), month: selectedDate.getMonth() + 1, day: selectedDate.getDate() })} ✨`
+                      : `✨ ${t('todayNewsEnd')} ✨`
+                    }
                   </Text>
                   {!isFilteredByDate && !showingYesterdayNews && (
                     <Text style={styles.endMessageSubText}>
-                      {t("pastNewsHint")}
+                      {t('pastNewsHint')}
                     </Text>
                   )}
                 </View>
@@ -886,42 +689,28 @@ export default function MagazineScreen({ navigation, route }) {
             )}
             {searchQuery.length > 0 && (
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  '{searchQuery}' {t("searchResult")}
-                </Text>
+                <Text style={styles.sectionTitle}>'{searchQuery}' {t('searchResult')}</Text>
               </View>
             )}
           </View>
         }
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#FF6B35"]}
-            tintColor="#FF6B35"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} tintColor="#FF6B35" />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => {
           if (loadingMore) {
-            return (
-              <ActivityIndicator
-                style={{ marginVertical: 20 }}
-                color="#FF6B35"
-              />
-            );
+            return <ActivityIndicator style={{ marginVertical: 20 }} color="#FF6B35" />;
           }
           // 뉴스 탭에서 더 이상 뉴스가 없을 때 마지막 멘트 표시
-          if (type === "news" && !hasMore && posts.length > 0) {
+          if (type === 'news' && !hasMore && posts.length > 0) {
             // 오늘 날짜인지 확인 (어제 뉴스 자동 표시 중이면 오늘이 아님)
             const today = new Date();
-            const isToday =
-              !showingYesterdayNews &&
-              !isFilteredByDate &&
-              selectedDate.getFullYear() === today.getFullYear() &&
-              selectedDate.getMonth() === today.getMonth() &&
-              selectedDate.getDate() === today.getDate();
+            const isToday = !showingYesterdayNews && !isFilteredByDate &&
+              (selectedDate.getFullYear() === today.getFullYear() &&
+                selectedDate.getMonth() === today.getMonth() &&
+                selectedDate.getDate() === today.getDate());
 
             // 날짜 포맷 함수
             const formatDate = (date) => {
@@ -932,8 +721,9 @@ export default function MagazineScreen({ navigation, route }) {
               <View style={styles.endMessageContainer}>
                 <Text style={styles.endMessageText}>
                   {isToday
-                    ? "✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨"
-                    : `✨ 이상, ${formatDate(selectedDate)} 베트남 뉴스입니다 ✨`}
+                    ? '✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨'
+                    : `✨ 이상, ${formatDate(selectedDate)} 베트남 뉴스입니다 ✨`
+                  }
                 </Text>
                 {isToday && (
                   <Text style={styles.endMessageSubText}>
@@ -949,14 +739,9 @@ export default function MagazineScreen({ navigation, route }) {
           !loading && searchQuery.length > 0 ? (
             <View style={styles.centerContainer}>
               <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
-              <Text style={styles.emptySubtext}>
-                다른 키워드로 검색해보세요
-              </Text>
+              <Text style={styles.emptySubtext}>다른 키워드로 검색해보세요</Text>
             </View>
-          ) : !loading &&
-            type !== "home" &&
-            type !== "news" &&
-            posts.length === 0 ? (
+          ) : !loading && type !== 'home' && type !== 'news' && posts.length === 0 ? (
             <View style={styles.centerContainer}>
               <Text style={styles.emptyText}>콘텐츠를 준비 중입니다</Text>
             </View>
@@ -965,7 +750,7 @@ export default function MagazineScreen({ navigation, route }) {
       />
 
       {/* 🎯 홈 화면 팝업 광고 (10초 후 자동 닫힘) */}
-      {type === "home" && (
+      {type === 'home' && (
         <PopupAd
           visible={showPopup}
           onClose={() => setShowPopup(false)}
@@ -973,24 +758,15 @@ export default function MagazineScreen({ navigation, route }) {
           autoCloseSeconds={10}
         />
       )}
-
-      {/* 📍 섹션별 뉴스 모달 */}
-      <SectionNewsModal
-        isVisible={showSectionModal}
-        onClose={() => setShowSectionModal(false)}
-        sectionKey={selectedSection?.key}
-        sectionTitle={selectedSection?.title}
-        categoryId={categoryId}
-        navigation={navigation}
-      />
     </SafeAreaView>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: '#f8f9fa',
   },
   listContent: {
     padding: 16,
@@ -999,23 +775,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: '#f8f9fa',
     zIndex: 10,
   },
   searchBarWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     borderRadius: 25,
     paddingHorizontal: 15,
     height: 50,
     elevation: 4,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: '#eee',
   },
   searchIcon: {
     marginRight: 10,
@@ -1023,36 +799,15 @@ const styles = StyleSheet.create({
   searchTextInput: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
-  },
-  // 🏷️ 카테고리 헤더 스타일
-  categoryHeaderContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  categoryHeaderTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
-    flex: 1,
-    marginLeft: 12,
-  },
-  categoryHeaderSpacer: {
-    width: 28, // 뒤로 가기 버튼 너비와 동일 (정렬 맞춤)
+    color: '#333',
   },
   // 🔍 검색 히스토리 스타일
   historyContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 8,
     marginTop: 8,
     padding: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1060,60 +815,60 @@ const styles = StyleSheet.create({
   },
   historyTitle: {
     fontSize: 12,
-    color: "#999",
+    color: '#999',
     marginBottom: 8,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   historyItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
+    borderBottomColor: '#f5f5f5',
   },
   historyTextWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
   historyText: {
     fontSize: 15,
-    color: "#333",
+    color: '#333',
     marginLeft: 8,
   },
   dateFilterContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
     paddingHorizontal: 4,
   },
   dateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#FF6B35",
+    borderColor: '#FF6B35',
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
   dateButtonActive: {
-    backgroundColor: "#FF6B35",
+    backgroundColor: '#FF6B35',
   },
   dateButtonText: {
     marginLeft: 8,
     fontSize: 14,
-    color: "#FF6B35",
-    fontWeight: "600",
+    color: '#FF6B35',
+    fontWeight: '600',
   },
   dateButtonTextActive: {
-    color: "#fff",
+    color: '#fff',
   },
   resetButton: {
     marginLeft: 10,
@@ -1122,103 +877,103 @@ const styles = StyleSheet.create({
     width: width - 32,
     height: 220,
     borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "#eee",
-    position: "relative",
+    overflow: 'hidden',
+    backgroundColor: '#eee',
+    position: 'relative',
   },
   slide: {
     width: width - 32,
     height: 220,
   },
   slideImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   slideOverlay: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: 'rgba(0,0,0,0.4)',
     padding: 15,
   },
   slideTitle: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   pagination: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 10,
-    flexDirection: "row",
-    alignSelf: "center",
+    flexDirection: 'row',
+    alignSelf: 'center',
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: 'rgba(255,255,255,0.5)',
     marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     width: 20,
   },
   sectionHeader: {
     marginTop: 24,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#FF6B35",
+    borderLeftColor: '#FF6B35',
     paddingLeft: 10,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: 'bold',
+    color: '#333',
   },
   seeMore: {
     fontSize: 14,
-    color: "#999",
+    color: '#999',
   },
   homeSection: {
     marginBottom: 30,
   },
   gridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginTop: 12,
   },
   gridCard: {
-    width: "48%",
+    width: '48%',
     marginBottom: 16,
   },
   gridCardImage: {
-    width: "100%",
+    width: '100%',
     height: 120,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: "#eee",
+    backgroundColor: '#eee',
   },
   gridCardTitle: {
     fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: '600',
+    color: '#333',
     lineHeight: 18,
     minHeight: 36,
   },
   emptyCard: {
-    width: "100%",
+    width: '100%',
     height: 120,
     borderRadius: 8,
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyCardPlaceholder: {
-    width: "80%",
-    height: "60%",
-    backgroundColor: "#e0e0e0",
+    width: '80%',
+    height: '60%',
+    backgroundColor: '#e0e0e0',
     borderRadius: 4,
     opacity: 0.5,
   },
@@ -1232,39 +987,39 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: "#eee",
+    backgroundColor: '#eee',
   },
   sectionCardTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: '600',
+    color: '#333',
     lineHeight: 20,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 16,
-    overflow: "hidden",
+    overflow: 'hidden',
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   imageContainer: {
-    width: "100%",
+    width: '100%',
     height: 180,
-    backgroundColor: "#eee",
+    backgroundColor: '#eee',
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   imagePlaceholder: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff", // 기본 로고가 잘 보이도록 흰색 배경
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff', // 기본 로고가 잘 보이도록 흰색 배경
   },
   placeholderLogo: {
     width: 100,
@@ -1276,106 +1031,69 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
+    fontWeight: '700',
+    color: '#333',
     lineHeight: 24,
     marginBottom: 12,
   },
   footer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   date: {
     fontSize: 13,
-    color: "#999",
+    color: '#999',
   },
   categoryBadge: {
-    backgroundColor: "#FFF0E6",
+    backgroundColor: '#FFF0E6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   categoryText: {
     fontSize: 11,
-    color: "#FF6B35",
-    fontWeight: "600",
+    color: '#FF6B35',
+    fontWeight: '600',
   },
   endMessageContainer: {
     padding: 24,
-    alignItems: "center",
-    backgroundColor: "#FFF8F5",
+    alignItems: 'center',
+    backgroundColor: '#FFF8F5',
     marginHorizontal: 16,
     marginVertical: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FFE0D0",
+    borderColor: '#FFE0D0',
   },
   endMessageText: {
     fontSize: 15,
-    color: "#FF6B35",
-    fontWeight: "700",
-    textAlign: "center",
+    color: '#FF6B35',
+    fontWeight: '700',
+    textAlign: 'center',
     marginBottom: 8,
   },
   endMessageSubText: {
     fontSize: 12,
-    color: "#999",
-    textAlign: "center",
+    color: '#999',
+    textAlign: 'center',
   },
   centerContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   emptyText: {
-    color: "#999",
+    color: '#999',
     fontSize: 16,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
-    color: "#ccc",
+    color: '#ccc',
     fontSize: 14,
-    textAlign: "center",
-  },
-  // 섹션 네비게이션 스타일
-  sectionNavContainer: {
-    backgroundColor: "#fef3c7",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#fde68a",
-  },
-  sectionNavHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    gap: 6,
-  },
-  sectionNavTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#92400e",
-  },
-  sectionNavList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  sectionNavItem: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#fbbf24",
-  },
-  sectionNavItemText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#d97706",
+    textAlign: 'center',
   },
 });
+

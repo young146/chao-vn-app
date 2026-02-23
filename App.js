@@ -206,7 +206,7 @@ const setupNotificationChannels = async () => {
 setupNotificationChannels();
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { PopupAd } from "./components/AdBanner";
+import { PopupAd, FixedBottomBanner } from "./components/AdBanner";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import FindIdScreen from "./screens/FindIdScreen";
@@ -284,14 +284,12 @@ export default function App() {
     const handleDeepLink = (event) => {
       const url = event.url;
       console.log('🔗 딥링크 수신:', url);
-      Alert.alert('딥링크 수신', url);
     };
 
     // 초기 URL 확인 (앱이 닫혀있다가 딥링크로 열린 경우)
     Linking.getInitialURL().then((url) => {
       if (url) {
         console.log('🔗 초기 딥링크:', url);
-        Alert.alert('초기 딥링크', url);
       }
     });
 
@@ -583,10 +581,10 @@ export default function App() {
                         },
                       },
                     },
-                    씬짜오나눔: {
+                    "당근/나눠": {
                       screens: {
-                        씬짜오나눔메인: "danggn",
-                        물품상세: {
+                        "당근/나눠 메인": "danggn",
+                        "당근/나눠 상세": {
                           path: "danggn/:id",
                           parse: {
                             id: (id) => `${id}`,
@@ -594,10 +592,10 @@ export default function App() {
                         },
                       },
                     },
-                    구인구직: {
+                    "구인구직": {
                       screens: {
-                        Jobs메인: "job",
-                        Jobs상세: {
+                        "구인구직 메인": "job",
+                        "구인구직 상세": {
                           path: "job/:id",
                           parse: {
                             id: (id) => `${id}`,
@@ -605,10 +603,10 @@ export default function App() {
                         },
                       },
                     },
-                    부동산: {
+                    "부동산": {
                       screens: {
-                        부동산메인: "realestate",
-                        부동산상세: {
+                        "부동산 메인": "realestate",
+                        "부동산 상세": {
                           path: "realestate/:id",
                           parse: {
                             id: (id) => `${id}`,
@@ -629,6 +627,10 @@ export default function App() {
           <ProfileCompletionPrompt />
           <RootNavigator />
         </NavigationContainer>
+
+        {/* 🎥 고정 하단 배너 - 위치 고정, 모든 화면에서 항상 표시 */}
+        {/* WordPress fixed_bottom 슬롯에 광고 없으면 자동으로 표시 안 됨 */}
+        <FixedBottomBanner screen="all" />
 
         {/* 🎯 앱 시작 5초 후 전면 팝업 광고 (10초 후 자동 닫힘) */}
         <PopupAd
@@ -770,12 +772,12 @@ function JobsStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Jobs메인"
+        name="구인구직 메인"
         component={JobsScreen}
         options={({ navigation }) => ({
           headerTitle: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate("Jobs메인")}
+              onPress={() => navigation.navigate("구인구직 메인")}
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
@@ -804,7 +806,7 @@ function JobsStack() {
         })}
       />
       <Stack.Screen
-        name="Jobs상세"
+        name="구인구직 상세"
         component={JobDetailScreen}
         options={{
           title: t('jobs:jobDetail'),
@@ -813,7 +815,7 @@ function JobsStack() {
         }}
       />
       <Stack.Screen
-        name="Jobs등록"
+        name="구인구직 등록"
         component={AddJobScreen}
         options={{
           title: t('jobs:addJob'),
@@ -839,12 +841,12 @@ function RealEstateStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="부동산메인"
+        name="부동산 메인"
         component={RealEstateScreen}
         options={({ navigation }) => ({
           headerTitle: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate("부동산메인")}
+              onPress={() => navigation.navigate("부동산 메인")}
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
@@ -873,7 +875,7 @@ function RealEstateStack() {
         })}
       />
       <Stack.Screen
-        name="부동산상세"
+        name="부동산 상세"
         component={RealEstateDetailScreen}
         options={{
           title: t('realEstate:propertyDetail'),
@@ -882,7 +884,7 @@ function RealEstateStack() {
         }}
       />
       <Stack.Screen
-        name="부동산등록"
+        name="부동산 등록"
         component={AddRealEstateScreen}
         options={{
           title: t('realEstate:addProperty'),
@@ -908,12 +910,12 @@ function DanggnStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="씬짜오나눔메인"
+        name="당근/나눔 메인"
         component={XinChaoDanggnScreen}
         options={({ navigation }) => ({
           headerTitle: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate("씬짜오나눔메인")}
+              onPress={() => navigation.navigate("당근/나눔 메인")}
               activeOpacity={0.7}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
@@ -942,7 +944,7 @@ function DanggnStack() {
         })}
       />
       <Stack.Screen
-        name="물품 등록"
+        name="당근/나눔 등록"
         component={AddItemScreen}
         options={{
           title: t('danggn:addItem'),
@@ -951,7 +953,7 @@ function DanggnStack() {
         }}
       />
       <Stack.Screen
-        name="물품 상세"
+        name="당근/나눔 상세"
         component={ItemDetailScreen}
         options={{
           title: t('danggn:itemDetail'),
@@ -960,7 +962,7 @@ function DanggnStack() {
         }}
       />
       <Stack.Screen
-        name="물품 수정"
+        name="당근/나눔 수정"
         component={AddItemScreen}
         options={{
           title: t('danggn:editItem'),
@@ -1077,7 +1079,7 @@ function MenuStack() {
         }}
       />
       <Stack.Screen
-        name="물품 상세"
+        name="당근/나눔 상세"
         component={ItemDetailScreen}
         options={{
           title: t('navigation:headers.itemDetail'),
@@ -1160,7 +1162,7 @@ function BottomTabNavigator() {
     "홈": t('tabs.home'),
     "뉴스": t('tabs.news'),
     "당근/나눔": t('tabs.danggn'),
-    "Jobs": t('tabs.jobs'),
+    "구인구직": t('tabs.jobs'),
     "부동산": t('tabs.realEstate'),
   };
 
@@ -1176,7 +1178,7 @@ function BottomTabNavigator() {
           if (route.name === "홈") iconName = focused ? "home" : "home-outline";
           else if (route.name === "뉴스")
             iconName = focused ? "newspaper" : "newspaper-outline";
-          else if (route.name === "Jobs")
+          else if (route.name === "구인구직")
             iconName = focused ? "briefcase" : "briefcase-outline";
           else if (route.name === "부동산")
             iconName = focused ? "business" : "business-outline";
@@ -1232,18 +1234,18 @@ function BottomTabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             navigation.navigate("당근/나눔", {
-              screen: "씬짜오나눔메인",
+              screen: "당근/나눔 메인",
             });
           },
         })}
       />
       <Tab.Screen
-        name="Jobs"
+        name="구인구직"
         component={JobsStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            navigation.navigate("Jobs", {
-              screen: "Jobs메인",
+            navigation.navigate("구인구직", {
+              screen: "구인구직 메인",
             });
           },
         })}
@@ -1254,7 +1256,7 @@ function BottomTabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             navigation.navigate("부동산", {
-              screen: "부동산메인",
+              screen: "부동산 메인",
             });
           },
         })}

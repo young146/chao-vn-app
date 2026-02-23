@@ -351,7 +351,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
         ]
       );
     } else {
-      navigation.navigate("물품 등록");
+      navigation.navigate("당근/나눔 등록");
     }
   }, [user, navigation, t]);
 
@@ -389,7 +389,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       ...item,
       createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
     };
-    navigation.navigate("물품 상세", { item: serializableItem });
+    navigation.navigate("당근/나눔 상세", { item: serializableItem });
   }, [navigation]);
 
   // 행(row) 또는 광고(ad) 렌더링
