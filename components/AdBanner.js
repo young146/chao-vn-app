@@ -271,41 +271,41 @@ const getRandomAdByPriority = (ads) => {
  */
 export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs = 5000, showIndicator = true }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
 
   const goToNext = useCallback(() => {
     if (!ads || ads.length <= 1) return;
-    // 페이드 아웃
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 400,
+    // 1) 현재 광고를 왼쪽으로 밀어냄
+    Animated.timing(slideAnim, {
+      toValue: -SCREEN_WIDTH,
+      duration: 350,
       useNativeDriver: true,
     }).start(() => {
+      // 2) 인덱스 업데이트 + 오른쪽에서 시작
       setCurrentIndex(prev => (prev + 1) % ads.length);
-      // 페이드 인
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
+      slideAnim.setValue(SCREEN_WIDTH);
+      // 3) 오른쪽에서 왼쪽으로 슬라이드 인
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 350,
         useNativeDriver: true,
       }).start();
     });
-  }, [ads, fadeAnim]);
+  }, [ads, slideAnim, SCREEN_WIDTH]);
 
   useEffect(() => {
-    // 광고가 1개이하이면 슬라이딩 불필요
     if (!ads || ads.length <= 1) return;
 
     // ⚠️ 현재 광고가 비디오이면 슬라이딩 중단 (영상 재생 보장)
     const currentAd = ads[currentIndex];
     if (currentAd?.videoUrl) {
-      // 기존 타이머 정리만 하고 새 타이머 설정 안 함
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       return;
     }
 
-    // 이미지 광고 → 5초마다 자동 전환
     timerRef.current = setInterval(goToNext, intervalMs);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -317,12 +317,16 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
   const ad = ads[currentIndex];
   if (!ad?.imageUrl && !ad?.videoUrl) return null;
 
-  // 비디오 광고일 때는 인디케이터에 "▶ 재생중" 표시
   const isVideo = !!ad?.videoUrl;
 
   return (
-    <View style={[containerStyle, { position: 'relative' }]}>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+    <View style={[containerStyle, { overflow: 'hidden' }]}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { transform: [{ translateX: slideAnim }] },
+        ]}
+      >
         <TouchableOpacity
           style={{ flex: 1 }}
           onPress={() => handleAdPress(ad)}
@@ -332,7 +336,7 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
         </TouchableOpacity>
       </Animated.View>
 
-      {/* 인디케이터 점 (비디오 중에도 현재 위치 표시) */}
+      {/* 인디케이터 점 */}
       {showIndicator && ads.length > 1 && (
         <View style={styles.indicatorRow}>
           {ads.map((a, idx) => (
@@ -704,6 +708,11 @@ export function FixedBottomBanner({ screen = 'all', intervalMs = 5000 }) {
   const [adList, setAdList] = useState([]);
   const insets = require('react-native-safe-area-context').useSafeAreaInsets();
 
+  // 탭바 높이: 56px(탭바 기본) + safe area bottom (0이면 8px 패딩)
+  const tabBarHeight = 56 + (insets.bottom > 0 ? insets.bottom : 8);
+  // 750:200 비율로 정확한 높이 계산
+  const bannerHeight = Math.round(Dimensions.get('window').width * 200 / 750);
+
   useEffect(() => {
     const loadAd = async () => {
       const ads = await fetchAdConfig(screen);
@@ -721,7 +730,10 @@ export function FixedBottomBanner({ screen = 'all', intervalMs = 5000 }) {
       ads={adList}
       containerStyle={[
         styles.fixedBottom,
-        { bottom: insets.bottom },
+        {
+          height: bannerHeight,
+          bottom: tabBarHeight,     // 탭바 바로 위에 위치
+        },
       ]}
       thumbnailKey="inline"
       intervalMs={intervalMs}
@@ -772,14 +784,11 @@ const styles = StyleSheet.create({
   },
   fixedBottom: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     zIndex: 999,
     width: '100%',
-    // ⚠️ aspectRatio + maxHeight 조합은 너비를 반으로 줄이는 버그!
-    // 대신: 화면 너비 기준으로 750:250 비율에 맞는 높이 직접 계산
-    height: Math.round(Dimensions.get('window').width * 250 / 750),
+    // height와 bottom은 FixedBottomBanner에서 동적으로 계산하여 containerStyle로 주입
     backgroundColor: '#f0f0f0',
     overflow: 'hidden',
     shadowColor: '#000',
