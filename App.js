@@ -628,10 +628,6 @@ export default function App() {
           <RootNavigator />
         </NavigationContainer>
 
-        {/* 🎥 고정 하단 배너 - 위치 고정, 모든 화면에서 항상 표시 */}
-        {/* WordPress fixed_bottom 슬롯에 광고 없으면 자동으로 표시 안 됨 */}
-        <FixedBottomBanner screen="all" />
-
         {/* 🎯 앱 시작 5초 후 전면 팝업 광고 (10초 후 자동 닫힘) */}
         <PopupAd
           visible={showStartupPopup}
@@ -1167,101 +1163,106 @@ function BottomTabNavigator() {
   };
 
   return (
-    <Tab.Navigator
-      initialRouteName="뉴스"
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        lazy: false,
-        tabBarLabel: tabLabels[route.name] || route.name,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === "홈") iconName = focused ? "home" : "home-outline";
-          else if (route.name === "뉴스")
-            iconName = focused ? "newspaper" : "newspaper-outline";
-          else if (route.name === "구인구직")
-            iconName = focused ? "briefcase" : "briefcase-outline";
-          else if (route.name === "부동산")
-            iconName = focused ? "business" : "business-outline";
-          else if (route.name === "당근/나눔")
-            iconName = focused ? "gift" : "gift-outline";
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: "#FF6B35",
-        tabBarInactiveTintColor: "#555",
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "700",
-          marginBottom: 2,
-        },
-        // 🔥 시스템 영역(제스처 바) 위로 탭바 올리기
-        tabBarStyle: {
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
-          height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
-        },
-      })}
-    >
-      <Tab.Screen
-        name="홈"
-        component={HomeStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.navigate("홈", {
-              screen: "홈메인",
-              params: {
-                type: "home",
-                categoryId: null,
-                resetSearch: Date.now(),
-              },
-            });
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        initialRouteName="뉴스"
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          lazy: false,
+          tabBarLabel: tabLabels[route.name] || route.name,
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+            if (route.name === "홈") iconName = focused ? "home" : "home-outline";
+            else if (route.name === "뉴스")
+              iconName = focused ? "newspaper" : "newspaper-outline";
+            else if (route.name === "구인구직")
+              iconName = focused ? "briefcase" : "briefcase-outline";
+            else if (route.name === "부동산")
+              iconName = focused ? "business" : "business-outline";
+            else if (route.name === "당근/나눔")
+              iconName = focused ? "gift" : "gift-outline";
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: "#FF6B35",
+          tabBarInactiveTintColor: "#555",
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: "700",
+            marginBottom: 2,
+          },
+          // 🔥 시스템 영역(제스처 바) 위로 탭바 올리기
+          tabBarStyle: {
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+            height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
           },
         })}
-      />
-      <Tab.Screen
-        name="뉴스"
-        component={NewsStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.navigate("뉴스", {
-              screen: "뉴스메인",
-              params: { type: "news", resetSearch: Date.now() },
-            });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="당근/나눔"
-        component={DanggnStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.navigate("당근/나눔", {
-              screen: "당근/나눔 메인",
-            });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="구인구직"
-        component={JobsStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.navigate("구인구직", {
-              screen: "구인구직 메인",
-            });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="부동산"
-        component={RealEstateStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.navigate("부동산", {
-              screen: "부동산 메인",
-            });
-          },
-        })}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="홈"
+          component={HomeStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("홈", {
+                screen: "홈메인",
+                params: {
+                  type: "home",
+                  categoryId: null,
+                  resetSearch: Date.now(),
+                },
+              });
+            },
+          })}
+        />
+        <Tab.Screen
+          name="뉴스"
+          component={NewsStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("뉴스", {
+                screen: "뉴스메인",
+                params: { type: "news", resetSearch: Date.now() },
+              });
+            },
+          })}
+        />
+        <Tab.Screen
+          name="당근/나눔"
+          component={DanggnStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("당근/나눔", {
+                screen: "당근/나눔 메인",
+              });
+            },
+          })}
+        />
+        <Tab.Screen
+          name="구인구직"
+          component={JobsStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("구인구직", {
+                screen: "구인구직 메인",
+              });
+            },
+          })}
+        />
+        <Tab.Screen
+          name="부동산"
+          component={RealEstateStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("부동산", {
+                screen: "부동산 메인",
+              });
+            },
+          })}
+        />
+      </Tab.Navigator>
+
+      {/* 📢 고정 하단 배너 - 탭바 바로 위에 위치 */}
+      <FixedBottomBanner screen="all" />
+    </View>
   );
 }
 

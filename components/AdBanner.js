@@ -777,13 +777,14 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 999,
     width: '100%',
-    aspectRatio: 750 / 250,
-    maxHeight: 62,
+    // ⚠️ aspectRatio + maxHeight 조합은 너비를 반으로 줄이는 버그!
+    // 대신: 화면 너비 기준으로 750:250 비율에 맞는 높이 직접 계산
+    height: Math.round(Dimensions.get('window').width * 250 / 750),
     backgroundColor: '#f0f0f0',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 8,
   },
