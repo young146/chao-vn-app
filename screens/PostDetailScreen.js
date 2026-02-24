@@ -28,17 +28,17 @@ export default function PostDetailScreen({ route }) {
   const { t, i18n } = useTranslation('menu');
   const { post } = route.params;
   const { width } = useWindowDimensions();
-  
+
   const [translatedContent, setTranslatedContent] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
   const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
 
   const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-  
+
   // 📤 공유할 URL과 제목 생성
   const shareUrl = post.link || `https://chaovietnam.co.kr/?p=${post.id}`;
-  const shareTitle = post.title?.rendered?.replace(/&#[0-9]+;/g, (match) => 
+  const shareTitle = post.title?.rendered?.replace(/&#[0-9]+;/g, (match) =>
     String.fromCharCode(match.match(/[0-9]+/))
   ) || '씬짜오베트남 기사';
   const shareMessage = `${shareTitle}\n\n${shareUrl}`;
@@ -51,19 +51,19 @@ export default function PostDetailScreen({ route }) {
           // 카카오톡 - 일반 공유 시트 사용 (SDK 없이)
           await Share.share({ message: shareMessage, title: shareTitle });
           break;
-          
+
         case 'facebook':
           // 페이스북 웹 공유
           const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
           await Linking.openURL(fbUrl);
           break;
-          
+
         case 'threads':
           // 스레드 앱 열기 시도
           const threadsUrl = `https://www.threads.net/intent/post?text=${encodeURIComponent(shareMessage)}`;
           await Linking.openURL(threadsUrl);
           break;
-          
+
         case 'zalo':
           // Zalo 앱으로 공유 시도
           const zaloInstalled = await Linking.canOpenURL('zalo://');
@@ -73,20 +73,20 @@ export default function PostDetailScreen({ route }) {
             Alert.alert('Zalo', t('postDetail.zaloNotInstalled'));
           }
           break;
-          
+
         case 'sms':
           // 문자 메시지
-          const smsUrl = Platform.OS === 'ios' 
+          const smsUrl = Platform.OS === 'ios'
             ? `sms:&body=${encodeURIComponent(shareMessage)}`
             : `sms:?body=${encodeURIComponent(shareMessage)}`;
           await Linking.openURL(smsUrl);
           break;
-          
+
         case 'more':
         default:
           // 기본 공유 시트
-          await Share.share({ 
-            message: shareMessage, 
+          await Share.share({
+            message: shareMessage,
             title: shareTitle,
             url: shareUrl // iOS only
           });
@@ -96,7 +96,7 @@ export default function PostDetailScreen({ route }) {
       console.log('공유 실패:', error);
     }
   };
-  
+
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
   let dateStr = t('postDetail.noDateInfo');
   try {
@@ -127,7 +127,7 @@ export default function PostDetailScreen({ route }) {
         setTranslatedContent(originalContentHtml);
         return;
       }
-      
+
       if (!originalContentHtml || originalContentHtml.trim() === '') {
         setTranslatedContent(originalContentHtml);
         return;
@@ -148,7 +148,7 @@ export default function PostDetailScreen({ route }) {
 
     translateContent();
   }, [originalContentHtml, i18n.language]);
-  
+
   const source = {
     html: translatedContent || originalContentHtml
   };
@@ -166,8 +166,8 @@ export default function PostDetailScreen({ route }) {
       marginVertical: 10,
     },
     iframe: {
-        width: width - 32,
-        height: (width - 32) * 0.5625,
+      width: width - 32,
+      height: (width - 32) * 0.5625,
     }
   };
 
@@ -194,7 +194,7 @@ export default function PostDetailScreen({ route }) {
         <TranslatedText style={styles.title}>
           {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
         </TranslatedText>
-        
+
         <View style={styles.metaInfo}>
           <Text style={styles.date}>{dateStr}</Text>
           <View style={styles.authorContainer}>
@@ -258,47 +258,47 @@ export default function PostDetailScreen({ route }) {
           <Text style={styles.shareTitle}>📤 {t('postDetail.shareTitle')}</Text>
           <View style={styles.shareButtons}>
             {/* 카카오톡 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.shareButton, { backgroundColor: '#FEE500' }]}
               onPress={() => handleShare('kakao')}
             >
               <Text style={styles.kakaoIcon}>💬</Text>
             </TouchableOpacity>
-            
+
             {/* 페이스북 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.shareButton, { backgroundColor: '#1877F2' }]}
               onPress={() => handleShare('facebook')}
             >
               <FontAwesome name="facebook" size={24} color="#fff" />
             </TouchableOpacity>
-            
+
             {/* 스레드 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.shareButton, { backgroundColor: '#000' }]}
               onPress={() => handleShare('threads')}
             >
               <Text style={styles.threadsIcon}>@</Text>
             </TouchableOpacity>
-            
+
             {/* Zalo */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.shareButton, { backgroundColor: '#0068FF' }]}
               onPress={() => handleShare('zalo')}
             >
               <Text style={styles.zaloIcon}>Z</Text>
             </TouchableOpacity>
-            
+
             {/* 문자 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.shareButton, { backgroundColor: '#34C759' }]}
               onPress={() => handleShare('sms')}
             >
               <Ionicons name="chatbubble" size={22} color="#fff" />
             </TouchableOpacity>
-            
+
             {/* 더보기 (기본 공유) */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.shareButton, { backgroundColor: '#FF6B35' }]}
               onPress={() => handleShare('more')}
             >
@@ -309,10 +309,10 @@ export default function PostDetailScreen({ route }) {
 
         <CommentsSection articleId={post.id} />
       </ScrollView>
-      
+
       {/* 🎯 뉴스 상세 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
-      <PopupAd 
-        visible={showPopup} 
+      <PopupAd
+        visible={showPopup}
         onClose={() => setShowPopup(false)}
         screen="news"
         autoCloseSeconds={10}
@@ -328,6 +328,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 120, // FixedBottomBanner(~96px) + 여유 공간
   },
   title: {
     fontSize: 24,

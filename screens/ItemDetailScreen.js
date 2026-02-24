@@ -748,7 +748,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         {/* 하단 광고 */}
         <DetailAdBanner position="bottom" screen="danggn" />
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       {/* 하단 버튼 */}

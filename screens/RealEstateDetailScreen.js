@@ -540,7 +540,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         {/* 하단 광고 */}
         <DetailAdBanner position="bottom" screen="realestate" />
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       {/* 하단 액션 바 */}
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     position: "absolute",
-    bottom: 0,
+    bottom: 96, // FixedBottomBanner 위에 위치
     left: 0,
     right: 0,
     flexDirection: "row",

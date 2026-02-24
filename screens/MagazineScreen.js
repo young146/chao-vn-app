@@ -665,10 +665,6 @@ export default function MagazineScreen({ navigation, route }) {
                           </React.Fragment>
                         ))}
                       </View>
-                      {/* 첫 번째 섹션(주요뉴스) 끝나고 인라인 광고 (경제 섹션 전) */}
-                      {sectionIndex === 0 && newsSections.length > 1 && (
-                        <InlineAdBanner screen="news" style={{ marginTop: 16, marginBottom: 8 }} />
-                      )}
                     </View>
                   );
                 })}
