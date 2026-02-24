@@ -523,8 +523,6 @@ export default function MagazineScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🔥 홈 배너: FlatList 밖에 위치 → 스크롤해도 항상 상단 고정 */}
-      {type === 'home' && <HomeBanner style={{ marginBottom: 4 }} />}
 
       <SearchHeader
         onSearch={handleSearch}
@@ -551,7 +549,11 @@ export default function MagazineScreen({ navigation, route }) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            {/* 🔥 메인 헤더 광고: 뉴스/기타 탭에서만 표시 (홈은 위에서 처리) */}
+            {/* 홈 배너: 스크롤과 함께 움직임 */}
+            {type === 'home' && (
+              <HomeBanner style={{ marginBottom: 8 }} />
+            )}
+            {/* 뉴스/기타 탭 헤더 광고 */}
             {type !== 'home' && (
               <AdBanner screen="news" style={{ marginBottom: 8 }} />
             )}
