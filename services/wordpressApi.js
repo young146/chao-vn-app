@@ -556,7 +556,7 @@ export const wordpressApi = {
         // 고유 ID 생성 (안전하게 추출)
         const linkId = link
           ? link.match(/redirect=(\d+)/)?.[1] ||
-            link.match(/content_redirect=(\d+)/)?.[1]
+          link.match(/content_redirect=(\d+)/)?.[1]
           : null;
         const uniqueId = linkId ? `kb-${linkId}-${index}` : `kb-rss-${index}`;
 
@@ -567,12 +567,12 @@ export const wordpressApi = {
           date: pubDate,
           _embedded: imageUrl
             ? {
-                "wp:featuredmedia": [
-                  {
-                    source_url: imageUrl,
-                  },
-                ],
-              }
+              "wp:featuredmedia": [
+                {
+                  source_url: imageUrl,
+                },
+              ],
+            }
             : {},
           category_name: category,
           link: link,
@@ -679,8 +679,24 @@ export const wordpressApi = {
 
 const JENNY_API_URL = "https://chaovietnam.co.kr/wp-json/jenny/v1";
 
+// 기본 섹션 목록 (jenny API가 없을 때 폴백)
+const DEFAULT_SECTIONS = [
+  { key: 'economy', name: '📈 경제' },
+  { key: 'society', name: '👥 사회' },
+  { key: 'culture', name: '🎭 문화/스포츠' },
+  { key: 'realestate', name: '🏠 부동산' },
+  { key: 'politics', name: '⚖️ 정치/정책' },
+  { key: 'world', name: '🌏 국제' },
+  { key: 'korea_vietnam', name: '🇰🇷🇻🇳 한-베' },
+  { key: 'gyominNews', name: '📣 교민소식' },
+  { key: 'travel', name: '✈️ 여행' },
+  { key: 'health', name: '💊 건강' },
+  { key: 'food', name: '🍜 음식' },
+  { key: 'other', name: '✨ 기타' },
+];
+
 /**
- * 섹션 목록 가져오기 (WordPress에서 동적으로 로드)
+ * 섹션 목록 가져오기 (WordPress에서 동적으로 로드, 실패 시 기본값 사용)
  */
 let cachedSections = null;
 export const getSectionsList = async () => {
@@ -691,14 +707,14 @@ export const getSectionsList = async () => {
     }
 
     const response = await api.get(`${JENNY_API_URL}/sections`);
-    if (response.data.success) {
+    if (response.data.success && response.data.data && response.data.data.length > 0) {
       cachedSections = response.data.data;
       return cachedSections;
     }
-    return [];
+    return DEFAULT_SECTIONS;
   } catch (error) {
-    console.error("Failed to fetch sections list:", error);
-    return [];
+    console.log("섹션 목록 API 불가, 기본 섹션 사용");
+    return DEFAULT_SECTIONS;
   }
 };
 

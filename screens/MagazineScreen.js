@@ -17,10 +17,11 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached } from '../services/wordpressApi';
+import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached, getSectionsList } from '../services/wordpressApi';
 import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
+import SectionNewsModal from '../components/SectionNewsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -341,6 +342,10 @@ export default function MagazineScreen({ navigation, route }) {
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
   const [showingYesterdayNews, setShowingYesterdayNews] = useState(false);
 
+  // 🗂️ 뉴스 항목별 기사 보기 모달 state
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [sectionsList, setSectionsList] = useState([]); // API에서 로드한 섹션 목록
+
   const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
     try {
       if (pageNum === 1) {
@@ -431,6 +436,17 @@ export default function MagazineScreen({ navigation, route }) {
   useEffect(() => {
     fetchPosts();
   }, [type, categoryId]);
+
+  // 🗂️ 뉴스 탭: 섹션 목록 로드
+  useEffect(() => {
+    if (type === 'news') {
+      getSectionsList().then((sections) => {
+        if (sections && sections.length > 0) {
+          setSectionsList(sections);
+        }
+      }).catch(() => { });
+    }
+  }, [type]);
 
   // 🔙 탭을 누르면 검색 초기화 및 데이터 새로고침
   useEffect(() => {
@@ -583,6 +599,26 @@ export default function MagazineScreen({ navigation, route }) {
                     maximumDate={new Date()}
                   />
                 )}
+              </View>
+            )}
+
+            {/* 🗂️ 뉴스 항목별 기사 보기 (카테고리 버튼) */}
+            {type === 'news' && !searchQuery && sectionsList.length > 0 && (
+              <View style={styles.sectionButtonsContainer}>
+                <Text style={styles.sectionButtonsTitle}>🗞️ 뉴스 항목별 기사 보기</Text>
+                <View style={styles.sectionButtonsRow}>
+                  {sectionsList.map((section) => (
+                    <TouchableOpacity
+                      key={section.key || section.id}
+                      style={styles.sectionButton}
+                      onPress={() => setSelectedSection(section)}
+                    >
+                      <Text style={styles.sectionButtonText}>
+                        {section.icon ? `${section.icon} ` : ''}{section.name || section.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             )}
 
@@ -756,6 +792,17 @@ export default function MagazineScreen({ navigation, route }) {
           autoCloseSeconds={10}
         />
       )}
+
+      {/* 🗂️ 뉴스 항목별 기사 보기 모달 */}
+      {selectedSection && (
+        <SectionNewsModal
+          isVisible={!!selectedSection}
+          onClose={() => setSelectedSection(null)}
+          sectionKey={selectedSection.key}
+          sectionTitle={selectedSection.label}
+          navigation={navigation}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -834,6 +881,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
     marginLeft: 8,
+  },
+  // 🗂️ 뉴스 항목별 기사 보기 버튼 스타일
+  sectionButtonsContainer: {
+    backgroundColor: '#fff9f0',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ffe0b2',
+  },
+  sectionButtonsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF6B35',
+    marginBottom: 10,
+  },
+  sectionButtonsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sectionButton: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FF6B35',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+  },
+  sectionButtonText: {
+    fontSize: 13,
+    color: '#FF6B35',
+    fontWeight: '600',
   },
   dateFilterContainer: {
     flexDirection: 'row',

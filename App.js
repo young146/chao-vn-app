@@ -1153,6 +1153,17 @@ function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
 
+  // 🚫 상세 페이지에서는 고정 하단 배너 숨김 (전화/채팅/후기 버튼이 가려지는 문제)
+  // 네비게이션 상태에서 현재 활성 라우트 중 '상세'가 포함된지 확인
+  const isDetailPage = require('@react-navigation/native').useNavigationState(state => {
+    if (!state) return false;
+    const checkRoute = (route) => {
+      if (route.name && route.name.includes('상세')) return true;
+      if (route.state?.routes) return route.state.routes.some(r => checkRoute(r));
+      return false;
+    };
+    return state.routes?.some(r => checkRoute(r)) || false;
+  });
   // 탭 라벨 번역 맵
   const tabLabels = {
     "홈": t('tabs.home'),
@@ -1260,8 +1271,8 @@ function BottomTabNavigator() {
         />
       </Tab.Navigator>
 
-      {/* 📢 고정 하단 배너 - 탭바 바로 위에 위치 */}
-      <FixedBottomBanner screen="all" />
+      {/* 📢 고정 하단 배너 - 탭바 바로 위에 위치 (상세 페이지에서는 숨김) */}
+      {!isDetailPage && <FixedBottomBanner screen="all" />}
     </View>
   );
 }
