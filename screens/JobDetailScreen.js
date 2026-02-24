@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     position: "absolute",
-    bottom: 96, // FixedBottomBanner 위에 위치
+    bottom: 0,
     left: 0,
     right: 0,
     flexDirection: "row",
