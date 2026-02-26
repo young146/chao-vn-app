@@ -360,7 +360,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 구인/구직 선택 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="swap-horizontal" size={16}  /> {t('form.jobTypeLabel')}
+            <Ionicons name="swap-horizontal" size={16} /> {t('form.jobTypeLabel')}
           </Text>
           <View style={styles.jobTypeContainer}>
             {jobTypes.map((type) => (
@@ -399,7 +399,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 제목 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="create" size={16}  /> {t('form.titleLabel')}
+            <Ionicons name="create" size={16} /> {t('form.titleLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -415,7 +415,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 업종 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="briefcase-outline" size={16}  /> {t('form.industryLabel')}
+            <Ionicons name="briefcase-outline" size={16} /> {t('form.industryLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -433,7 +433,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 급여 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="cash-outline" size={16}  /> {t('form.salaryLabel')}
+            <Ionicons name="cash-outline" size={16} /> {t('form.salaryLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -447,7 +447,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 고용 형태 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="time-outline" size={16}  /> {t('form.employmentTypeLabel')}
+            <Ionicons name="time-outline" size={16} /> {t('form.employmentTypeLabel')}
           </Text>
           <View style={styles.pickerWrapper}>
             <Picker
@@ -465,7 +465,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 근무지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="location-outline" size={16}  /> {t('form.cityLabel')}
+            <Ionicons name="location-outline" size={16} /> {t('form.cityLabel')}
           </Text>
           <View style={styles.locationRow}>
             <View style={[styles.pickerWrapper, { flex: 1 }]}>
@@ -492,7 +492,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16}  /> {t('form.contactLabel')}
+            <Ionicons name="call-outline" size={16} /> {t('form.contactLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -510,7 +510,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 마감일 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="calendar-outline" size={16}  /> {t('form.deadlineLabel')}
+            <Ionicons name="calendar-outline" size={16} /> {t('form.deadlineLabel')}
           </Text>
           <TextInput
             style={styles.textInput}
@@ -524,7 +524,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 상세 내용 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text-outline" size={16}  /> {t('form.descriptionLabel')}
+            <Ionicons name="document-text-outline" size={16} /> {t('form.descriptionLabel')}
           </Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
@@ -542,7 +542,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 자격 요건 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="checkmark-circle-outline" size={16}  /> 
+            <Ionicons name="checkmark-circle-outline" size={16} />
             {t('form.requirementsLabel')}
           </Text>
           <TextInput
@@ -560,7 +560,7 @@ export default function AddJobScreen({ navigation, route }) {
         {/* 이미지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="images-outline" size={16}  /> {t('form.photoSection')} (5)
+            <Ionicons name="images-outline" size={16} /> {t('form.photoSection')} (5)
           </Text>
           <Text style={styles.helperText}>
             {t('common:photoHelperText', '회사 사진, 근무환경 등을 등록하면 신뢰도가 올라갑니다')}
@@ -590,7 +590,7 @@ export default function AddJobScreen({ navigation, route }) {
         {isEditMode && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="flag-outline" size={16}  /> {t('form.statusLabel')}
+              <Ionicons name="flag-outline" size={16} /> {t('form.statusLabel')}
             </Text>
             <View style={styles.statusContainer}>
               {["모집중", "마감임박", "마감"].map((s) => (
@@ -602,7 +602,7 @@ export default function AddJobScreen({ navigation, route }) {
                     status === s && {
                       backgroundColor:
                         s === "모집중" ? "#E8F5E9" :
-                        s === "마감임박" ? "#FFF3E0" : "#F5F5F5"
+                          s === "마감임박" ? "#FFF3E0" : "#F5F5F5"
                     }
                   ]}
                   onPress={() => setStatus(s)}
@@ -613,7 +613,7 @@ export default function AddJobScreen({ navigation, route }) {
                       status === s && {
                         color:
                           s === "모집중" ? "#4CAF50" :
-                          s === "마감임박" ? "#FF9800" : "#9E9E9E"
+                            s === "마감임박" ? "#FF9800" : "#9E9E9E"
                       }
                     ]}
                   >
@@ -643,7 +643,7 @@ export default function AddJobScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -683,7 +683,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
