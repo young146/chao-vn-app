@@ -60,7 +60,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
 
   // 상태 번역
   const getTranslatedStatus = (s) => {
-    switch(s) {
+    switch (s) {
       case "판매중": return t('selling');
       case "가격 조정됨": return t('priceChanged');
       case "판매완료": return t('sold');
@@ -109,7 +109,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
   const { t, i18n } = useTranslation('danggn');
 
-  
+
   const [items, setItems] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("전체");
@@ -143,7 +143,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     { key: 'pet', value: '펫 용품' },
     { key: 'other', value: '기타' },
   ];
-  
+
   // 번역된 카테고리 배열 (UI 표시용)
   const categories = categoryKeys.map(cat => ({
     label: t(`categories.${cat.key}`),
@@ -214,7 +214,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       }
 
       const snapshot = await getDocs(q);
-      
+
       const fetchedItems = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -235,7 +235,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
         setItems(uniqueItems);
         // 최신 데이터를 다시 캐시에 저장
         await AsyncStorage.setItem("prefetched_danggn_items", JSON.stringify(uniqueItems));
-        
+
         // 데이터가 없는데 필터링 중이 아닐 때만 "등록된 물품이 없습니다" 표시를 위해 상태 관리
         if (uniqueItems.length === 0) {
           console.log("ℹ️ 데이터가 하나도 없습니다.");
@@ -303,7 +303,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     const result = [];
     const AD_ROW_INTERVAL = 2; // 2행(4개 아이템)마다 광고
     let rowCount = 0;
-    
+
     for (let i = 0; i < filteredItems.length; i += 2) {
       // 2개씩 묶어서 행 생성
       const row = {
@@ -313,13 +313,13 @@ export default function XinChaoDanggnScreen({ navigation }) {
       };
       result.push(row);
       rowCount++;
-      
+
       // 2행(4개 아이템)마다 광고 삽입
       if (rowCount % AD_ROW_INTERVAL === 0 && i + 2 < filteredItems.length) {
         result.push({ type: 'ad', key: `ad-${rowCount}` });
       }
     }
-    
+
     return result;
   }, [filteredItems]);
 
@@ -372,12 +372,12 @@ export default function XinChaoDanggnScreen({ navigation }) {
     );
   }, [navigation, t]);
 
-  const districts = useMemo(() => 
+  const districts = useMemo(() =>
     getDistrictsByCity(selectedCity === "전체" ? "호치민" : selectedCity),
     [selectedCity]
   );
 
-  const apartments = useMemo(() => 
+  const apartments = useMemo(() =>
     selectedDistrict && selectedDistrict !== "전체"
       ? getApartmentsByDistrict(selectedCity === "전체" ? "호치민" : selectedCity, selectedDistrict)
       : [],
@@ -398,7 +398,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       // 인라인 광고 (전체 너비)
       return <InlineAdBanner screen="danggn" style={{ marginVertical: 8 }} />;
     }
-    
+
     // 아이템 행 (2개씩)
     return (
       <View style={styles.itemRow}>
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: "absolute",
-    bottom: 20,
+    bottom: 90,
     right: 20,
     width: 64,
     height: 64,

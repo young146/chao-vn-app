@@ -73,7 +73,7 @@ const JobCard = memo(({ item, onPress, index, t }) => {
 
   const getJobTypeBadge = (jobType) => {
     const isHiring = jobType === "구인" || jobType === t('hiring');
-    return isHiring 
+    return isHiring
       ? { bg: "#E3F2FD", color: "#1976D2", text: t('hiring') }
       : { bg: "#FFF3E0", color: "#E65100", text: t('seeking') };
   };
@@ -154,7 +154,7 @@ export default function JobsScreen({ navigation }) {
   const { t, i18n } = useTranslation('jobs');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
-  
+
   const [jobs, setJobs] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedJobType, setSelectedJobType] = useState("전체");
@@ -228,7 +228,7 @@ export default function JobsScreen({ navigation }) {
       }
 
       const snapshot = await getDocs(q);
-      
+
       const fetchedJobs = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -287,7 +287,7 @@ export default function JobsScreen({ navigation }) {
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       // 마감된 공고는 맨 아래로 (필터링에서 제외하지 않음)
-      const matchesSearch = !searchText || 
+      const matchesSearch = !searchText ||
         job.title?.toLowerCase().includes(searchText.toLowerCase()) ||
         job.description?.toLowerCase().includes(searchText.toLowerCase());
       const matchesJobType = selectedJobType === "전체" || job.jobType === selectedJobType;
@@ -408,7 +408,7 @@ export default function JobsScreen({ navigation }) {
     <View>
       {/* 광고 배너 */}
       <AdBanner screen="job" style={{ marginTop: 8 }} />
-      
+
       {/* 로그인 유도 배너 */}
       {!user && (
         <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
@@ -457,7 +457,7 @@ export default function JobsScreen({ navigation }) {
         maxToRenderPerBatch={10}
         windowSize={10}
       />
-      
+
       {/* 플로팅 등록 버튼 */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddJob}>
         <Ionicons name="add" size={24} color="#fff" />
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: "absolute",
-    bottom: 20,
+    bottom: 90,
     right: 20,
     width: 64,
     height: 64,
