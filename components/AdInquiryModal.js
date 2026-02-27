@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Modal,
   View,
@@ -74,6 +74,8 @@ export default function AdInquiryModal({ visible, onClose }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  const scrollRef = useRef(null);
+
   const handleSubmit = async () => {
     if (!validate()) return;
 
@@ -88,18 +90,28 @@ export default function AdInquiryModal({ visible, onClose }) {
         adType: form.adType,
         size: form.size,
         remark: form.remark,
-        source: "APP", // 앱에서 접수된 문의
+        source: "APP",
         contactMethod: "APP",
       };
 
-      await fetch(GAS_URL, {
+      // ⚡ no-cors 응답은 읽을 수 없으므로 await 없이 fire-and-forget
+      fetch(GAS_URL, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      });
+      }).catch(() => { }); // 오류 무시 (no-cors라 항상 opaque)
 
+      // 즉시 성공 처리
       setSuccess(true);
+      setLoading(false);
+
+      // 성공 메시지로 스크롤
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      }, 50);
+
+      // 3초 후 모달 닫고 폼 초기화
       setTimeout(() => {
         setSuccess(false);
         setForm({
@@ -108,11 +120,10 @@ export default function AdInquiryModal({ visible, onClose }) {
         });
         setErrors({});
         onClose();
-      }, 2500);
+      }, 3000);
     } catch (error) {
       console.error("광고 문의 전송 오류:", error);
       setErrors({ submit: "전송 중 오류가 발생했습니다. 다시 시도해주세요." });
-    } finally {
       setLoading(false);
     }
   };
@@ -144,8 +155,8 @@ export default function AdInquiryModal({ visible, onClose }) {
 
         {/* 키보드 회피 영역: 카드만 감싸서 위로 밀어줌 */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+          behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
           style={styles.keyboardView}
         >
           <View style={styles.card}>
@@ -162,6 +173,7 @@ export default function AdInquiryModal({ visible, onClose }) {
             </TouchableWithoutFeedback>
 
             <ScrollView
+              ref={scrollRef}
               showsVerticalScrollIndicator={true}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
@@ -381,7 +393,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   scrollContent: {
-    paddingBottom: Platform.OS === "ios" ? 60 : 80,
+    paddingBottom: Platform.OS === "ios" ? 80 : 100,
   },
   header: {
     alignItems: "center",
