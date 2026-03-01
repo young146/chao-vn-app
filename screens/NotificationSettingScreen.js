@@ -19,7 +19,7 @@ import { useAuth } from "../contexts/AuthContext";
 export default function NotificationSettingScreen() {
   const { t } = useTranslation('menu');
   const { user } = useAuth();
-  
+
   // 알림음 옵션
   const NOTIFICATION_SOUNDS = [
     {
@@ -35,12 +35,12 @@ export default function NotificationSettingScreen() {
     newArticles: true,
     comments: true,
     community: true,
-    jobs: false,
-    realEstate: false,
-    chat: true, // 채팅 알림
+    jobs: true,        // 구인구직 새 등록 알림
+    realEstate: true,  // 부동산 새 등록 알림
+    chat: true,        // 채팅 알림
     priceChange: true, // 가격 변동 알림
-    review: true, // 리뷰 알림
-    nearbyItems: false, // 🆕 내 주변 상품 알림
+    review: true,      // 리뷰 알림
+    nearbyItems: true, // 내 주변 나눔 상품 알림
   });
 
   const [selectedSound, setSelectedSound] = useState("default");
@@ -63,18 +63,14 @@ export default function NotificationSettingScreen() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          const firebaseSettings = docSnap.data();
+          const fs = docSnap.data();
           setSettings((prev) => ({
             ...prev,
-            nearbyItems: firebaseSettings.nearbyItems || false,
-            chat:
-              firebaseSettings.chat !== undefined
-                ? firebaseSettings.chat
-                : prev.chat,
-            review:
-              firebaseSettings.reviews !== undefined
-                ? firebaseSettings.reviews
-                : prev.review,
+            nearbyItems: fs.nearbyItems !== undefined ? fs.nearbyItems : prev.nearbyItems,
+            chat: fs.chat !== undefined ? fs.chat : prev.chat,
+            review: fs.reviews !== undefined ? fs.reviews : prev.review,
+            jobs: fs.jobs !== undefined ? fs.jobs : prev.jobs,
+            realEstate: fs.realEstate !== undefined ? fs.realEstate : prev.realEstate,
           }));
         }
       }
@@ -98,7 +94,7 @@ export default function NotificationSettingScreen() {
         JSON.stringify(newSettings)
       );
 
-      // Firebase notificationSettings 업데이트 (주변 상품 알림만)
+      // Firebase notificationSettings 업데이트 (Cloud Function이 읽는 값들)
       if (user) {
         const docRef = doc(db, "notificationSettings", user.uid);
         await setDoc(
@@ -107,6 +103,8 @@ export default function NotificationSettingScreen() {
             nearbyItems: newSettings.nearbyItems,
             chat: newSettings.chat,
             reviews: newSettings.review,
+            jobs: newSettings.jobs,
+            realEstate: newSettings.realEstate,
           },
           { merge: true }
         );

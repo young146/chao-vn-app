@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>씬짜오 나눔 | 중고거래 등록</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', system-ui, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            color: #fff;
+            padding: 20px 16px 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .form-body {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: #fff;
+            border-radius: 16px;
+            padding: 18px 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .required {
+            color: #FF6B35;
+            margin-left: 2px;
+        }
+
+        label {
+            font-size: 13px;
+            color: #666;
+            display: block;
+            margin-bottom: 6px;
+            margin-top: 12px;
+        }
+
+        label:first-of-type {
+            margin-top: 0;
+        }
+
+        input[type=text],
+        input[type=number],
+        input[type=tel],
+        textarea,
+        select {
+            width: 100%;
+            border: 1.5px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 15px;
+            font-family: inherit;
+            color: #222;
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #FF6B35;
+            background: #fff;
+        }
+
+        textarea {
+            resize: none;
+            height: 120px;
+            line-height: 1.6;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .price-row input {
+            flex: 1;
+        }
+
+        .price-unit {
+            font-size: 14px;
+            color: #888;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        /* 카테고리 버튼 */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .cat-btn {
+            border: 1.5px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 10px 4px;
+            background: #fff;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: #555;
+        }
+
+        .cat-btn.active {
+            border-color: #FF6B35;
+            background: #FFF3EE;
+            color: #FF6B35;
+            font-weight: 700;
+        }
+
+        .cat-btn .cat-icon {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* 이미지 업로드 */
+        .image-upload-area {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .img-add-btn {
+            width: 90px;
+            height: 90px;
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 12px;
+            gap: 4px;
+            background: #fafafa;
+        }
+
+        .img-add-btn .plus {
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .img-preview-wrap {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .img-preview-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .img-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .img-count {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        /* 제출 버튼 */
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 8px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 완료 화면 */
+        #success-screen {
+            display: none;
+            padding: 32px 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .success-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 28px 20px;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .success-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+
+        .success-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .success-sub {
+            font-size: 14px;
+            color: #888;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+
+        .kakao-share-box {
+            background: #FEE500;
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .kakao-share-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #3C1E1E;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kakao-share-text {
+            font-size: 13px;
+            color: #3C1E1E;
+            white-space: pre-wrap;
+            line-height: 1.7;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .copy-btn {
+            width: 100%;
+            background: #3C1E1E;
+            color: #FEE500;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .share-kakao-btn {
+            width: 100%;
+            background: #FEE500;
+            color: #3C1E1E;
+            border: none;
+            border-radius: 14px;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(254, 229, 0, 0.4);
+        }
+
+        .another-btn {
+            width: 100%;
+            background: #FF6B35;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        /* 로딩 */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #FFE0D0;
+            border-top-color: #FF6B35;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            color: #FF6B35;
+            font-size: 14px;
+            margin-bottom: 16px;
+            text-decoration: none;
+            padding: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">업로드 중...</div>
+    </div>
+
+    <div id="form-screen">
+        <div class="header">
+            <h1>🛍️ 씬짜오 나눔</h1>
+            <p>중고거래 · 무료나눔 등록</p>
+        </div>
+
+        <div class="form-body">
+            <a href="../" class="back-link">← 카테고리 선택으로 돌아가기</a>
+
+            <!-- 카테고리 -->
+            <div class="section">
+                <div class="section-title">📦 카테고리 <span class="required">*</span></div>
+                <div class="category-grid" id="cat-grid">
+                    <button class="cat-btn active" data-val="무료나눔" onclick="selectCat(this)">
+                        <span class="cat-icon">🎁</span>무료나눔
+                    </button>
+                    <button class="cat-btn" data-val="전자제품" onclick="selectCat(this)">
+                        <span class="cat-icon">📱</span>전자제품
+                    </button>
+                    <button class="cat-btn" data-val="가구/인테리어" onclick="selectCat(this)">
+                        <span class="cat-icon">🪑</span>가구/인테리어
+                    </button>
+                    <button class="cat-btn" data-val="의류/잡화" onclick="selectCat(this)">
+                        <span class="cat-icon">👗</span>의류/잡화
+                    </button>
+                    <button class="cat-btn" data-val="생활용품" onclick="selectCat(this)">
+                        <span class="cat-icon">🏠</span>생활용품
+                    </button>
+                    <button class="cat-btn" data-val="도서/문구" onclick="selectCat(this)">
+                        <span class="cat-icon">📚</span>도서/문구
+                    </button>
+                    <button class="cat-btn" data-val="유아용품" onclick="selectCat(this)">
+                        <span class="cat-icon">👶</span>유아용품
+                    </button>
+                    <button class="cat-btn" data-val="펫 용품" onclick="selectCat(this)">
+                        <span class="cat-icon">🐾</span>펫 용품
+                    </button>
+                    <button class="cat-btn" data-val="기타" onclick="selectCat(this)">
+                        <span class="cat-icon">📦</span>기타
+                    </button>
+                </div>
+            </div>
+
+            <!-- 사진 -->
+            <div class="section">
+                <div class="section-title">📷 사진 (최대 5장)</div>
+                <div class="image-upload-area" id="img-area">
+                    <div class="img-add-btn" onclick="document.getElementById('file-input').click()">
+                        <span class="plus">+</span>
+                        <span>사진 추가</span>
+                    </div>
+                </div>
+                <div class="img-count" id="img-count">0 / 5</div>
+                <input type="file" id="file-input" accept="image/*" multiple style="display:none"
+                    onchange="handleImages(this)">
+            </div>
+
+            <!-- 기본 정보 -->
+            <div class="section">
+                <div class="section-title">✏️ 기본 정보</div>
+
+                <label>제목 <span class="required">*</span></label>
+                <input type="text" id="title" placeholder="예: 갤럭시 S23 팝니다" maxlength="50">
+
+                <label>가격 (VND)</label>
+                <div class="price-row">
+                    <input type="number" id="price" placeholder="0 = 가격 협의 또는 무료나눔" min="0">
+                    <span class="price-unit">₫ VND</span>
+                </div>
+
+                <label>상세 설명 <span class="required">*</span></label>
+                <textarea id="description" placeholder="물품 상태, 구매 시기, 판매 이유 등을 자세히 적어주세요"></textarea>
+            </div>
+
+            <!-- 위치 -->
+            <div class="section">
+                <div class="section-title">📍 위치</div>
+                <label>도시 <span class="required">*</span></label>
+                <select id="city" onchange="updateDistrict()">
+                    <option value="">도시 선택</option>
+                    <option value="호치민">호치민</option>
+                    <option value="하노이">하노이</option>
+                    <option value="다낭">다낭</option>
+                    <option value="냐짱">냐짱</option>
+                    <option value="붕따우">붕따우</option>
+                    <option value="빈증">빈증</option>
+                    <option value="동나이">동나이</option>
+                    <option value="기타">기타</option>
+                </select>
+
+                <label>구/군</label>
+                <select id="district">
+                    <option value="">구/군 선택 (선택사항)</option>
+                </select>
+
+                <label>아파트/지역</label>
+                <input type="text" id="apartment" placeholder="예: 빈홈 센트럴파크, 마스테리 등">
+            </div>
+
+            <!-- 연락처 -->
+            <div class="section">
+                <div class="section-title">📞 연락처 <span class="required">*</span></div>
+                <p style="font-size:12px;color:#888;margin-bottom:12px">최소 하나 이상 입력해주세요</p>
+
+                <label>전화번호</label>
+                <input type="tel" id="phone" placeholder="010-1234-5678 또는 +84-123-456-789">
+
+                <label>카카오톡 ID</label>
+                <input type="text" id="kakao-id" placeholder="kakao_id123">
+
+                <label>기타 연락처 (Zalo 등)</label>
+                <input type="text" id="other-contact" placeholder="Zalo: 0123456789">
+
+                <label>이름/닉네임</label>
+                <input type="text" id="seller-name" placeholder="홍길동 (선택사항)">
+            </div>
+
+            <button class="submit-btn" id="submit-btn" onclick="submitForm()">
+                ✅ 등록하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 완료 화면 -->
+    <div id="success-screen">
+        <div class="header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A);">
+            <h1>✅ 등록 완료!</h1>
+            <p>씬짜오 앱에 자동으로 업로드되었습니다</p>
+        </div>
+        <div style="padding: 16px; max-width: 600px; margin: 0 auto;">
+            <div class="success-card">
+                <div class="success-icon">🎉</div>
+                <div class="success-title">등록되었습니다!</div>
+                <div class="success-sub">아래 버튼을 눌러 바로 오픈채팅에 공유하세요!</div>
+
+                <button class="share-kakao-btn" onclick="shareToKakao()">💬 카카오톡에 공유하기</button>
+
+                <div class="kakao-share-box">
+                    <div class="kakao-share-label">📋 공유 내용 미리보기</div>
+                    <div class="kakao-share-text" id="share-text"></div>
+                    <button class="copy-btn" onclick="copyText()">📋 텍스트만 복사하기</button>
+                </div>
+
+                <button class="another-btn" onclick="location.reload()">+ 또 다른 물품 등록하기</button>
+                <hr style="margin: 16px 0; border-color: #f0f0f0;">
+                <a href="../" style="display:block; text-align:center; color:#888; font-size:13px;">← 처음으로</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-storage.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
+
+        if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) {
+            Kakao.init('eb4612604473e026e6cc7ed41ededbc3');
+        }
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU",
+            authDomain: "chaovietnam-login.firebaseapp.com",
+            projectId: "chaovietnam-login",
+            storageBucket: "chaovietnam-login.firebasestorage.app",
+            messagingSenderId: "249390849714",
+            appId: "1:249390849714:web:95ae3e7f066b70ffe973ab",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const auth = getAuth(app);
+
+        // 지구/군 데이터
+        const districtData = {
+            '호치민': ['1군', '2군', '3군', '4군', '5군', '6군', '7군(푸미흥)', '8군', '9군', '10군', '11군', '12군', '빈탄', '빈찐', '고밥', '떤빈', '떤푸', '푸누안', '빈대', '빈찌에우', '호크몬', '꾸치', '까이베', '냐베'],
+            '하노이': ['바딘', '호안끼엠', '동다', '하이바쯩', '동아인', '떠이호', '장비', '까우져이', '하동', '롱비엔', '남뚜리엠', '박뚜리엠', '호아인'],
+            '다낭': ['하이쩌우', '탄크', '리엔찌에우', '응우한선', '손짜', '하이쩌우', '까마우'],
+            '냐짱': ['냐짱 시내'],
+            '붕따우': ['붕따우 시내'],
+            '빈증': ['투다우못', '탄안', '디안', '토앙안'],
+            '동나이': ['비엔화'],
+            '기타': [],
+        };
+
+        window.updateDistrict = function () {
+            const city = document.getElementById('city').value;
+            const distSel = document.getElementById('district');
+            distSel.innerHTML = '<option value="">구/군 선택 (선택사항)</option>';
+            (districtData[city] || []).forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d; opt.textContent = d;
+                distSel.appendChild(opt);
+            });
+        };
+
+        // 카테고리 선택
+        let selectedCat = '무료나눔';
+        window.selectCat = function (btn) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedCat = btn.dataset.val;
+        };
+
+        // 이미지 관리
+        let imageFiles = [];
+        window.handleImages = function (input) {
+            const files = Array.from(input.files);
+            const remaining = 5 - imageFiles.length;
+            const toAdd = files.slice(0, remaining);
+            imageFiles = [...imageFiles, ...toAdd];
+            renderImages();
+            input.value = '';
+        };
+
+        function renderImages() {
+            const area = document.getElementById('img-area');
+            area.innerHTML = '';
+            imageFiles.forEach((f, i) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'img-preview-wrap';
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                const btn = document.createElement('button');
+                btn.className = 'img-remove';
+                btn.innerHTML = '×';
+                btn.onclick = () => { imageFiles.splice(i, 1); renderImages(); };
+                wrap.appendChild(img); wrap.appendChild(btn);
+                area.appendChild(wrap);
+            });
+            if (imageFiles.length < 5) {
+                const addBtn = document.createElement('div');
+                addBtn.className = 'img-add-btn';
+                addBtn.innerHTML = '<span class="plus">+</span><span>사진 추가</span>';
+                addBtn.onclick = () => document.getElementById('file-input').click();
+                area.appendChild(addBtn);
+            }
+            document.getElementById('img-count').textContent = `${imageFiles.length} / 5`;
+        }
+
+        // 이미지 업로드
+        async function uploadImage(file, userId) {
+            const ext = file.name.split('.').pop() || 'jpg';
+            const path = `items-web/${userId}_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+            const imgRef = ref(storage, path);
+
+            // 리사이즈
+            const resized = await resizeImage(file, 800);
+            await uploadBytes(imgRef, resized);
+            return await getDownloadURL(imgRef);
+        }
+
+        function resizeImage(file, maxW) {
+            return new Promise(resolve => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const ratio = Math.min(1, maxW / img.width);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width * ratio;
+                    canvas.height = img.height * ratio;
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(resolve, 'image/jpeg', 0.8);
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+            });
+        }
+
+        window.submitForm = async function () {
+            const title = document.getElementById('title').value.trim();
+            const price = document.getElementById('price').value;
+            const description = document.getElementById('description').value.trim();
+            const city = document.getElementById('city').value;
+            const district = document.getElementById('district').value;
+            const apartment = document.getElementById('apartment').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const kakaoId = document.getElementById('kakao-id').value.trim();
+            const otherContact = document.getElementById('other-contact').value.trim();
+            const sellerName = document.getElementById('seller-name').value.trim();
+
+            if (!title) { alert('제목을 입력해주세요.'); return; }
+            if (!description) { alert('상세 설명을 입력해주세요.'); return; }
+            if (!city) { alert('도시를 선택해주세요.'); return; }
+            if (!phone && !kakaoId && !otherContact) { alert('연락처를 최소 하나 입력해주세요.'); return; }
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+
+            try {
+                // 익명 로그인
+                document.getElementById('loading-text').textContent = '인증 중...';
+                const userCred = await signInAnonymously(auth);
+                const uid = userCred.user.uid;
+
+                // 이미지 업로드
+                let imageUrls = [];
+                for (let i = 0; i < imageFiles.length; i++) {
+                    document.getElementById('loading-text').textContent = `사진 업로드 중 (${i + 1}/${imageFiles.length})...`;
+                    const url = await uploadImage(imageFiles[i], uid);
+                    imageUrls.push(url);
+                }
+
+                // Firestore 저장
+                document.getElementById('loading-text').textContent = '등록 중...';
+                const docData = {
+                    title,
+                    price: price ? parseInt(price) : 0,
+                    description,
+                    category: selectedCat,
+                    city: city || '',
+                    district: district || '',
+                    apartment: apartment || '',
+                    location: `${city} ${district} ${apartment}`.trim(),
+                    images: imageUrls,
+                    contact: {
+                        phone: phone || '',
+                        kakaoId: kakaoId || '',
+                        other: otherContact || '',
+                    },
+                    userId: uid,
+                    userEmail: 'kakaotalk-web@chaovietnam.co.kr',
+                    userName: sellerName || '카카오 등록',
+                    source: 'kakaotalk-web',
+                    status: '판매중',
+                    createdAt: serverTimestamp(),
+                };
+                const docRef = await addDoc(collection(db, 'XinChaoDanggn'), docData);
+
+                // 공유 텍스트 생성
+                const priceText = price && parseInt(price) > 0
+                    ? `${parseInt(price).toLocaleString()}₫ VND`
+                    : '가격 협의 / 무료나눔';
+                const contactText = [phone, kakaoId ? `카카오: ${kakaoId}` : '', otherContact].filter(Boolean).join(' | ');
+                const shareText = [
+                    `📦 [${selectedCat}] ${title}`,
+                    `💰 가격: ${priceText}`,
+                    city ? `📍 위치: ${city}${district ? ' ' + district : ''}${apartment ? ' ' + apartment : ''}` : '',
+                    ``,
+                    description.length > 200 ? description.slice(0, 200) + '...' : description,
+                    ``,
+                    `📞 연락처: ${contactText}`,
+                    ``,
+                    `🔗 씬짜오 앱 다운로드 → https://play.google.com/store/apps/details?id=com.yourname.chaovnapp`,
+                ].filter(l => l !== null).join('\n');
+
+                document.getElementById('share-text').textContent = shareText;
+
+                window.shareContent = {
+                    id: docRef.id,
+                    title: `📦 [${selectedCat}] ${title}`,
+                    description: `💰 ${priceText}\n📍 ${city}${district ? ' ' + district : ''}\n📝 ${description.length > 50 ? description.slice(0, 50) + '...' : description}`,
+                    imageUrl: imageUrls.length > 0 ? imageUrls[0] : 'https://chaovietnam-login.web.app/assets/icon.png'
+                };
+                document.getElementById('form-screen').style.display = 'none';
+                document.getElementById('success-screen').style.display = 'block';
+                window.scrollTo(0, 0);
+            } catch (e) {
+                console.error(e);
+                alert('등록 중 오류가 발생했습니다: ' + e.message);
+                submitBtn.disabled = false;
+            } finally {
+                loading.classList.remove('active');
+            }
+        };
+
+        window.shareToKakao = function () {
+            const content = window.shareContent;
+            if (!content) return;
+
+            if (typeof Kakao === 'undefined') {
+                const text = document.getElementById('share-text').textContent;
+                navigator.clipboard.writeText(text);
+                alert('카카오톡 시스템 일시 오류입니다. 텍스트가 대신 복사되었습니다.\n카카오톡에 길게 눌러 붙여넣기 해주세요!');
+                return;
+            }
+
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: content.title,
+                    description: content.description,
+                    imageUrl: content.imageUrl,
+                    link: {
+                        mobileWebUrl: `https://chaovietnam-login.web.app/download.html?type=danggn&id=${content.id}`,
+                        webUrl: `https://chaovietnam-login.web.app/download.html?type=danggn&id=${content.id}`,
+                    },
+                },
+                buttons: [
+                    {
+                        title: '앱에서 자세히 보기',
+                        link: {
+                            mobileWebUrl: `https://chaovietnam-login.web.app/download.html?type=danggn&id=${content.id}`,
+                            webUrl: `https://chaovietnam-login.web.app/download.html?type=danggn&id=${content.id}`,
+                        },
+                    },
+                ],
+            });
+        };
+
+        window.copyText = function () {
+            const text = document.getElementById('share-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ 복사됨!';
+                setTimeout(() => { btn.textContent = '📋 텍스트만 복사하기'; }, 2000);
+            });
+        };
+    </script>
+</body>
+
+</html>

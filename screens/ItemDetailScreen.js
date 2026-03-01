@@ -13,6 +13,7 @@ import {
   Alert,
   Linking,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -28,6 +29,7 @@ import {
   addDoc,
   serverTimestamp,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -39,16 +41,68 @@ import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ItemDetailScreen({ route, navigation }) {
-  const { item } = route.params;
+  const { item: initialItem, id: deepLinkId } = route.params || {};
   const { user, isAdmin } = useAuth();
   const { t, i18n } = useTranslation(['danggn', 'common']);
+
+  const [item, setItem] = useState(initialItem || null);
+  const [loadingItem, setLoadingItem] = useState(!initialItem);
+  const [itemNotFound, setItemNotFound] = useState(false);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(item.status || "판매중"); // ✅ 상태 관리
+  const [currentStatus, setCurrentStatus] = useState(initialItem?.status || "판매중"); // ✅ 상태 관리
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
   const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
+
+  // ✅ 딥링크를 통해 ID만 전달된 경우 데이터 패치
+  useEffect(() => {
+    if (!initialItem && deepLinkId) {
+      const fetchItem = async () => {
+        try {
+          const docRef = doc(db, "XinChaoDanggn", deepLinkId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = { id: docSnap.id, ...docSnap.data() };
+            setItem(data);
+            setCurrentStatus(data.status || "판매중");
+          } else {
+            setItemNotFound(true);
+          }
+        } catch (error) {
+          console.error("아이템 불러오기 실패:", error);
+          setItemNotFound(true);
+        } finally {
+          setLoadingItem(false);
+        }
+      };
+      fetchItem();
+    } else if (!initialItem && !deepLinkId) {
+      setItemNotFound(true);
+      setLoadingItem(false);
+    }
+  }, [initialItem, deepLinkId]);
+
+  if (loadingItem) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
+
+  if (itemNotFound || !item) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, color: "#666" }}>{t('common:notFound', '해당 게시물을 찾을 수 없습니다.')}</Text>
+        <TouchableOpacity style={{ marginTop: 20, padding: 10, backgroundColor: "#FF6B35", borderRadius: 8 }} onPress={() => navigation.goBack()}>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>뒤로 가기</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const images = item.images || (item.imageUri ? [item.imageUri] : []);
   const isMyItem = item.userId === user?.uid;

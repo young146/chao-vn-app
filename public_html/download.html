@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>씬짜오 베트남 앱으로 이동</title>
+    <script>
+        window.onload = function () {
+            const params = new URLSearchParams(window.location.search);
+            const type = params.get('type');
+            const id = params.get('id');
+            const fallbackUrl = "https://play.google.com/store/apps/details?id=com.yourname.chaovnapp";
+
+            if (type && id) {
+                // 딥링크 생성 (예: chaovietnam://danggn/12345)
+                const deepLink = "chaovietnam://" + type + "/" + id;
+
+                // 앱 실행 유도
+                window.location.href = deepLink;
+
+                // 2.5초 뒤에도 화면에 남아있다면 앱이 없는 것으로 간주하고 마켓으로 이동
+                setTimeout(function () {
+                    window.location.replace(fallbackUrl);
+                }, 2500);
+            } else {
+                // 파라미터가 없으면 바로 마켓으로 이동
+                window.location.replace(fallbackUrl);
+            }
+        };
+    </script>
+</head>
+
+<body
+    style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; background-color: #f5f5f5;">
+    <div style="text-align: center;">
+        <img src="assets/icon.png" alt="Xinchao Vietnam"
+            style="width: 80px; height: 80px; border-radius: 16px; margin-bottom: 20px;">
+        <h2>앱으로 상세 내용을 열고 있습니다...</h2>
+        <p style="color: #666;">만약 화면이 넘어가지 않는다면<br>앱을 설치해주세요.</p>
+    </div>
+</body>
+
+</html>

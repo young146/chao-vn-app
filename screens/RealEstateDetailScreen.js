@@ -14,6 +14,7 @@ import {
   Linking,
   Dimensions,
   Share,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -35,21 +36,54 @@ import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../util
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function RealEstateDetailScreen({ route, navigation }) {
-  const { item: initialItem } = route.params;
+  const { item: routeItem, id: deepLinkId } = route.params || {};
   const { user, isAdmin } = useAuth();
   const { t, i18n } = useTranslation(['realEstate', 'common']);
-  const [item, setItem] = useState(initialItem);
+
+  const [item, setItem] = useState(routeItem || null);
+  const [loadingItem, setLoadingItem] = useState(!routeItem);
+  const [itemNotFound, setItemNotFound] = useState(false);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState(initialItem.status || "거래가능");
+  const [currentStatus, setCurrentStatus] = useState(routeItem?.status || "거래가능");
   const [showPopup, setShowPopup] = useState(true);
   const [isImageViewVisible, setIsImageViewVisible] = useState(false);
+
+  // ✅ 딥링크를 통해 ID만 전달된 경우 데이터 패치
+  useEffect(() => {
+    if (!routeItem && deepLinkId) {
+      const fetchItem = async () => {
+        try {
+          const docRef = doc(db, "RealEstate", deepLinkId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = { id: docSnap.id, ...docSnap.data() };
+            setItem(data);
+            setCurrentStatus(data.status || "거래가능");
+          } else {
+            setItemNotFound(true);
+          }
+        } catch (error) {
+          console.error("아이템 불러오기 실패:", error);
+          setItemNotFound(true);
+        } finally {
+          setLoadingItem(false);
+        }
+      };
+      fetchItem();
+    } else if (!routeItem && !deepLinkId) {
+      setItemNotFound(true);
+      setLoadingItem(false);
+    }
+  }, [routeItem, deepLinkId]);
 
   // 화면이 포커스될 때마다 최신 데이터 재로드 (수정 후 자동 갱신)
   useFocusEffect(
     useCallback(() => {
       const fetchLatest = async () => {
+        if (!item?.id) return;
         try {
-          const docRef = doc(db, "RealEstate", initialItem.id);
+          const docRef = doc(db, "RealEstate", item.id);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const fresh = { id: docSnap.id, ...docSnap.data() };
@@ -61,8 +95,27 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         }
       };
       fetchLatest();
-    }, [initialItem.id])
+    }, [item?.id])
   );
+
+  if (loadingItem) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
+
+  if (itemNotFound || !item) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, color: "#666" }}>{t('common:notFound', '해당 게시물을 찾을 수 없습니다.')}</Text>
+        <TouchableOpacity style={{ marginTop: 20, padding: 10, backgroundColor: "#FF6B35", borderRadius: 8 }} onPress={() => navigation.goBack()}>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>뒤로 가기</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const images = item.images || [];
   const isMyItem = item.userId === user?.uid;

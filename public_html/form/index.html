@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>씬짜오 베트남 | 등록하기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .logo-area {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      font-size: 52px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .logo-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #1a1a2e;
+    }
+    .logo-sub {
+      font-size: 14px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .card-grid {
+      display: grid;
+      gap: 16px;
+      width: 100%;
+      max-width: 420px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-decoration: none;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+      transition: transform 0.18s, box-shadow 0.18s;
+      border: 2px solid transparent;
+    }
+    .card:active, .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.14);
+    }
+    .card-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+    .card-text h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .card-text p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .card-arrow {
+      margin-left: auto;
+      font-size: 20px;
+      color: #ccc;
+      flex-shrink: 0;
+    }
+    .card.secondhand .card-icon { background: #FFF3E0; }
+    .card.secondhand { border-color: #FFB84D20; }
+    .card.jobs .card-icon { background: #E3F2FD; }
+    .card.jobs { border-color: #2196F320; }
+    .card.realestate .card-icon { background: #E8F5E9; }
+    .card.realestate { border-color: #4CAF5020; }
+
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .app-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a2e;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 50px;
+      font-size: 13px;
+      text-decoration: none;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo-area">
+    <span class="logo-icon">🇻🇳</span>
+    <div class="logo-title">씬짜오 베트남</div>
+    <div class="logo-sub">무엇을 등록하시겠어요?</div>
+  </div>
+
+  <div class="card-grid">
+    <a href="./secondhand/" class="card secondhand">
+      <div class="card-icon">🛍️</div>
+      <div class="card-text">
+        <h3>씬짜오 나눔</h3>
+        <p>중고물품 · 무료나눔 · 생활용품</p>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <a href="./jobs/" class="card jobs">
+      <div class="card-icon">💼</div>
+      <div class="card-text">
+        <h3>씬짜오 구인구직</h3>
+        <p>구인 · 구직 · 아르바이트</p>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <a href="./realestate/" class="card realestate">
+      <div class="card-icon">🏠</div>
+      <div class="card-text">
+        <h3>씬짜오 부동산</h3>
+        <p>임대 · 매매 · 단기숙소</p>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+  </div>
+
+  <div class="footer">
+    <p>등록하면 씬짜오 앱에 자동으로 업로드됩니다 🚀</p>
+    <br>
+    <p>© 씬짜오 베트남</p>
+  </div>
+</body>
+</html>

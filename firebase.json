@@ -8,5 +8,34 @@
             "firebase-debug.log",
             "firebase-debug.*.log"
         ]
+    },
+    "storage": {
+        "rules": "storage.rules"
+    },
+    "hosting": {
+        "public": "public_html",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "/form",
+                "destination": "/form/index.html"
+            },
+            {
+                "source": "/form/secondhand",
+                "destination": "/form/secondhand/index.html"
+            },
+            {
+                "source": "/form/jobs",
+                "destination": "/form/jobs/index.html"
+            },
+            {
+                "source": "/form/realestate",
+                "destination": "/form/realestate/index.html"
+            }
+        ]
     }
 }

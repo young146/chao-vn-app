@@ -584,7 +584,7 @@ export default function App() {
                     "당근/나눠": {
                       screens: {
                         "당근/나눠 메인": "danggn",
-                        "당근/나눠 상세": {
+                        "당근/나눔 상세": {
                           path: "danggn/:id",
                           parse: {
                             id: (id) => `${id}`,

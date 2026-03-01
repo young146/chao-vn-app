@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ✅ 앱에서 업로드하는 이미지 (기존)
+    match /items/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /jobs/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /realestate/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ✅ 카카오 웹폼에서 업로드하는 이미지 (익명 포함)
+    match /items-web/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /realestate-web/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 기본 거부
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>씬짜오 구인구직 | 등록</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', system-ui, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1976D2, #42A5F5);
+            color: #fff;
+            padding: 20px 16px 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .form-body {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: #fff;
+            border-radius: 16px;
+            padding: 18px 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .required {
+            color: #1976D2;
+        }
+
+        label {
+            font-size: 13px;
+            color: #666;
+            display: block;
+            margin-bottom: 6px;
+            margin-top: 12px;
+        }
+
+        label:first-of-type {
+            margin-top: 0;
+        }
+
+        input[type=text],
+        input[type=tel],
+        textarea,
+        select {
+            width: 100%;
+            border: 1.5px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 15px;
+            font-family: inherit;
+            color: #222;
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #1976D2;
+            background: #fff;
+        }
+
+        textarea {
+            resize: none;
+            height: 120px;
+            line-height: 1.6;
+        }
+
+        /* 구인/구직 토글 */
+        .job-type-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .jt-btn {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 14px 8px;
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .jt-btn .jt-icon {
+            font-size: 26px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .jt-btn .jt-label {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .jt-btn .jt-sub {
+            font-size: 11px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .jt-btn.active {
+            border-color: #1976D2;
+            background: #E3F2FD;
+        }
+
+        .jt-btn.active .jt-label {
+            color: #1976D2;
+        }
+
+        /* 업종 칩 */
+        .industry-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ind-chip {
+            border: 1.5px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 13px;
+            background: #fff;
+            cursor: pointer;
+            color: #555;
+            transition: all 0.15s;
+        }
+
+        .ind-chip.active {
+            border-color: #1976D2;
+            background: #1976D2;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* 고용 형태 */
+        .emp-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .emp-btn {
+            border: 1.5px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 10px 4px;
+            font-size: 12px;
+            text-align: center;
+            background: #fff;
+            cursor: pointer;
+            color: #555;
+            transition: all 0.15s;
+        }
+
+        .emp-btn.active {
+            border-color: #1976D2;
+            background: #E3F2FD;
+            color: #1976D2;
+            font-weight: 700;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #1976D2, #42A5F5);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 8px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #success-screen {
+            display: none;
+        }
+
+        .success-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 28px 20px;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+            margin: 16px;
+        }
+
+        .success-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+
+        .success-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .success-sub {
+            font-size: 14px;
+            color: #888;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+
+        .kakao-share-box {
+            background: #FEE500;
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .kakao-share-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #3C1E1E;
+            margin-bottom: 8px;
+        }
+
+        .kakao-share-text {
+            font-size: 13px;
+            color: #3C1E1E;
+            white-space: pre-wrap;
+            line-height: 1.7;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .copy-btn {
+            width: 100%;
+            background: #3C1E1E;
+            color: #FEE500;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .share-kakao-btn {
+            width: 100%;
+            background: #FEE500;
+            color: #3C1E1E;
+            border: none;
+            border-radius: 14px;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(254, 229, 0, 0.4);
+        }
+
+        .another-btn {
+            width: 100%;
+            background: #1976D2;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #BBDEFB;
+            border-top-color: #1976D2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            color: #1976D2;
+            font-size: 14px;
+            margin-bottom: 16px;
+            text-decoration: none;
+            padding: 8px;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">업로드 중...</div>
+    </div>
+
+    <div id="form-screen">
+        <div class="header">
+            <h1>💼 씬짜오 구인구직</h1>
+            <p>구인 · 구직 · 아르바이트 등록</p>
+        </div>
+
+        <div class="form-body">
+            <a href="../" class="back-link">← 카테고리 선택으로 돌아가기</a>
+
+            <!-- 구인/구직 선택 -->
+            <div class="section">
+                <div class="section-title">🔄 유형 선택 <span class="required">*</span></div>
+                <div class="job-type-row">
+                    <button class="jt-btn active" id="btn-hire" onclick="selectJobType('구인')">
+                        <span class="jt-icon">🏢</span>
+                        <span class="jt-label">구인</span>
+                        <span class="jt-sub">인재를 찾습니다</span>
+                    </button>
+                    <button class="jt-btn" id="btn-seek" onclick="selectJobType('구직')">
+                        <span class="jt-icon">👤</span>
+                        <span class="jt-label">구직</span>
+                        <span class="jt-sub">일자리를 찾습니다</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 제목 -->
+            <div class="section">
+                <div class="section-title">✏️ 제목 <span class="required">*</span></div>
+                <input type="text" id="title" placeholder="예: 호치민 한식당 주방보조 구합니다" maxlength="50"
+                    oninput="document.getElementById('title-count').textContent=this.value.length+'/50'">
+                <div class="char-count" id="title-count">0/50</div>
+            </div>
+
+            <!-- 업종 -->
+            <div class="section">
+                <div class="section-title">📋 업종</div>
+                <div class="industry-grid" id="industry-grid">
+                    <button class="ind-chip active" data-val="식당/요리" onclick="selectIndustry(this)">🍳 식당/요리</button>
+                    <button class="ind-chip" data-val="IT/개발" onclick="selectIndustry(this)">💻 IT/개발</button>
+                    <button class="ind-chip" data-val="제조/생산" onclick="selectIndustry(this)">🏭 제조/생산</button>
+                    <button class="ind-chip" data-val="무역/물류" onclick="selectIndustry(this)">🚚 무역/물류</button>
+                    <button class="ind-chip" data-val="교육/강사" onclick="selectIndustry(this)">📖 교육/강사</button>
+                    <button class="ind-chip" data-val="서비스/판매" onclick="selectIndustry(this)">🛎️ 서비스/판매</button>
+                    <button class="ind-chip" data-val="사무/관리" onclick="selectIndustry(this)">📊 사무/관리</button>
+                    <button class="ind-chip" data-val="건설/인테리어" onclick="selectIndustry(this)">🔨 건설/인테리어</button>
+                    <button class="ind-chip" data-val="미용/뷰티" onclick="selectIndustry(this)">💅 미용/뷰티</button>
+                    <button class="ind-chip" data-val="통역/번역" onclick="selectIndustry(this)">🌐 통역/번역</button>
+                    <button class="ind-chip" data-val="기타" onclick="selectIndustry(this)">📦 기타</button>
+                </div>
+            </div>
+
+            <!-- 급여/급여 형태 -->
+            <div class="section">
+                <div class="section-title">💰 급여</div>
+                <label>급여 (금액 또는 '협의')</label>
+                <input type="text" id="salary" placeholder="예: 월 500만동, 시간당 20,000동, 협의">
+
+                <label>고용 형태</label>
+                <div class="emp-grid">
+                    <button class="emp-btn active" data-val="정규직" onclick="selectEmp(this)">정규직</button>
+                    <button class="emp-btn" data-val="계약직" onclick="selectEmp(this)">계약직</button>
+                    <button class="emp-btn" data-val="파트타임" onclick="selectEmp(this)">파트타임</button>
+                    <button class="emp-btn" data-val="인턴" onclick="selectEmp(this)">인턴</button>
+                    <button class="emp-btn" data-val="프리랜서" onclick="selectEmp(this)">프리랜서</button>
+                    <button class="emp-btn" data-val="협의" onclick="selectEmp(this)">협의</button>
+                </div>
+            </div>
+
+            <!-- 근무지 -->
+            <div class="section">
+                <div class="section-title">📍 근무지</div>
+                <label>도시 <span class="required">*</span></label>
+                <select id="city">
+                    <option value="">도시 선택</option>
+                    <option value="호치민">호치민</option>
+                    <option value="하노이">하노이</option>
+                    <option value="다낭">다낭</option>
+                    <option value="냐짱">냐짱</option>
+                    <option value="붕따우">붕따우</option>
+                    <option value="빈증">빈증</option>
+                    <option value="동나이">동나이</option>
+                    <option value="기타">기타</option>
+                </select>
+
+                <label>상세 지역</label>
+                <input type="text" id="district" placeholder="예: 7군, 빈탄구 등">
+            </div>
+
+            <!-- 마감일 -->
+            <div class="section">
+                <div class="section-title">📅 마감일</div>
+                <input type="text" id="deadline" placeholder="예: 2026년 3월 31일, 채용 시 마감, 상시">
+            </div>
+
+            <!-- 상세 내용 -->
+            <div class="section">
+                <div class="section-title">📝 상세 내용 <span class="required">*</span></div>
+                <label id="desc-label">업무 내용, 지원 자격 등 자세히 적어주세요</label>
+                <textarea id="description" placeholder="업무 내용, 근무 시간, 혜택 등"></textarea>
+
+                <label>자격 요건 / 우대사항</label>
+                <textarea id="requirements" placeholder="경력, 언어 능력, 자격증 등 (선택사항)" style="height:80px"></textarea>
+            </div>
+
+            <!-- 연락처 -->
+            <div class="section">
+                <div class="section-title">📞 연락처 <span class="required">*</span></div>
+                <label>전화/카카오/Zalo</label>
+                <input type="tel" id="contact" placeholder="010-1234-5678 또는 카카오ID, Zalo번호">
+                <label>이름/회사명</label>
+                <input type="text" id="contact-name" placeholder="홍길동 / 씬짜오 레스토랑 (선택사항)">
+            </div>
+
+            <button class="submit-btn" id="submit-btn" onclick="submitForm()">
+                ✅ 등록하기
+            </button>
+        </div>
+    </div>
+
+    <div id="success-screen">
+        <div class="header" style="background: linear-gradient(135deg, #4CAF50, #66BB6A);">
+            <h1>✅ 등록 완료!</h1>
+            <p>씬짜오 앱에 자동으로 업로드되었습니다</p>
+        </div>
+        <div class="success-card">
+            <div class="success-icon">🎉</div>
+            <div class="success-title">등록되었습니다!</div>
+            <div class="success-sub">아래 버튼을 눌러 바로 오픈채팅에 공유하세요!</div>
+            <button class="share-kakao-btn" onclick="shareToKakao()">💬 카카오톡에 공유하기</button>
+            <div class="kakao-share-box">
+                <div class="kakao-share-label">📋 공유 내용 미리보기</div>
+                <div class="kakao-share-text" id="share-text"></div>
+                <button class="copy-btn" onclick="copyText()">📋 텍스트만 복사하기</button>
+            </div>
+            <button class="another-btn" onclick="location.reload()">+ 또 등록하기</button>
+            <hr style="margin: 16px 0; border-color: #f0f0f0;">
+            <a href="../" style="display:block;text-align:center;color:#888;font-size:13px">← 처음으로</a>
+        </div>
+    </div>
+
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
+
+        if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) {
+            Kakao.init('eb4612604473e026e6cc7ed41ededbc3');
+        }
+
+        const app = initializeApp({
+            apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU",
+            authDomain: "chaovietnam-login.firebaseapp.com",
+            projectId: "chaovietnam-login",
+            storageBucket: "chaovietnam-login.firebasestorage.app",
+            messagingSenderId: "249390849714",
+            appId: "1:249390849714:web:95ae3e7f066b70ffe973ab",
+        });
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let jobType = '구인';
+        let industry = '식당/요리';
+        let empType = '정규직';
+
+        window.selectJobType = (type) => {
+            jobType = type;
+            document.getElementById('btn-hire').classList.toggle('active', type === '구인');
+            document.getElementById('btn-seek').classList.toggle('active', type === '구직');
+            const title = document.getElementById('title');
+            title.placeholder = type === '구인' ? '예: 호치민 한식당 주방보조 구합니다' : '예: 경력 5년 웹개발자 구직합니다';
+        };
+
+        window.selectIndustry = (btn) => {
+            document.querySelectorAll('.ind-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            industry = btn.dataset.val;
+        };
+
+        window.selectEmp = (btn) => {
+            document.querySelectorAll('.emp-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            empType = btn.dataset.val;
+        };
+
+        window.submitForm = async () => {
+            const title = document.getElementById('title').value.trim();
+            const salary = document.getElementById('salary').value.trim();
+            const city = document.getElementById('city').value;
+            const district = document.getElementById('district').value.trim();
+            const deadline = document.getElementById('deadline').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const requirements = document.getElementById('requirements').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const contactName = document.getElementById('contact-name').value.trim();
+
+            if (!title || title.length < 5) { alert('제목을 5자 이상 입력해주세요.'); return; }
+            if (!description || description.length < 20) { alert('상세 내용을 20자 이상 입력해주세요.'); return; }
+            if (!city) { alert('도시를 선택해주세요.'); return; }
+            if (!contact) { alert('연락처를 입력해주세요.'); return; }
+
+            document.getElementById('submit-btn').disabled = true;
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+
+            try {
+                const cred = await signInAnonymously(auth);
+                document.getElementById('loading-text').textContent = '등록 중...';
+                const docRef = await addDoc(collection(db, 'Jobs'), {
+                    title, jobType, industry, salary: salary || '협의',
+                    employmentType: empType, city, district,
+                    contact, deadline,
+                    description, requirements,
+                    userId: cred.user.uid,
+                    userEmail: 'kakaotalk-web@chaovietnam.co.kr',
+                    userName: contactName || '카카오 등록',
+                    source: 'kakaotalk-web',
+                    status: '모집중',
+                    images: [],
+                    createdAt: serverTimestamp(),
+                });
+
+                const typeEmoji = jobType === '구인' ? '🏢' : '👤';
+                const shareText = [
+                    `${typeEmoji} [${jobType}] ${title}`,
+                    `📋 업종: ${industry} | ${empType}`,
+                    salary ? `💰 급여: ${salary}` : '',
+                    `📍 근무지: ${city}${district ? ' ' + district : ''}`,
+                    deadline ? `📅 마감: ${deadline}` : '',
+                    ``,
+                    description.length > 200 ? description.slice(0, 200) + '...' : description,
+                    requirements ? `\n✅ 자격요건: ${requirements.slice(0, 100)}` : '',
+                    ``,
+                    `📞 연락처: ${contact}${contactName ? ' (' + contactName + ')' : ''}`,
+                    `🔗 씬짜오 앱 다운로드 → https://play.google.com/store/apps/details?id=com.yourname.chaovnapp`,
+                ].filter(Boolean).join('\n');
+
+                document.getElementById('share-text').textContent = shareText;
+
+                window.shareContent = {
+                    id: docRef.id,
+                    title: `${typeEmoji} [${jobType}] ${title}`,
+                    description: `📋 ${industry} | ${empType}\n${salary ? `💰 ${salary}\n` : ''}📍 ${city}${district ? ' ' + district : ''}`,
+                    imageUrl: 'https://chaovietnam-login.web.app/assets/icon.png'
+                };
+                document.getElementById('form-screen').style.display = 'none';
+                document.getElementById('success-screen').style.display = 'block';
+                window.scrollTo(0, 0);
+            } catch (e) {
+                alert('등록 중 오류: ' + e.message);
+                document.getElementById('submit-btn').disabled = false;
+            } finally {
+                loading.classList.remove('active');
+            }
+        };
+
+        window.shareToKakao = function () {
+            const content = window.shareContent;
+            if (!content) return;
+
+            if (typeof Kakao === 'undefined') {
+                const text = document.getElementById('share-text').textContent;
+                navigator.clipboard.writeText(text);
+                alert('카카오톡 시스템 일시 오류입니다. 텍스트가 대신 복사되었습니다.\n카카오톡에 길게 눌러 붙여넣기 해주세요!');
+                return;
+            }
+
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: content.title,
+                    description: content.description,
+                    imageUrl: content.imageUrl,
+                    link: {
+                        mobileWebUrl: `https://chaovietnam-login.web.app/download.html?type=job&id=${content.id}`,
+                        webUrl: `https://chaovietnam-login.web.app/download.html?type=job&id=${content.id}`,
+                    },
+                },
+                buttons: [
+                    {
+                        title: '앱에서 자세히 보기',
+                        link: {
+                            mobileWebUrl: `https://chaovietnam-login.web.app/download.html?type=job&id=${content.id}`,
+                            webUrl: `https://chaovietnam-login.web.app/download.html?type=job&id=${content.id}`,
+                        },
+                    },
+                ],
+            });
+        };
+
+        window.copyText = () => {
+            const text = document.getElementById('share-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ 복사됨!';
+                setTimeout(() => { btn.textContent = '📋 텍스트만 복사하기'; }, 2000);
+            });
+        };
+    </script>
+</body>
+
+</html>

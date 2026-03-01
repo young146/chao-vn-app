@@ -14,6 +14,7 @@ import {
   Linking,
   Dimensions,
   Share,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -23,6 +24,7 @@ import {
   doc,
   deleteDoc,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -33,13 +35,65 @@ import TranslatedText from "../components/TranslatedText";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function JobDetailScreen({ route, navigation }) {
-  const { job } = route.params;
+  const { job: initialJob, id: deepLinkId } = route.params || {};
   const { user, isAdmin } = useAuth();
   const { t, i18n } = useTranslation(['jobs', 'common']);
+
+  const [job, setJob] = useState(initialJob || null);
+  const [loadingJob, setLoadingJob] = useState(!initialJob);
+  const [jobNotFound, setJobNotFound] = useState(false);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState(job.status || "모집중");
+  const [currentStatus, setCurrentStatus] = useState(initialJob?.status || "모집중");
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
   const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
+
+  // ✅ 딥링크를 통해 ID만 전달된 경우 데이터 패치
+  useEffect(() => {
+    if (!initialJob && deepLinkId) {
+      const fetchJob = async () => {
+        try {
+          const docRef = doc(db, "Jobs", deepLinkId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = { id: docSnap.id, ...docSnap.data() };
+            setJob(data);
+            setCurrentStatus(data.status || "모집중");
+          } else {
+            setJobNotFound(true);
+          }
+        } catch (error) {
+          console.error("아이템 불러오기 실패:", error);
+          setJobNotFound(true);
+        } finally {
+          setLoadingJob(false);
+        }
+      };
+      fetchJob();
+    } else if (!initialJob && !deepLinkId) {
+      setJobNotFound(true);
+      setLoadingJob(false);
+    }
+  }, [initialJob, deepLinkId]);
+
+  if (loadingJob) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
+
+  if (jobNotFound || !job) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, color: "#666" }}>{t('common:notFound', '해당 게시물을 찾을 수 없습니다.')}</Text>
+        <TouchableOpacity style={{ marginTop: 20, padding: 10, backgroundColor: "#FF6B35", borderRadius: 8 }} onPress={() => navigation.goBack()}>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>뒤로 가기</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const images = job.images || [];
   const isMyJob = job.userId === user?.uid;
