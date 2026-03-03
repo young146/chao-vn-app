@@ -581,9 +581,9 @@ export default function App() {
                         },
                       },
                     },
-                    "당근/나눠": {
+                    "당근/나눔": {
                       screens: {
-                        "당근/나눠 메인": "danggn",
+                        "당근/나눔 메인": "danggn",
                         "당근/나눔 상세": {
                           path: "danggn/:id",
                           parse: {

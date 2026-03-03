@@ -104,6 +104,16 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 📋 카카오톡 웹폼 등록 (로그인 불필요)
+    // ========================================
+    match /form_items/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true; // 이미지 URL 업데이트용
+      allow delete: if isAdmin();
+    }
+
+    // ========================================
     // 🚫 기본 거부 (위에서 정의되지 않은 모든 문서)
     // ========================================
     match /{document=**} {

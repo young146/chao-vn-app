@@ -1,32 +1,49 @@
-# Handover Document: Kakao Share & Web Fallback
+# Handover Document: 씬짜오 카카오톡 템플릿 생성기 (Option C)
 
-## Date: 2026-03-01
+## Date: 2026-03-03
 
-## Current State (As of today)
+## 🚨 최우선 개발 목표 (현재 확정된 진행 방향)
 
-1. **Kakao SDK Integration in Web Forms**: 
-   - `secondhand/index.html`, `jobs/index.html`, and `realestate/index.html` were updated to successfully integrate the Kakao JavaScript SDK (`Kakao.Share.sendDefault`).
-   - The forms now properly capture the dynamically generated Firebase Document ID when a new item is submitted.
-   - The Kakao Share payload was updated to construct a link pointing to `download.html` using the template: `https://chaovietnam-login.web.app/download.html?type=[itemType]&id=[itemId]`.
+기존의 복잡한 "카카오 링크 API 연동 및 딥링크 라우팅" 방식에서 발생한 여러 문제들(200자 텍스트 잘림 현상, 상세보기 클릭 시 메인 화면으로 이동하는 버그 등)을 근본적으로 해결하기 위해, 가장 직관적이고 사용자 친화적인 **"텍스트 템플릿 제너레이터(Option C)"** 방식으로 개발 방향을 완전히 전환했습니다.
 
-2. **App Deep Linking**:
-   - `download.html` was initially modified to act as a deep link router, attempting to launch the React Native Expo app using the custom URI scheme `chaovietnam://[type]/[id]`, with a fallback to the Google Play Store.
-   - The Expo React Native App (`App.js`, `ItemDetailScreen.js`, `JobDetailScreen.js`, `RealEstateDetailScreen.js`) was updated to correctly handle incoming deep links, parsing the ID and fetching the document from Firestore to display the detail view directly.
+### 핵심 동작 시나리오:
+1.  **공지사항 링크**: 카카오톡 각 오픈채팅방 공지사항에 각 카테고리별 폼 링크(예: `.../form/danggn/index.html`)를 상단에 고정합니다.
+2.  **폼 작성**: 사용자가 스마트폰에서 위 링크를 눌러 매우 직관적으로 만들어진 씬짜오 웹 폼에 내용을 채워 넣습니다. (드롭다운, 자유입력칸 등)
+3.  **복사 및 이동 버튼**: 작성을 마친 사용자는 맨 아래 **[이 내용을 복사하고 카카오톡 열기]** 버튼을 누릅니다.
+4.  **자동화 처리**: 
+    - (1) 작성한 데이터가 정해진 포맷의 예쁜 줄글(String)로 조합됩니다.
+    - (2) 해당 줄글의 맨 하단에는 딥링크 처리된 URL(`https://chaovietnam-login.web.app/download.html?type=...`)이 자동으로 추가됩니다.
+    - (3) 완성된 전체 텍스트가 사용자의 기기 **클립보드에 자동 복사**됩니다.
+    - (4) `intent://` 또는 카카오 오픈채팅 `URL Scheme`을 통해서 스마트폰의 **카카오톡 앱을 자동으로 띄워줍니다.**
+5.  **사용자 마무리**: 사용자는 열린 채팅창 입력칸을 꾹 눌러 **[붙여넣기]**를 한 뒤 전송하고, 사진은 카카오톡의 `+` 버튼을 눌러 직접 추가합니다.
 
-## New Requirement & Pending Tasks
+이 방식을 통해 **카카오톡 200자 글자수 제한 무력화**, **명확한 정보 전달**, **딥링크 오류 완벽 우회(안전한 웹뷰 기반 딥링크 활용)** 세 마리 토끼를 모두 잡을 수 있습니다.
 
-After testing, the user clarified a critical constraint: **Assume the user does NOT have the app installed, and the app installation should NOT be forced.** 
-When a user clicks the Kakao Share card inside a KakaoTalk open chat, the link will open in the Kakao in-app browser. The goal is to **display the complete item details independently within that web browser**, instead of immediately attempting deep linking or redirecting to the Play Store.
+---
 
-### Next Steps for Tomorrow:
-1. **Develop Web Detail Pages**:
-   - Create a new web page (e.g., `detail.html` or expand `download.html`) hosted on Firebase Hosting.
-   - This page must parse the `type` and `id` URL parameters.
-   - It needs to connect to Firebase Firestore, fetch the specific document, and dynamically render a UI similar to the app's detail screens.
-2. **Update Kakao Share Links**:
-   - Ensure the URLs in the Kakao Share payloads (`webUrl` and `mobileWebUrl`) point to this new web detail page rather than the old deep-link redirection logic.
-3. **Optional App Banner**:
-   - Inside the web detail page, we can add an optional button like "Open in App" or "Download App" for users who want to use the app, while keeping the main content fully accessible on the web.
+## 🛠️ 다음 작업자(또는 다음 세션)가 해야 할 일 (Action Items)
+
+현재 기획 및 아키텍처 변경 설계안(`implementation_plan.md`, `task.md`)은 완벽하게 합의 및 업데이트되어 있는 상태입니다. 다음 스크립트들을 차례대로 구현하면 됩니다.
+
+### 1단계: 폼 UI 제너레이터 퍼블리싱 (폴더: `public_html/form/`)
+-   기존에 만들어둔 복잡한 폼들(`secondhand`, `realestate`, `jobs`)을 텍스트 생성을 목적으로 하는 아름답고 직관적인 UI로 다이얼다운/개편합니다.
+-   필수 항목이 비어있으면 알림을 띄우는 가벼운 유효성 검사(Validation)를 추가합니다.
+
+### 2단계: 텍스트 렌더링 및 클립보드 복사 로직 (JS 로직)
+-   사용자가 입력한 각 항목들의 값을 읽어(DOM 요소를 통해), 하나의 거대한 `String` 변수로 조립하는 로직을 작성합니다.
+    -   *예시: 상품명과 가격 사이에 줄바꿈 `\n` 추가, 이모지 조합 등.*
+-   조합된 텍스트의 맨 아랫줄에 연결될 딥링크(`download.html?type=...&id=main`)를 `append`합니다.
+-   브라우저 보안 정책을 고려하여 `navigator.clipboard.writeText(text)`를 사용하여 클립보드에 문자열을 밀어 넣습니다.
+
+### 3단계: 카카오톡 강제 호출 기능 (JS 로직)
+-   복사가 성공했다는 `Toast` 메시지 또는 알림창을 띄워줍니다.
+-   JavaScript에서 `window.location.href = 'intent://...'` 또는 안드로이드/iOS 환경을 분기 처리하여 설치된 카카오톡 앱을 바로 여는 코드를 실행합니다.
+
+---
+
+## 💡 주요 참고 사항 및 기존 작업분
+-   **딥링크 처리 파일 (`public_html/download.html`)**: 현재 완벽하게 작동하고 있습니다. 템플릿 하단에 `?type=당근&id=main` 형식으로 붙여주기만 하면, 앱 설치자는 특정 탭으로 / 미설치자는 마켓으로 유도하는 허브 역할을 완벽히 수행합니다.
+-   **Firebase 연동 보류**: 현재 이 "텍스트 복사 방식"에서는 굳이 복사하는 시점에 Firebase에 내용을 저장할 필요가 없습니다. 다만 추후 사용자가 앱 내에서도 내용을 보게 하고 싶다면, [클립보드 복사] 버튼을 누를 때 백그라운드에서 Firestore Collection (`XinChaoDanggn` 등)에 문서를 `add` 하도록 기능을 확장할 수 있습니다. (현재 1순위는 클립보드 복사+카톡 열기 기능 런칭입니다)
 
 ## Git Status
-All progress up to this point has been committed to the local Git repository under the message `"Save state: Kakao share and deep linking setup, pending web fallback"`.
+-   현재 변경된 아키텍처 디자인안(`implementation_plan.md`, `task.md`)만 업데이트되었으며, 실제 "텍스트 제너레이터 폼 HTML" 코딩은 시작하지 않은 상태입니다. 이 문서 내용을 토대로 1단계 UI 퍼블리싱부터 이어나가시면 됩니다!

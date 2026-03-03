@@ -4,41 +4,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>씬짜오 베트남 앱으로 이동</title>
-    <script>
-        window.onload = function () {
-            const params = new URLSearchParams(window.location.search);
-            const type = params.get('type');
-            const id = params.get('id');
-            const fallbackUrl = "https://play.google.com/store/apps/details?id=com.yourname.chaovnapp";
+    <title>씬짜오 베트남 - 상세보기</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-            if (type && id) {
-                // 딥링크 생성 (예: chaovietnam://danggn/12345)
-                const deepLink = "chaovietnam://" + type + "/" + id;
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            max-width: 360px;
+            width: 100%;
+        }
 
-                // 앱 실행 유도
-                window.location.href = deepLink;
+        .logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
 
-                // 2.5초 뒤에도 화면에 남아있다면 앱이 없는 것으로 간주하고 마켓으로 이동
-                setTimeout(function () {
-                    window.location.replace(fallbackUrl);
-                }, 2500);
-            } else {
-                // 파라미터가 없으면 바로 마켓으로 이동
-                window.location.replace(fallbackUrl);
+        h2 {
+            font-size: 18px;
+            color: #222;
+            margin: 0 0 8px;
+        }
+
+        p {
+            font-size: 14px;
+            color: #888;
+            margin: 0 0 24px;
+            line-height: 1.6;
+        }
+
+        .open-btn {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+
+        .store-btn {
+            display: block;
+            width: 100%;
+            background: #f5f5f5;
+            color: #555;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #FFE0D0;
+            border-top-color: #FF6B35;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
-        };
-    </script>
+        }
+
+        #loading-view {
+            display: block;
+        }
+
+        #manual-view {
+            display: none;
+        }
+    </style>
 </head>
 
-<body
-    style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; background-color: #f5f5f5;">
-    <div style="text-align: center;">
-        <img src="assets/icon.png" alt="Xinchao Vietnam"
-            style="width: 80px; height: 80px; border-radius: 16px; margin-bottom: 20px;">
-        <h2>앱으로 상세 내용을 열고 있습니다...</h2>
-        <p style="color: #666;">만약 화면이 넘어가지 않는다면<br>앱을 설치해주세요.</p>
+<body>
+    <div class="card">
+        <img src="assets/icon.png" alt="씬짜오 베트남" class="logo" onerror="this.style.display='none'">
+
+        <!-- 자동 실행 중 표시 -->
+        <div id="loading-view">
+            <div class="spinner"></div>
+            <h2>앱으로 이동 중...</h2>
+            <p>씬짜오 베트남 앱으로<br>상세 페이지를 여는 중입니다.</p>
+        </div>
+
+        <!-- 자동 실행 실패 시 수동 버튼 -->
+        <div id="manual-view">
+            <h2>📱 앱에서 상세보기</h2>
+            <p>아래 버튼을 눌러<br>앱에서 상세 내용을 확인하세요.</p>
+            <a id="app-open-btn" href="#" class="open-btn">🚀 앱에서 열기</a>
+            <a href="https://play.google.com/store/apps/details?id=com.yourname.chaovnapp" class="store-btn">앱 설치하기
+                (Play Store)</a>
+        </div>
     </div>
+
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const type = params.get('type');   // danggn | realestate | job
+            const id = params.get('id');
+            const storeUrl = 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
+
+            if (!type || !id) {
+                window.location.replace(storeUrl);
+                return;
+            }
+
+            const packageName = 'com.yourname.chaovnapp';
+            const customScheme = 'chaovietnam://' + type + '/' + id;
+
+            // Android Intent URL — KakaoTalk 인앱브라우저에서도 앱 실행 가능
+            const intentUrl = 'intent://' + type + '/' + id
+                + '#Intent;scheme=chaovietnam'
+                + ';package=' + packageName
+                + ';S.browser_fallback_url=' + encodeURIComponent(storeUrl)
+                + ';end';
+
+            // 수동 버튼에도 Intent URL 연결
+            document.getElementById('app-open-btn').href = intentUrl;
+
+            // 사용자 에이전트로 환경 감지
+            const ua = navigator.userAgent || '';
+            const isAndroid = /Android/i.test(ua);
+            const isKakao = /KAKAO/i.test(ua);
+            const isKakaoBrowser = /KAKAOTALK/i.test(ua) || isKakao;
+
+            function showManual() {
+                document.getElementById('loading-view').style.display = 'none';
+                document.getElementById('manual-view').style.display = 'block';
+            }
+
+            if (isAndroid && isKakaoBrowser) {
+                // KakaoTalk 인앱브라우저: Intent URL로 바로 이동
+                // Custom Scheme은 차단되므로 Intent URL 사용
+                window.location.href = intentUrl;
+                // 1.5초 후 수동 버튼 표시 (앱이 열렸으면 아무 의미 없음)
+                setTimeout(showManual, 1500);
+            } else if (isAndroid) {
+                // 일반 Android 브라우저: Custom Scheme 먼저 시도
+                window.location.href = customScheme;
+                setTimeout(function () {
+                    // 여전히 페이지에 있으면 Intent URL 시도
+                    window.location.href = intentUrl;
+                    setTimeout(showManual, 1000);
+                }, 800);
+            } else {
+                // iOS 또는 기타: Custom Scheme 시도
+                window.location.href = customScheme;
+                setTimeout(function () {
+                    // 앱 없으면 스토어로
+                    window.location.replace(storeUrl);
+                }, 1500);
+            }
+        })();
+    </script>
 </body>
 
 </html>

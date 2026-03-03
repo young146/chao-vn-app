@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title id="page-title">씬짜오 부동산 | 상세보기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        #loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #C8E6C9;
+            border-top-color: #2E7D32;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #error-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 32px;
+            text-align: center;
+            gap: 12px;
+        }
+
+        #error-screen h2 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        #error-screen p {
+            font-size: 14px;
+            color: #888;
+        }
+
+        #detail-screen {
+            display: none;
+            padding-bottom: 110px;
+        }
+
+        .top-header {
+            background: linear-gradient(135deg, #2E7D32, #66BB6A);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, .3);
+        }
+
+        .top-header span {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .gallery {
+            position: relative;
+            background: #111;
+        }
+
+        .gallery-slides {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+        }
+
+        .gallery-slides::-webkit-scrollbar {
+            display: none;
+        }
+
+        .gallery-slide {
+            flex-shrink: 0;
+            width: 100%;
+            scroll-snap-align: start;
+        }
+
+        .gallery-slide img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .img-count {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, .6);
+            color: #fff;
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .no-image {
+            height: 200px;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .no-image span {
+            font-size: 52px;
+        }
+
+        .no-image p {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .card {
+            background: #fff;
+            margin: 8px 0;
+            padding: 20px 16px;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .badge-active {
+            background: #2E7D32;
+        }
+
+        .badge-type {
+            background: #66BB6A;
+        }
+
+        .badge-done {
+            background: #9E9E9E;
+        }
+
+        .item-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #222;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .item-price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2E7D32;
+            margin-bottom: 10px;
+        }
+
+        .item-meta {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .info-item {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .desc-text {
+            font-size: 15px;
+            color: #444;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        .contact-icon {
+            font-size: 20px;
+        }
+
+        .contact-val {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .seller-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .seller-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #2E7D32, #66BB6A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .seller-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .seller-sub {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid #eee;
+            padding: 12px 16px 28px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-app {
+            flex: 1;
+            background: linear-gradient(135deg, #2E7D32, #66BB6A);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-store {
+            background: #f5f5f5;
+            color: #666;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p style="font-size:14px;color:#888">부동산 정보를 불러오는 중...</p>
+    </div>
+
+    <div id="error-screen">
+        <div style="font-size:52px">😢</div>
+        <h2>게시물을 찾을 수 없습니다</h2>
+        <p>삭제됐거나 존재하지 않는 게시물입니다.</p>
+    </div>
+
+    <div id="detail-screen">
+        <div class="top-header">
+            <span>🏠 씬짜오 부동산</span>
+        </div>
+
+        <div class="gallery" id="gallery-wrap">
+            <div class="gallery-slides" id="gallery-slides"></div>
+            <div class="img-count" id="img-count" style="display:none"></div>
+        </div>
+
+        <div class="card">
+            <div class="badge-row" id="badge-row"></div>
+            <div class="item-title" id="item-title"></div>
+            <div class="item-price" id="item-price"></div>
+            <div class="item-meta" id="item-meta"></div>
+        </div>
+
+        <div class="card" id="info-card" style="display:none">
+            <div class="section-title">🏘️ 매물 정보</div>
+            <div class="info-row" id="info-row"></div>
+        </div>
+
+        <div class="card" id="location-card">
+            <div class="section-title">📍 위치</div>
+            <div class="desc-text" id="location-text"></div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">📝 상세 설명</div>
+            <div class="desc-text" id="desc-text">설명이 없습니다.</div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">👤 등록자</div>
+            <div class="seller-row">
+                <div class="seller-avatar">🏠</div>
+                <div>
+                    <div class="seller-name" id="seller-name">등록자</div>
+                    <div class="seller-sub">씬짜오 베트남 회원</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="contact-card" style="display:none">
+            <div class="section-title">📞 연락처</div>
+            <div id="contact-list"></div>
+        </div>
+    </div>
+
+    <div class="bottom-bar" id="bottom-bar" style="display:none">
+        <button class="btn-app" onclick="openInApp()">🚀 앱에서 자세히 보기</button>
+        <button class="btn-store" onclick="goStore()">앱 설치</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js';
+        import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU",
+            authDomain: "chaovietnam-login.firebaseapp.com",
+            projectId: "chaovietnam-login",
+            storageBucket: "chaovietnam-login.firebasestorage.app",
+            messagingSenderId: "249390849714",
+            appId: "1:249390849714:web:95ae3e7f066b70ffe973ab",
+        };
+        const fbApp = initializeApp(firebaseConfig);
+        const db = getFirestore(fbApp);
+
+        const params = new URLSearchParams(window.location.search);
+        const itemId = params.get('id');
+        const storeUrl = 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
+
+        window.openInApp = function () {
+            const ua = navigator.userAgent || '';
+            const isAndroid = /Android/i.test(ua);
+            if (isAndroid) {
+                const intentUrl = `intent://realestate/${itemId}#Intent;scheme=chaovietnam;package=com.yourname.chaovnapp;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
+                window.location.href = intentUrl;
+            } else {
+                window.location.href = `chaovietnam://realestate/${itemId}`;
+            }
+        };
+        window.goStore = function () { window.open(storeUrl, '_blank'); };
+
+        function formatDate(ts) {
+            if (!ts) return '';
+            let d = ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+            const diff = Date.now() - d;
+            const m = Math.floor(diff / 60000), h = Math.floor(diff / 3600000), days = Math.floor(diff / 86400000);
+            if (m < 1) return '방금 전';
+            if (m < 60) return `${m}분 전`;
+            if (h < 24) return `${h}시간 전`;
+            if (days < 7) return `${days}일 전`;
+            return d.toLocaleDateString('ko-KR');
+        }
+
+        function statusClass(s) {
+            if (s === '거래중') return 'badge-active';
+            if (s === '거래완료') return 'badge-done';
+            return 'badge-active';
+        }
+
+        async function load() {
+            if (!itemId) { showError(); return; }
+            try {
+                const snap = await getDoc(doc(db, 'RealEstate', itemId));
+                if (!snap.exists()) { showError(); return; }
+                render(snap.data());
+            } catch (e) { console.error(e); showError(); }
+        }
+
+        function render(d) {
+            document.getElementById('page-title').textContent = `${d.title || '부동산'} | 씬짜오 부동산`;
+
+            // OG 태그 동적 삽입
+            const ogImage = (d.images && d.images[0]) || 'https://chaovietnam-login.web.app/assets/icon.png';
+            const setMeta = (prop, content) => {
+                let el = document.querySelector(`meta[property='${prop}']`);
+                if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
+                el.setAttribute('content', content);
+            };
+            setMeta('og:title', `${d.title || '부동산'} | 씬짜오 부동산`);
+            setMeta('og:description', `💰 ${d.price || ''} | 📍 ${d.city || ''}${d.district ? ' ' + d.district : ''}`);
+            setMeta('og:image', ogImage);
+            setMeta('og:url', window.location.href);
+
+            // 이미지
+            const images = d.images || [];
+            const slidesEl = document.getElementById('gallery-slides');
+            if (images.length > 0) {
+                images.forEach((url, i) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'gallery-slide';
+                    const img = document.createElement('img');
+                    img.src = url; img.alt = `사진 ${i + 1}`;
+                    img.onerror = () => slide.style.display = 'none';
+                    slide.appendChild(img);
+                    slidesEl.appendChild(slide);
+                });
+                if (images.length > 1) {
+                    const cnt = document.getElementById('img-count');
+                    cnt.style.display = 'block';
+                    cnt.textContent = `1 / ${images.length}`;
+                    slidesEl.addEventListener('scroll', () => {
+                        const idx = Math.round(slidesEl.scrollLeft / slidesEl.clientWidth) + 1;
+                        cnt.textContent = `${idx} / ${images.length}`;
+                    });
+                }
+            } else {
+                document.getElementById('gallery-wrap').innerHTML = '<div class="no-image"><span>🏠</span><p>사진 없음</p></div>';
+            }
+
+            // 기본 정보
+            const typeEmojiMap = { '임대': '🔑', '매매': '🏡', '단기숙소': '🛏️', '룸메이트': '👥', '사업장': '🏢', '기타': '📦' };
+            const typeEmoji = typeEmojiMap[d.dealType] || '🏠';
+            const status = d.status || '거래중';
+            document.getElementById('badge-row').innerHTML =
+                `<span class="badge ${statusClass(status)}">${status}</span>${d.dealType ? `<span class="badge badge-type">${typeEmoji} ${d.dealType}</span>` : ''}`;
+            document.getElementById('item-title').textContent = d.title || '';
+            document.getElementById('item-price').textContent = d.price || '가격 협의';
+            document.getElementById('item-meta').textContent =
+                `${d.city || ''}${d.district ? ' · ' + d.district : ''} · ${formatDate(d.createdAt)}`;
+
+            // 매물 정보 (면적, 방수)
+            const infoItems = [];
+            if (d.area) infoItems.push({ label: '면적', value: `${d.area}m²` });
+            if (d.rooms) infoItems.push({ label: '구조', value: d.rooms });
+            if (infoItems.length > 0) {
+                const row = document.getElementById('info-row');
+                infoItems.forEach(item => {
+                    row.innerHTML += `<div class="info-item"><div class="info-label">${item.label}</div><div class="info-value">${item.value}</div></div>`;
+                });
+                document.getElementById('info-card').style.display = 'block';
+            }
+
+            // 위치
+            const loc = [d.city, d.district, d.apartment].filter(Boolean).join(' · ');
+            if (loc) {
+                document.getElementById('location-text').textContent = loc + (d.address ? `\n${d.address}` : '');
+            } else {
+                document.getElementById('location-card').style.display = 'none';
+            }
+
+            // 설명
+            document.getElementById('desc-text').textContent = d.description || '설명이 없습니다.';
+
+            // 등록자
+            document.getElementById('seller-name').textContent =
+                d.userName || (d.userEmail ? d.userEmail.split('@')[0] : '등록자');
+
+            // 연락처
+            const c = d.contact || {};
+            if (c.phone || c.kakaoId || c.other) {
+                const list = document.getElementById('contact-list');
+                if (c.phone) list.innerHTML += `<div class="contact-item"><span class="contact-icon">📞</span><span class="contact-val">${c.phone}</span></div>`;
+                if (c.kakaoId) list.innerHTML += `<div class="contact-item"><span class="contact-icon">💬</span><span class="contact-val">카카오: ${c.kakaoId}</span></div>`;
+                if (c.other) list.innerHTML += `<div class="contact-item"><span class="contact-icon">📱</span><span class="contact-val">${c.other}</span></div>`;
+                document.getElementById('contact-card').style.display = 'block';
+            }
+
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('detail-screen').style.display = 'block';
+            document.getElementById('bottom-bar').style.display = 'flex';
+        }
+
+        function showError() {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('error-screen').style.display = 'flex';
+        }
+
+        load();
+    </script>
+</body>
+
+</html>

@@ -1,4 +1,5 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
@@ -9,6 +10,72 @@ initializeApp();
 setGlobalOptions({ region: "asia-northeast3" });
 const db = getFirestore();
 const expo = new Expo();
+
+// ============================================================
+// 🌐 viewItem - 카카오톡 링크 카드용 SSR (og:image 포함)
+// ============================================================
+exports.viewItem = onRequest({ cors: true }, async (req, res) => {
+  const id = req.query.id;
+  const baseUrl = "https://chaovietnam-login.web.app";
+
+  let title = "씬짜오 (Xin Chao)";
+  let description = "베트남 한인 커뮤니티";
+  let image = `${baseUrl}/icon.png`;
+
+  if (id) {
+    try {
+      const doc = await db.collection("form_items").doc(id).get();
+      if (doc.exists) {
+        const data = doc.data();
+        title = data.itemName || data.propName || data.jobTitle || "씬짜오 게시글";
+        const priceText = data.price || data.propPrice || data.salary || "";
+        const loc = [data.city, data.district].filter(Boolean).join(" ");
+        description = [priceText, loc, data.description || data.desc || ""].filter(Boolean).join(" · ").substring(0, 200);
+        if (data.imageUrls && data.imageUrls.length > 0) {
+          image = data.imageUrls[0];
+        }
+      }
+    } catch (e) {
+      console.error("viewItem Firestore read error:", e);
+    }
+  }
+
+  const pageUrl = `${baseUrl}/view/?id=${id || ""}`;
+
+  res.set("Cache-Control", "public, max-age=300, s-maxage=300");
+  res.send(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)} | 씬짜오</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="씬짜오 (Xin Chao)">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:image" content="${escapeHtml(image)}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="${escapeHtml(pageUrl)}">
+  <script>
+    // 실제 뷰 페이지로 즉시 리다이렉트 (사용자에게는 view/index.html 표시)
+    window.location.replace("${baseUrl}/view/index.html?id=${id || ""}");
+  </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0;url=${baseUrl}/view/index.html?id=${id || ""}">
+  </noscript>
+</head>
+<body style="background:#f0f2f5;font-family:sans-serif;text-align:center;padding-top:80px;">
+  <p>잠시만 기다려주세요...</p>
+</body>
+</html>`);
+});
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 exports.sendChatNotification = onDocumentCreated(
   "chatRooms/{roomId}/messages/{messageId}",
