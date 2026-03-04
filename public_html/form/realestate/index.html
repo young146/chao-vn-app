@@ -299,95 +299,96 @@
             font-size: 13px;
             color: #888;
             text-align: center;
+        }
 
-            .toast {
-                position: fixed;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%) translateY(20px);
-                background: rgba(0, 0, 0, 0.82);
-                color: #fff;
-                padding: 12px 22px;
-                border-radius: 30px;
-                font-size: 14px;
-                opacity: 0;
-                transition: opacity 0.3s, transform 0.3s;
-                pointer-events: none;
-                white-space: nowrap;
-                z-index: 999;
-            }
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(0, 0, 0, 0.82);
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: 30px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 999;
+        }
 
-            .toast.show {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
 
-            .success-overlay {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.85);
-                z-index: 1000;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
-                gap: 20px;
-                padding: 30px;
-                text-align: center;
-            }
+        .success-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            padding: 30px;
+            text-align: center;
+        }
 
-            .success-overlay.show {
-                display: flex;
-            }
+        .success-overlay.show {
+            display: flex;
+        }
 
-            .success-icon {
-                font-size: 64px;
-            }
+        .success-icon {
+            font-size: 64px;
+        }
 
-            .success-title {
-                font-size: 22px;
-                font-weight: 700;
-                color: #fff;
-            }
+        .success-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+        }
 
-            .success-step {
-                background: rgba(255, 255, 255, 0.12);
-                border-radius: 14px;
-                padding: 16px 20px;
-                font-size: 15px;
-                color: #fff;
-                line-height: 2;
-                text-align: left;
-                width: 100%;
-                max-width: 340px;
-            }
+        .success-step {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px 20px;
+            font-size: 15px;
+            color: #fff;
+            line-height: 2;
+            text-align: left;
+            width: 100%;
+            max-width: 340px;
+        }
 
-            .btn-back {
-                padding: 16px 32px;
-                background: #1565C0;
-                color: #fff;
-                border: none;
-                border-radius: 14px;
-                font-size: 17px;
-                font-weight: 700;
-                font-family: inherit;
-                cursor: pointer;
-                width: 100%;
-                max-width: 340px;
-            }
+        .btn-back {
+            padding: 16px 32px;
+            background: #1565C0;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            width: 100%;
+            max-width: 340px;
+        }
 
-            .btn-recopy {
-                padding: 12px 20px;
-                background: transparent;
-                color: rgba(255, 255, 255, 0.7);
-                border: 1.5px solid rgba(255, 255, 255, 0.3);
-                border-radius: 10px;
-                font-size: 14px;
-                font-family: inherit;
-                cursor: pointer;
-                width: 100%;
-                max-width: 340px;
-            }
+        .btn-recopy {
+            padding: 12px 20px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            width: 100%;
+            max-width: 340px;
+        }
     </style>
 </head>
 
@@ -478,9 +479,17 @@
     <div class="success-overlay" id="success-overlay">
         <div class="success-icon">🎉</div>
         <div class="success-title">등록 완료!</div>
-        <div class="success-step"><strong>[카카오톡에서]</strong><br>1. 채팅방을 선택하세요<br>2. 입력창을 꾹 눌러 '붙여넣기'</div>
-        <button class="btn-back" onclick="goBack()">← 카카오톡으로 돌아가기</button>
-        <button class="btn-recopy" onclick="reCopy()">📋 다시 복사하기</button>
+        <div class="success-sub">
+            카카오톡 채팅방에 붙여넣기만 하면 끝!<br>
+            아래 버튼을 눌러 카카오톡으로 돌아가세요.
+        </div>
+        <div class="success-step">
+            <strong>[카카오톡에서]</strong><br>
+            1. 채팅방을 선택하세요<br>
+            2. 입력창을 꾹 눌러 '붙여넣기'
+        </div>
+        <button class="btn-back" onclick="goBack()">카카오톡으로 돌아가기</button>
+        <button class="btn-recopy" onclick="reCopy()">다시 복사하기</button>
     </div>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -507,7 +516,8 @@
         }
         function updatePreview() { document.getElementById('preview-text').textContent = buildText(''); }
         document.querySelectorAll('input:not(#img-input),textarea,select').forEach(el => { el.addEventListener('input', updatePreview); el.addEventListener('change', updatePreview); });
-        async function uploadImages(docId) { const urls = []; for (let i = 0; i < selectedFiles.length; i++) { const f = selectedFiles[i]; const ext = f.name.split('.').pop(); const ref = storage.ref(`form_uploads/realestate/${docId}/${i}.${ext}`); await ref.put(f); const url = await ref.getDownloadURL(); urls.push(url); const pct = Math.round(((i + 1) / selectedFiles.length) * 100); document.getElementById('progress-bar').style.width = pct + '%'; document.getElementById('progress-label').textContent = `사진 업로드 중... ${i + 1}/${selectedFiles.length}장`; } return urls; }
+        function compressImage(file, maxW = 1200) { return new Promise(resolve => { const img = new Image(), url = URL.createObjectURL(file); img.onload = () => { const ratio = Math.min(1, maxW / img.width); const canvas = document.createElement('canvas'); canvas.width = img.width * ratio; canvas.height = img.height * ratio; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); canvas.toBlob(resolve, 'image/jpeg', 0.8); }; img.src = url; }); }
+        async function uploadImages(docId) { const urls = []; for (let i = 0; i < selectedFiles.length; i++) { const compressed = await compressImage(selectedFiles[i]); const ref = storage.ref(`form_uploads/realestate/${docId}/${i}.jpg`); await ref.put(compressed, { contentType: 'image/jpeg' }); const url = await ref.getDownloadURL(); urls.push(url); const pct = Math.round(((i + 1) / selectedFiles.length) * 100); document.getElementById('progress-bar').style.width = pct + '%'; document.getElementById('progress-label').textContent = `사진 업로드 중... ${i + 1}/${selectedFiles.length}장`; } return urls; }
         async function submitAndShare() {
             const propName = document.getElementById('prop-name').value.trim(), propPrice = document.getElementById('prop-price').value.trim();
             if (!propName) { showToast('❗ 매물명을 입력해주세요'); return; } if (!propPrice) { showToast('❗ 가격을 입력해주세요'); return; }
@@ -518,13 +528,34 @@
                 let imageUrls = []; if (selectedFiles.length > 0) { imageUrls = await uploadImages(docId); await docRef.update({ imageUrls }); }
                 const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
                 const text = buildText(viewUrl); try { await navigator.clipboard.writeText(text); } catch { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
-                progressWrap.style.display = 'none'; btn.textContent = '✅ 완료!'; copiedText = text; showSuccessOverlay();
+
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (isMobile) {
+                    setTimeout(() => {
+                        location.href = 'kakaotalk://';
+                    }, 500);
+                }
+
+                progressWrap.style.display = 'none'; btn.textContent = '✅ 완료!';
+                copiedText = text;
+                showSuccessOverlay();
             } catch (e) { btn.disabled = false; btn.textContent = '📤 등록 및 카카오톡 공유'; progressWrap.style.display = 'none'; showToast('❗ 오류: ' + e.message); }
         }
         function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
         let copiedText = '';
         function showSuccessOverlay() { document.getElementById('success-overlay').classList.add('show'); }
-        window.goBack = function () { document.getElementById('success-overlay').classList.remove('show'); try { window.close(); } catch (e) { } setTimeout(() => { if (window.history.length > 1) { window.history.back(); } }, 300) };
+        window.goBack = function () {
+            document.getElementById('success-overlay').classList.remove('show');
+            const ua = navigator.userAgent || '';
+            if (/iPhone|iPad|iPod/i.test(ua)) {
+                location.href = 'kakaoweb://closeBrowser';
+            } else {
+                location.href = 'kakaotalk://inappbrowser/close';
+            }
+            setTimeout(() => {
+                if (window.history.length > 1) { window.history.back(); }
+            }, 300);
+        };
         window.reCopy = async function () { try { await navigator.clipboard.writeText(copiedText); } catch { const ta = document.createElement('textarea'); ta.value = copiedText; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); } showToast('✅ 다시 복사했습니다!'); };
         updatePreview();
     </script>
