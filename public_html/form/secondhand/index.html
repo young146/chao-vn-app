@@ -478,11 +478,16 @@
                     <option value="기타">기타</option>
                 </select>
             </div>
-            <div class="field"><label>구/군</label><select id="district">
+            <div class="field"><label>구/군</label><select id="district" onchange="updateApartment()">
                     <option value="">도시를 먼저 선택하세요</option>
                 </select></div>
+            <div class="field" id="apartment-field" style="display:none"><label>아파트/단지명</label>
+                <select id="apartment">
+                    <option value="">아파트 선택 (선택 사항)</option>
+                </select>
+            </div>
             <div class="field"><label>상세 주소 (선택)</label><input type="text" id="item-address"
-                    placeholder="예) 푸미흥, 타오디엔, 미딩 근처"></div>
+                    placeholder="예) 상세 동/호수, 랜드마크 근처"></div>
         </div>
         <div class="card">
             <div class="card-title">📝 상세 설명</div>
@@ -552,16 +557,75 @@
         const storage = firebase.storage();
 
         /* 지역 데이터 */
-        const districtData = {
-            '호치민': ['1군', '2군(투득)', '3군', '4군', '5군', '6군', '7군', '8군', '9군(투득)', '10군', '11군', '12군', '빈탄', '빈떤', '고밥', '탄빈', '탄푸', '쿠찌', '호크몬'],
-            '하노이': ['호안끼엠', '바딘', '동다', '하이바쯩', '타이호', '호앙마이', '타인쑤언', '꺼우저이', '남뜨리엠', '박뜨리엠'],
-            '다낭': ['하이쩌우', '탄케', '썬짜', '응우한썬', '리엔찌에우'],
-            '나트랑': ['빈호아', '빈탄'], '붕따우': ['붕따우 시내'], '달랏': ['달랏 시내'], '기타': []
+        const locationData = {
+            '호치민': {
+                districts: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12', 'Bình Thạnh', 'Phú Nhuận', 'Tân Bình', 'Tân Phú', 'Gò Vấp', 'Bình Tân', 'Thủ Đức', '기타'],
+                apartments: {
+                    'Q1': ['Vinhomes Golden River', 'Saigon Royal', 'Grand Riverside', 'The Manor', '기타'],
+                    'Q2': ['Vinhomes Central Park', 'Masteri Thảo Điền', 'Gateway Thảo Điền', 'Estella Heights', 'The Nassim', 'Diamond Island', 'Sala Sadora', 'Vista Verde', 'Lexington Residence', 'Tropic Garden', 'Palm Heights', '기타'],
+                    'Q3': ['Vinhomes Bason', 'Botanic Tower', '기타'],
+                    'Q4': ['Rivergate Residence', 'Saigon Pearl', '기타'],
+                    'Q7': ['Sunrise City', 'Scenic Valley', 'Phú Mỹ Hưng Midtown', 'Happy Residence', 'Sky Garden', 'Era Town', 'Hoàng Anh Gia Lai', 'Jamila Khang Điền', '기타'],
+                    'Q8': ['Saigon South Residences', 'Richmond City', '기타'],
+                    'Bình Thạnh': ['The Gold View', 'Masteri Millennium', 'The Tresor', 'City Garden', 'The EverRich', '기타'],
+                    'Tân Bình': ['Saigon Airport Plaza', '기타'],
+                    'Thủ Đức': ['Vinhomes Grand Park', 'Akari City', 'Mizuki Park', 'Safira Khang Điền', 'Gem Riverside', '기타'],
+                }
+            },
+            '하노이': {
+                districts: ['Ba Đình', 'Hoàn Kiếm', 'Đống Đa', 'Cầu Giấy', 'Hai Bà Trưng', 'Hoàng Mai', 'Thanh Xuân', 'Tây Hồ', 'Long Biên', 'Nam Từ Liêm', 'Bắc Từ Liêm', 'Hà Đông', '기타'],
+                apartments: {
+                    'Ba Đình': ['D\'. Le Roi Soleil', 'Lotte Center', '기타'],
+                    'Cầu Giấy': ['Vinhomes Metropolis', 'Starlake', 'Sun Grand City', 'Ciputra Hanoi', '기타'],
+                    'Hai Bà Trưng': ['Times City', 'Park Hill', '기타'],
+                    'Thanh Xuân': ['Royal City', 'The Manor Central Park', '기타'],
+                    'Tây Hồ': ['Vinhomes Riverside', 'Watermark', '기타'],
+                    'Nam Từ Liêm': ['Vinhomes Smart City', 'Ecopark', 'Home City', '기타'],
+                    'Long Biên': ['Vinhomes Ocean Park', '기타'],
+                }
+            },
+            '다낭': {
+                districts: ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ', 'Hòa Vang', '기타'],
+                apartments: {
+                    'Hải Châu': ['Azura Da Nang', 'The Peak', 'Indochina Riverside', '기타'],
+                    'Sơn Trà': ['Đà Nẵng Golden Bay', 'Naman Residence', 'Premier Sky Residences', '기타'],
+                    'Ngũ Hành Sơn': ['Furama Resort', 'Ariyana Smart Condotel', '기타'],
+                }
+            },
+            '냐짱': {
+                districts: ['Vĩnh Hải', 'Vĩnh Phước', 'Phước Long', 'Lộc Thọ', 'Vĩnh Nguyên', 'Phước Tân', 'Phước Hòa', 'Vạn Thạnh', '기타'],
+                apartments: {
+                    'Vĩnh Hải': ['Diamond Bay', 'Condotel Nha Trang', '기타'],
+                    'Vĩnh Phước': ['Muong Thanh Viễn Triều', 'Golden Holiday', 'Gold Coast', '기타'],
+                    'Phước Long': ['The Anam', 'Sheraton Nha Trang', '기타'],
+                    'Lộc Thọ': ['Ana Marina', 'Nha Trang Pearl', '기타'],
+                }
+            },
+            '나트랑': { districts: ['빈호아', '빈탄', '기타'], apartments: {} },
+            '붕따우': { districts: ['붕따우 시내', '기타'], apartments: {} },
+            '달랏': { districts: ['달랏 시내', '기타'], apartments: {} },
+            '기타': { districts: ['기타'], apartments: {} }
         };
         function updateDistrict() {
             const city = document.getElementById('city').value, sel = document.getElementById('district');
             sel.innerHTML = '<option value="">구/군 선택 (선택 사항)</option>';
-            (districtData[city] || []).forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+            const data = locationData[city];
+            (data ? data.districts : []).forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+            updateApartment();
+        }
+        function updateApartment() {
+            const city = document.getElementById('city').value;
+            const district = document.getElementById('district').value;
+            const field = document.getElementById('apartment-field');
+            const sel = document.getElementById('apartment');
+            sel.innerHTML = '<option value="">아파트 선택 (선택 사항)</option>';
+            const apts = locationData[city]?.apartments?.[district] || [];
+            if (apts.length > 0) {
+                field.style.display = '';
+                apts.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+            } else {
+                field.style.display = 'none';
+            }
             updatePreview();
         }
 
@@ -592,11 +656,12 @@
                 cond = document.getElementById('item-condition').value,
                 city = document.getElementById('city').value,
                 dist = document.getElementById('district').value,
+                apt = document.getElementById('apartment').value,
                 addr = document.getElementById('item-address').value.trim(),
                 desc = document.getElementById('item-desc').value.trim(),
                 phone = document.getElementById('contact-phone').value.trim(),
                 kakao = document.getElementById('contact-kakao').value.trim();
-            let loc = [city, dist, addr].filter(Boolean).join(' ');
+            let loc = [city, dist, apt, addr].filter(Boolean).join(' ');
             let lines = ['🥕 씬짜오 당근 / 나눔', '━━━━━━━━━━━━━━━━━━━━'];
             if (name) lines.push('📦 상품명: ' + name);
             if (price) lines.push('💰 가격: ' + price);
@@ -664,6 +729,7 @@
                     condition: document.getElementById('item-condition').value,
                     city: document.getElementById('city').value,
                     district: document.getElementById('district').value,
+                    apartment: document.getElementById('apartment').value,
                     address: document.getElementById('item-address').value.trim(),
                     description: document.getElementById('item-desc').value.trim(),
                     phone: document.getElementById('contact-phone').value.trim(),

@@ -55,7 +55,6 @@ export default function AddItemScreen({ navigation, route }) {
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
-  const [priceDisplay, setPriceDisplay] = useState(""); // 천 단위 콤마 포맷용
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("전자제품");
   const [selectedCity, setSelectedCity] = useState("");
@@ -64,6 +63,7 @@ export default function AddItemScreen({ navigation, route }) {
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState("판매중");
+  const [condition, setCondition] = useState("");
 
   const [phone, setPhone] = useState("");
   const [kakaoId, setKakaoId] = useState("");
@@ -74,15 +74,14 @@ export default function AddItemScreen({ navigation, route }) {
       console.log("📝 수정 모드: 기존 데이터 로드", editItem);
 
       setTitle(editItem.title || "");
-      const rawPrice = editItem.price ? String(editItem.price) : "";
-      setPrice(rawPrice);
-      setPriceDisplay(rawPrice ? Number(rawPrice).toLocaleString() : "");
+      setPrice(editItem.price ? String(editItem.price) : "");
       setDescription(editItem.description || "");
       setCategory(editItem.category || "전자제품");
       setSelectedCity(editItem.city || "호치민");
       setSelectedDistrict(editItem.district || "");
       setSelectedApartment(editItem.apartment || "");
       setStatus(editItem.status || "판매중");
+      setCondition(editItem.condition || "");
 
       if (editItem.images && editItem.images.length > 0) {
         setImages(editItem.images);
@@ -401,13 +400,9 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
-  // 수자 콤마 포맷팅 함수
+  // 가격 입력 핸들러
   const handlePriceChange = (text) => {
-    // 코마와 비숫자 제거
-    const raw = text.replace(/[^0-9]/g, "");
-    setPrice(raw);
-    // 천 단위 코마 표시
-    setPriceDisplay(raw ? Number(raw).toLocaleString() : "");
+    setPrice(text);
   };
 
   const handleSubmit = async () => {
@@ -451,7 +446,7 @@ export default function AddItemScreen({ navigation, route }) {
 
       const itemData = {
         title,
-        price: parseInt(price),
+        price,
         description,
         category,
         location: `${selectedCity} ${selectedDistrict} ${selectedApartment}`,
@@ -459,6 +454,7 @@ export default function AddItemScreen({ navigation, route }) {
         district: selectedDistrict,
         apartment: selectedApartment,
         images: uploadedImageUrls,
+        condition,
         contact: {
           phone: phone || "",
           kakaoId: kakaoId || "",
@@ -470,12 +466,12 @@ export default function AddItemScreen({ navigation, route }) {
 
       if (isEditMode) {
         const oldPrice = editItem.price;
-        const newPrice = parseInt(price);
+        const newPrice = price;
         let newStatus = editItem.status || "판매중";
 
-        if (newPrice < oldPrice) {
+        if (newPrice !== oldPrice) {
           newStatus = "가격 조정됨";
-          console.log("💸 가격 할인 감지! 상태를 '가격 조정됨'으로 변경");
+          console.log("💸 가격 변경 감지! 상태를 '가격 조정됨'으로 변경");
         }
 
         console.log("💾 당근/나눔 수정 중...");
@@ -485,8 +481,8 @@ export default function AddItemScreen({ navigation, route }) {
           status: newStatus,
         });
 
-        if (newPrice < oldPrice) {
-          console.log("💸 가격 할인 감지! 알림 생성 시작...");
+        if (newPrice !== oldPrice) {
+          console.log("💸 가격 변경 감지! 알림 생성 시작...");
           await notifyPriceChange(editItem.id, oldPrice, newPrice);
         }
 
@@ -534,7 +530,7 @@ export default function AddItemScreen({ navigation, route }) {
           docRef.id,
           title,
           uploadedImageUrls[0] || "",
-          parseInt(price)
+          price
         );
 
         // 🆕 주변 사용자에게 알림
@@ -542,7 +538,7 @@ export default function AddItemScreen({ navigation, route }) {
           docRef.id,
           title,
           uploadedImageUrls[0] || "",
-          parseInt(price),
+          price,
           selectedCity,
           selectedDistrict,
           selectedApartment
@@ -654,17 +650,13 @@ export default function AddItemScreen({ navigation, route }) {
         />
 
         <Text style={styles.label}>{t('form.priceLabel')}</Text>
-        <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 12 }]}>
-          <TextInput
-            style={[{ flex: 1, fontSize: 15, color: '#333', paddingVertical: 12 }]}
-            placeholder={t('form.pricePlaceholder')}
-            placeholderTextColor="rgba(0, 0, 0, 0.38)"
-            value={priceDisplay}
-            onChangeText={handlePriceChange}
-            keyboardType="numeric"
-          />
-          <Text style={{ color: '#888', fontSize: 13, marginLeft: 4 }}>₫ VND</Text>
-        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="예) 500만동, 100달러, 협의"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
+          value={price}
+          onChangeText={handlePriceChange}
+        />
 
         <Text style={styles.label}>{t('form.categoryLabel')}</Text>
         <View style={styles.pickerContainer}>
@@ -791,6 +783,23 @@ export default function AddItemScreen({ navigation, route }) {
             value={otherContact}
             onChangeText={setOtherContact}
           />
+        </View>
+
+        {/* 물품 컨디션 */}
+        <Text style={styles.label}>✨ 물품 컨디션</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={condition}
+            onValueChange={setCondition}
+            style={styles.picker}
+          >
+            <Picker.Item label="선택 안 함" value="" />
+            <Picker.Item label="신품" value="신품" />
+            <Picker.Item label="A급 (거의 새것)" value="A급" />
+            <Picker.Item label="B급 (사용감 있음)" value="B급" />
+            <Picker.Item label="C급 (많이 사용)" value="C급" />
+            <Picker.Item label="D급 (고장/파손)" value="D급" />
+          </Picker>
         </View>
 
         <TouchableOpacity
