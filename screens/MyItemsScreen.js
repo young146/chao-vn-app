@@ -50,19 +50,19 @@ export default function MyItemsScreen({ navigation }) {
         where("userId", "==", user.uid)
       );
       const snapshot = await getDocs(q);
-      
+
       const items = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      
+
       // 클라이언트에서 날짜순 정렬 (최신순)
       items.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
         return dateB - dateA;
       });
-      
+
       setMyItems(items);
     } catch (error) {
       console.error("내 물품 로드 실패:", error);
@@ -151,11 +151,11 @@ export default function MyItemsScreen({ navigation }) {
             cachePolicy="memory-disk"
           />
         ) : (
-    <View style={styles.noImage}>
-      <Ionicons name="image-outline" size={40} color="#ccc" />
-    </View>
-  )}
-        
+          <View style={styles.noImage}>
+            <Ionicons name="image-outline" size={40} color="#ccc" />
+          </View>
+        )}
+
         {/* 판매완료 오버레이 */}
         {item.status === "판매완료" && (
           <View style={styles.soldOverlay}>
@@ -169,7 +169,7 @@ export default function MyItemsScreen({ navigation }) {
         <TranslatedText style={styles.itemTitle} numberOfLines={2}>
           {item.title}
         </TranslatedText>
-        <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+        <Text style={styles.itemPrice}>{item.priceText || String(item.price || '가격 문의')}</Text>
         <View style={styles.itemMeta}>
           <Text style={styles.itemCategory}>{item.category}</Text>
           <Text style={styles.itemDot}>•</Text>
@@ -260,8 +260,8 @@ export default function MyItemsScreen({ navigation }) {
           <Ionicons name="cube-outline" size={80} color="#ccc" />
           <Text style={styles.emptyTitle}>
             {filter === "all" ? t('noItems') :
-             filter === "selling" ? t('noSellingItems') :
-             t('noSoldItems')}
+              filter === "selling" ? t('noSellingItems') :
+                t('noSoldItems')}
           </Text>
           <Text style={styles.emptyMessage}>
             {t('registerItemHint')}

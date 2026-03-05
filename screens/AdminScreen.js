@@ -179,7 +179,7 @@ export default function AdminScreen({ navigation }) {
           <Text style={styles.itemTitle} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+          <Text style={styles.itemPrice}>{item.priceText || String(item.price || '-')}</Text>
           <View style={styles.itemMeta}>
             <Text style={styles.itemCategory}>{item.category}</Text>
             <Text style={styles.itemLocation}>

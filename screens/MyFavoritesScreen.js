@@ -49,19 +49,19 @@ export default function MyFavoritesScreen({ navigation }) {
         where("userId", "==", user.uid)
       );
       const snapshot = await getDocs(q);
-      
+
       const items = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      
+
       // 클라이언트에서 날짜순 정렬
       items.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
         return dateB - dateA; // 최신순
       });
-      
+
       setFavorites(items);
     } catch (error) {
       console.error("찜 목록 로드 실패:", error);
@@ -101,7 +101,7 @@ export default function MyFavoritesScreen({ navigation }) {
       const itemDoc = await getDocs(
         query(collection(db, "XinChaoDanggn"), where("__name__", "==", item.itemId))
       );
-      
+
       if (!itemDoc.empty) {
         const itemData = { id: itemDoc.docs[0].id, ...itemDoc.docs[0].data() };
         // createdAt을 문자열로 변환하여 navigation params에 전달
@@ -157,7 +157,7 @@ export default function MyFavoritesScreen({ navigation }) {
         <TranslatedText style={styles.itemTitle} numberOfLines={2}>
           {item.itemTitle}
         </TranslatedText>
-        <Text style={styles.itemPrice}>{formatPrice(item.itemPrice)}</Text>
+        <Text style={styles.itemPrice}>{item.itemPriceText || String(item.itemPrice || '가격 문의')}</Text>
         <View style={styles.itemMeta}>
           <Text style={styles.itemCategory}>{item.itemCategory}</Text>
           <Text style={styles.itemDot}>•</Text>

@@ -93,7 +93,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
       </View>
       <View style={styles.itemInfo}>
         <TranslatedText style={styles.itemTitle} numberOfLines={1}>{item.title}</TranslatedText>
-        <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+        <Text style={styles.itemPrice}>{item.priceText || String(item.price || '가격 문의')}</Text>
         <View style={styles.locationContainer}>
           <Ionicons name="location-outline" size={14} color="#666" />
           <TranslatedText style={styles.itemLocation} numberOfLines={2}>

@@ -615,7 +615,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                 <Text style={styles.statusText}>{currentStatus}</Text>
               </View>
             </View>
-            <Text style={styles.price}>{formatPrice(item.price)}</Text>
+            <Text style={styles.price}>{item.priceText || String(item.price || '가격 문의')}</Text>
             <View style={styles.metaInfo}>
               <Text style={styles.category}>{item.category}</Text>
               <Text style={styles.metaDot}>•</Text>

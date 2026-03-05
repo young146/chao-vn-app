@@ -711,22 +711,6 @@
             return urls;
         }
 
-        // 웹폼 한국어 가격 텍스트 → VND 숫자 변환 (앱 formatPrice 호환)
-        // 예: "30만동" → 300000, "300만" → 3000000, "3억" → 300000000
-        function parsePriceToVND(text) {
-            if (!text) return 0;
-            const cleaned = text.replace(/[,\s]/g, '').replace(/(vnd|동|₫)/gi, '');
-            // 억 (1억 = 10,000만 = 100,000,000)
-            const eok = cleaned.match(/([\d.]+)억/);
-            if (eok) return Math.round(parseFloat(eok[1]) * 100000000);
-            // 만 (1만 = 10,000)
-            const man = cleaned.match(/([\d.]+)만/);
-            if (man) return Math.round(parseFloat(man[1]) * 10000);
-            // 순숫자
-            const num = parseFloat(cleaned.replace(/[^\d.]/g, ''));
-            return isNaN(num) ? 0 : Math.round(num);
-        }
-
         /* 메인 제출 함수 */
         async function submitAndShare() {
             const name = document.getElementById('item-name').value.trim();
@@ -742,12 +726,10 @@
 
             try {
                 // 1. Firestore에 기본 데이터 먼저 저장
-                const priceText = document.getElementById('item-price').value.trim();
-                const priceVnd = parsePriceToVND(priceText);
                 const data = {
                     category: 'secondhand',
                     itemName: name,
-                    price: priceText,       // form_items: 원본 텍스트 (OG 표시용)
+                    price: price,          // 원본 텍스트 (OG 표시용)
                     imageUrls: [],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
@@ -765,8 +747,7 @@
                 //    form_items ID를 그대로 사용 → 딥링크 ID 일치
                 await db.collection('XinChaoDanggn').doc(docId).set({
                     title: data.itemName,
-                    price: priceVnd,         // 숫자값 (formatPrice 호환)
-                    priceText: priceText,    // 원본 텍스트 (표시용)
+                    price: price,            // 텍스트 그대로 저장 ("30만동", "$100" 등)
                     condition: document.getElementById('item-condition').value,
                     description: document.getElementById('item-desc').value.trim(),
                     category: document.getElementById('item-condition').value ? '중고거래' : '기타',
