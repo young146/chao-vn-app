@@ -14,7 +14,7 @@
         }
 
         body {
-            font-family: 'Noto Sans KR', system-ui, sans-serif;
+            font-family: 'Noto Sans KR', sans-serif;
             background: #f0f2f5;
             color: #222;
             min-height: 100vh;
@@ -53,10 +53,6 @@
             font-size: 13px;
             color: #0d47a1;
             line-height: 1.6;
-        }
-
-        .guide-banner strong {
-            color: #1565C0;
         }
 
         .form-body {
@@ -101,127 +97,141 @@
             margin-bottom: 6px;
         }
 
-        .field label .required {
-            color: #1565C0;
+        .field label span.req {
+            color: #E53935;
             margin-left: 2px;
         }
 
-        .field input,
-        .field textarea,
-        .field select {
+        select,
+        input[type=text],
+        textarea {
             width: 100%;
-            border: 1.5px solid #e0e0e0;
+            padding: 11px 13px;
+            border: 1.5px solid #ddd;
             border-radius: 10px;
-            padding: 11px 14px;
-            font-size: 15px;
+            font-size: 14px;
             font-family: inherit;
-            color: #222;
             background: #fafafa;
-            transition: border-color 0.2s;
-            outline: none;
+            color: #222;
+            appearance: none;
             -webkit-appearance: none;
+            outline: none;
+            transition: border 0.2s;
         }
 
-        .field input:focus,
-        .field textarea:focus,
-        .field select:focus {
+        select:focus,
+        input:focus,
+        textarea:focus {
             border-color: #1976D2;
-            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.12);
             background: #fff;
         }
 
-        .field textarea {
+        textarea {
+            height: 100px;
             resize: vertical;
-            min-height: 100px;
-            line-height: 1.6;
         }
 
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        .row2 {
+            display: flex;
             gap: 10px;
         }
 
-        .img-upload-area {
-            border: 2px dashed #e0e0e0;
+        .row2>.field {
+            flex: 1;
+        }
+
+        .deal-type-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .deal-btn {
+            flex: 1;
+            padding: 14px 8px;
+            border: 2px solid #ddd;
             border-radius: 12px;
-            padding: 22px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            background: #fafafa;
-        }
-
-        .img-upload-area:hover {
-            border-color: #1976D2;
-            background: #f3f8ff;
-        }
-
-        .img-upload-area .upload-icon {
-            font-size: 36px;
-            margin-bottom: 8px;
-        }
-
-        .img-upload-area .upload-main {
+            background: #fff;
             font-size: 15px;
-            font-weight: 600;
-            color: #444;
-            margin-bottom: 4px;
+            font-weight: 700;
+            color: #666;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
         }
 
-        .img-upload-area .upload-sub {
-            font-size: 12px;
-            color: #aaa;
+        .deal-btn.active-jeonse {
+            border-color: #1976D2;
+            background: #1976D2;
+            color: #fff;
         }
 
-        #img-input {
+        .deal-btn.active-maemae {
+            border-color: #E53935;
+            background: #E53935;
+            color: #fff;
+        }
+
+        .price-section {
             display: none;
         }
 
-        .img-preview-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+        .price-section.show {
+            display: block;
+        }
+
+        .img-add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
-            margin-top: 12px;
+            width: 100%;
+            padding: 13px;
+            border: 2px dashed #bbb;
+            border-radius: 12px;
+            background: #f9f9f9;
+            font-size: 14px;
+            color: #777;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .img-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
         }
 
         .img-thumb {
             position: relative;
-            aspect-ratio: 1;
+            width: 80px;
+            height: 80px;
             border-radius: 10px;
             overflow: hidden;
-            background: #eee;
         }
 
         .img-thumb img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
 
         .img-thumb .remove-btn {
             position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 24px;
-            height: 24px;
+            top: 3px;
+            right: 3px;
+            width: 22px;
+            height: 22px;
             background: rgba(0, 0, 0, 0.6);
             color: #fff;
             border: none;
             border-radius: 50%;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .img-count-badge {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #777;
-            text-align: center;
         }
 
         .preview-label {
@@ -393,170 +403,457 @@
 </head>
 
 <body>
-    <div class="header"><span class="emoji">🏠</span>
+    <div class="header">
+        <span class="emoji">🏠</span>
         <h1>씬짜오 부동산 등록</h1>
         <p>아래 빈칸을 채우고 등록 버튼을 누르세요</p>
     </div>
     <div class="guide-banner">📋 <strong>[사용 방법]</strong><br>① 아래 폼을 채우고 사진을 선택합니다<br>② <strong>[등록 및 카카오톡 공유]</strong>
-        버튼을 누르세요<br>③ 자동으로 텍스트가 복사되고 카카오톡이 열립니다<br>④ 채팅창에서 꾹 눌러 <strong>붙여넣기</strong>하면 완료!</div>
+        버튼을 누릅니다<br>③ 자동 복사된 텍스트를 카카오톡에 붙여넣기합니다</div>
+
     <div class="form-body">
+        <!-- 기본 정보 -->
         <div class="card">
-            <div class="card-title">🏷️ 거래 유형 · 기본 정보</div>
-            <div class="field"><label>거래 유형 <span class="required">*</span></label>
-                <select id="deal-type">
-                    <option value="">선택하세요</option>
-                    <option value="월세">월세 (Monthly Rent)</option>
-                    <option value="전세">전세 (Jeonse)</option>
-                    <option value="매매">매매 (Sale)</option>
-                </select>
+            <div class="card-title">🏢 거래유형 &amp; 매물 유형</div>
+            <!-- 거래 유형 버튼 -->
+            <div class="deal-type-row">
+                <button type="button" class="deal-btn active-jeonse" id="btn-imdae" onclick="setDealType('임대')">🔑
+                    임대</button>
+                <button type="button" class="deal-btn" id="btn-maemae" onclick="setDealType('매매')">🛒 매매</button>
             </div>
-            <div class="field"><label>매물 이름 / 아파트명 <span class="required">*</span></label><input type="text"
-                    id="prop-name" placeholder="예) 스카이가든, 에스텔라하이츠, 원베드룸 아파트"></div>
-            <div class="two-col">
-                <div class="field"><label>가격 <span class="required">*</span></label><input type="text" id="prop-price"
-                        placeholder="예) 월 1500달러"></div>
-                <div class="field"><label>면적</label><input type="text" id="prop-area" placeholder="예) 80sqm"></div>
-            </div>
-            <div class="two-col">
-                <div class="field"><label>방/화장실</label><input type="text" id="prop-rooms" placeholder="예) 방2 화1"></div>
-                <div class="field"><label>층수</label><input type="text" id="prop-floor" placeholder="예) 12층"></div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-title">📍 위치 정보</div>
-            <div class="field"><label>도시 <span class="required">*</span></label>
-                <select id="city" onchange="updateDistrict()">
-                    <option value="">도시 선택</option>
-                    <option value="호치민">호치민 (Ho Chi Minh)</option>
-                    <option value="하노이">하노이 (Hanoi)</option>
-                    <option value="다낭">다낭 (Da Nang)</option>
-                    <option value="나트랑">나트랑 (Nha Trang)</option>
-                    <option value="붕따우">붕따우 (Vung Tau)</option>
-                    <option value="달랏">달랏 (Da Lat)</option>
+            <input type="hidden" id="deal-type" value="임대">
+            <div class="field">
+                <label>매물 유형</label>
+                <select id="prop-type" onchange="updatePreview()">
+                    <option value="아파트">아파트</option>
+                    <option value="빌라/연립">빌라/연립</option>
+                    <option value="오피스텔">오피스텔</option>
+                    <option value="사무실">사무실</option>
+                    <option value="상가/점포">상가/점포</option>
+                    <option value="공장/창고">공장/창고</option>
+                    <option value="토지">토지</option>
                     <option value="기타">기타</option>
                 </select>
             </div>
-            <div class="field"><label>구/군</label><select id="district">
-                    <option value="">도시 먼저 선택</option>
-                </select></div>
-            <div class="field"><label>상세 주소 (선택)</label><input type="text" id="prop-detail-addr"
-                    placeholder="예) 타오디엔 강변 뷰, 7군 푸미흥 내"></div>
         </div>
+
+        <!-- 매물 제목 -->
         <div class="card">
-            <div class="card-title">📝 상세 설명</div>
-            <div class="field"><label>설명 <span class="required">*</span></label><textarea id="prop-desc"
-                    placeholder="가구 포함 여부, 주변 편의시설, 특이사항 등"></textarea></div>
+            <div class="card-title">📝 매물 제목</div>
+            <div class="field">
+                <label>제목 <span class="req">*</span></label>
+                <input type="text" id="prop-title" placeholder="예: 호치민 Q7 아파트 임대합니다" oninput="updatePreview()">
+            </div>
         </div>
+
+        <!-- 가격 정보 -->
+        <div class="card">
+            <div class="card-title">💰 가격 정보</div>
+
+            <!-- 임대 가격 (기본 표시) -->
+            <div id="price-imdae" class="price-section show">
+                <div class="field">
+                    <label>보증금</label>
+                    <input type="text" id="deposit" placeholder="예: 1,000만동 / 500 USD / 협의" oninput="updatePreview()">
+                </div>
+                <div class="field">
+                    <label>월세 <span class="req">*</span></label>
+                    <input type="text" id="monthly-rent" placeholder="예: 300만동 / 200 USD / 협의"
+                        oninput="updatePreview()">
+                </div>
+            </div>
+
+            <!-- 매매 가격 -->
+            <div id="price-maemae" class="price-section">
+                <div class="field">
+                    <label>매매가 <span class="req">*</span></label>
+                    <input type="text" id="sale-price" placeholder="예: 30억동 / 15만 USD / 협의" oninput="updatePreview()">
+                </div>
+            </div>
+        </div>
+
+        <!-- 위치 -->
+        <div class="card">
+            <div class="card-title">📍 위치</div>
+            <div class="row2">
+                <div class="field">
+                    <label>도시 <span class="req">*</span></label>
+                    <select id="prop-city" onchange="updatePreview()">
+                        <option value="호치민">호치민</option>
+                        <option value="하노이">하노이</option>
+                        <option value="다낭">다낭</option>
+                        <option value="냐짱">냐짱</option>
+                        <option value="붕따우">붕따우</option>
+                        <option value="빈증">빈증</option>
+                        <option value="동나이">동나이</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>구/군</label>
+                    <input type="text" id="prop-district" placeholder="예: Q7, Thủ Đức" oninput="updatePreview()">
+                </div>
+            </div>
+        </div>
+
+        <!-- 상세 정보 -->
+        <div class="card">
+            <div class="card-title">📐 상세 정보</div>
+            <div class="row2">
+                <div class="field">
+                    <label>면적</label>
+                    <input type="text" id="prop-area" placeholder="예: 85㎡" oninput="updatePreview()">
+                </div>
+                <div class="field">
+                    <label>층수</label>
+                    <input type="text" id="prop-floor" placeholder="예: 15층" oninput="updatePreview()">
+                </div>
+            </div>
+            <div class="field">
+                <label>방 구성</label>
+                <input type="text" id="prop-rooms" placeholder="예: 방2 화1, 3베드룸 2욕실" oninput="updatePreview()">
+            </div>
+            <div class="field">
+                <label>입주 가능일</label>
+                <input type="text" id="avail-date" placeholder="예: 즉시 입주, 2025-04-01" oninput="updatePreview()">
+            </div>
+        </div>
+
+        <!-- 연락처 -->
         <div class="card">
             <div class="card-title">📞 연락처</div>
-            <div class="field"><label>전화번호 / Zalo</label><input type="tel" id="contact-phone"
-                    placeholder="예) 090-123-4567"></div>
-            <div class="field"><label>카카오톡 ID</label><input type="text" id="contact-kakao" placeholder="예) xinchao2025">
+            <div class="field">
+                <label>전화번호 / Zalo</label>
+                <input type="text" id="prop-phone" placeholder="예: 090-1234-5678" oninput="updatePreview()">
+            </div>
+            <div class="field">
+                <label>카카오톡 ID</label>
+                <input type="text" id="prop-kakao" placeholder="예) xinchao2025" oninput="updatePreview()">
             </div>
         </div>
+
+        <!-- 상세 설명 -->
         <div class="card">
-            <div class="card-title">📷 매물 사진 (선택)</div>
-            <div class="img-upload-area" onclick="document.getElementById('img-input').click()">
-                <div class="upload-icon">📸</div>
-                <div class="upload-main">사진을 선택하세요</div>
-                <div class="upload-sub">최대 10장 · 갤러리에서 여러 장 선택 가능</div>
+            <div class="card-title">📋 상세 설명</div>
+            <div class="field">
+                <textarea id="prop-desc" placeholder="층/향/옵션/주변환경 등 자유롭게 작성해 주세요" oninput="updatePreview()"></textarea>
             </div>
-            <input type="file" id="img-input" accept="image/*" multiple>
-            <div class="img-preview-grid" id="img-preview-grid"></div>
-            <div class="img-count-badge" id="img-count-badge"></div>
         </div>
-        <div class="preview-label">👁️ 카카오톡에 올라갈 내용 미리보기</div>
-        <div class="preview-card" id="preview-text">(위 폼을 채우면 여기에 자동으로 완성됩니다)</div>
+
+        <!-- 사진 -->
+        <div class="card">
+            <div class="card-title">📸 매물 사진 <span style="font-weight:400;color:#888;font-size:12px">(선택, 최대 10장)</span>
+            </div>
+            <div class="img-add-btn" onclick="document.getElementById('img-input').click()">📷 사진 선택하기 (최대 10장)</div>
+            <input type="file" id="img-input" accept="image/*" multiple style="display:none"
+                onchange="handleImages(this)">
+            <div class="img-row" id="img-row"></div>
+        </div>
+
+        <!-- 미리보기 -->
+        <div class="card">
+            <div class="preview-label">👁️ 카카오톡에 올라갈 내용 미리보기</div>
+            <div class="preview-card" id="preview-text">폼을 채우면 미리보기가 나타납니다</div>
+        </div>
+
+        <!-- 업로드 진행 -->
         <div class="progress-wrap" id="progress-wrap">
             <div class="progress-label" id="progress-label">사진 업로드 중...</div>
             <div class="progress-bar-outer">
                 <div class="progress-bar-inner" id="progress-bar"></div>
             </div>
         </div>
-        <button class="btn-submit" id="btn-submit" onclick="submitAndShare()">📤 등록 및 카카오톡 공유</button>
+
+        <!-- 등록 버튼 -->
+        <button class="btn-submit" id="btn-submit" onclick="submitAndShare()">
+            🏠 등록 및 카카오톡 공유
+        </button>
     </div>
-    <div class="toast" id="toast"></div>
+
+    <!-- 성공 오버레이 -->
     <div class="success-overlay" id="success-overlay">
         <div class="success-icon">🎉</div>
         <div class="success-title">등록 완료!</div>
-        <div class="success-sub">
-            카카오톡 채팅방에 붙여넣기만 하면 끝!<br>
-            아래 버튼을 눌러 카카오톡으로 돌아가세요.
-        </div>
         <div class="success-step">
-            <strong>[카카오톡에서]</strong><br>
+            [카카오톡에서]<br>
             1. 채팅방을 선택하세요<br>
             2. 입력창을 꾹 눌러 '붙여넣기'
         </div>
-        <button class="btn-back" onclick="goBack()">카카오톡으로 돌아가기</button>
-        <button class="btn-recopy" onclick="reCopy()">다시 복사하기</button>
+        <button class="btn-back" onclick="goKakao()">🏠 카카오톡으로 돌아가기</button>
+        <button class="btn-recopy" onclick="recopy()">다시 복사하기</button>
     </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
     <script>
-        firebase.initializeApp({ apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU", authDomain: "chaovietnam-login.firebaseapp.com", projectId: "chaovietnam-login", storageBucket: "chaovietnam-login.firebasestorage.app", messagingSenderId: "249390849714", appId: "1:249390849714:web:34c894772258dad5e973ab" });
-        const db = firebase.firestore(), storage = firebase.storage();
-        const districtData = { '호치민': ['1군', '2군(투득)', '3군', '4군', '5군', '6군', '7군', '8군', '9군(투득)', '10군', '11군', '12군', '빈탄', '빈떤', '고밥', '탄빈', '탄푸'], '하노이': ['호안끼엠', '바딘', '동다', '하이바쯩', '타이호', '호앙마이', '타인쑤언'], '다낭': ['하이쩌우', '탄케', '썬짜', '응우한썬'], '나트랑': ['빈호아', '빈탄'], '붕따우': ['붕따우 시내'], '달랏': ['달랏 시내'], '기타': [] };
-        function updateDistrict() { const city = document.getElementById('city').value, sel = document.getElementById('district'); sel.innerHTML = '<option value="">구/군 선택 (선택 사항)</option>'; (districtData[city] || []).forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); }); updatePreview(); }
+        // Firebase 초기화
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDSZ76x9LiG4hXbFgjT8OjJuTFSMhUyGE",
+            authDomain: "chaovietnam-login.firebaseapp.com",
+            projectId: "chaovietnam-login",
+            storageBucket: "chaovietnam-login.firebasestorage.app",
+            messagingSenderId: "808021074768",
+            appId: "1:808021074768:web:90df52c57e1c7ea0c37b3c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // 선택된 파일 목록
         let selectedFiles = [];
-        document.getElementById('img-input').addEventListener('change', function (e) { Array.from(e.target.files).forEach(f => { if (selectedFiles.length < 10) selectedFiles.push(f); }); renderThumbs(); updatePreview(); this.value = ''; });
-        function renderThumbs() { const grid = document.getElementById('img-preview-grid'), badge = document.getElementById('img-count-badge'); grid.innerHTML = ''; selectedFiles.forEach((f, i) => { const url = URL.createObjectURL(f); const div = document.createElement('div'); div.className = 'img-thumb'; div.innerHTML = `<img src="${url}"><button class="remove-btn" onclick="removeImg(${i})">✕</button>`; grid.appendChild(div); }); badge.textContent = selectedFiles.length > 0 ? `✅ ${selectedFiles.length}장 선택됨 (등록 시 자동 업로드)` : ''; }
-        function removeImg(idx) { selectedFiles.splice(idx, 1); renderThumbs(); updatePreview(); }
+        let sharedText = '';
+
+        // 거래 유형 전환
+        function setDealType(type) {
+            document.getElementById('deal-type').value = type;
+            document.getElementById('btn-imdae').className = 'deal-btn' + (type === '임대' ? ' active-jeonse' : '');
+            document.getElementById('btn-maemae').className = 'deal-btn' + (type === '매매' ? ' active-maemae' : '');
+            document.getElementById('price-imdae').className = 'price-section' + (type === '임대' ? ' show' : '');
+            document.getElementById('price-maemae').className = 'price-section' + (type === '매매' ? ' show' : '');
+            updatePreview();
+        }
+
+        // 이미지 선택
+        function handleImages(input) {
+            const files = Array.from(input.files);
+            const remaining = 10 - selectedFiles.length;
+            const newFiles = files.slice(0, remaining);
+            selectedFiles = [...selectedFiles, ...newFiles];
+            renderImageRow();
+            updatePreview();
+        }
+
+        function renderImageRow() {
+            const row = document.getElementById('img-row');
+            row.innerHTML = '';
+            selectedFiles.forEach((file, i) => {
+                const div = document.createElement('div');
+                div.className = 'img-thumb';
+                const url = URL.createObjectURL(file);
+                div.innerHTML = `<img src="${url}"><button class="remove-btn" onclick="removeImg(${i})">✕</button>`;
+                row.appendChild(div);
+            });
+        }
+
+        function removeImg(i) {
+            selectedFiles.splice(i, 1);
+            renderImageRow();
+            updatePreview();
+        }
+
+        // 미리보기 텍스트 생성
         function buildText(viewUrl) {
-            const dealType = document.getElementById('deal-type').value, propName = document.getElementById('prop-name').value.trim(), propPrice = document.getElementById('prop-price').value.trim(), propArea = document.getElementById('prop-area').value.trim(), propRooms = document.getElementById('prop-rooms').value.trim(), propFloor = document.getElementById('prop-floor').value.trim(), city = document.getElementById('city').value, district = document.getElementById('district').value, detailAddr = document.getElementById('prop-detail-addr').value.trim(), desc = document.getElementById('prop-desc').value.trim(), phone = document.getElementById('contact-phone').value.trim(), kakao = document.getElementById('contact-kakao').value.trim();
-            let loc = [city, district, detailAddr].filter(Boolean).join(' ');
+            const dealType = document.getElementById('deal-type').value;
+            const propType = document.getElementById('prop-type').value;
+            const title = document.getElementById('prop-title').value.trim();
+            const city = document.getElementById('prop-city').value;
+            const district = document.getElementById('prop-district').value.trim();
+            const area = document.getElementById('prop-area').value.trim();
+            const floor = document.getElementById('prop-floor').value.trim();
+            const rooms = document.getElementById('prop-rooms').value.trim();
+            const availDate = document.getElementById('avail-date').value.trim();
+            const phone = document.getElementById('prop-phone').value.trim();
+            const kakao = document.getElementById('prop-kakao').value.trim();
+            const desc = document.getElementById('prop-desc').value.trim();
+
+            let priceText = '';
+            if (dealType === '임대') {
+                const deposit = document.getElementById('deposit').value.trim();
+                const rent = document.getElementById('monthly-rent').value.trim();
+                if (deposit) priceText += `보증금: ${deposit}`;
+                if (deposit && rent) priceText += ' / ';
+                if (rent) priceText += `월세: ${rent}`;
+            } else {
+                const salePrice = document.getElementById('sale-price').value.trim();
+                if (salePrice) priceText = `매매가: ${salePrice}`;
+            }
+
             let lines = ['🏠 씬짜오 부동산', '━━━━━━━━━━━━━━━━━━━━'];
-            if (dealType) lines.push('🏷️ 거래유형: ' + dealType); if (propName) lines.push('🏢 매물명: ' + propName); if (propPrice) lines.push('💰 가격: ' + propPrice);
-            const specs = [propArea, propRooms, propFloor].filter(Boolean).join(' | '); if (specs) lines.push('📐 규모: ' + specs);
-            if (loc) lines.push('📍 위치: ' + loc); if (desc) { lines.push(''); lines.push('📝 상세 정보:'); lines.push(desc); }
-            if (phone || kakao) { lines.push(''); lines.push('📞 연락처:'); if (phone) lines.push('   전화/Zalo: ' + phone); if (kakao) lines.push('   카카오톡: ' + kakao); }
-            if (viewUrl) { lines.push(''); lines.push('🔗 상세 페이지 (사진 포함):'); lines.push(viewUrl); }
+            if (title) lines.push(`🏢 매물: ${title}`);
+            lines.push(`🔑 거래: ${dealType} | 🏗️ 유형: ${propType}`);
+            if (priceText) lines.push(`💰 ${priceText}`);
+            if (area || floor || rooms) {
+                let detail = [];
+                if (area) detail.push(`면적: ${area}`);
+                if (floor) detail.push(`층: ${floor}`);
+                if (rooms) detail.push(rooms);
+                lines.push(`📐 ${detail.join(' · ')}`);
+            }
+            const loc = [city, district].filter(Boolean).join(' ');
+            if (loc) lines.push(`📍 위치: ${loc}`);
+            if (availDate) lines.push(`📅 입주: ${availDate}`);
+            if (desc) { lines.push(''); lines.push(`📋 설명:\n${desc}`); }
+            if (phone || kakao) {
+                lines.push('');
+                if (phone) lines.push(`📞 연락: ${phone}`);
+                if (kakao) lines.push(`💬 카카오ID: ${kakao}`);
+            }
+            if (viewUrl) {
+                lines.push('─────────────────────');
+                lines.push(`👆 상세 보기: ${viewUrl}`);
+            }
             return lines.join('\n');
         }
-        function updatePreview() { document.getElementById('preview-text').textContent = buildText(''); }
-        document.querySelectorAll('input:not(#img-input),textarea,select').forEach(el => { el.addEventListener('input', updatePreview); el.addEventListener('change', updatePreview); });
-        function compressImage(file, maxW = 1200) { return new Promise(resolve => { const img = new Image(), url = URL.createObjectURL(file); img.onload = () => { const ratio = Math.min(1, maxW / img.width); const canvas = document.createElement('canvas'); canvas.width = img.width * ratio; canvas.height = img.height * ratio; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); canvas.toBlob(resolve, 'image/jpeg', 0.8); }; img.src = url; }); }
-        async function uploadImages(docId) { const urls = []; for (let i = 0; i < selectedFiles.length; i++) { const compressed = await compressImage(selectedFiles[i]); const ref = storage.ref(`form_uploads/realestate/${docId}/${i}.jpg`); await ref.put(compressed, { contentType: 'image/jpeg' }); const url = await ref.getDownloadURL(); urls.push(url); const pct = Math.round(((i + 1) / selectedFiles.length) * 100); document.getElementById('progress-bar').style.width = pct + '%'; document.getElementById('progress-label').textContent = `사진 업로드 중... ${i + 1}/${selectedFiles.length}장`; } return urls; }
-        async function submitAndShare() {
-            const propName = document.getElementById('prop-name').value.trim(), propPrice = document.getElementById('prop-price').value.trim();
-            if (!propName) { showToast('❗ 매물명을 입력해주세요'); return; } if (!propPrice) { showToast('❗ 가격을 입력해주세요'); return; }
-            const btn = document.getElementById('btn-submit'), progressWrap = document.getElementById('progress-wrap'); btn.disabled = true; if (selectedFiles.length > 0) progressWrap.style.display = 'block'; btn.textContent = '⏳ 등록 중...';
-            try {
-                const data = { category: 'realestate', dealType: document.getElementById('deal-type').value, propName, propPrice, propArea: document.getElementById('prop-area').value.trim(), propRooms: document.getElementById('prop-rooms').value.trim(), propFloor: document.getElementById('prop-floor').value.trim(), city: document.getElementById('city').value, district: document.getElementById('district').value, detailAddr: document.getElementById('prop-detail-addr').value.trim(), description: document.getElementById('prop-desc').value.trim(), phone: document.getElementById('contact-phone').value.trim(), kakao: document.getElementById('contact-kakao').value.trim(), imageUrls: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                const docRef = await db.collection('form_items').add(data); const docId = docRef.id;
-                let imageUrls = []; if (selectedFiles.length > 0) { imageUrls = await uploadImages(docId); await docRef.update({ imageUrls }); }
-                const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
-                const text = buildText(viewUrl); try { await navigator.clipboard.writeText(text); } catch { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
 
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                if (isMobile) {
-                    setTimeout(() => {
-                        location.href = 'kakaotalk://';
-                    }, 500);
+        function updatePreview() {
+            const text = buildText('(등록 후 링크 생성)');
+            document.getElementById('preview-text').textContent = text;
+        }
+
+        // 이미지 업로드
+        async function uploadImages(docId) {
+            const urls = [];
+            const total = selectedFiles.length;
+            document.getElementById('progress-wrap').style.display = 'block';
+            for (let i = 0; i < total; i++) {
+                document.getElementById('progress-label').textContent = `사진 업로드 중... (${i + 1}/${total})`;
+                document.getElementById('progress-bar').style.width = `${Math.round(((i) / total) * 100)}%`;
+                const file = selectedFiles[i];
+                const ext = file.name.split('.').pop() || 'jpg';
+                const ref = storage.ref(`realestate_web/${docId}_${i}.${ext}`);
+                await ref.put(file);
+                const url = await ref.getDownloadURL();
+                urls.push(url);
+            }
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('progress-label').textContent = '업로드 완료!';
+            return urls;
+        }
+
+        // 등록 및 공유
+        async function submitAndShare() {
+            const title = document.getElementById('prop-title').value.trim();
+            if (!title) { showToast('❗ 매물 제목을 입력해 주세요'); return; }
+
+            const dealType = document.getElementById('deal-type').value;
+            if (dealType === '임대' && !document.getElementById('monthly-rent').value.trim()) {
+                showToast('❗ 월세를 입력해 주세요'); return;
+            }
+            if (dealType === '매매' && !document.getElementById('sale-price').value.trim()) {
+                showToast('❗ 매매가를 입력해 주세요'); return;
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = '⏳ 등록 중...';
+
+            try {
+                // 1. form_items 저장
+                const data = {
+                    category: 'realestate',
+                    title: title,
+                    dealType: dealType,
+                    propertyType: document.getElementById('prop-type').value,
+                    deposit: document.getElementById('deposit').value.trim(),
+                    monthlyRent: document.getElementById('monthly-rent').value.trim(),
+                    price: document.getElementById('sale-price').value.trim(),
+                    city: document.getElementById('prop-city').value,
+                    district: document.getElementById('prop-district').value.trim(),
+                    area: document.getElementById('prop-area').value.trim(),
+                    floor: document.getElementById('prop-floor').value.trim(),
+                    rooms: document.getElementById('prop-rooms').value.trim(),
+                    availableDate: document.getElementById('avail-date').value.trim(),
+                    phone: document.getElementById('prop-phone').value.trim(),
+                    kakao: document.getElementById('prop-kakao').value.trim(),
+                    description: document.getElementById('prop-desc').value.trim(),
+                    imageUrls: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                const docRef = await db.collection('form_items').add(data);
+                const docId = docRef.id;
+
+                // 2. 이미지 업로드
+                let imageUrls = [];
+                if (selectedFiles.length > 0) {
+                    imageUrls = await uploadImages(docId);
+                    await docRef.update({ imageUrls });
                 }
 
-                progressWrap.style.display = 'none'; btn.textContent = '✅ 완료!';
-                copiedText = text;
-                showSuccessOverlay();
-            } catch (e) { btn.disabled = false; btn.textContent = '📤 등록 및 카카오톡 공유'; progressWrap.style.display = 'none'; showToast('❗ 오류: ' + e.message); }
-        }
-        function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
-        let copiedText = '';
-        function showSuccessOverlay() { document.getElementById('success-overlay').classList.add('show'); }
-        window.goBack = function () {
-            document.getElementById('success-overlay').classList.remove('show');
-            const ua = navigator.userAgent || '';
-            if (/iPhone|iPad|iPod/i.test(ua)) {
-                location.href = 'kakaoweb://closeBrowser';
-            } else {
-                location.href = 'kakaotalk://inappbrowser/close';
+                // 3. RealEstate 컬렉션에 동시 저장 (앱 부동산 탭 표시 + 딥링크)
+                await db.collection('RealEstate').doc(docId).set({
+                    title: data.title,
+                    description: data.description,
+                    dealType: data.dealType,
+                    propertyType: data.propertyType,
+                    deposit: data.deposit,
+                    monthlyRent: data.monthlyRent,
+                    price: data.price,
+                    city: data.city,
+                    district: data.district,
+                    area: data.area,
+                    floor: data.floor,
+                    rooms: data.rooms,
+                    availableDate: data.availableDate,
+                    contact: data.phone,
+                    images: imageUrls,
+                    status: '거래가능',
+                    source: 'web',
+                    formItemId: docId,
+                    userId: null,
+                    userEmail: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 4. 뷰 URL 생성
+                const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
+
+                // 5. 텍스트 복사
+                sharedText = buildText(viewUrl);
+                try { await navigator.clipboard.writeText(sharedText); }
+                catch {
+                    const ta = document.createElement('textarea');
+                    ta.value = sharedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta); ta.focus(); ta.select();
+                    document.execCommand('copy'); document.body.removeChild(ta);
+                }
+
+                // 6. 성공 오버레이
+                document.getElementById('success-overlay').className = 'success-overlay show';
+
+                // 7. 카카오톡 열기 (모바일)
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (isMobile) {
+                    setTimeout(() => { window.location.href = 'kakaolink://open'; }, 500);
+                }
+
+            } catch (e) {
+                console.error('등록 오류:', e);
+                showToast('❗ 오류: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '🏠 등록 및 카카오톡 공유';
             }
-            setTimeout(() => {
-                if (window.history.length > 1) { window.history.back(); }
-            }, 300);
-        };
-        window.reCopy = async function () { try { await navigator.clipboard.writeText(copiedText); } catch { const ta = document.createElement('textarea'); ta.value = copiedText; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); } showToast('✅ 다시 복사했습니다!'); };
+        }
+
+        function goKakao() {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) { window.location.href = 'kakaolink://open'; }
+            else { showToast('📋 텍스트가 복사되었습니다. 카카오톡에 붙여넣기 하세요!'); }
+        }
+
+        async function recopy() {
+            try { await navigator.clipboard.writeText(sharedText); }
+            catch {
+                const ta = document.createElement('textarea');
+                ta.value = sharedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.focus(); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+            }
+            showToast('✅ 텍스트를 다시 복사했습니다!');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show';
+            setTimeout(() => { t.className = 'toast'; }, 3000);
+        }
+
+        // 초기 미리보기
         updatePreview();
     </script>
 </body>

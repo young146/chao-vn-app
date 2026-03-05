@@ -26,7 +26,8 @@ service cloud.firestore {
     // ========================================
     match /Jobs/{jobId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
+      allow create: if request.auth != null || request.resource.data.source == 'web';
       allow update, delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
     }
@@ -36,7 +37,8 @@ service cloud.firestore {
     // ========================================
     match /RealEstate/{itemId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
+      allow create: if request.auth != null || request.resource.data.source == 'web';
       allow update, delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
     }

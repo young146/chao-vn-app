@@ -14,7 +14,7 @@
         }
 
         body {
-            font-family: 'Noto Sans KR', system-ui, sans-serif;
+            font-family: 'Noto Sans KR', sans-serif;
             background: #f0f2f5;
             color: #222;
             min-height: 100vh;
@@ -51,12 +51,8 @@
             border-radius: 10px;
             padding: 12px 14px;
             font-size: 13px;
-            color: #1b5e20;
+            color: #1B5E20;
             line-height: 1.6;
-        }
-
-        .guide-banner strong {
-            color: #1b5e20;
         }
 
         .form-body {
@@ -101,154 +97,133 @@
             margin-bottom: 6px;
         }
 
-        .field label .required {
-            color: #2E7D32;
+        .field label span.req {
+            color: #E53935;
             margin-left: 2px;
         }
 
-        .field input,
-        .field textarea,
-        .field select {
+        select,
+        input[type=text],
+        textarea {
             width: 100%;
-            border: 1.5px solid #e0e0e0;
+            padding: 11px 13px;
+            border: 1.5px solid #ddd;
             border-radius: 10px;
-            padding: 11px 14px;
-            font-size: 15px;
+            font-size: 14px;
             font-family: inherit;
-            color: #222;
             background: #fafafa;
-            transition: border-color 0.2s;
-            outline: none;
+            color: #222;
+            appearance: none;
             -webkit-appearance: none;
+            outline: none;
+            transition: border 0.2s;
         }
 
-        .field input:focus,
-        .field textarea:focus,
-        .field select:focus {
-            border-color: #2E7D32;
-            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
+        select:focus,
+        input:focus,
+        textarea:focus {
+            border-color: #388E3C;
             background: #fff;
         }
 
-        .field textarea {
+        textarea {
+            height: 100px;
             resize: vertical;
-            min-height: 100px;
-            line-height: 1.6;
         }
 
-        .type-toggle {
+        .row2 {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row2>.field {
+            flex: 1;
+        }
+
+        .job-type-row {
             display: flex;
             gap: 10px;
             margin-bottom: 14px;
         }
 
-        .type-btn {
+        .job-btn {
             flex: 1;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
+            padding: 14px 8px;
+            border: 2px solid #ddd;
             border-radius: 12px;
-            background: #f5f5f5;
-            font-size: 14px;
+            background: #fff;
+            font-size: 15px;
             font-weight: 700;
-            color: #888;
+            color: #666;
             cursor: pointer;
             text-align: center;
             transition: all 0.2s;
-            font-family: inherit;
         }
 
-        .type-btn.active {
-            border-color: #2E7D32;
-            background: #2E7D32;
+        .job-btn.active-guin {
+            border-color: #388E3C;
+            background: #388E3C;
             color: #fff;
         }
 
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .job-btn.active-gujik {
+            border-color: #0288D1;
+            background: #0288D1;
+            color: #fff;
         }
 
-        .img-upload-area {
-            border: 2px dashed #e0e0e0;
-            border-radius: 12px;
-            padding: 22px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            background: #fafafa;
-        }
-
-        .img-upload-area:hover {
-            border-color: #2E7D32;
-            background: #f1f8f1;
-        }
-
-        .img-upload-area .upload-icon {
-            font-size: 36px;
-            margin-bottom: 8px;
-        }
-
-        .img-upload-area .upload-main {
-            font-size: 15px;
-            font-weight: 600;
-            color: #444;
-            margin-bottom: 4px;
-        }
-
-        .img-upload-area .upload-sub {
-            font-size: 12px;
-            color: #aaa;
-        }
-
-        #img-input {
-            display: none;
-        }
-
-        .img-preview-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+        .img-add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
-            margin-top: 12px;
+            width: 100%;
+            padding: 13px;
+            border: 2px dashed #bbb;
+            border-radius: 12px;
+            background: #f9f9f9;
+            font-size: 14px;
+            color: #777;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .img-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
         }
 
         .img-thumb {
             position: relative;
-            aspect-ratio: 1;
+            width: 80px;
+            height: 80px;
             border-radius: 10px;
             overflow: hidden;
-            background: #eee;
         }
 
         .img-thumb img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
 
         .img-thumb .remove-btn {
             position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 24px;
-            height: 24px;
+            top: 3px;
+            right: 3px;
+            width: 22px;
+            height: 22px;
             background: rgba(0, 0, 0, 0.6);
             color: #fff;
             border: none;
             border-radius: 50%;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .img-count-badge {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #777;
-            text-align: center;
         }
 
         .preview-label {
@@ -260,8 +235,8 @@
         }
 
         .preview-card {
-            background: #fffde7;
-            border: 1.5px solid #ffe082;
+            background: #f1f8e9;
+            border: 1.5px solid #aed581;
             border-radius: 14px;
             padding: 16px;
             margin-bottom: 12px;
@@ -269,7 +244,7 @@
             line-height: 1.8;
             white-space: pre-wrap;
             word-break: break-all;
-            color: #33291a;
+            color: #1B2E0F;
         }
 
         .btn-submit {
@@ -420,179 +395,417 @@
 </head>
 
 <body>
-    <div class="header"><span class="emoji">💼</span>
+    <div class="header">
+        <span class="emoji">💼</span>
         <h1>씬짜오 구인구직 등록</h1>
         <p>아래 빈칸을 채우고 등록 버튼을 누르세요</p>
     </div>
     <div class="guide-banner">📋 <strong>[사용 방법]</strong><br>① 아래 폼을 채우고 사진을 선택합니다<br>② <strong>[등록 및 카카오톡 공유]</strong>
-        버튼을 누르세요<br>③ 자동으로 텍스트가 복사되고 카카오톡이 열립니다<br>④ 채팅창에서 꾹 눌러 <strong>붙여넣기</strong>하면 완료!</div>
+        버튼을 누릅니다<br>③ 자동 복사된 텍스트를 카카오톡에 붙여넣기합니다</div>
+
     <div class="form-body">
+        <!-- 구인/구직 선택 -->
         <div class="card">
-            <div class="card-title">👔 구인 / 구직 선택</div>
-            <div class="type-toggle">
-                <button class="type-btn active" id="btn-hire" onclick="setType('hire')">📢 직원 구합니다 (구인)</button>
-                <button class="type-btn" id="btn-seek" onclick="setType('seek')">🙋 일자리 구합니다 (구직)</button>
+            <div class="card-title">📋 구인/구직 구분</div>
+            <div class="job-type-row">
+                <button type="button" class="job-btn active-guin" id="btn-guin" onclick="setJobType('구인')">🏢
+                    구인<br><small style="font-weight:400;font-size:12px">인재를 찾습니다</small></button>
+                <button type="button" class="job-btn" id="btn-gujik" onclick="setJobType('구직')">👤 구직<br><small
+                        style="font-weight:400;font-size:12px">일자리를 찾습니다</small></button>
+            </div>
+            <input type="hidden" id="job-type" value="구인">
+        </div>
+
+        <!-- 공고 제목 -->
+        <div class="card">
+            <div class="card-title">📝 공고 제목</div>
+            <div class="field">
+                <label>제목 <span class="req">*</span></label>
+                <input type="text" id="job-title" placeholder="예: 호치민 한식당 주방보조 구합니다" oninput="updatePreview()">
             </div>
         </div>
+
+        <!-- 업종 & 고용형태 -->
         <div class="card">
-            <div class="card-title">💼 직업 · 직종 정보</div>
-            <div class="field"><label>직종 / 포지션 <span class="required">*</span></label><input type="text" id="job-title"
-                    placeholder="예) 식당 홀서빙, 한인마트 직원, 통역, 사무직"></div>
-            <div class="two-col">
-                <div class="field"><label>급여 조건 <span class="required">*</span></label><input type="text"
-                        id="job-salary" placeholder="예) 월 1000달러"></div>
-                <div class="field"><label>고용 형태</label>
-                    <select id="job-type">
-                        <option value="">선택</option>
-                        <option value="정규직">정규직</option>
-                        <option value="계약직">계약직</option>
-                        <option value="파트타임">파트타임</option>
-                        <option value="인턴">인턴</option>
-                        <option value="프리랜서">프리랜서</option>
-                    </select>
-                </div>
-            </div>
-            <div class="field"><label>근무시간</label><input type="text" id="job-hours" placeholder="예) 월~금 09:00-18:00">
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-title">📍 근무 위치</div>
-            <div class="field"><label>도시 <span class="required">*</span></label>
-                <select id="city" onchange="updateDistrict()">
-                    <option value="">도시 선택</option>
-                    <option value="호치민">호치민 (Ho Chi Minh)</option>
-                    <option value="하노이">하노이 (Hanoi)</option>
-                    <option value="다낭">다낭 (Da Nang)</option>
-                    <option value="나트랑">나트랑 (Nha Trang)</option>
-                    <option value="붕따우">붕따우 (Vung Tau)</option>
-                    <option value="달랏">달랏 (Da Lat)</option>
+            <div class="card-title">🏭 업종 &amp; 고용형태</div>
+            <div class="field">
+                <label>업종</label>
+                <select id="job-industry" onchange="updatePreview()">
+                    <option value="식당/요리">식당/요리</option>
+                    <option value="IT/개발">IT/개발</option>
+                    <option value="제조/생산">제조/생산</option>
+                    <option value="무역/물류">무역/물류</option>
+                    <option value="교육/강사">교육/강사</option>
+                    <option value="서비스/판매">서비스/판매</option>
+                    <option value="사무/관리">사무/관리</option>
+                    <option value="건설/인테리어">건설/인테리어</option>
+                    <option value="미용/뷰티">미용/뷰티</option>
+                    <option value="통역/번역">통역/번역</option>
                     <option value="기타">기타</option>
                 </select>
             </div>
-            <div class="field"><label>구/군</label><select id="district">
-                    <option value="">도시 먼저 선택</option>
-                </select></div>
-            <div class="field"><label>상세 위치 (선택)</label><input type="text" id="job-location-detail"
-                    placeholder="예) 7군 스카이가든 근처"></div>
-        </div>
-        <div class="card">
-            <div class="card-title">📝 상세 내용</div>
-            <div class="field"><label>상세 내용 <span class="required">*</span></label><textarea id="job-desc"
-                    placeholder="자세한 업무 내용, 자격 요건, 우대 사항 등&#10;(구직 시: 경력, 가능 언어, 자기소개 등)"></textarea></div>
-        </div>
-        <div class="card">
-            <div class="card-title">📞 연락처</div>
-            <div class="field"><label>전화번호 / Zalo</label><input type="tel" id="contact-phone"
-                    placeholder="예) 090-123-4567"></div>
-            <div class="field"><label>카카오톡 ID</label><input type="text" id="contact-kakao" placeholder="예) xinchao2025">
+            <div class="field">
+                <label>고용형태</label>
+                <select id="job-employment" onchange="updatePreview()">
+                    <option value="정규직">정규직</option>
+                    <option value="계약직">계약직</option>
+                    <option value="파트타임">파트타임</option>
+                    <option value="인턴">인턴</option>
+                    <option value="프리랜서">프리랜서</option>
+                    <option value="협의">협의</option>
+                </select>
             </div>
-            <div class="field"><label>이메일 (이력서 수신용)</label><input type="email" id="contact-email"
-                    placeholder="예) hr@company.com"></div>
         </div>
+
+        <!-- 급여 -->
         <div class="card">
-            <div class="card-title">📷 사진 첨부 (선택)</div>
-            <div class="img-upload-area" onclick="document.getElementById('img-input').click()">
-                <div class="upload-icon">📸</div>
-                <div class="upload-main">사진을 선택하세요</div>
-                <div class="upload-sub">명함, 가게 사진 등 최대 5장</div>
+            <div class="card-title">💰 급여</div>
+            <div class="field">
+                <label>급여</label>
+                <input type="text" id="job-salary" placeholder="예: 월 500만동, 시급 5만동, 협의" oninput="updatePreview()">
             </div>
-            <input type="file" id="img-input" accept="image/*" multiple>
-            <div class="img-preview-grid" id="img-preview-grid"></div>
-            <div class="img-count-badge" id="img-count-badge"></div>
         </div>
-        <div class="preview-label">👁️ 카카오톡에 올라갈 내용 미리보기</div>
-        <div class="preview-card" id="preview-text">(위 폼을 채우면 여기에 자동으로 완성됩니다)</div>
+
+        <!-- 근무지 -->
+        <div class="card">
+            <div class="card-title">📍 근무지</div>
+            <div class="row2">
+                <div class="field">
+                    <label>도시 <span class="req">*</span></label>
+                    <select id="job-city" onchange="updatePreview()">
+                        <option value="호치민">호치민</option>
+                        <option value="하노이">하노이</option>
+                        <option value="다낭">다낭</option>
+                        <option value="냐짱">냐짱</option>
+                        <option value="붕따우">붕따우</option>
+                        <option value="빈증">빈증</option>
+                        <option value="동나이">동나이</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>구/군</label>
+                    <input type="text" id="job-district" placeholder="예: Q1, Bình Thạnh" oninput="updatePreview()">
+                </div>
+            </div>
+        </div>
+
+        <!-- 마감일 & 연락처 -->
+        <div class="card">
+            <div class="card-title">📅 마감일 &amp; 연락처</div>
+            <div class="field">
+                <label>마감일</label>
+                <input type="text" id="job-deadline" placeholder="예: 2025-04-30, 채용시 마감" oninput="updatePreview()">
+            </div>
+            <div class="field">
+                <label>전화번호 / Zalo</label>
+                <input type="text" id="job-phone" placeholder="예: 090-1234-5678" oninput="updatePreview()">
+            </div>
+            <div class="field">
+                <label>카카오톡 ID</label>
+                <input type="text" id="job-kakao" placeholder="예) xinchao2025" oninput="updatePreview()">
+            </div>
+        </div>
+
+        <!-- 상세 내용 -->
+        <div class="card">
+            <div class="card-title">📋 상세 내용</div>
+            <div class="field">
+                <label>공고 내용 <span class="req">*</span></label>
+                <textarea id="job-desc" style="height:120px" placeholder="업무 내용, 근무 시간, 복리후생 등을 자세히 입력해 주세요"
+                    oninput="updatePreview()"></textarea>
+            </div>
+            <div class="field">
+                <label>자격 요건</label>
+                <textarea id="job-requirements" placeholder="우대 조건, 필요 기술, 경력 등" oninput="updatePreview()"></textarea>
+            </div>
+        </div>
+
+        <!-- 사진 -->
+        <div class="card">
+            <div class="card-title">📸 사진 <span style="font-weight:400;color:#888;font-size:12px">(선택, 최대 5장)</span>
+            </div>
+            <div class="img-add-btn" onclick="document.getElementById('img-input').click()">📷 사진 선택하기 (회사/근무환경, 최대 5장)
+            </div>
+            <input type="file" id="img-input" accept="image/*" multiple style="display:none"
+                onchange="handleImages(this)">
+            <div class="img-row" id="img-row"></div>
+        </div>
+
+        <!-- 미리보기 -->
+        <div class="card">
+            <div class="preview-label">👁️ 카카오톡에 올라갈 내용 미리보기</div>
+            <div class="preview-card" id="preview-text">폼을 채우면 미리보기가 나타납니다</div>
+        </div>
+
+        <!-- 업로드 진행 -->
         <div class="progress-wrap" id="progress-wrap">
             <div class="progress-label" id="progress-label">사진 업로드 중...</div>
             <div class="progress-bar-outer">
                 <div class="progress-bar-inner" id="progress-bar"></div>
             </div>
         </div>
-        <button class="btn-submit" id="btn-submit" onclick="submitAndShare()">📤 등록 및 카카오톡 공유</button>
+
+        <!-- 등록 버튼 -->
+        <button class="btn-submit" id="btn-submit" onclick="submitAndShare()">
+            💼 등록 및 카카오톡 공유
+        </button>
     </div>
-    <div class="toast" id="toast"></div>
+
+    <!-- 성공 오버레이 -->
     <div class="success-overlay" id="success-overlay">
         <div class="success-icon">🎉</div>
         <div class="success-title">등록 완료!</div>
-        <div class="success-sub">
-            카카오톡 채팅방에 붙여넣기만 하면 끝!<br>
-            아래 버튼을 눌러 카카오톡으로 돌아가세요.
-        </div>
         <div class="success-step">
-            <strong>[카카오톡에서]</strong><br>
+            [카카오톡에서]<br>
             1. 채팅방을 선택하세요<br>
             2. 입력창을 꾹 눌러 '붙여넣기'
         </div>
-        <button class="btn-back" onclick="goBack()">카카오톡으로 돌아가기</button>
-        <button class="btn-recopy" onclick="reCopy()">다시 복사하기</button>
+        <button class="btn-back" onclick="goKakao()">💼 카카오톡으로 돌아가기</button>
+        <button class="btn-recopy" onclick="recopy()">다시 복사하기</button>
     </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
     <script>
-        firebase.initializeApp({ apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU", authDomain: "chaovietnam-login.firebaseapp.com", projectId: "chaovietnam-login", storageBucket: "chaovietnam-login.firebasestorage.app", messagingSenderId: "249390849714", appId: "1:249390849714:web:34c894772258dad5e973ab" });
-        const db = firebase.firestore(), storage = firebase.storage();
-        let jobMode = 'hire';
-        function setType(mode) { jobMode = mode; document.getElementById('btn-hire').classList.toggle('active', mode === 'hire'); document.getElementById('btn-seek').classList.toggle('active', mode === 'seek'); updatePreview(); }
-        const districtData = { '호치민': ['1군', '2군(투득)', '3군', '4군', '5군', '6군', '7군', '8군', '9군(투득)', '10군', '11군', '12군', '빈탄', '빈떤', '고밥', '탄빈', '탄푸'], '하노이': ['호안끼엠', '바딘', '동다', '하이바쯩', '타이호', '호앙마이', '타인쑤언'], '다낭': ['하이쩌우', '탄케', '썬짜', '응우한썬'], '나트랑': ['빈호아', '빈탄'], '붕따우': ['붕따우 시내'], '달랏': ['달랏 시내'], '기타': [] };
-        function updateDistrict() { const city = document.getElementById('city').value, sel = document.getElementById('district'); sel.innerHTML = '<option value="">구/군 선택 (선택 사항)</option>'; (districtData[city] || []).forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); }); updatePreview(); }
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDSZ76x9LiG4hXbFgjT8OjJuTFSMhUyGE",
+            authDomain: "chaovietnam-login.firebaseapp.com",
+            projectId: "chaovietnam-login",
+            storageBucket: "chaovietnam-login.firebasestorage.app",
+            messagingSenderId: "808021074768",
+            appId: "1:808021074768:web:90df52c57e1c7ea0c37b3c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
         let selectedFiles = [];
-        document.getElementById('img-input').addEventListener('change', function (e) { Array.from(e.target.files).forEach(f => { if (selectedFiles.length < 5) selectedFiles.push(f); }); renderThumbs(); updatePreview(); this.value = ''; });
-        function renderThumbs() { const grid = document.getElementById('img-preview-grid'), badge = document.getElementById('img-count-badge'); grid.innerHTML = ''; selectedFiles.forEach((f, i) => { const url = URL.createObjectURL(f); const div = document.createElement('div'); div.className = 'img-thumb'; div.innerHTML = `<img src="${url}"><button class="remove-btn" onclick="removeImg(${i})">✕</button>`; grid.appendChild(div); }); badge.textContent = selectedFiles.length > 0 ? `✅ ${selectedFiles.length}장 선택됨 (등록 시 자동 업로드)` : ''; }
-        function removeImg(idx) { selectedFiles.splice(idx, 1); renderThumbs(); updatePreview(); }
+        let sharedText = '';
+
+        // 구인/구직 타입 전환
+        function setJobType(type) {
+            document.getElementById('job-type').value = type;
+            document.getElementById('btn-guin').className = 'job-btn' + (type === '구인' ? ' active-guin' : '');
+            document.getElementById('btn-gujik').className = 'job-btn' + (type === '구직' ? ' active-gujik' : '');
+            const placeholder = type === '구인'
+                ? '예: 호치민 한식당 주방보조 구합니다'
+                : '예: 경력 5년 웹개발자 구직합니다';
+            document.getElementById('job-title').placeholder = placeholder;
+            updatePreview();
+        }
+
+        // 이미지 선택
+        function handleImages(input) {
+            const files = Array.from(input.files);
+            const remaining = 5 - selectedFiles.length;
+            const newFiles = files.slice(0, remaining);
+            selectedFiles = [...selectedFiles, ...newFiles];
+            renderImageRow();
+            updatePreview();
+        }
+
+        function renderImageRow() {
+            const row = document.getElementById('img-row');
+            row.innerHTML = '';
+            selectedFiles.forEach((file, i) => {
+                const div = document.createElement('div');
+                div.className = 'img-thumb';
+                const url = URL.createObjectURL(file);
+                div.innerHTML = `<img src="${url}"><button class="remove-btn" onclick="removeImg(${i})">✕</button>`;
+                row.appendChild(div);
+            });
+        }
+
+        function removeImg(i) {
+            selectedFiles.splice(i, 1);
+            renderImageRow();
+            updatePreview();
+        }
+
+        // 미리보기
         function buildText(viewUrl) {
-            const isHire = jobMode === 'hire', jobTitle = document.getElementById('job-title').value.trim(), salary = document.getElementById('job-salary').value.trim(), jobType = document.getElementById('job-type').value, hours = document.getElementById('job-hours').value.trim(), city = document.getElementById('city').value, district = document.getElementById('district').value, locDetail = document.getElementById('job-location-detail').value.trim(), desc = document.getElementById('job-desc').value.trim(), phone = document.getElementById('contact-phone').value.trim(), kakao = document.getElementById('contact-kakao').value.trim(), email = document.getElementById('contact-email').value.trim();
-            let loc = [city, district, locDetail].filter(Boolean).join(' ');
-            let lines = [isHire ? '📢 씬짜오 구인 (직원 구합니다)' : '🙋 씬짜오 구직 (일자리 구합니다)', '━━━━━━━━━━━━━━━━━━━━'];
-            if (jobTitle) lines.push('💼 직종/포지션: ' + jobTitle); if (salary) lines.push('💰 급여: ' + salary);
-            const meta = [jobType, hours].filter(Boolean).join(' / '); if (meta) lines.push('🕒 근무조건: ' + meta);
-            if (loc) lines.push('📍 위치: ' + loc); if (desc) { lines.push(''); lines.push(isHire ? '📋 모집 내용:' : '📋 자기소개 및 경력:'); lines.push(desc); }
-            if (phone || kakao || email) { lines.push(''); lines.push('📞 연락처:'); if (phone) lines.push('   전화/Zalo: ' + phone); if (kakao) lines.push('   카카오톡: ' + kakao); if (email) lines.push('   이메일: ' + email); }
-            if (viewUrl) { lines.push(''); lines.push('🔗 상세 페이지 (사진 포함):'); lines.push(viewUrl); }
+            const jobType = document.getElementById('job-type').value;
+            const title = document.getElementById('job-title').value.trim();
+            const industry = document.getElementById('job-industry').value;
+            const employment = document.getElementById('job-employment').value;
+            const salary = document.getElementById('job-salary').value.trim();
+            const city = document.getElementById('job-city').value;
+            const district = document.getElementById('job-district').value.trim();
+            const deadline = document.getElementById('job-deadline').value.trim();
+            const phone = document.getElementById('job-phone').value.trim();
+            const kakao = document.getElementById('job-kakao').value.trim();
+            const desc = document.getElementById('job-desc').value.trim();
+            const req = document.getElementById('job-requirements').value.trim();
+
+            const jobEmoji = jobType === '구인' ? '🏢' : '👤';
+            let lines = ['💼 씬짜오 구인구직', '━━━━━━━━━━━━━━━━━━━━'];
+            if (title) lines.push(`${jobEmoji} [${jobType}] ${title}`);
+            lines.push(`🏭 업종: ${industry} | ⏰ ${employment}`);
+            if (salary) lines.push(`💰 급여: ${salary}`);
+            const loc = [city, district].filter(Boolean).join(' ');
+            if (loc) lines.push(`📍 근무지: ${loc}`);
+            if (deadline) lines.push(`📅 마감: ${deadline}`);
+            if (desc) { lines.push(''); lines.push(`📋 상세:\n${desc}`); }
+            if (req) { lines.push(''); lines.push(`✅ 자격요건:\n${req}`); }
+            if (phone || kakao) {
+                lines.push('');
+                if (phone) lines.push(`📞 연락: ${phone}`);
+                if (kakao) lines.push(`💬 카카오ID: ${kakao}`);
+            }
+            if (viewUrl) {
+                lines.push('─────────────────────');
+                lines.push(`👆 상세 보기: ${viewUrl}`);
+            }
             return lines.join('\n');
         }
-        function updatePreview() { document.getElementById('preview-text').textContent = buildText(''); }
-        document.querySelectorAll('input:not(#img-input),textarea,select').forEach(el => { el.addEventListener('input', updatePreview); el.addEventListener('change', updatePreview); });
-        function compressImage(file, maxW = 1200) { return new Promise(resolve => { const img = new Image(), url = URL.createObjectURL(file); img.onload = () => { const ratio = Math.min(1, maxW / img.width); const canvas = document.createElement('canvas'); canvas.width = img.width * ratio; canvas.height = img.height * ratio; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); canvas.toBlob(resolve, 'image/jpeg', 0.8); }; img.src = url; }); }
-        async function uploadImages(docId) { const urls = []; for (let i = 0; i < selectedFiles.length; i++) { const compressed = await compressImage(selectedFiles[i]); const ref = storage.ref(`form_uploads/jobs/${docId}/${i}.jpg`); await ref.put(compressed, { contentType: 'image/jpeg' }); const url = await ref.getDownloadURL(); urls.push(url); const pct = Math.round(((i + 1) / selectedFiles.length) * 100); document.getElementById('progress-bar').style.width = pct + '%'; document.getElementById('progress-label').textContent = `사진 업로드 중... ${i + 1}/${selectedFiles.length}장`; } return urls; }
-        async function submitAndShare() {
-            const jobTitle = document.getElementById('job-title').value.trim(), salary = document.getElementById('job-salary').value.trim();
-            if (!jobTitle) { showToast('❗ 직종/포지션을 입력해주세요'); return; } if (!salary) { showToast('❗ 급여 조건을 입력해주세요'); return; }
-            const btn = document.getElementById('btn-submit'), progressWrap = document.getElementById('progress-wrap'); btn.disabled = true; if (selectedFiles.length > 0) progressWrap.style.display = 'block'; btn.textContent = '⏳ 등록 중...';
-            try {
-                const data = { category: 'job', jobMode, jobTitle, salary, jobType: document.getElementById('job-type').value, hours: document.getElementById('job-hours').value.trim(), city: document.getElementById('city').value, district: document.getElementById('district').value, locationDetail: document.getElementById('job-location-detail').value.trim(), description: document.getElementById('job-desc').value.trim(), phone: document.getElementById('contact-phone').value.trim(), kakao: document.getElementById('contact-kakao').value.trim(), email: document.getElementById('contact-email').value.trim(), imageUrls: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                const docRef = await db.collection('form_items').add(data); const docId = docRef.id;
-                let imageUrls = []; if (selectedFiles.length > 0) { imageUrls = await uploadImages(docId); await docRef.update({ imageUrls }); }
-                const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
-                const text = buildText(viewUrl); try { await navigator.clipboard.writeText(text); } catch { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
 
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                if (isMobile) {
-                    setTimeout(() => {
-                        location.href = 'kakaotalk://';
-                    }, 500);
+        function updatePreview() {
+            const text = buildText('(등록 후 링크 생성)');
+            document.getElementById('preview-text').textContent = text;
+        }
+
+        // 이미지 업로드
+        async function uploadImages(docId) {
+            const urls = [];
+            const total = selectedFiles.length;
+            document.getElementById('progress-wrap').style.display = 'block';
+            for (let i = 0; i < total; i++) {
+                document.getElementById('progress-label').textContent = `사진 업로드 중... (${i + 1}/${total})`;
+                document.getElementById('progress-bar').style.width = `${Math.round((i / total) * 100)}%`;
+                const file = selectedFiles[i];
+                const ext = file.name.split('.').pop() || 'jpg';
+                const ref = storage.ref(`jobs_web/${docId}_${i}.${ext}`);
+                await ref.put(file);
+                const url = await ref.getDownloadURL();
+                urls.push(url);
+            }
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('progress-label').textContent = '업로드 완료!';
+            return urls;
+        }
+
+        // 등록 및 공유
+        async function submitAndShare() {
+            const title = document.getElementById('job-title').value.trim();
+            if (!title) { showToast('❗ 공고 제목을 입력해 주세요'); return; }
+            const desc = document.getElementById('job-desc').value.trim();
+            if (!desc) { showToast('❗ 공고 내용을 입력해 주세요'); return; }
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = '⏳ 등록 중...';
+
+            try {
+                // 1. form_items 저장
+                const data = {
+                    category: 'jobs',
+                    title: title,
+                    jobType: document.getElementById('job-type').value,
+                    industry: document.getElementById('job-industry').value,
+                    employmentType: document.getElementById('job-employment').value,
+                    salary: document.getElementById('job-salary').value.trim() || '협의',
+                    city: document.getElementById('job-city').value,
+                    district: document.getElementById('job-district').value.trim(),
+                    deadline: document.getElementById('job-deadline').value.trim(),
+                    phone: document.getElementById('job-phone').value.trim(),
+                    kakao: document.getElementById('job-kakao').value.trim(),
+                    description: desc,
+                    requirements: document.getElementById('job-requirements').value.trim(),
+                    imageUrls: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                const docRef = await db.collection('form_items').add(data);
+                const docId = docRef.id;
+
+                // 2. 이미지 업로드
+                let imageUrls = [];
+                if (selectedFiles.length > 0) {
+                    imageUrls = await uploadImages(docId);
+                    await docRef.update({ imageUrls });
                 }
 
-                progressWrap.style.display = 'none'; btn.textContent = '✅ 완료!'; copiedText = text;
-                showSuccessOverlay();
-            } catch (e) { btn.disabled = false; btn.textContent = '📤 등록 및 카카오톡 공유'; progressWrap.style.display = 'none'; showToast('❗ 오류: ' + e.message); }
-        }
-        function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
-        let copiedText = '';
-        function showSuccessOverlay() { document.getElementById('success-overlay').classList.add('show'); }
-        window.goBack = function () {
-            document.getElementById('success-overlay').classList.remove('show');
-            const ua = navigator.userAgent || '';
-            if (/iPhone|iPad|iPod/i.test(ua)) {
-                location.href = 'kakaoweb://closeBrowser';
-            } else {
-                location.href = 'kakaotalk://inappbrowser/close';
+                // 3. Jobs 컬렉션에 동시 저장 (앱 구인구직 탭 표시 + 딥링크)
+                await db.collection('Jobs').doc(docId).set({
+                    title: data.title,
+                    description: data.description,
+                    requirements: data.requirements,
+                    jobType: data.jobType,
+                    industry: data.industry,
+                    employmentType: data.employmentType,
+                    salary: data.salary,
+                    city: data.city,
+                    district: data.district,
+                    contact: data.phone,
+                    deadline: data.deadline,
+                    images: imageUrls,
+                    status: '모집중',
+                    source: 'web',
+                    formItemId: docId,
+                    userId: null,
+                    userEmail: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 4. 뷰 URL 생성
+                const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
+
+                // 5. 텍스트 복사
+                sharedText = buildText(viewUrl);
+                try { await navigator.clipboard.writeText(sharedText); }
+                catch {
+                    const ta = document.createElement('textarea');
+                    ta.value = sharedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta); ta.focus(); ta.select();
+                    document.execCommand('copy'); document.body.removeChild(ta);
+                }
+
+                // 6. 성공 오버레이
+                document.getElementById('success-overlay').className = 'success-overlay show';
+
+                // 7. 카카오톡 열기 (모바일)
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (isMobile) {
+                    setTimeout(() => { window.location.href = 'kakaolink://open'; }, 500);
+                }
+
+            } catch (e) {
+                console.error('등록 오류:', e);
+                showToast('❗ 오류: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '💼 등록 및 카카오톡 공유';
             }
-            setTimeout(() => {
-                if (window.history.length > 1) { window.history.back(); }
-            }, 300);
-        };
-        window.reCopy = async function () { try { await navigator.clipboard.writeText(copiedText); } catch { const ta = document.createElement('textarea'); ta.value = copiedText; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); } showToast('✅ 다시 복사했습니다!'); };
+        }
+
+        function goKakao() {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) { window.location.href = 'kakaolink://open'; }
+            else { showToast('📋 텍스트가 복사되었습니다. 카카오톡에 붙여넣기 하세요!'); }
+        }
+
+        async function recopy() {
+            try { await navigator.clipboard.writeText(sharedText); }
+            catch {
+                const ta = document.createElement('textarea');
+                ta.value = sharedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.focus(); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+            }
+            showToast('✅ 텍스트를 다시 복사했습니다!');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show';
+            setTimeout(() => { t.className = 'toast'; }, 3000);
+        }
+
         updatePreview();
     </script>
 </body>
