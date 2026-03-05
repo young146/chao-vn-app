@@ -587,7 +587,7 @@ export default function App() {
                         "당근/나눔 상세": {
                           path: "danggn/:id",
                           parse: {
-                            id: (id) => `${id}`,
+                            deepLinkId: (id) => `${id}`,
                           },
                         },
                       },

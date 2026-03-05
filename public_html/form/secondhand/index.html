@@ -747,7 +747,33 @@
                     await docRef.update({ imageUrls });
                 }
 
-                // 3. 뷰 URL 생성 (app 연동을 위한 ID 전달)
+                // 3. 앱 XinChaoDanggn 컬렉션에도 동시 저장 (당근/나눔 탭 표시용)
+                //    form_items ID를 그대로 사용 → 딥링크 ID 일치
+                await db.collection('XinChaoDanggn').doc(docId).set({
+                    title: data.itemName,
+                    price: data.price,
+                    condition: data.condition,
+                    description: data.description,
+                    category: data.condition ? '중고거래' : '기타',
+                    city: data.city,
+                    district: data.district,
+                    apartment: data.apartment || '',
+                    location: [data.city, data.district, data.apartment].filter(Boolean).join(' '),
+                    images: imageUrls,
+                    contact: {
+                        phone: data.phone || '',
+                        kakaoId: data.kakao || '',
+                        other: ''
+                    },
+                    status: '판매중',
+                    source: 'web',            // 웹 등록 구분용
+                    formItemId: docId,        // form_items 참조
+                    userId: null,             // 웹 등록은 UID 없음
+                    userEmail: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 4. 뷰 URL 생성 (app 연동을 위한 ID 전달)
                 const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
 
                 // 4. 텍스트 복사

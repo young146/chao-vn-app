@@ -21,6 +21,7 @@ exports.viewItem = onRequest({ cors: true }, async (req, res) => {
   let title = "씬짜오 (Xin Chao)";
   let description = "베트남 한인 커뮤니티";
   let image = `${baseUrl}/icon.png`;
+  let itemType = "danggn"; // 기본값: 당근/나눔
 
   if (id) {
     try {
@@ -34,13 +35,19 @@ exports.viewItem = onRequest({ cors: true }, async (req, res) => {
         if (data.imageUrls && data.imageUrls.length > 0) {
           image = data.imageUrls[0];
         }
+        // category 필드로 type 결정
+        const cat = data.category || "secondhand";
+        if (cat === "realestate") itemType = "realestate";
+        else if (cat === "jobs") itemType = "job";
+        else itemType = "danggn";
       }
     } catch (e) {
       console.error("viewItem Firestore read error:", e);
     }
   }
 
-  const pageUrl = `${baseUrl}/view/?id=${id || ""}`;
+  // 딥링크 페이지로 리다이렉트 (OG 태그는 유지, 실제 이동은 download.html)
+  const redirectUrl = `${baseUrl}/download.html?type=${itemType}&id=${id || ""}`;
 
   res.set("Cache-Control", "public, max-age=300, s-maxage=300");
   res.send(`<!DOCTYPE html>
@@ -57,13 +64,13 @@ exports.viewItem = onRequest({ cors: true }, async (req, res) => {
   <meta property="og:image" content="${escapeHtml(image)}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:url" content="${escapeHtml(pageUrl)}">
+  <meta property="og:url" content="${escapeHtml(redirectUrl)}">
   <script>
-    // 실제 뷰 페이지로 즉시 리다이렉트 (사용자에게는 view/index.html 표시)
-    window.location.replace("${baseUrl}/view/index.html?id=${id || ""}");
+    // 딥링크 페이지로 이동 (앱 열기 or 앱스토어)
+    window.location.replace("${redirectUrl}");
   </script>
   <noscript>
-    <meta http-equiv="refresh" content="0;url=${baseUrl}/view/index.html?id=${id || ""}">
+    <meta http-equiv="refresh" content="0;url=${redirectUrl}">
   </noscript>
 </head>
 <body style="background:#f0f2f5;font-family:sans-serif;text-align:center;padding-top:80px;">
