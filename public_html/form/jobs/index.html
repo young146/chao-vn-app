@@ -565,11 +565,11 @@
         <div class="success-icon">🎉</div>
         <div class="success-title">등록 완료!</div>
         <div class="success-step">
-            [카카오톡에서]<br>
-            1. 채팅방을 선택하세요<br>
-            2. 입력창을 꾹 눌러 '붙여넣기'
+            아래 텍스트를 복사해서 카카오톡에 붙여넣기 하세요!
         </div>
-        <button class="btn-back" onclick="goKakao()">💼 카카오톡으로 돌아가기</button>
+        <textarea id="share-text-box" readonly
+            style="width:100%;max-width:340px;height:130px;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:12px;line-height:1.6;padding:10px;font-family:inherit;resize:none;margin-bottom:4px;"></textarea>
+        <button class="btn-back" onclick="copyAndGoKakao()">📋 복사 후 카카오톡으로</button>
         <button class="btn-recopy" onclick="recopy()">다시 복사하기</button>
     </div>
 
@@ -763,24 +763,12 @@
                 // 4. 뷰 URL 생성
                 const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
 
-                // 5. 텍스트 복사
+                // 5. 공유 텍스트 준비 (복사는 버튼 탭 시 수행)
                 sharedText = buildText(viewUrl);
-                try { await navigator.clipboard.writeText(sharedText); }
-                catch {
-                    const ta = document.createElement('textarea');
-                    ta.value = sharedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                    document.body.appendChild(ta); ta.focus(); ta.select();
-                    document.execCommand('copy'); document.body.removeChild(ta);
-                }
+                document.getElementById('share-text-box').value = sharedText;
 
                 // 6. 성공 오버레이
                 document.getElementById('success-overlay').className = 'success-overlay show';
-
-                // 7. 카카오톡 열기 (모바일)
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                if (isMobile) {
-                    setTimeout(() => { window.location.href = 'kakaolink://open'; }, 500);
-                }
 
             } catch (e) {
                 console.error('등록 오류:', e);
@@ -796,15 +784,26 @@
             else { showToast('📋 텍스트가 복사되었습니다. 카카오톡에 붙여넣기 하세요!'); }
         }
 
+        // 복사 + 카카오톡 이동 (버튼 탭 = 새 제스처 → clipboard 작동)
+        async function copyAndGoKakao() {
+            await doCopy(sharedText);
+            showToast('✅ 복사 완료! 카카오톡에 붙여넣기 하세요');
+            const ua = navigator.userAgent || '';
+            setTimeout(() => {
+                if (/iPhone|iPad|iPod/i.test(ua)) { location.href = 'kakaoweb://closeBrowser'; }
+                else { location.href = 'kakaotalk://inappbrowser/close'; }
+            }, 600);
+        }
         async function recopy() {
-            try { await navigator.clipboard.writeText(sharedText); }
-            catch {
-                const ta = document.createElement('textarea');
-                ta.value = sharedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.focus(); ta.select();
-                document.execCommand('copy'); document.body.removeChild(ta);
-            }
+            await doCopy(sharedText);
             showToast('✅ 텍스트를 다시 복사했습니다!');
+        }
+        async function doCopy(text) {
+            try { await navigator.clipboard.writeText(text); return; } catch (e) { }
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
         }
 
         function showToast(msg) {
