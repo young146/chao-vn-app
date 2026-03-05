@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   StyleSheet,
   View,
@@ -262,6 +263,13 @@ export default function XinChaoDanggnScreen({ navigation }) {
   useEffect(() => {
     fetchItems(true);
   }, [user]);
+
+  // ✅ 포커스될 때마다 자동 새로고침 (딕렜링크로 앱 열렸을 때도 포함)
+  useFocusEffect(
+    useCallback(() => {
+      fetchItems(true);
+    }, [user])
+  );
 
   const onRefresh = () => {
     fetchItems(true);

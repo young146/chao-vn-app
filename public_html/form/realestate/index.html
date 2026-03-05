@@ -831,26 +831,37 @@
             else { showToast('📋 텍스트가 복사되었습니다. 카카오톡에 붙여넣기 하세요!'); }
         }
 
-        // 복사 + 카카오톡 이동 (버튼 탭 = 새 제스처 → clipboard 작동)
+        // iOS 수정: share-text-box textarea 직접 select 후 execCommand
         async function copyAndGoKakao() {
-            await doCopy(sharedText);
-            showToast('✅ 복사 완료! 카카오톡에 붙여넣기 하세요');
-            const ua = navigator.userAgent || '';
-            setTimeout(() => {
-                if (/iPhone|iPad|iPod/i.test(ua)) { location.href = 'kakaoweb://closeBrowser'; }
-                else { location.href = 'kakaotalk://inappbrowser/close'; }
-            }, 600);
+            const copied = await doCopyFromTextarea();
+            if (copied) {
+                showToast('✅ 복사 완료! 카카오톡에 붙여넣기 하세요');
+                document.querySelector('.btn-back').textContent = '✅ 복사됨 - 카카오톡으로 돌아가세요';
+                const ua = navigator.userAgent || '';
+                setTimeout(() => {
+                    if (/iPhone|iPad|iPod/i.test(ua)) { location.href = 'kakaoweb://closeBrowser'; }
+                    else if (/Android/i.test(ua)) { location.href = 'kakaotalk://inappbrowser/close'; }
+                }, 1200);
+            } else {
+                showToast('⚠️ 위 텍스트를 선택 후 수동으로 복사해 주세요');
+                const ta = document.getElementById('share-text-box');
+                ta.focus(); ta.select();
+            }
         }
         async function recopy() {
-            await doCopy(sharedText);
-            showToast('✅ 텍스트를 다시 복사했습니다!');
+            const copied = await doCopyFromTextarea();
+            showToast(copied ? '✅ 다시 복사했습니다!' : '⚠️ 위 텍스트를 선택 후 수동 복사해 주세요');
         }
-        async function doCopy(text) {
-            try { await navigator.clipboard.writeText(text); return; } catch (e) { }
-            const ta = document.createElement('textarea');
-            ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-            document.body.appendChild(ta); ta.focus(); ta.select();
-            document.execCommand('copy'); document.body.removeChild(ta);
+        async function doCopyFromTextarea() {
+            const ta = document.getElementById('share-text-box');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try { await navigator.clipboard.writeText(ta.value); return true; } catch (e) { }
+            }
+            ta.readOnly = false;
+            ta.select(); ta.setSelectionRange(0, 99999);
+            try { const ok = document.execCommand('copy'); return ok; }
+            catch (e) { return false; }
+            finally { ta.readOnly = true; }
         }
 
         function showToast(msg) {

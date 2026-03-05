@@ -803,27 +803,54 @@
             document.getElementById('success-overlay').classList.add('show');
         }
 
-        // 복사 + 카카오톡 이동 (버튼 탭 = 새 사용자 제스처 → clipboard 작동)
+        // iOS 수정: share-text-box textarea 직접 select 후 execCommand
+        // 카카오톡 WKWebView에서 가장 신뢰성 높은 복사 운 방법
         window.copyAndGoKakao = async function () {
-            await doCopy(copiedText);
-            showToast('✅ 복사 완료! 카카오톡에 붙여넣기 하세요');
-            const ua = navigator.userAgent || '';
-            setTimeout(() => {
-                if (/iPhone|iPad|iPod/i.test(ua)) { location.href = 'kakaoweb://closeBrowser'; }
-                else { location.href = 'kakaotalk://inappbrowser/close'; }
-            }, 600);
+            const copied = await doCopyFromTextarea();
+            if (copied) {
+                showToast('✅ 복사 완료! 카카오톡에 붙여넣기 하세요');
+                document.querySelector('.btn-back').textContent = '✅ 복사됨 -  카카오톡으로 돌아가세요';
+                const ua = navigator.userAgent || '';
+                setTimeout(() => {
+                    if (/iPhone|iPad|iPod/i.test(ua)) { location.href = 'kakaoweb://closeBrowser'; }
+                    else if (/Android/i.test(ua)) { location.href = 'kakaotalk://inappbrowser/close'; }
+                }, 1200);
+            } else {
+                // 자동 복사 실패 시 안내 (textarea 드래그하여 수동 복사)
+                showToast('⚠️ 위 텍스트를 선택 후 수동으로 복사해 주세요');
+                const ta = document.getElementById('share-text-box');
+                ta.focus(); ta.select();
+            }
         };
         window.reCopy = async function () {
-            await doCopy(copiedText);
-            showToast('✅ 다시 복사했습니다!');
+            const copied = await doCopyFromTextarea();
+            showToast(copied ? '✅ 다시 복사했습니다!' : '⚠️ 위 텍스트를 선택 후 수동 복사해 주세요');
         };
-        async function doCopy(text) {
-            try { await navigator.clipboard.writeText(text); return; } catch (e) { }
-            // 폴백
-            const ta = document.createElement('textarea');
-            ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-            document.body.appendChild(ta); ta.focus(); ta.select();
-            document.execCommand('copy'); document.body.removeChild(ta);
+        // 화면에 보이는 textarea 로부터 복사 (iOS WKWebView 에서도 작동)
+        async function doCopyFromTextarea() {
+            const ta = document.getElementById('share-text-box');
+            // 1) Modern clipboard API 시도
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try { await navigator.clipboard.writeText(ta.value); return true; } catch (e) { }
+            }
+            // 2) select + execCommand 폴백 (iOS Safari/WKWebView)
+            ta.contentEditable = 'true';  // iOS 프로퍼티 필요 없지만 햨 저하 시 유용
+            ta.readOnly = false;
+            const range = document.createRange();
+            range.selectNodeContents(ta);
+            const sel = window.getSelection();
+            if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+            ta.select();
+            ta.setSelectionRange(0, 99999);
+            try {
+                const ok = document.execCommand('copy');
+                return ok;
+            } catch (e) { return false; }
+            finally {
+                ta.readOnly = true;
+                ta.contentEditable = 'false';
+                if (sel) sel.removeAllRanges();
+            }
         }
         updatePreview();
     </script>
