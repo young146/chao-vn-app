@@ -15,8 +15,12 @@
  */
 export const formatPrice = (price, language = 'ko') => {
   if (!price) return '0₫';
-  const num = parseInt(price);
-  
+  // 웹폼에서 "30만동" 같은 텍스트로 입력된 경우 그대로 표시
+  if (typeof price === 'string' && isNaN(parseInt(price))) return price;
+  const rawNum = typeof price === 'string' ? price.replace(/[^0-9]/g, '') : String(price);
+  if (!rawNum) return String(price);
+  const num = parseInt(rawNum);
+
   if (language === 'vi') {
     // 베트남어: triệu (tr), tỷ (ty)
     if (num >= 1000000000) {
@@ -60,11 +64,11 @@ export const formatRentPrice = (price, language = 'ko', unit = '') => {
   if (!price) {
     return language === 'vi' ? 'Thỏa thuận' : language === 'en' ? 'Negotiable' : '협의';
   }
-  
+
   const num = parseInt(price);
   // 입력값은 만동 단위 → VND로 변환: num * 10,000
   const vnd = num * 10000;
-  
+
   if (language === 'vi') {
     const unitText = unit === '월' ? '/tháng' : unit;
     if (vnd >= 1000000000) {
@@ -104,11 +108,11 @@ export const formatSalePrice = (price, language = 'ko') => {
   if (!price) {
     return language === 'vi' ? 'Thỏa thuận' : language === 'en' ? 'Negotiable' : '협의';
   }
-  
+
   const num = parseFloat(price);
   // 입력값은 억동 단위 → VND로 변환: num * 100,000,000
   const vnd = num * 100000000;
-  
+
   if (language === 'vi') {
     if (vnd >= 1000000000) {
       const ty = vnd / 1000000000;
