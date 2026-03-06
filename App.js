@@ -624,51 +624,6 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer
           ref={navigationRef}
-          linking={{
-            prefixes: [
-              "chaovietnam://",
-              "xinchao://",
-              "com.yourname.chaovnapp://",
-              "exp+chao-vn-app://",
-              "https://auth.expo.io/@young146/chao-vn-app",
-              "https://chaovietnam.co.kr",
-            ],
-            config: {
-              screens: {
-                MainApp: {
-                  screens: {
-                    홈: {
-                      screens: {
-                        홈메인: {
-                          path: "",
-                          parse: {
-                            type: () => "home",
-                            categoryId: (categoryId) => categoryId ? parseInt(categoryId) : null,
-                          },
-                        },
-                      },
-                    },
-                    뉴스: {
-                      screens: {
-                        뉴스메인: {
-                          path: "daily-news",
-                          parse: {
-                            type: () => "news",
-                            categoryId: () => 31,
-                          },
-                        },
-                      },
-                    },
-                    // 🔗 상세 화면 딥링크는 navigateByUrl 수동 핸들러만 처리
-                    // (NC + 수동 이중처리 → iOS 충돌 방지)
-                    Chat: "chat",
-                    Menu: "menu",
-                  },
-                },
-                로그인: "login",
-              },
-            },
-          }}
         >
           <StatusBar barStyle="dark-content" backgroundColor="#fff" />
           <ProfileCompletionPrompt />
