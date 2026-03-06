@@ -1,5 +1,5 @@
 import "react-native-gesture-handler";
-import { LogBox, Platform, Alert, Linking } from "react-native";
+import { LogBox, Platform, Alert } from "react-native";
 
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
@@ -136,7 +136,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
-import { NavigationContainer, useNavigation, createNavigationContainerRef } from "@react-navigation/native";
+import * as Linking from 'expo-linking';
+import { NavigationContainer, useNavigation, createNavigationContainerRef, getStateFromPath as defaultGetStateFromPath } from "@react-navigation/native";
 
 // 딥링크 핸들링용 navigation ref (앱 실행 중 딥링크 수신 시 사용)
 const navigationRef = createNavigationContainerRef();
@@ -281,101 +282,103 @@ export default function App() {
   const [showStartupPopup, setShowStartupPopup] = useState(false);
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
+  const deepLinkHandledRef = useRef(false); // 중복 처리 방지
 
-  // 딥링크 URL 처리 완료 플래그
-  const initialUrlHandled = useRef(false);
+  // 🔗 딥링크 수동 핸들러 (링킹 prop 실패 시 안전망)
+  const handleDeepLinkUrl = useCallback((url) => {
+    if (!url) return;
+    console.log('🔗 [안전망] 딥링크 수신:', url);
 
-  // 🔗 딥링크 처리 (앱이 실행 중일 때 수신된 딥링크를 올바른 화면으로 라우팅)
-  useEffect(() => {
-    const navigateByUrl = (url) => {
-      if (!url) return;
+    // URL에서 type, id 파싱
+    let type = null, id = null;
 
-      let type = null;
-      let cleanId = null;
-
-      // 방법 1: chaovietnam://danggn/ID (앱 내부 커스텀 스킴)
-      const schemeMatch = url.match(/chaovietnam:\/\/([a-z]+)\/([^?]+)/);
-      if (schemeMatch) {
-        type = schemeMatch[1];
-        cleanId = schemeMatch[2];
-      }
-
-      // 방법 2: https://chaovietnam.co.kr/app/share/danggn/ID (카카오톡 공유 URL)
-      if (!type) {
-        const webMatch = url.match(/chaovietnam\.co\.kr\/app\/share\/([a-z]+)\/([^?/]+)/);
-        if (webMatch) {
-          type = webMatch[1];
-          cleanId = webMatch[2];
-        }
-      }
-
-      if (!type || !cleanId) return;
-      console.log(`🔗 딥링크 파싱: type=${type}, id=${cleanId}`);
-
-      // 탭만 이동하는 fallback (상세 이동 실패 시)
-      const navigateToTab = () => {
-        try {
-          if (!navigationRef.isReady()) return;
-          if (type === 'realestate') navigationRef.navigate('MainApp', { screen: '부동산' });
-          else if (type === 'danggn') navigationRef.navigate('MainApp', { screen: '당근/나눔' });
-          else if (type === 'job') navigationRef.navigate('MainApp', { screen: '구인구직' });
-          console.log(`⚠️ 딥링크: 탭으로 이동 (type=${type})`);
-        } catch (e) {
-          console.log('❌ 탭 이동도 실패:', e);
-        }
-      };
-
-      const tryNavigate = (retries = 0) => {
-        if (!navigationRef.isReady()) {
-          console.log(`⏳ 네비게이션 준비 대기 중... (${retries + 1}/15)`);
-          if (retries < 15) {
-            setTimeout(() => tryNavigate(retries + 1), 300);
-          } else {
-            console.log('⚠️ 딥링크 상세 이동 실패, 탭으로 이동');
-            navigateToTab();
-          }
-          return;
-        }
-
-        try {
-          console.log(`🚀 딥링크 네비게이션 실행: type=${type}, id=${cleanId}`);
-          if (type === 'realestate') {
-            navigationRef.navigate('MainApp', { screen: '부동산', params: { screen: '부동산 상세', params: { id: cleanId } } });
-          } else if (type === 'danggn') {
-            navigationRef.navigate('MainApp', { screen: '당근/나눔', params: { screen: '당근/나눔 상세', params: { id: cleanId } } });
-          } else if (type === 'job') {
-            navigationRef.navigate('MainApp', { screen: '구인구직', params: { screen: '구인구직 상세', params: { id: cleanId } } });
-          }
-        } catch (e) {
-          console.log('⚠️ 상세 이동 실패, 탭으로 이동:', e);
-          navigateToTab();
-        }
-      };
-
-      tryNavigate();
-    };
-
-    const handleDeepLink = (event) => {
-      console.log('🔗 딥링크 수신 (실행중):', event.url);
-      navigateByUrl(event.url);
-    };
-
-    // URL 이벤트 리스너 (앱이 실행 중일 때 딥링크 수신)
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // 앱이 처음 실행될 때(Cold Start) 넘어온 URL 처리 (한 번만 실행)
-    if (!initialUrlHandled.current) {
-      initialUrlHandled.current = true;
-      Linking.getInitialURL().then((url) => {
-        if (url) {
-          console.log('🔗 딥링크 수신 (Cold Start):', url);
-          navigateByUrl(url);
-        }
-      }).catch(err => console.error('Failed to get initial URL:', err));
+    // chaovietnam://danggn/ID
+    const schemeMatch = url.match(/chaovietnam:\/\/([a-z]+)\/([^?/\s]+)/);
+    if (schemeMatch) {
+      type = schemeMatch[1];
+      id = schemeMatch[2];
     }
 
-    return () => subscription.remove();
+    // https://chaovietnam.co.kr/app/share/danggn/ID
+    if (!type) {
+      const webMatch = url.match(/chaovietnam\.co\.kr\/app\/share\/([a-z]+)\/([^?/\s]+)/);
+      if (webMatch) {
+        type = webMatch[1];
+        id = webMatch[2];
+      }
+    }
+
+    if (!type || !id) {
+      console.log('🔗 [안전망] 파싱 실패:', url);
+      return;
+    }
+
+    const screenMap = {
+      danggn: { tab: '당근/나눔', screen: '당근/나눔 상세' },
+      job: { tab: '구인구직', screen: '구인구직 상세' },
+      realestate: { tab: '부동산', screen: '부동산 상세' },
+    };
+    const target = screenMap[type];
+    if (!target) return;
+
+    console.log(`🔗 [안전망] 네비게이션 시도: ${target.tab} > ${target.screen} (id: ${id})`);
+
+    // navigationRef가 준비될 때까지 재시도
+    let attempts = 0;
+    const tryNavigate = () => {
+      attempts++;
+      if (navigationRef.isReady()) {
+        try {
+          navigationRef.navigate('MainApp', {
+            screen: target.tab,
+            params: {
+              screen: target.screen,
+              params: { id },
+            },
+          });
+          console.log('✅ [안전망] 네비게이션 성공');
+        } catch (e) {
+          console.log('❌ [안전망] 네비게이션 실패:', e.message);
+        }
+      } else if (attempts < 20) {
+        setTimeout(tryNavigate, 200);
+      }
+    };
+    setTimeout(tryNavigate, 300);
   }, []);
+
+  // Cold start: 앱이 딥링크로 시작된 경우
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url && !deepLinkHandledRef.current) {
+        console.log('🔗 [Cold Start] 초기 URL:', url);
+        // linking prop이 먼저 처리할 시간 줌 (500ms), 그래도 실패하면 안전망 실행
+        setTimeout(() => {
+          if (!navigationRef.isReady()) return;
+          const state = navigationRef.getState();
+          const currentRoute = state?.routes?.[state.routes.length - 1];
+          // 현재 화면이 상세페이지가 아니면 수동으로 이동
+          const isOnDetailPage = currentRoute?.state?.routes?.some(r =>
+            r.state?.routes?.some(s => s.name?.includes('상세'))
+          );
+          if (!isOnDetailPage) {
+            console.log('⚠️ [Cold Start] 상세 페이지 아님 → 안전망 실행');
+            handleDeepLinkUrl(url);
+          }
+        }, 800);
+      }
+    });
+  }, [handleDeepLinkUrl]);
+
+  // Hot start: 앱이 실행 중일 때 딥링크 수신
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      console.log('🔗 [Hot Start] URL 이벤트:', url);
+      // linking prop의 subscribe와 중복이지만 해당 시스템이 실패 시 안전망
+      setTimeout(() => handleDeepLinkUrl(url), 300);
+    });
+    return () => subscription.remove();
+  }, [handleDeepLinkUrl]);
 
   // 🚀 캐시 우선 로딩 전략
   useEffect(() => {
@@ -624,6 +627,103 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer
           ref={navigationRef}
+          linking={{
+            prefixes: [
+              Linking.createURL('/'),
+              'chaovietnam://',
+              'https://chaovietnam.co.kr',
+              'https://www.chaovietnam.co.kr',
+            ],
+            // 🔗 expo-linking을 명시적으로 사용 (React Navigation 기본값은 react-native Linking)
+            async getInitialURL() {
+              const url = await Linking.getInitialURL();
+              console.log('🔗 expo-linking getInitialURL:', url);
+              return url;
+            },
+            subscribe(listener) {
+              const sub = Linking.addEventListener('url', ({ url }) => {
+                console.log('🔗 expo-linking URL event:', url);
+                listener(url);
+              });
+              return () => sub.remove();
+            },
+            config: {
+              screens: {
+                MainApp: {
+                  screens: {
+                    '당근/나눔': {
+                      screens: {
+                        '당근/나눔 상세': 'danggn/:id',
+                      },
+                    },
+                    '구인구직': {
+                      screens: {
+                        '구인구직 상세': 'job/:id',
+                      },
+                    },
+                    '부동산': {
+                      screens: {
+                        '부동산 상세': 'realestate/:id',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            getStateFromPath: (path, options) => {
+              console.log('🔗 getStateFromPath 원본 path:', path);
+              const cleanPath = path.replace(/^\/?(?:app\/share\/)?/, '');
+              console.log('🔗 cleanPath:', cleanPath);
+
+              // defaultGetStateFromPath 먼저 시도
+              const state = defaultGetStateFromPath(cleanPath, options);
+              if (state) {
+                console.log('✅ defaultGetStateFromPath 성공');
+                return state;
+              }
+
+              // 실패 시 수동으로 파싱 → 직접 state 생성
+              console.log('⚠️ defaultGetStateFromPath 실패 → 수동 파싱 시도');
+              const match = cleanPath.match(/^(danggn|job|realestate)\/([^?/]+)/);
+              if (!match) {
+                console.log('❌ 경로 파싱 실패:', cleanPath);
+                return undefined;
+              }
+
+              const [, type, id] = match;
+              console.log(`🔗 수동 파싱 성공: type=${type}, id=${id}`);
+
+              const screenMap = {
+                danggn: { tab: '당근/나눔', screen: '당근/나눔 상세' },
+                job: { tab: '구인구직', screen: '구인구직 상세' },
+                realestate: { tab: '부동산', screen: '부동산 상세' },
+              };
+              const target = screenMap[type];
+              if (!target) return undefined;
+
+              // React Navigation state 구조 수동 생성
+              return {
+                routes: [
+                  {
+                    name: 'MainApp',
+                    state: {
+                      routes: [
+                        {
+                          name: target.tab,
+                          state: {
+                            routes: [
+                              { name: target.screen, params: { id } },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              };
+            },
+          }}
+          fallback={<ActivityIndicator size="large" color="#FF6B35" />}
         >
           <StatusBar barStyle="dark-content" backgroundColor="#fff" />
           <ProfileCompletionPrompt />
