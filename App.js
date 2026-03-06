@@ -136,7 +136,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, useNavigation, createNavigationContainerRef } from "@react-navigation/native";
+
+// 딥링크 핸들링용 navigation ref (앱 실행 중 딥링크 수신 시 사용)
+const navigationRef = createNavigationContainerRef();
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
@@ -279,19 +282,29 @@ export default function App() {
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
 
-  // 🔗 딥링크 처리
+  // 🔗 딥링크 처리 (앱이 실행 중일 때 수신된 딥링크를 올바른 화면으로 라우팅)
   useEffect(() => {
-    const handleDeepLink = (event) => {
-      const url = event.url;
-      console.log('🔗 딥링크 수신:', url);
+    const navigateByUrl = (url) => {
+      if (!url || !navigationRef.isReady()) return;
+      // chaovietnam://realestate/ID → 부동산 상세
+      // chaovietnam://danggn/ID    → 당근/나눔 상세
+      // chaovietnam://job/ID       → 구인구직 상세
+      const match = url.match(/chaovietnam:\/\/([a-z]+)\/(.+)/);
+      if (!match) return;
+      const [, type, id] = match;
+      if (type === 'realestate') {
+        navigationRef.navigate('MainApp', { screen: '부동산', params: { screen: '부동산 상세', params: { id } } });
+      } else if (type === 'danggn') {
+        navigationRef.navigate('MainApp', { screen: '당근/나눔', params: { screen: '당근/나눔 상세', params: { id } } });
+      } else if (type === 'job') {
+        navigationRef.navigate('MainApp', { screen: '구인구직', params: { screen: '구인구직 상세', params: { id } } });
+      }
     };
 
-    // 초기 URL 확인 (앱이 닫혀있다가 딥링크로 열린 경우)
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        console.log('🔗 초기 딥링크:', url);
-      }
-    });
+    const handleDeepLink = (event) => {
+      console.log('🔗 딥링크 수신 (실행중):', event.url);
+      navigateByUrl(event.url);
+    };
 
     // URL 이벤트 리스너 (앱이 실행 중일 때 딥링크 수신)
     const subscription = Linking.addEventListener('url', handleDeepLink);
@@ -545,6 +558,7 @@ export default function App() {
       <GlobalChatNotificationListener />
       <SafeAreaProvider>
         <NavigationContainer
+          ref={navigationRef}
           linking={{
             prefixes: [
               "chaovietnam://",
@@ -583,18 +597,16 @@ export default function App() {
                     },
                     "당근/나눔": {
                       screens: {
-                        "당근/나눔 메인": "danggn",
                         "당근/나눔 상세": {
                           path: "danggn/:id",
                           parse: {
-                            deepLinkId: (id) => `${id}`,
+                            id: (id) => `${id}`,
                           },
                         },
                       },
                     },
                     "구인구직": {
                       screens: {
-                        "구인구직 메인": "job",
                         "구인구직 상세": {
                           path: "job/:id",
                           parse: {
@@ -605,7 +617,6 @@ export default function App() {
                     },
                     "부동산": {
                       screens: {
-                        "부동산 메인": "realestate",
                         "부동산 상세": {
                           path: "realestate/:id",
                           parse: {

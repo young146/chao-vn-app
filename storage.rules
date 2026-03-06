@@ -34,6 +34,11 @@ service firebase.storage {
       allow write: if true;
     }
 
+    match /jobs-web/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // 기본 거부
     match /{allPaths=**} {
       allow read, write: if false;

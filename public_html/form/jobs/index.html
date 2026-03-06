@@ -688,7 +688,7 @@
                 document.getElementById('progress-bar').style.width = `${Math.round((i / total) * 100)}%`;
                 const file = selectedFiles[i];
                 const ext = file.name.split('.').pop() || 'jpg';
-                const ref = storage.ref(`jobs_web/${docId}_${i}.${ext}`);
+                const ref = storage.ref(`jobs-web/${docId}_${i}.${ext}`);
                 await ref.put(file);
                 const url = await ref.getDownloadURL();
                 urls.push(url);

@@ -626,14 +626,23 @@
             updatePreview();
         }
 
-        // 이미지 선택
-        function handleImages(input) {
+        // 이미지 선택 - 버튼 비활성화 후 로딩
+        async function handleImages(input) {
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = '🖼️ 사진 준비 중...';
+
             const files = Array.from(input.files);
             const remaining = 10 - selectedFiles.length;
             const newFiles = files.slice(0, remaining);
             selectedFiles = [...selectedFiles, ...newFiles];
             renderImageRow();
             updatePreview();
+
+            // 썸네일 로딩 완료 후 버튼 재활성화
+            await new Promise(r => setTimeout(r, 400));
+            btn.disabled = false;
+            btn.textContent = '🏠 등록 및 카카오톡 공유';
         }
 
         function renderImageRow() {
@@ -713,23 +722,42 @@
             document.getElementById('preview-text').textContent = text;
         }
 
-        // 이미지 업로드
+        // 이미지 압축 (canvas, JPEG 0.8, max 1200px)
+        function compressImage(file) {
+            return new Promise(resolve => {
+                const maxW = 1200;
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const ratio = Math.min(1, maxW / img.width);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(img.width * ratio);
+                    canvas.height = Math.round(img.height * ratio);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+                    canvas.toBlob(resolve, 'image/jpeg', 0.8);
+                };
+                img.onerror = () => resolve(file); // 실패 시 원본 사용
+                img.src = url;
+            });
+        }
+
+        // 이미지 업로드 (압축 포함)
         async function uploadImages(docId) {
             const urls = [];
             const total = selectedFiles.length;
             document.getElementById('progress-wrap').style.display = 'block';
             for (let i = 0; i < total; i++) {
-                document.getElementById('progress-label').textContent = `사진 업로드 중... (${i + 1}/${total})`;
-                document.getElementById('progress-bar').style.width = `${Math.round(((i) / total) * 100)}%`;
-                const file = selectedFiles[i];
-                const ext = file.name.split('.').pop() || 'jpg';
-                const ref = storage.ref(`realestate_web/${docId}_${i}.${ext}`);
-                await ref.put(file);
+                document.getElementById('progress-label').textContent = `사진 압축·업로드 중... (${i + 1}/${total})`;
+                document.getElementById('progress-bar').style.width = `${Math.round((i / total) * 100)}%`;
+                const compressed = await compressImage(selectedFiles[i]);
+                const ref = storage.ref(`realestate-web/${docId}_${i}.jpg`);
+                await ref.put(compressed, { contentType: 'image/jpeg' });
                 const url = await ref.getDownloadURL();
                 urls.push(url);
+                document.getElementById('progress-bar').style.width = `${Math.round(((i + 1) / total) * 100)}%`;
             }
-            document.getElementById('progress-bar').style.width = '100%';
-            document.getElementById('progress-label').textContent = '업로드 완료!';
+            document.getElementById('progress-label').textContent = '✅ 업로드 완료!';
             return urls;
         }
 
