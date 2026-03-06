@@ -113,7 +113,6 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.WAKE_LOCK",
         "android.permission.VIBRATE",
-        "com.google.android.gms.permission.AD_ID",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
@@ -193,14 +192,7 @@
           }
         }
       ],
-      "expo-tracking-transparency",
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-7944314901202352~3025832510",
-          "delay_app_measurement_init": true
-        }
-      ]
+      "expo-tracking-transparency"
     ],
     "runtimeVersion": "2.2.2",
     "updates": {

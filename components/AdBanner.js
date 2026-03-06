@@ -8,21 +8,6 @@ import axios from "axios";
 // ACF + CPT 기반 단순화된 슬롯 시스템
 // ============================================
 
-// AdMob 배너 (Android만 사용, 자체 광고 없을 때 폴백)
-let BannerAd = null;
-let BannerAdSizeEnum = null;
-let TestIds = null;
-
-if (Platform.OS === 'android') {
-  try {
-    const GoogleMobileAds = require('react-native-google-mobile-ads');
-    BannerAd = GoogleMobileAds.BannerAd;
-    BannerAdSizeEnum = GoogleMobileAds.BannerAdSize;
-    TestIds = GoogleMobileAds.TestIds;
-  } catch (e) {
-    console.log('AdMob 로드 실패, 자체 광고만 사용:', e.message);
-  }
-}
 
 // ============================================
 // 설정
@@ -30,11 +15,6 @@ if (Platform.OS === 'android') {
 const API_BASE_URL = "https://chaovietnam.co.kr/wp-json/chaovn/v2";
 const CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시
 
-// AdMob 광고 단위 ID (자체 광고 없을 때만 사용)
-const ADMOB_AD_UNITS = {
-  BANNER: 'ca-app-pub-7944314901202352/4259843310',    // 헤더 배너 (새로 생성)
-  INLINE: 'ca-app-pub-7944314901202352/8698508125',    // 인라인 배너 (새로 생성)
-};
 
 // 광고 슬롯 정의 (WordPress와 동일)
 const AD_SLOTS = {
@@ -428,11 +408,11 @@ export function HomeSectionAd({ style, intervalMs = 5000 }) {
  * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
  * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부
  */
-export default function AdBanner({ screen = 'all', style, useAdMob = true, intervalMs = 5000 }) {
+export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
   const [adList, setAdList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !isLoading && adList.length === 0;
+
 
   useEffect(() => {
     const loadAd = async () => {
@@ -460,20 +440,7 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true, inter
     );
   }
 
-  // 자체 광고 없고 AdMob 사용 가능하면 AdMob 표시
-  if (canUseAdMob) {
-    return (
-      <View style={[styles.headerBanner, style]}>
-        <BannerAd
-          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.BANNER}
-          size={BannerAdSizeEnum.BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdLoaded={() => console.log('✅ AdMob 헤더 배너 로드')}
-          onAdFailedToLoad={(error) => console.log('❌ AdMob 헤더 실패:', error.message)}
-        />
-      </View>
-    );
-  }
+
 
   return null;
 }
@@ -487,11 +454,11 @@ export default function AdBanner({ screen = 'all', style, useAdMob = true, inter
  * @param {boolean} useAdMob    - 자체 광고 없을 때 AdMob 사용 여부
  * @param {number} intervalMs   - 슬라이딩 간격 (ms)
  */
-export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, useAdMob = true, intervalMs = 5000 }) {
+export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, intervalMs = 5000 }) {
   const [adList, setAdList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const canUseAdMob = Platform.OS === 'android' && BannerAd && useAdMob && !isLoading && adList.length === 0;
+
 
   useEffect(() => {
     const loadAd = async () => {
@@ -536,20 +503,7 @@ export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, useAd
     );
   }
 
-  // 자체 광고 없고 AdMob 사용 가능하면 AdMob 표시
-  if (canUseAdMob) {
-    return (
-      <View style={[styles.inlineAd, style, { justifyContent: 'center', alignItems: 'center' }]}>
-        <BannerAd
-          unitId={__DEV__ ? TestIds.BANNER : ADMOB_AD_UNITS.INLINE}
-          size={BannerAdSizeEnum.MEDIUM_RECTANGLE}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdLoaded={() => console.log('✅ AdMob 인라인 로드')}
-          onAdFailedToLoad={(error) => console.log('❌ AdMob 인라인 실패:', error.message)}
-        />
-      </View>
-    );
-  }
+
 
   return null;
 }
@@ -753,12 +707,7 @@ export function SectionAdBanner({ style }) {
   return <HomeSectionAd style={style} />;
 }
 
-// BannerAdSize export (하위 호환성)
-export const BannerAdSize = {
-  BANNER: "BANNER",
-  LARGE_BANNER: "LARGE_BANNER",
-  MEDIUM_RECTANGLE: "MEDIUM_RECTANGLE",
-};
+
 
 // ============================================
 // 스타일 (비율 기반 + 최대 높이 제한)
