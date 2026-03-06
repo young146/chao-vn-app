@@ -598,7 +598,6 @@ export default function App() {
               "exp+chao-vn-app://",
               "https://auth.expo.io/@young146/chao-vn-app",
               "https://chaovietnam.co.kr",
-              "https://chaovietnam.co.kr/app/share",
             ],
             config: {
               screens: {
@@ -629,7 +628,8 @@ export default function App() {
                     "당근/나눔": {
                       screens: {
                         "당근/나눔 상세": {
-                          path: "danggn/:id",
+                          // 🔗 카카오톡 공유 URL: https://chaovietnam.co.kr/app/share/danggn/ID
+                          path: "app/share/danggn/:id",
                           parse: {
                             id: (id) => `${id}`,
                           },
@@ -639,7 +639,8 @@ export default function App() {
                     "구인구직": {
                       screens: {
                         "구인구직 상세": {
-                          path: "job/:id",
+                          // 🔗 카카오톡 공유 URL: https://chaovietnam.co.kr/app/share/job/ID
+                          path: "app/share/job/:id",
                           parse: {
                             id: (id) => `${id}`,
                           },
@@ -649,7 +650,8 @@ export default function App() {
                     "부동산": {
                       screens: {
                         "부동산 상세": {
-                          path: "realestate/:id",
+                          // 🔗 카카오톡 공유 URL: https://chaovietnam.co.kr/app/share/realestate/ID
+                          path: "app/share/realestate/:id",
                           parse: {
                             id: (id) => `${id}`,
                           },
