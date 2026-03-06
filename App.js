@@ -282,23 +282,43 @@ export default function App() {
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
 
+  // 딥링크 URL 처리 완료 플래그
+  const initialUrlHandled = useRef(false);
+
   // 🔗 딥링크 처리 (앱이 실행 중일 때 수신된 딥링크를 올바른 화면으로 라우팅)
   useEffect(() => {
     const navigateByUrl = (url) => {
-      if (!url || !navigationRef.isReady()) return;
+      if (!url) return;
       // chaovietnam://realestate/ID → 부동산 상세
       // chaovietnam://danggn/ID    → 당근/나눔 상세
       // chaovietnam://job/ID       → 구인구직 상세
       const match = url.match(/chaovietnam:\/\/([a-z]+)\/(.+)/);
       if (!match) return;
       const [, type, id] = match;
-      if (type === 'realestate') {
-        navigationRef.navigate('MainApp', { screen: '부동산', params: { screen: '부동산 상세', params: { id } } });
-      } else if (type === 'danggn') {
-        navigationRef.navigate('MainApp', { screen: '당근/나눔', params: { screen: '당근/나눔 상세', params: { id } } });
-      } else if (type === 'job') {
-        navigationRef.navigate('MainApp', { screen: '구인구직', params: { screen: '구인구직 상세', params: { id } } });
-      }
+      const cleanId = id.split('?')[0]; // 파라미터가 섞여있을 경우 제거
+
+      const tryNavigate = (retries = 0) => {
+        if (!navigationRef.isReady()) {
+          console.log(`⏳ 네비게이션 준비 대기 중... (${retries + 1}/10)`);
+          if (retries < 10) {
+            setTimeout(() => tryNavigate(retries + 1), 500);
+          } else {
+            console.log('❌ 딥링크 네비게이션 실패: 네비게이션이 준비되지 않음');
+          }
+          return;
+        }
+
+        console.log(`🚀 딥링크 네비게이션 실행: type=${type}, id=${cleanId}`);
+        if (type === 'realestate') {
+          navigationRef.navigate('MainApp', { screen: '부동산', params: { screen: '부동산 상세', params: { id: cleanId } } });
+        } else if (type === 'danggn') {
+          navigationRef.navigate('MainApp', { screen: '당근/나눔', params: { screen: '당근/나눔 상세', params: { id: cleanId } } });
+        } else if (type === 'job') {
+          navigationRef.navigate('MainApp', { screen: '구인구직', params: { screen: '구인구직 상세', params: { id: cleanId } } });
+        }
+      };
+
+      tryNavigate();
     };
 
     const handleDeepLink = (event) => {
@@ -308,6 +328,17 @@ export default function App() {
 
     // URL 이벤트 리스너 (앱이 실행 중일 때 딥링크 수신)
     const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // 앱이 처음 실행될 때(Cold Start) 넘어온 URL 처리 (한 번만 실행)
+    if (!initialUrlHandled.current) {
+      initialUrlHandled.current = true;
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          console.log('🔗 딥링크 수신 (Cold Start):', url);
+          navigateByUrl(url);
+        }
+      }).catch(err => console.error('Failed to get initial URL:', err));
+    }
 
     return () => subscription.remove();
   }, []);
