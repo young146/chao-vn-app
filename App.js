@@ -289,32 +289,66 @@ export default function App() {
   useEffect(() => {
     const navigateByUrl = (url) => {
       if (!url) return;
-      // chaovietnam://realestate/ID → 부동산 상세
-      // chaovietnam://danggn/ID    → 당근/나눔 상세
-      // chaovietnam://job/ID       → 구인구직 상세
-      const match = url.match(/chaovietnam:\/\/([a-z]+)\/(.+)/);
-      if (!match) return;
-      const [, type, id] = match;
-      const cleanId = id.split('?')[0]; // 파라미터가 섞여있을 경우 제거
+
+      let type = null;
+      let cleanId = null;
+
+      // 방법 1: chaovietnam://danggn/ID (앱 내부 커스텀 스킴)
+      const schemeMatch = url.match(/chaovietnam:\/\/([a-z]+)\/([^?]+)/);
+      if (schemeMatch) {
+        type = schemeMatch[1];
+        cleanId = schemeMatch[2];
+      }
+
+      // 방법 2: https://chaovietnam.co.kr/app/share/danggn/ID (카카오톡 공유 URL)
+      if (!type) {
+        const webMatch = url.match(/chaovietnam\.co\.kr\/app\/share\/([a-z]+)\/([^?/]+)/);
+        if (webMatch) {
+          type = webMatch[1];
+          cleanId = webMatch[2];
+        }
+      }
+
+      if (!type || !cleanId) return;
+      console.log(`🔗 딥링크 파싱: type=${type}, id=${cleanId}`);
+
+      // 탭만 이동하는 fallback (상세 이동 실패 시)
+      const navigateToTab = () => {
+        try {
+          if (!navigationRef.isReady()) return;
+          if (type === 'realestate') navigationRef.navigate('MainApp', { screen: '부동산' });
+          else if (type === 'danggn') navigationRef.navigate('MainApp', { screen: '당근/나눔' });
+          else if (type === 'job') navigationRef.navigate('MainApp', { screen: '구인구직' });
+          console.log(`⚠️ 딥링크: 탭으로 이동 (type=${type})`);
+        } catch (e) {
+          console.log('❌ 탭 이동도 실패:', e);
+        }
+      };
 
       const tryNavigate = (retries = 0) => {
         if (!navigationRef.isReady()) {
-          console.log(`⏳ 네비게이션 준비 대기 중... (${retries + 1}/10)`);
-          if (retries < 10) {
-            setTimeout(() => tryNavigate(retries + 1), 500);
+          console.log(`⏳ 네비게이션 준비 대기 중... (${retries + 1}/15)`);
+          if (retries < 15) {
+            setTimeout(() => tryNavigate(retries + 1), 300);
           } else {
-            console.log('❌ 딥링크 네비게이션 실패: 네비게이션이 준비되지 않음');
+            console.log('⚠️ 딥링크 상세 이동 실패, 탭으로 이동');
+            navigateToTab();
           }
           return;
         }
 
-        console.log(`🚀 딥링크 네비게이션 실행: type=${type}, id=${cleanId}`);
-        if (type === 'realestate') {
-          navigationRef.navigate('MainApp', { screen: '부동산', params: { screen: '부동산 상세', params: { id: cleanId } } });
-        } else if (type === 'danggn') {
-          navigationRef.navigate('MainApp', { screen: '당근/나눔', params: { screen: '당근/나눔 상세', params: { id: cleanId } } });
-        } else if (type === 'job') {
-          navigationRef.navigate('MainApp', { screen: '구인구직', params: { screen: '구인구직 상세', params: { id: cleanId } } });
+        try {
+          console.log(`🚀 딥링크 네비게이션 실행: type=${type}, id=${cleanId}`);
+          if (type === 'realestate') {
+            navigationRef.navigate('MainApp', { screen: '부동산', params: { screen: '부동산 상세', params: { id: cleanId } } });
+          } else if (type === 'danggn') {
+            navigationRef.navigate('MainApp', { screen: '당근/나눔', params: { screen: '당근/나눔 상세', params: { id: cleanId } } });
+          } else if (type === 'job') {
+            navigationRef.navigate('MainApp', { screen: '구인구직', params: { screen: '구인구직 상세', params: { id: cleanId } } });
+          }
+        } catch (e) {
+          console.log('⚠️ 상세 이동 실패, 탭으로 이동:', e);
+          navigateToTab();
         }
       };
 
