@@ -78,11 +78,11 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     }
   }, [routeItem, deepLinkId]);
 
-  // 화면이 포커스될 때마다 최신 데이터 재로드 (수정 후 자동 갱신)
+  // 화면 복귀 시 최신 데이터 재로드 (수정 후 자동 갱신)
   useFocusEffect(
     useCallback(() => {
+      if (!item?.id) return;
       const fetchLatest = async () => {
-        if (!item?.id) return;
         try {
           const docRef = doc(db, "RealEstate", item.id);
           const docSnap = await getDoc(docRef);
@@ -91,13 +91,107 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             setItem(fresh);
             setCurrentStatus(fresh.status || "거래가능");
           }
-        } catch (e) {
-          // 네트워크 오류 등은 무시하고 기존 데이터 유지
-        }
+        } catch (e) { }
       };
       fetchLatest();
     }, [item?.id])
   );
+
+  // ── 모든 Hook을 early return 위에 배치 (Rules of Hooks 준수) ──
+
+  // 채팅하기
+  const handleChat = useCallback(() => {
+    if (!user || !item) return;
+    if (isMyItem) {
+      Alert.alert(t('common:notice'), t('detail.ownPost'));
+      return;
+    }
+    navigation.navigate("ChatRoom", {
+      chatRoomId: null,
+      itemId: item.id,
+      itemTitle: item.title,
+      itemImage: (item.images || [])[0] || null,
+      otherUserId: item.userId,
+      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : t('detail.poster'),
+      sellerId: item.userId,
+    });
+  }, [user, item, navigation, t]);
+
+  // 📤 SNS 공유 핸들러
+  const handleShare = useCallback(async (platform = 'more') => {
+    if (!item) return;
+    const { shareItem } = require('../utils/deepLinkUtils');
+    try {
+      const result = await shareItem('realestate', item.id, item, platform);
+      if (result && !result.success) {
+        if (result.error === 'kakao_not_installed') {
+          Alert.alert('KakaoTalk', t('detail.installKakao'));
+        } else if (result.error === 'zalo_not_installed') {
+          Alert.alert('Zalo', t('detail.zaloNotInstalled'));
+        }
+      }
+    } catch (error) {
+      console.error("공유 실패:", error);
+      Alert.alert(t('common:error'), t('detail.shareFailed'));
+    }
+  }, [item, t]);
+
+  // 헤더 설정
+  const isMyItem = item?.userId === user?.uid;
+  const canDelete = !!(isMyItem || isAdmin());
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
+            <Ionicons name="share-outline" size={24} color="#333" />
+          </TouchableOpacity>
+          {canDelete && (
+            <TouchableOpacity onPress={() => {
+              // handleDelete는 early return 후 정의되므로 item 유효성을 여기서도 확인
+              if (!item) return;
+              Alert.alert(
+                t('common:delete'),
+                t('detail.deleteConfirm'),
+                [
+                  { text: t('common:cancel'), style: "cancel" },
+                  {
+                    text: t('common:delete'),
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        if (item.images && item.images.length > 0) {
+                          for (const imageUrl of item.images) {
+                            try {
+                              if (imageUrl.includes("firebase")) {
+                                const imageRef = ref(storage, imageUrl);
+                                await deleteObject(imageRef);
+                              }
+                            } catch (imgError) { }
+                          }
+                        }
+                        await deleteDoc(doc(db, "RealEstate", item.id));
+                        Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+                          { text: t('common:confirm'), onPress: () => navigation.goBack() },
+                        ]);
+                      } catch (error) {
+                        Alert.alert(t('common:error'), t('detail.deleteFailed'));
+                      }
+                    },
+                  },
+                ]
+              );
+            }}>
+              <Ionicons name="trash-outline" size={24} color="#F44336" />
+            </TouchableOpacity>
+          )}
+        </View>
+      ),
+    });
+  }, [navigation, canDelete, handleShare, item, t]);
+
+  // ── 여기서부터 early return (모든 Hook 호출 완료) ──
 
   if (loadingItem) {
     return (
@@ -118,10 +212,9 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     );
   }
 
+  // ── item 확정 후 사용되는 변수들 ──
   const images = item.images || [];
-  const isMyItem = item.userId === user?.uid;
-  const canDelete = isMyItem || isAdmin();
-  const canEdit = isMyItem || isAdmin();
+  const canEdit = !!(isMyItem || isAdmin());
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
@@ -184,7 +277,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
       : { bg: "#FFF3E0", color: "#E65100", text: t('sale') };
   };
 
-  // 거래완료 처리
+  // 거래완료 처리 (item 확정 후)
   const handleMarkAsComplete = async () => {
     Alert.alert(t('detail.markAsComplete'), t('detail.markAsCompleteConfirm'), [
       { text: t('common:cancel'), style: "cancel" },
@@ -230,31 +323,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     ]);
   };
 
-  // 채팅하기
-  const handleChat = useCallback(() => {
-    if (!user) {
-      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
-        { text: t('common:confirm') },
-        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
-      ]);
-      return;
-    }
-
-    if (isMyItem) {
-      Alert.alert(t('common:notice'), t('detail.ownPost'));
-      return;
-    }
-
-    navigation.navigate("ChatRoom", {
-      chatRoomId: null,
-      itemId: item.id,
-      itemTitle: item.title,
-      itemImage: images[0] || null,
-      otherUserId: item.userId,
-      otherUserName: item.userEmail ? item.userEmail.split("@")[0] : t('detail.poster'),
-      sellerId: item.userId,
-    });
-  }, [user, item, images, navigation, isMyItem, t]);
+  // 채팅하기 / 공유 / 헤더 → 이미 위에서 Hook으로 정의됨
 
   // 전화걸기
   const handleCall = () => {
@@ -267,88 +336,12 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  // 📤 SNS 공유 핸들러
-  const handleShare = useCallback(async (platform = 'more') => {
-    const { shareItem } = require('../utils/deepLinkUtils');
-
-    try {
-      const result = await shareItem('realestate', item.id, item, platform);
-      if (result && !result.success) {
-        if (result.error === 'kakao_not_installed') {
-          Alert.alert('KakaoTalk', t('detail.installKakao'));
-        } else if (result.error === 'zalo_not_installed') {
-          Alert.alert('Zalo', t('detail.zaloNotInstalled'));
-        }
-      }
-    } catch (error) {
-      console.error("공유 실패:", error);
-      Alert.alert(t('common:error'), t('detail.shareFailed'));
-    }
-  }, [item, t]);
-
   // 수정하기
   const handleEdit = () => {
     navigation.navigate("부동산 등록", { editItem: item });
   };
 
-  // 삭제하기
-  const handleDelete = () => {
-    Alert.alert(
-      t('common:delete'),
-      t('detail.deleteConfirm'),
-      [
-        { text: t('common:cancel'), style: "cancel" },
-        {
-          text: t('common:delete'),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // 이미지 삭제
-              if (item.images && item.images.length > 0) {
-                for (const imageUrl of item.images) {
-                  try {
-                    if (imageUrl.includes("firebase")) {
-                      const imageRef = ref(storage, imageUrl);
-                      await deleteObject(imageRef);
-                    }
-                  } catch (imgError) {
-                    console.log("이미지 삭제 실패 (무시):", imgError);
-                  }
-                }
-              }
-
-              await deleteDoc(doc(db, "RealEstate", item.id));
-
-              Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
-                { text: t('common:confirm'), onPress: () => navigation.goBack() },
-              ]);
-            } catch (error) {
-              console.error("삭제 실패:", error);
-              Alert.alert(t('common:error'), t('detail.deleteFailed'));
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // 헤더 설정
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
-            <Ionicons name="share-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          {canDelete && (
-            <TouchableOpacity onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={24} color="#F44336" />
-            </TouchableOpacity>
-          )}
-        </View>
-      ),
-    });
-  }, [navigation, canDelete]);
+  // 헤더 설정 → 이미 위에서 useLayoutEffect로 정의됨
 
   const badge = getTypeBadge(item.dealType);
 

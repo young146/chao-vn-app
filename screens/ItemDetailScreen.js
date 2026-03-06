@@ -85,31 +85,13 @@ export default function ItemDetailScreen({ route, navigation }) {
     }
   }, [initialItem, deepLinkId]);
 
-  if (loadingItem) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-      </View>
-    );
-  }
-
-  if (itemNotFound || !item) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ fontSize: 16, color: "#666" }}>{t('common:notFound', '해당 게시물을 찾을 수 없습니다.')}</Text>
-        <TouchableOpacity style={{ marginTop: 20, padding: 10, backgroundColor: "#FF6B35", borderRadius: 8 }} onPress={() => navigation.goBack()}>
-          <Text style={{ color: "#fff", fontWeight: "bold" }}>뒤로 가기</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const images = item.images || (item.imageUri ? [item.imageUri] : []);
-  const isMyItem = item.userId === user?.uid;
+  const images = item ? (item.images || (item.imageUri ? [item.imageUri] : [])) : [];
+  const isMyItem = item?.userId === user?.uid;
   const canDelete = isMyItem || isAdmin();
 
   // ✅ 리뷰 데이터 불러오기
   useEffect(() => {
+    if (!item) return;
     const fetchReviews = async () => {
       try {
         const reviewsRef = collection(db, "reviews");
@@ -144,10 +126,11 @@ export default function ItemDetailScreen({ route, navigation }) {
     };
 
     fetchReviews();
-  }, [item.id]);
+  }, [item?.id]);
 
   // ✅ 찜 상태 확인
   useEffect(() => {
+    if (!item) return;
     const checkFavorite = async () => {
       if (!user) return;
 
@@ -166,87 +149,11 @@ export default function ItemDetailScreen({ route, navigation }) {
     };
 
     checkFavorite();
-  }, [user, item.id]);
+  }, [user, item?.id]);
 
-  const formatPrice = (price) => {
-    return formatPriceUtil(price, i18n.language);
-  };
-
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
-    let date;
-    if (timestamp instanceof Date) {
-      date = timestamp;
-    } else if (typeof timestamp === "string") {
-      // ISO 문자열인 경우
-      date = new Date(timestamp);
-    } else if (timestamp.toDate) {
-      // Firestore Timestamp인 경우
-      date = timestamp.toDate();
-    } else {
-      date = new Date(timestamp);
-    }
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return t('detail.justNow');
-    if (minutes < 60) return t('detail.minutesAgo', { count: minutes });
-    if (hours < 24) return t('detail.hoursAgo', { count: hours });
-    if (days < 7) return t('detail.daysAgo', { count: days });
-
-    return date.toLocaleDateString("ko-KR");
-  };
-
-  // ✅ 상태 배지 색상 결정
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "판매중":
-        return "#4CAF50"; // 초록색
-      case "가격 조정됨":
-        return "#FF9800"; // 주황색
-      case "판매완료":
-        return "#9E9E9E"; // 회색
-      default:
-        return "#4CAF50";
-    }
-  };
-
-  // ✅ 판매완료 처리
-  const handleMarkAsSold = async () => {
-    Alert.alert(t('detail.markAsSold'), t('detail.markAsSoldConfirm'), [
-      { text: t('common:cancel'), style: "cancel" },
-      {
-        text: t('common:confirm'),
-        onPress: async () => {
-          try {
-            const itemRef = doc(db, "XinChaoDanggn", item.id);
-            await updateDoc(itemRef, {
-              status: "판매완료",
-            });
-
-            setCurrentStatus("판매완료");
-            Alert.alert(t('detail.complete'), t('detail.markedAsSold'));
-          } catch (error) {
-            console.error("상태 변경 실패:", error);
-            Alert.alert(t('common:error'), t('detail.statusChangeFailed'));
-          }
-        },
-      },
-    ]);
-  };
-
+  // ✅ useCallback/useLayoutEffect을 early return 위에 배치 (Rules of Hooks 준수)
   const handleChat = useCallback(() => {
-    if (!user) {
-      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
-        { text: t('common:confirm') },
-        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
-      ]);
-      return;
-    }
-
+    if (!user || !item) return;
     navigation.navigate("ChatRoom", {
       chatRoomId: null,
       itemId: item.id,
@@ -260,8 +167,8 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   // 📤 SNS 공유 핸들러
   const handleShare = useCallback(async (platform = 'more') => {
+    if (!item) return;
     const { shareItem } = require('../utils/deepLinkUtils');
-
     try {
       const result = await shareItem('danggn', item.id, item, platform);
       if (result && !result.success) {
@@ -326,6 +233,87 @@ export default function ItemDetailScreen({ route, navigation }) {
       ),
     });
   }, [isMyItem, user, navigation, handleChat, handleShare, t]);
+
+  // ── 여기서부터 early return (모든 Hook 호출이 위에서 완료됨) ──
+
+  if (loadingItem) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
+
+  if (itemNotFound || !item) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, color: "#666" }}>{t('common:notFound', '해당 게시물을 찾을 수 없습니다.')}</Text>
+        <TouchableOpacity style={{ marginTop: 20, padding: 10, backgroundColor: "#FF6B35", borderRadius: 8 }} onPress={() => navigation.goBack()}>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>뒤로 가기</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ── item이 확실히 있을 때만 실행되는 유틸 함수들 ──
+
+  const formatPrice = (price) => {
+    return formatPriceUtil(price, i18n.language);
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "";
+    let date;
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === "string") {
+      date = new Date(timestamp);
+    } else if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return t('detail.justNow');
+    if (minutes < 60) return t('detail.minutesAgo', { count: minutes });
+    if (hours < 24) return t('detail.hoursAgo', { count: hours });
+    if (days < 7) return t('detail.daysAgo', { count: days });
+    return date.toLocaleDateString("ko-KR");
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "판매중": return "#4CAF50";
+      case "가격 조정됨": return "#FF9800";
+      case "판매완료": return "#9E9E9E";
+      default: return "#4CAF50";
+    }
+  };
+
+  const handleMarkAsSold = async () => {
+    Alert.alert(t('detail.markAsSold'), t('detail.markAsSoldConfirm'), [
+      { text: t('common:cancel'), style: "cancel" },
+      {
+        text: t('common:confirm'),
+        onPress: async () => {
+          try {
+            const itemRef = doc(db, "XinChaoDanggn", item.id);
+            await updateDoc(itemRef, { status: "판매완료" });
+            setCurrentStatus("판매완료");
+            Alert.alert(t('detail.complete'), t('detail.markedAsSold'));
+          } catch (error) {
+            console.error("상태 변경 실패:", error);
+            Alert.alert(t('common:error'), t('detail.statusChangeFailed'));
+          }
+        },
+      },
+    ]);
+  };
 
   const handleContactOption = (type, value) => {
     if (!value) return;
@@ -595,9 +583,6 @@ export default function ItemDetailScreen({ route, navigation }) {
             </View>
           )}
         </View>
-
-        {/* 🔥 당근/나눔 상세 광고 */}
-        <DetailAdBanner position="top" screen="danggn" style={{ marginVertical: 12 }} />
 
         {/* 물품 정보 */}
         <View style={styles.contentContainer}>

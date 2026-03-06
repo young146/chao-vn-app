@@ -5,244 +5,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>씬짜오 베트남</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
+            margin: 0;
+            background: #FF6B35;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
-            font-family: 'Noto Sans KR', sans-serif;
-            background: linear-gradient(150deg, #FF6B35 0%, #FF9F5E 60%, #FFB87A 100%);
-            padding: 24px;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 28px;
-            padding: 40px 28px 32px;
-            text-align: center;
-            box-shadow: 0 16px 56px rgba(0, 0, 0, 0.18);
-            max-width: 360px;
-            width: 100%;
-        }
-
-        .logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
-            margin-bottom: 18px;
-            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.28);
-        }
-
-        .badge {
-            display: inline-block;
-            background: #FFF0EA;
-            color: #FF6B35;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            padding: 4px 12px;
-            border-radius: 20px;
-            margin-bottom: 14px;
-        }
-
-        h2 {
-            font-size: 18px;
-            color: #1a1a1a;
-            font-weight: 700;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-
-        .sub {
-            font-size: 13px;
-            color: #888;
-            margin-bottom: 28px;
-            line-height: 1.7;
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #FFE0D0;
-            border-top-color: #FF6B35;
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255, 255, 255, 0.35);
+            border-top-color: #fff;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 20px;
+            animation: s 0.8s linear infinite;
         }
 
-        @keyframes spin {
+        @keyframes s {
             to {
                 transform: rotate(360deg);
             }
-        }
-
-        .btn-app {
-            display: block;
-            width: 100%;
-            background: linear-gradient(135deg, #FF6B35, #FF9040);
-            color: #fff;
-            border: none;
-            border-radius: 16px;
-            padding: 17px;
-            font-size: 16px;
-            font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            margin-bottom: 12px;
-            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.38);
-            transition: transform 0.12s, box-shadow 0.12s;
-        }
-
-        .btn-app:active {
-            transform: scale(0.97);
-            box-shadow: 0 3px 10px rgba(255, 107, 53, 0.3);
-        }
-
-        .btn-web {
-            display: block;
-            width: 100%;
-            background: #f4f4f6;
-            color: #555;
-            border: none;
-            border-radius: 16px;
-            padding: 15px;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background 0.15s;
-        }
-
-        .btn-web:active {
-            background: #ebebed;
-        }
-
-        #loading-view {
-            display: block;
-        }
-
-        #action-view {
-            display: none;
         }
     </style>
 </head>
 
 <body>
-    <div class="card">
-        <img src="assets/icon.png" alt="씬짜오 베트남" class="logo" onerror="this.style.display='none'">
-        <div class="badge">씬짜오 베트남</div>
-
-        <!-- 앱 실행 시도 중 -->
-        <div id="loading-view">
-            <div class="spinner"></div>
-            <h2>앱으로 이동 중...</h2>
-            <p class="sub">잠시만 기다려 주세요.</p>
-        </div>
-
-        <!-- 버튼 화면 -->
-        <div id="action-view">
-            <h2>📱 씬짜오 베트남 앱</h2>
-            <p class="sub">씬짜오 베트남 앱으로<br>더 많은 상품을 보다 편리하게 이용하세요.</p>
-
-            <!-- 앱에서 보기: 앱 있으면 열기, 없으면 스토어로 이동 -->
-            <a id="btn-app" href="#" class="btn-app">📱 앱에서 보기</a>
-
-            <!-- 웹으로 보기 -->
-            <a id="btn-web" href="#" class="btn-web">🌐 웹으로 보기</a>
-        </div>
-    </div>
-
+    <div class="spinner"></div>
     <script>
         (function () {
-            var params = new URLSearchParams(window.location.search);
-            var type = params.get('type');   // danggn | realestate | job
-            var id = params.get('id');
+            var p = new URLSearchParams(location.search);
+            var type = p.get('type') || 'danggn';
+            var id = p.get('id') || '';
 
-            var ANDROID_STORE = 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
-            var IOS_STORE = 'https://apps.apple.com/us/app/id6754750793';
-            var WEB_BASE = 'https://chaovietnam-login.web.app/view/?id=';
             var PACKAGE = 'com.yourname.chaovnapp';
+            var IOS_STORE = 'https://apps.apple.com/us/app/id6754750793';
+
+            // 앱 미설치 시 웹 상세 페이지 (플레이스토어 대신 웹으로!)
+            var webDetail = id
+                ? 'https://chaovietnam-login.web.app/view/?type=' + type + '&id=' + id
+                : 'https://chaovietnam-login.web.app/';
 
             var ua = navigator.userAgent || '';
             var isAndroid = /Android/i.test(ua);
             var isIOS = /iPhone|iPad|iPod/i.test(ua);
-            var isKakao = /KAKAO/i.test(ua) || /KAKAOTALK/i.test(ua);
 
-            // 웹 폴백 URL
-            var webUrl = id ? WEB_BASE + id : 'https://chaovietnam-login.web.app/';
-            document.getElementById('btn-web').href = webUrl;
-
-            // 딥링크 URL 구성
-            var storeUrl = isIOS ? IOS_STORE : ANDROID_STORE;
-            var deepLink = 'chaovietnam://' + (type || 'danggn') + '/' + (id || '');
-
-            // Android Intent URL — 앱 미설치 시 Play Store로 자동 이동
-            var intentUrl = 'intent://' + (type || 'danggn') + '/' + (id || '')
-                + '#Intent;scheme=chaovietnam'
-                + ';package=' + PACKAGE
-                + ';S.browser_fallback_url=' + encodeURIComponent(storeUrl)
-                + ';end';
-
-            // "앱에서 보기" 버튼 href 설정
             if (isAndroid) {
-                // Android: Intent URL 사용 → 앱 없으면 자동으로 Play Store
-                document.getElementById('btn-app').href = intentUrl;
+                // Intent URL: 앱 있으면 앱 열림, 없으면 webDetail로 이동
+                location.href = 'intent://' + type + '/' + id
+                    + '#Intent;scheme=chaovietnam'
+                    + ';package=' + PACKAGE
+                    + ';S.browser_fallback_url=' + encodeURIComponent(webDetail)
+                    + ';end';
+                // intent://는 HTTP 응답이 없어 브라우저가 계속 로딩 상태로 남음
+                // → 앱이 열린 뒤 history.back()으로 카카오톡 채팅으로 복귀
+                setTimeout(function () { history.back(); }, 300);
+
             } else if (isIOS) {
-                // iOS: custom scheme → 앱 없으면 onclick으로 App Store 이동
-                document.getElementById('btn-app').href = deepLink;
-                document.getElementById('btn-app').addEventListener('click', function () {
-                    // 1.5초 후에도 페이지가 살아있으면 App Store로
-                    setTimeout(function () {
-                        window.location.href = IOS_STORE;
-                    }, 1500);
-                });
+                location.href = 'chaovietnam://' + type + '/' + id;
+                // 앱 없으면 custom scheme 실패 → 1.5초 후 웹으로
+                setTimeout(function () { location.href = webDetail; }, 1500);
+
             } else {
-                // 데스크탑: 바로 스토어 링크
-                document.getElementById('btn-app').href = ANDROID_STORE;
-                document.getElementById('btn-app').textContent = '📥 앱 다운로드';
-            }
-
-            function showActions() {
-                document.getElementById('loading-view').style.display = 'none';
-                document.getElementById('action-view').style.display = 'block';
-            }
-
-            if (!type || !id) {
-                // 파라미터 없으면 바로 버튼 화면
-                showActions();
-                return;
-            }
-
-            // 자동 앱 실행 시도
-            if (isAndroid && isKakao) {
-                // 카카오 인앱브라우저: Intent URL 바로 실행
-                window.location.href = intentUrl;
-                setTimeout(showActions, 1500);
-            } else if (isAndroid) {
-                window.location.href = deepLink;
-                setTimeout(function () {
-                    window.location.href = intentUrl;
-                    setTimeout(showActions, 1000);
-                }, 800);
-            } else if (isIOS) {
-                window.location.href = deepLink;
-                // 앱 없으면 1.8초 후 버튼 화면 표시
-                setTimeout(showActions, 1800);
-            } else {
-                showActions();
+                // 데스크탑 등
+                location.href = webDetail;
             }
         })();
     </script>

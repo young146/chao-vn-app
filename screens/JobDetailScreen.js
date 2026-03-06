@@ -76,6 +76,98 @@ export default function JobDetailScreen({ route, navigation }) {
     }
   }, [initialJob, deepLinkId]);
 
+  // ── 모든 Hook을 early return 위에 배치 (Rules of Hooks 준수) ──
+
+  const isMyJob = job?.userId === user?.uid;
+  const canDelete = !!(isMyJob || isAdmin());
+
+  const handleChat = useCallback(() => {
+    if (!user || !job) return;
+    if (isMyJob) {
+      Alert.alert(t('common:notice'), t('detail.ownPost'));
+      return;
+    }
+    navigation.navigate("ChatRoom", {
+      chatRoomId: null,
+      itemId: job.id,
+      itemTitle: job.title,
+      itemImage: (job.images || [])[0] || null,
+      otherUserId: job.userId,
+      otherUserName: job.userEmail ? job.userEmail.split("@")[0] : t('detail.poster'),
+      sellerId: job.userId,
+    });
+  }, [user, job, navigation, isMyJob, t]);
+
+  const handleShare = useCallback(async (platform = 'more') => {
+    if (!job) return;
+    const { shareItem } = require('../utils/deepLinkUtils');
+    try {
+      const result = await shareItem('job', job.id, job, platform);
+      if (result && !result.success) {
+        if (result.error === 'kakao_not_installed') {
+          Alert.alert('KakaoTalk', t('detail.installKakao'));
+        } else if (result.error === 'zalo_not_installed') {
+          Alert.alert('Zalo', t('detail.zaloNotInstalled'));
+        }
+      }
+    } catch (error) {
+      console.error("공유 실패:", error);
+      Alert.alert(t('common:error'), t('detail.shareFailed'));
+    }
+  }, [job, t]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
+            <Ionicons name="share-outline" size={24} color="#333" />
+          </TouchableOpacity>
+          {canDelete && (
+            <TouchableOpacity onPress={() => {
+              if (!job) return;
+              Alert.alert(
+                t('common:delete'),
+                t('detail.deleteConfirm'),
+                [
+                  { text: t('common:cancel'), style: "cancel" },
+                  {
+                    text: t('common:delete'),
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        if (job.images && job.images.length > 0) {
+                          for (const imageUrl of job.images) {
+                            try {
+                              if (imageUrl.includes("firebase")) {
+                                const imageRef = ref(storage, imageUrl);
+                                await deleteObject(imageRef);
+                              }
+                            } catch (imgError) { }
+                          }
+                        }
+                        await deleteDoc(doc(db, "Jobs", job.id));
+                        Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+                          { text: t('common:confirm'), onPress: () => navigation.goBack() },
+                        ]);
+                      } catch (error) {
+                        Alert.alert(t('common:error'), t('detail.deleteFailed'));
+                      }
+                    },
+                  },
+                ]
+              );
+            }}>
+              <Ionicons name="trash-outline" size={24} color="#F44336" />
+            </TouchableOpacity>
+          )}
+        </View>
+      ),
+    });
+  }, [navigation, canDelete, handleShare, job, t]);
+
+  // ── 여기서부터 early return ──
+
   if (loadingJob) {
     return (
       <View style={{ flex: 1, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" }}>
@@ -95,10 +187,9 @@ export default function JobDetailScreen({ route, navigation }) {
     );
   }
 
+  // ── job 확정 후 사용되는 변수들 ──
   const images = job.images || [];
-  const isMyJob = job.userId === user?.uid;
-  const canDelete = isMyJob || isAdmin();
-  const canEdit = isMyJob || isAdmin();
+  const canEdit = !!(isMyJob || isAdmin());
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
@@ -192,31 +283,7 @@ export default function JobDetailScreen({ route, navigation }) {
     ]);
   };
 
-  // 채팅하기
-  const handleChat = useCallback(() => {
-    if (!user) {
-      Alert.alert(t('common:loginRequired'), t('common:loginRequired'), [
-        { text: t('common:confirm') },
-        { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
-      ]);
-      return;
-    }
-
-    if (isMyJob) {
-      Alert.alert(t('common:notice'), t('detail.ownPost'));
-      return;
-    }
-
-    navigation.navigate("ChatRoom", {
-      chatRoomId: null,
-      itemId: job.id,
-      itemTitle: job.title,
-      itemImage: images[0] || null,
-      otherUserId: job.userId,
-      otherUserName: job.userEmail ? job.userEmail.split("@")[0] : t('detail.poster'),
-      sellerId: job.userId,
-    });
-  }, [user, job, images, navigation, isMyJob]);
+  // 채팅 / 공유 / 헤더 → 이미 위에서 Hook으로 정의됨
 
   // 전화걸기
   const handleCall = () => {
@@ -229,88 +296,12 @@ export default function JobDetailScreen({ route, navigation }) {
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  // 📤 SNS 공유 핸들러
-  const handleShare = useCallback(async (platform = 'more') => {
-    const { shareItem } = require('../utils/deepLinkUtils');
-
-    try {
-      const result = await shareItem('job', job.id, job, platform);
-      if (result && !result.success) {
-        if (result.error === 'kakao_not_installed') {
-          Alert.alert('KakaoTalk', t('detail.installKakao'));
-        } else if (result.error === 'zalo_not_installed') {
-          Alert.alert('Zalo', t('detail.zaloNotInstalled'));
-        }
-      }
-    } catch (error) {
-      console.error("공유 실패:", error);
-      Alert.alert(t('common:error'), t('detail.shareFailed'));
-    }
-  }, [job, t]);
-
   // 수정하기
   const handleEdit = () => {
     navigation.navigate("구인구직 등록", { editJob: job });
   };
 
-  // 삭제하기
-  const handleDelete = () => {
-    Alert.alert(
-      t('common:delete'),
-      t('detail.deleteConfirm'),
-      [
-        { text: t('common:cancel'), style: "cancel" },
-        {
-          text: t('common:delete'),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // 이미지 삭제
-              if (job.images && job.images.length > 0) {
-                for (const imageUrl of job.images) {
-                  try {
-                    if (imageUrl.includes("firebase")) {
-                      const imageRef = ref(storage, imageUrl);
-                      await deleteObject(imageRef);
-                    }
-                  } catch (imgError) {
-                    console.log("이미지 삭제 실패 (무시):", imgError);
-                  }
-                }
-              }
-
-              await deleteDoc(doc(db, "Jobs", job.id));
-
-              Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
-                { text: t('common:confirm'), onPress: () => navigation.goBack() },
-              ]);
-            } catch (error) {
-              console.error("삭제 실패:", error);
-              Alert.alert(t('common:error'), t('detail.deleteFailed'));
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // 헤더 설정
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
-            <Ionicons name="share-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          {canDelete && (
-            <TouchableOpacity onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={24} color="#F44336" />
-            </TouchableOpacity>
-          )}
-        </View>
-      ),
-    });
-  }, [navigation, canDelete]);
+  // 삭제 / 헤더 → 이미 위에서 Hook으로 정의됨
 
   const badge = getJobTypeBadge(job.jobType);
 

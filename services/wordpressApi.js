@@ -9,7 +9,7 @@ const CACHE_KEY = "HOME_DATA_CACHE";
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
 
 const api = axios.create({
-  timeout: 8000,
+  timeout: 5000, // 5초 - 느린 네트워크에서 빠른 캐시 폴백
 });
 
 // 뉴스 카테고리 섹션 정의 (WordPress 사이트와 동일한 순서)

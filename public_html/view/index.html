@@ -5,16 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>씬짜오 - 상품 정보</title>
-
-    <!-- OG / KakaoTalk 링크 카드용 메타태그 (JS로 동적 갱신됨) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="씬짜오 (Xin Chao)">
     <meta property="og:title" id="og-title" content="씬짜오 - 상품 정보">
     <meta property="og:description" id="og-desc" content="Xin Chao 커뮤니티 게시글">
     <meta property="og:image" id="og-image" content="https://chaovietnam-login.web.app/icon.png">
     <meta property="og:url" id="og-url" content="">
-
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -23,12 +19,14 @@
         }
 
         body {
-            font-family: 'Noto Sans KR', system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Malgun Gothic', '맑은 고딕', sans-serif;
             background: #f0f2f5;
             color: #222;
-            min-height: 100vh;
+            /* 하단 버튼 공간 확보 */
+            padding-bottom: 80px;
         }
 
+        /* ── 로딩 ── */
         .loading {
             display: flex;
             align-items: center;
@@ -53,10 +51,11 @@
             }
         }
 
+        /* ── 헤더 ── */
         .header {
             background: linear-gradient(135deg, #FF6B35, #FF8E53);
             color: #fff;
-            padding: 16px;
+            padding: 14px 16px;
             position: sticky;
             top: 0;
             z-index: 10;
@@ -67,27 +66,28 @@
             margin: 0 auto;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .header-logo {
-            font-size: 22px;
+            font-size: 20px;
         }
 
         .header-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
         }
 
         .header-sub {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.85;
         }
 
+        /* ── 콘텐츠 ── */
         .content {
             max-width: 600px;
             margin: 0 auto;
-            padding: 0 0 40px;
+            padding: 0 0 20px;
         }
 
         /* 이미지 갤러리 */
@@ -145,7 +145,7 @@
             font-weight: 600;
         }
 
-        /* 카테고리 뱃지 */
+        /* 카테고리 */
         .category-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -172,6 +172,7 @@
             background: #6A1B9A;
         }
 
+        /* 아이템 정보 */
         .item-header {
             padding: 8px 16px 16px;
             border-bottom: 1px solid #eee;
@@ -281,7 +282,6 @@
             flex-direction: column;
         }
 
-        /* 날짜 */
         .footer-date {
             text-align: center;
             font-size: 12px;
@@ -289,7 +289,7 @@
             padding: 20px 0;
         }
 
-        /* 에러 */
+        /* ── 에러 ── */
         .error-box {
             text-align: center;
             padding: 60px 20px;
@@ -310,11 +310,122 @@
             font-size: 14px;
             color: #aaa;
         }
+
+        /* ── 하단 고정 "앱으로 보기" 버튼 ── */
+        .app-cta-bar {
+            display: none;
+            /* JS에서 표시 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 12px 16px;
+            background: #fff;
+            border-top: 1px solid #e8e8e8;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .app-cta-bar.show {
+            display: block;
+        }
+
+        .app-cta-bar .cta-hint {
+            text-align: center;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .cta-buttons {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-open-app {
+            flex: 1;
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn-open-app:active {
+            transform: scale(0.97);
+            box-shadow: none;
+        }
+
+        .btn-web-only {
+            background: #f5f5f5;
+            color: #888;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        /* 앱 열기 중 오버레이 */
+        .open-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(255, 107, 53, 0.92);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            color: #fff;
+        }
+
+        .open-overlay.show {
+            display: flex;
+        }
+
+        .open-overlay .ov-spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .open-overlay .ov-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .open-overlay .ov-cancel {
+            font-size: 13px;
+            opacity: 0.75;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #fff;
+            font-family: inherit;
+            padding: 8px;
+        }
     </style>
 </head>
 
 <body>
-
     <div class="loading" id="loading">
         <div class="spinner"></div>
         <div style="font-size:14px;color:#aaa;">불러오는 중...</div>
@@ -322,7 +433,25 @@
 
     <div id="app" style="display:none"></div>
 
-    <!-- Firebase SDKs (compat) -->
+    <!-- 하단 고정 CTA 버튼 -->
+    <div class="app-cta-bar" id="app-cta-bar">
+        <div class="cta-hint">씬짜오 베트남 앱에서 더 많은 상품을 편리하게 이용하실 수 있습니다 🇻🇳</div>
+        <div class="cta-buttons">
+            <button class="btn-open-app" id="btn-open-app" onclick="openInApp()">
+                📱 앱으로 보기
+            </button>
+            <button class="btn-web-only" onclick="dismissCta()">웹으로 계속</button>
+        </div>
+    </div>
+
+    <!-- 앱 열기 중 오버레이 -->
+    <div class="open-overlay" id="open-overlay">
+        <div class="ov-spinner"></div>
+        <div class="ov-text">앱을 여는 중입니다...</div>
+        <button class="ov-cancel" id="ov-cancel-btn" onclick="cancelOpenApp()">취소</button>
+    </div>
+
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
@@ -339,42 +468,92 @@
 
         const params = new URLSearchParams(location.search);
         const id = params.get('id');
-        const col = params.get('col') || 'form_items'; // collection name
+        const type = params.get('type') || 'danggn'; // danggn / realestate / job
+        const col = params.get('col') || 'form_items';
 
+        var ANDROID_PKG = 'com.yourname.chaovnapp';
+        var IOS_STORE = 'https://apps.apple.com/us/app/id6754750793';
+        var ANDROID_STORE = 'https://play.google.com/store/apps/details?id=' + ANDROID_PKG;
+        var openTimer = null;
+
+        // ── 앱 열기 ──────────────────────────────────────────
+        window.openInApp = function () {
+            var overlay = document.getElementById('open-overlay');
+            overlay.classList.add('show');
+
+            var ua = navigator.userAgent || '';
+            var isAndroid = /Android/i.test(ua);
+            var isIOS = /iPhone|iPad|iPod/i.test(ua);
+            var deepLink = 'chaovietnam://' + type + '/' + (id || '');
+
+            if (isAndroid) {
+                // intent URL: 앱 있으면 앱 열림, 없으면 스토어 fallback
+                var intentUrl = 'intent://' + type + '/' + (id || '')
+                    + '#Intent;scheme=chaovietnam'
+                    + ';package=' + ANDROID_PKG
+                    + ';S.browser_fallback_url=' + encodeURIComponent(ANDROID_STORE)
+                    + ';end';
+                location.href = intentUrl;
+                // 1초 후 앱이 안열렸으면 (스토어로 fallback 대신) 오버레이만 닫기
+                openTimer = setTimeout(function () { cancelOpenApp(); }, 2500);
+
+            } else if (isIOS) {
+                location.href = deepLink;
+                // 1.5초 후 앱 없으면 앱스토어로
+                openTimer = setTimeout(function () {
+                    overlay.classList.remove('show');
+                    location.href = IOS_STORE;
+                }, 1500);
+
+            } else {
+                // 데스크탑: 그냥 스토어 링크
+                overlay.classList.remove('show');
+                window.open(ANDROID_STORE, '_blank');
+            }
+        };
+
+        window.cancelOpenApp = function () {
+            if (openTimer) { clearTimeout(openTimer); openTimer = null; }
+            document.getElementById('open-overlay').classList.remove('show');
+        };
+
+        window.dismissCta = function () {
+            document.getElementById('app-cta-bar').style.display = 'none';
+        };
+
+        // ── 갤러리 ───────────────────────────────────────────
         function categoryInfo(data) {
-            if (data.category === 'realestate') return { label: '🏠 부동산', cls: 'cat-realestate', color: '#1565C0' };
-            if (data.jobMode === 'hire') return { label: '📢 구인 (직원 구합니다)', cls: 'cat-job-hire', color: '#2E7D32' };
-            if (data.jobMode === 'seek') return { label: '🙋 구직 (일자리 구합니다)', cls: 'cat-job-seek', color: '#6A1B9A' };
-            return { label: '🥕 당근 / 나눔', cls: 'cat-secondhand', color: '#FF6B35' };
+            if (data.category === 'realestate') return { label: '🏠 부동산', cls: 'cat-realestate' };
+            if (data.jobMode === 'hire') return { label: '📢 구인 (직원 구합니다)', cls: 'cat-job-hire' };
+            if (data.jobMode === 'seek') return { label: '🙋 구직 (일자리 구합니다)', cls: 'cat-job-seek' };
+            return { label: '🥕 당근 / 나눔', cls: 'cat-secondhand' };
         }
 
         function renderGallery(images) {
             if (!images || images.length === 0) return '';
-            let thumbs = images.map((url, i) =>
-                `<button class="img-thumb-btn ${i === 0 ? 'active' : ''}" onclick="switchImg(this,'${url}')" data-idx="${i}">
-            <img src="${url}" loading="lazy">
-        </button>`
-            ).join('');
-            return `<div class="img-gallery">
-        <img class="img-main" id="img-main" src="${images[0]}" alt="상품 이미지">
-        <div class="img-count">📷 ${images.length}</div>
-        ${images.length > 1 ? `<div class="img-thumbs">${thumbs}</div>` : ''}
-    </div>`;
+            var thumbs = images.map(function (url, i) {
+                return '<button class="img-thumb-btn ' + (i === 0 ? 'active' : '') + '" onclick="switchImg(this,\'' + url + '\')" data-idx="' + i + '">' +
+                    '<img src="' + url + '" loading="lazy"></button>';
+            }).join('');
+            return '<div class="img-gallery">' +
+                '<img class="img-main" id="img-main" src="' + images[0] + '" alt="상품 이미지">' +
+                '<div class="img-count">📷 ' + images.length + '</div>' +
+                (images.length > 1 ? '<div class="img-thumbs">' + thumbs + '</div>' : '') +
+                '</div>';
         }
 
         window.switchImg = function (btn, url) {
             document.getElementById('img-main').src = url;
-            document.querySelectorAll('.img-thumb-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.img-thumb-btn').forEach(function (b) { b.classList.remove('active'); });
             btn.classList.add('active');
         };
 
-        function renderItem(data, id) {
-            const cat = categoryInfo(data);
-            const images = data.imageUrls || [];
-            const ts = data.createdAt?.toDate?.();
-            const dateStr = ts ? ts.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+        function renderItem(data) {
+            var cat = categoryInfo(data);
+            var images = data.imageUrls || [];
+            var ts = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null;
+            var dateStr = ts ? ts.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
-            // OG 메타 업데이트 (KakaoTalk 캐시와 무관하게, 직접 접근 시 보임)
             document.title = (data.title || data.itemName || data.propName || data.jobTitle || '상품 정보') + ' | 씬짜오';
             if (images[0]) {
                 document.getElementById('og-image').content = images[0];
@@ -383,65 +562,45 @@
                 document.getElementById('og-url').content = location.href;
             }
 
-            let titleText = data.itemName || data.propName || data.jobTitle || '상품 정보';
-            let priceText = '';
-            if (data.price) priceText = data.price;
-            if (data.propPrice) priceText = data.propPrice;
-            if (data.salary) priceText = data.salary;
+            var titleText = data.itemName || data.propName || data.jobTitle || '상품 정보';
+            var priceText = data.price || data.propPrice || data.salary || '';
+            var metaChips = [data.condition, data.propArea, data.propRooms, data.propFloor, data.jobType, data.dealType].filter(Boolean);
+            var locationParts = [data.city, data.district, data.address || data.detailAddr || data.locationDetail].filter(Boolean);
+            var descText = data.description || data.desc || data.jobDesc || '';
 
-            let metaChips = [];
-            if (data.condition) metaChips.push(data.condition);
-            if (data.propArea) metaChips.push(data.propArea);
-            if (data.propRooms) metaChips.push(data.propRooms);
-            if (data.propFloor) metaChips.push(data.propFloor);
-            if (data.jobType) metaChips.push(data.jobType);
-            if (data.dealType) metaChips.push(data.dealType);
+            var contactRows = '';
+            if (data.phone) contactRows += '<div class="contact-row"><span class="contact-icon">📞</span><div class="contact-col"><span class="contact-label">전화 / Zalo</span><span class="contact-value">' + data.phone + '</span></div></div>';
+            if (data.kakao) contactRows += '<div class="contact-row"><span class="contact-icon">💬</span><div class="contact-col"><span class="contact-label">카카오톡 ID</span><span class="contact-value">' + data.kakao + '</span></div></div>';
+            if (data.email) contactRows += '<div class="contact-row"><span class="contact-icon">✉️</span><div class="contact-col"><span class="contact-label">이메일</span><span class="contact-value">' + data.email + '</span></div></div>';
 
-            let locationParts = [data.city, data.district, data.address || data.detailAddr || data.locationDetail].filter(Boolean);
-            let descText = data.description || data.desc || data.jobDesc || '';
+            document.getElementById('app').innerHTML =
+                '<div class="header"><div class="header-inner"><span class="header-logo">🇻🇳</span><div><div class="header-title">씬짜오 (Xin Chao)</div><div class="header-sub">베트남 한인 커뮤니티</div></div></div></div>' +
+                '<div class="content">' +
+                renderGallery(images) +
+                '<span class="category-badge ' + cat.cls + '">' + cat.label + '</span>' +
+                '<div class="item-header">' +
+                '<div class="item-title">' + titleText + '</div>' +
+                (priceText ? '<div class="item-price">' + priceText + '</div>' : '') +
+                (metaChips.length ? '<div class="item-meta">' + metaChips.map(function (c) { return '<span class="meta-chip">' + c + '</span>'; }).join('') + '</div>' : '') +
+                '</div>' +
+                (locationParts.length ? '<div class="section"><div class="section-title">📍 위치</div><div class="location-row"><span class="pin">📍</span><span>' + locationParts.join(' ') + '</span></div></div>' : '') +
+                (descText ? '<div class="section"><div class="section-title">📝 상세 내용</div><div class="section-body">' + descText + '</div></div>' : '') +
+                (contactRows ? '<div class="section"><div class="section-title">📞 연락처</div><div class="contact-box">' + contactRows + '</div></div>' : '') +
+                '<div class="footer-date">' + (dateStr ? '등록일: ' + dateStr : '') + '</div>' +
+                '</div>';
 
-            let contactRows = '';
-            if (data.phone) contactRows += `<div class="contact-row"><span class="contact-icon">📞</span><div class="contact-col"><span class="contact-label">전화 / Zalo</span><span class="contact-value">${data.phone}</span></div></div>`;
-            if (data.kakao) contactRows += `<div class="contact-row"><span class="contact-icon">💬</span><div class="contact-col"><span class="contact-label">카카오톡 ID</span><span class="contact-value">${data.kakao}</span></div></div>`;
-            if (data.email) contactRows += `<div class="contact-row"><span class="contact-icon">✉️</span><div class="contact-col"><span class="contact-label">이메일</span><span class="contact-value">${data.email}</span></div></div>`;
-
-            document.getElementById('app').innerHTML = `
-        <div class="header">
-            <div class="header-inner">
-                <span class="header-logo">🇻🇳</span>
-                <div>
-                    <div class="header-title">씬짜오 (Xin Chao)</div>
-                    <div class="header-sub">베트남 한인 커뮤니티</div>
-                </div>
-            </div>
-        </div>
-        <div class="content">
-            ${renderGallery(images)}
-            <span class="category-badge ${cat.cls}">${cat.label}</span>
-            <div class="item-header">
-                <div class="item-title">${titleText}</div>
-                ${priceText ? `<div class="item-price">${priceText}</div>` : ''}
-                ${metaChips.length ? `<div class="item-meta">${metaChips.map(c => `<span class="meta-chip">${c}</span>`).join('')}</div>` : ''}
-            </div>
-            ${locationParts.length ? `<div class="section"><div class="section-title">📍 위치</div><div class="location-row"><span class="pin">📍</span><span>${locationParts.join(' ')}</span></div></div>` : ''}
-            ${descText ? `<div class="section"><div class="section-title">📝 상세 내용</div><div class="section-body">${descText}</div></div>` : ''}
-            ${contactRows ? `<div class="section"><div class="section-title">📞 연락처</div><div class="contact-box">${contactRows}</div></div>` : ''}
-            <div class="footer-date">${dateStr ? `등록일: ${dateStr}` : ''}</div>
-        </div>
-    `;
+            // 하단 CTA 버튼 표시
+            document.getElementById('app-cta-bar').classList.add('show');
         }
 
         async function loadItem() {
-            if (!id) {
-                showError('잘못된 링크입니다', '올바른 링크를 통해 접속해주세요.');
-                return;
-            }
+            if (!id) { showError('잘못된 링크입니다', '올바른 링크를 통해 접속해주세요.'); return; }
             try {
-                const snap = await db.collection(col).doc(id).get();
+                var snap = await db.collection(col).doc(id).get();
                 if (!snap.exists) { showError('게시글을 찾을 수 없습니다', '삭제됐거나 잘못된 링크입니다.'); return; }
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
-                renderItem(snap.data(), snap.id);
+                renderItem(snap.data());
             } catch (e) {
                 showError('불러오기 실패', e.message);
             }
@@ -450,12 +609,8 @@
         function showError(title, msg) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-            document.getElementById('app').innerHTML = `
-        <div class="error-box">
-            <div class="error-emoji">😕</div>
-            <h2>${title}</h2>
-            <p>${msg}</p>
-        </div>`;
+            document.getElementById('app').innerHTML =
+                '<div class="error-box"><div class="error-emoji">😕</div><h2>' + title + '</h2><p>' + msg + '</p></div>';
         }
 
         loadItem();

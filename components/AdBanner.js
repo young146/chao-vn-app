@@ -80,34 +80,68 @@ const isInlineAdAvailable = (index) => {
  * @param {object} style - 스타일
  * @param {string} thumbnailKey - 썸네일 키 (home_banner, header, inline, etc.)
  */
-const AdMedia = ({ ad, style, thumbnailKey = null }) => {
-  const videoRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(true);
-
-  // 비디오가 있으면 비디오 재생
-  if (ad?.videoUrl) {
+const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
+  // ── 개발 환경(Expo Go)에서는 비디오 대신 섬네일 표시 ──
+  // expo-av의 onHostDestroy가 잘못된 스레드에서 ExoPlayer를 호출하는
+  // 네이티브 버그로 인해 Expo Go 리로드 시 항상 크래쉬 발생.
+  // 이 버그는 JS에서 수정 불가 (Java 네이티브 코드 문제).
+  // 프로덕션 APK 빌드에서는 이 경로로 호출되지 않으므로 비디오 정상 재생.
+  if (__DEV__) {
     return (
-      <View style={[style, { position: 'relative' }]}>
-        <Video
-          ref={videoRef}
-          source={{ uri: ad.videoUrl }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay={true}
-          isLooping={true}
-          isMuted={isMuted}
-          useNativeControls={false}
-        />
-        {/* 음소거 토글 버튼 */}
-        <TouchableOpacity
-          style={styles.muteButton}
-          onPress={() => setIsMuted(!isMuted)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
-        </TouchableOpacity>
+      <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
+        {thumbnailUrl
+          ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎬 광고 영상 (빌드 후 재생)</Text>
+        }
+        <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, padding: '2px 6px' }}>
+          <Text style={{ color: '#fff', fontSize: 10 }}>DEV</Text>
+        </View>
       </View>
     );
+  }
+
+  // ── 프로덕션 빌드: 정상 비디오 재생 ──
+  const videoRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [shouldPlay, setShouldPlay] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pauseAsync().catch(() => { });
+      }
+    };
+  }, []);
+
+  return (
+    <View style={[style, { position: 'relative' }]}>
+      <Video
+        ref={videoRef}
+        source={{ uri: videoUrl }}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={shouldPlay}
+        isLooping={true}
+        isMuted={isMuted}
+        useNativeControls={false}
+      />
+      <TouchableOpacity
+        style={styles.muteButton}
+        onPress={() => setIsMuted(!isMuted)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const AdMedia = ({ ad, style, thumbnailKey = null }) => {
+  if (ad?.videoUrl) {
+    const thumbUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey]
+      ? ad.thumbnails[thumbnailKey]
+      : ad?.thumbnailUrl || ad?.imageUrl || null;
+    return <AdMediaVideo videoUrl={ad.videoUrl} style={style} thumbnailUrl={thumbUrl} />;
   }
 
   // 이미지 표시

@@ -46,8 +46,8 @@ exports.viewItem = onRequest({ cors: true }, async (req, res) => {
     }
   }
 
-  // 딥링크 페이지로 리다이렉트 (OG 태그는 유지, 실제 이동은 download.html)
-  const redirectUrl = `${baseUrl}/download.html?type=${itemType}&id=${id || ""}`;
+  // view/index.html로 직접 이동 (download.html 중간 단계 제거)
+  const redirectUrl = `${baseUrl}/view/?type=${itemType}&id=${id || ""}`;
 
   res.set("Cache-Control", "public, max-age=300, s-maxage=300");
   res.send(`<!DOCTYPE html>
@@ -66,15 +66,16 @@ exports.viewItem = onRequest({ cors: true }, async (req, res) => {
   <meta property="og:image:height" content="630">
   <meta property="og:url" content="${escapeHtml(redirectUrl)}">
   <script>
-    // 딥링크 페이지로 이동 (앱 열기 or 앱스토어)
+    // 상세 페이지로 바로 이동 (중간 단계 없음)
     window.location.replace("${redirectUrl}");
   </script>
   <noscript>
     <meta http-equiv="refresh" content="0;url=${redirectUrl}">
   </noscript>
 </head>
-<body style="background:#f0f2f5;font-family:sans-serif;text-align:center;padding-top:80px;">
-  <p>잠시만 기다려주세요...</p>
+<body style="background:#FF6B35;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+  <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:s 0.8s linear infinite;"></div>
+  <style>@keyframes s{to{transform:rotate(360deg)}}</style>
 </body>
 </html>`);
 });

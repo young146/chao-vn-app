@@ -24,7 +24,8 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
-        "applinks:www.chaovietnam.co.kr"
+        "applinks:www.chaovietnam.co.kr",
+        "applinks:chaovietnam-login.web.app"
       ],
       "config": {
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
@@ -150,6 +151,16 @@
               "scheme": "https",
               "host": "www.chaovietnam.co.kr",
               "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "chaovietnam-login.web.app",
+              "pathPrefix": "/download"
+            },
+            {
+              "scheme": "https",
+              "host": "chaovietnam-login.web.app",
+              "pathPrefix": "/view"
             }
           ],
           "category": [
@@ -192,7 +203,8 @@
           }
         }
       ],
-      "expo-tracking-transparency"
+      "expo-tracking-transparency",
+      "expo-video"
     ],
     "runtimeVersion": "2.2.2",
     "updates": {
