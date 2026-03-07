@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -53,12 +53,28 @@
 
         /* ── 헤더 ── */
         .header {
-            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            background: linear-gradient(135deg, #1565C0, #1A73E8);
             color: #fff;
-            padding: 14px 16px;
+            padding: 12px 16px;
             position: sticky;
             top: 0;
             z-index: 10;
+            box-shadow: 0 2px 10px rgba(21, 101, 192, 0.3);
+        }
+
+        /* 헤더 아래 광고 배너 슬롯 */
+        .ad-slot-top {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            background: #fff;
+            min-height: 0;
+            overflow: hidden;
+            transition: min-height 0.2s;
+        }
+
+        .ad-slot-top.loaded {
+            min-height: 50px;
         }
 
         .header-inner {
@@ -67,6 +83,14 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .header-logo-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
         }
 
         .header-logo {
@@ -311,42 +335,60 @@
             color: #aaa;
         }
 
-        /* ── 하단 고정 "앱으로 보기" 버튼 ── */
+        /* ── 하단 고정 CTA 바 ── */
         .app-cta-bar {
             display: none;
-            /* JS에서 표시 */
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             z-index: 100;
-            padding: 12px 16px;
             background: #fff;
-            border-top: 1px solid #e8e8e8;
-            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+            border-top: 1px solid #e0e0e0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
         }
 
         .app-cta-bar.show {
             display: block;
         }
 
+        /* 하단 광고 배너 슬롯 (CTA 위) */
+        .ad-slot-bottom {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            overflow: hidden;
+            min-height: 0;
+            transition: min-height 0.2s;
+        }
+
+        .ad-slot-bottom.loaded {
+            min-height: 50px;
+        }
+
+        .cta-inner {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 10px 14px 14px;
+        }
+
         .app-cta-bar .cta-hint {
             text-align: center;
-            font-size: 12px;
-            color: #aaa;
-            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 9px;
+            line-height: 1.5;
         }
 
         .cta-buttons {
-            max-width: 600px;
-            margin: 0 auto;
             display: flex;
             gap: 8px;
         }
 
         .btn-open-app {
             flex: 1;
-            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            background: linear-gradient(135deg, #C62828, #E53935);
             color: #fff;
             border: none;
             border-radius: 12px;
@@ -359,7 +401,7 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);
+            box-shadow: 0 4px 14px rgba(198, 40, 40, 0.38);
             transition: transform 0.1s, box-shadow 0.1s;
         }
 
@@ -368,16 +410,22 @@
             box-shadow: none;
         }
 
-        .btn-web-only {
-            background: #f5f5f5;
-            color: #888;
+        /* 카카오톡으로 돌아가기 버튼 */
+        .btn-kakao-back {
+            background: #FAE100;
+            color: #3C1E1E;
             border: none;
             border-radius: 12px;
-            padding: 14px 16px;
-            font-size: 13px;
+            padding: 12px 10px;
+            font-size: 11.5px;
+            font-weight: 700;
             cursor: pointer;
             font-family: inherit;
             white-space: nowrap;
+            line-height: 1.3;
+            text-align: center;
+            width: 72px;
+            flex-shrink: 0;
         }
 
         /* 앱 열기 중 오버레이 */
@@ -422,6 +470,319 @@
             font-family: inherit;
             padding: 8px;
         }
+
+        /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+           홍보 섹션 스타일 (추가 — 기존 코드 무관)
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+        /* 구분선 */
+        .promo-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 16px 4px;
+        }
+
+        .promo-divider-line {
+            flex: 1;
+            height: 1px;
+            background: #e8e8e8;
+        }
+
+        .promo-divider-text {
+            font-size: 11px;
+            color: #FF6B35;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+        }
+
+        /* ① 씬짜오 브랜드 배너 */
+        .xinchao-banner {
+            margin: 8px 12px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #1A73E8;
+            box-shadow: 0 4px 16px rgba(26, 115, 232, 0.22);
+        }
+
+        .xb-inner {
+            position: relative;
+            z-index: 1;
+            padding: 18px 16px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .xb-logo {
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            overflow: hidden;
+        }
+
+        .xb-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .xb-text {
+            flex: 1;
+        }
+
+        .xb-since {
+            display: inline-block;
+            background: rgba(255, 107, 53, 0.45);
+            border: 1px solid rgba(255, 120, 60, 0.45);
+            border-radius: 20px;
+            padding: 2px 9px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #FFCFAA;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+
+        .xb-headline {
+            font-size: 14px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.5;
+            letter-spacing: -0.2px;
+        }
+
+        .xb-headline em {
+            color: #FFAA6E;
+            font-style: normal;
+        }
+
+        .xb-body {
+            margin-top: 5px;
+            font-size: 11.5px;
+            color: rgba(255, 255, 255, 0.68);
+            line-height: 1.7;
+        }
+
+        /* ② 앱 3대 기능 */
+        .features-wrap {
+            margin: 8px 12px 0;
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 14px 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .features-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 12px;
+        }
+
+        /* 카카오 오픈채팅 가로 3열 그리드 */
+        .kakao-links {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .kakao-link-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: #FEF9E7;
+            border: 1.5px solid #FAE100;
+            border-radius: 12px;
+            padding: 12px 4px;
+            text-decoration: none;
+            color: inherit;
+            text-align: center;
+            transition: background 0.15s;
+        }
+
+        .kakao-link-btn:active {
+            background: #FEF08A;
+        }
+
+        .kl-icon {
+            font-size: 26px;
+        }
+
+        .kl-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: #222;
+            line-height: 1.3;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .feature-card {
+            background: #FFF5F1;
+            border: 1px solid #FFE0D0;
+            border-radius: 10px;
+            padding: 11px 6px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .feature-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1.3;
+        }
+
+        .feature-desc {
+            font-size: 10px;
+            color: #aaa;
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+
+        /* ③ 비교표 */
+        .compare-wrap {
+            margin: 8px 12px 0;
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .compare-wrap .compare-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .compare-table th {
+            padding: 7px 6px;
+            text-align: center;
+            font-size: 11.5px;
+        }
+
+        .compare-table th:first-child {
+            text-align: left;
+            width: 44%;
+            color: #999;
+            font-weight: 600;
+        }
+
+        .cth-kakao {
+            color: #3B1A00;
+            background: #FFF3D0;
+            border-radius: 6px 0 0 0;
+        }
+
+        .cth-app {
+            color: #fff;
+            background: #FF6B35;
+            border-radius: 0 6px 0 0;
+        }
+
+        .compare-table td {
+            padding: 7px 6px;
+            border-bottom: 1px solid #f5f5f5;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .compare-table td:first-child {
+            text-align: left;
+            color: #555;
+        }
+
+        .compare-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .c-no {
+            color: #ccc;
+            font-size: 15px;
+        }
+
+        .c-yes {
+            color: #FF6B35;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        /* ④ 다운로드 */
+        .download-wrap {
+            margin: 8px 12px 20px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #FFF5F1, #FFE8D8);
+            border: 1.5px solid #FFD0B8;
+            padding: 16px 14px;
+        }
+
+        .download-headline {
+            font-size: 13.5px;
+            font-weight: 900;
+            color: #1A0800;
+            margin-bottom: 3px;
+        }
+
+        .download-sub {
+            font-size: 11px;
+            color: #9B4A1A;
+            line-height: 1.6;
+        }
+
+        .download-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .dl-btn {
+            flex: 1;
+            text-align: center;
+            padding: 9px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+
+        .dl-android {
+            background: #FF6B35;
+            color: #fff;
+        }
+
+        .dl-ios {
+            background: #1A0800;
+            color: #fff;
+        }
     </style>
 </head>
 
@@ -433,14 +794,18 @@
 
     <div id="app" style="display:none"></div>
 
-    <!-- 하단 고정 CTA 버튼 -->
+    <!-- 하단 고정 CTA -->
     <div class="app-cta-bar" id="app-cta-bar">
-        <div class="cta-hint">씬짜오 베트남 앱에서 더 많은 상품을 편리하게 이용하실 수 있습니다 🇻🇳</div>
-        <div class="cta-buttons">
-            <button class="btn-open-app" id="btn-open-app" onclick="openInApp()">
-                📱 앱으로 보기
-            </button>
-            <button class="btn-web-only" onclick="dismissCta()">웹으로 계속</button>
+        <!-- 하단 광고 배너 슬롯 -->
+        <div class="ad-slot-bottom" id="ad-slot-bottom"></div>
+        <div class="cta-inner">
+            <div class="cta-hint">씬짜오베트남 앱으로 더 많은 상품을 보다 편리하게 이용하세요</div>
+            <div class="cta-buttons">
+                <button class="btn-open-app" id="btn-open-app" onclick="openInApp()">
+                    📱 앱으로 보기
+                </button>
+                <button class="btn-kakao-back" onclick="history.back()">↩ 카카오톡<br>으로</button>
+            </div>
         </div>
     </div>
 
@@ -456,8 +821,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU",
-            authDomain: "chaovietnam-login.firebaseapp.com",
+            apiKey: "AIzaSyAAtT9gcu8eVQIhQxYEgBTGp2XZ6ghz_NU", authDomain: "chaovietnam-login.firebaseapp.com",
             projectId: "chaovietnam-login",
             storageBucket: "chaovietnam-login.firebasestorage.app",
             messagingSenderId: "249390849714",
@@ -521,7 +885,7 @@
             document.getElementById('app-cta-bar').style.display = 'none';
         };
 
-        // ── 갤러리 ───────────────────────────────────────────
+        // ── 갤러리 ─────────────────────── ────────────
         function categoryInfo(data) {
             if (data.category === 'realestate') return { label: '🏠 부동산', cls: 'cat-realestate' };
             if (data.jobMode === 'hire') return { label: '📢 구인 (직원 구합니다)', cls: 'cat-job-hire' };
@@ -574,7 +938,8 @@
             if (data.email) contactRows += '<div class="contact-row"><span class="contact-icon">✉️</span><div class="contact-col"><span class="contact-label">이메일</span><span class="contact-value">' + data.email + '</span></div></div>';
 
             document.getElementById('app').innerHTML =
-                '<div class="header"><div class="header-inner"><span class="header-logo">🇻🇳</span><div><div class="header-title">씬짜오 (Xin Chao)</div><div class="header-sub">베트남 한인 커뮤니티</div></div></div></div>' +
+                '<div class="header"><div class="header-inner"><img src="/logo.png" class="header-logo-img" onerror="this.style.display=\'none\'" alt="씬짜오 로고"><div><div class="header-title">씬짜오베트남 온라인 서비스</div><div class="header-sub">베트남의 모든 시선이 모이는 곳</div></div></div></div>' +
+                '<div class="ad-slot-top" id="ad-slot-top"></div>' +
                 '<div class="content">' +
                 renderGallery(images) +
                 '<span class="category-badge ' + cat.cls + '">' + cat.label + '</span>' +
@@ -587,10 +952,90 @@
                 (descText ? '<div class="section"><div class="section-title">📝 상세 내용</div><div class="section-body">' + descText + '</div></div>' : '') +
                 (contactRows ? '<div class="section"><div class="section-title">📞 연락처</div><div class="contact-box">' + contactRows + '</div></div>' : '') +
                 '<div class="footer-date">' + (dateStr ? '등록일: ' + dateStr : '') + '</div>' +
-                '</div>';
+                '</div>' +
+                renderPromoSection();
 
             // 하단 CTA 버튼 표시
             document.getElementById('app-cta-bar').classList.add('show');
+        }
+
+        // ── 홍보 섹션 렌더 (기존 renderItem 로직과 완전 분리) ──
+        function renderPromoSection() {
+            return '<div class="promo-divider"><div class="promo-divider-line"></div>' +
+                '<div class="promo-divider-text">📲 씬짜오베트남 온라인 서비스</div>' +
+                '<div class="promo-divider-line"></div></div>' +
+
+                // 메인 배너 (심플 배경)
+                '<div class="xinchao-banner"><div class="xb-inner">' +
+                '<div class="xb-logo"><img src="/logo.png" onerror="this.parentNode.innerHTML=\'<span style=font-size:26px>📲</span>\'" alt="씬짜오 로고"></div>' +
+                '<div class="xb-text">' +
+                '<div class="xb-since">씬짜오베트남 온라인 서비스</div>' +
+                '<div class="xb-headline">이제는 카카오톡으로도<br><em>씬짜오베트남 서비스</em>를 이용하실 수 있습니다!</div>' +
+                '</div></div></div>' +
+
+                // 카카오 오픈채팅 3개
+                '<div class="features-wrap">' +
+                '<div class="features-title">💬 씬짜오베트남 카카오 오픈채팅</div>' +
+                '<div class="kakao-links">' +
+                '<a class="kakao-link-btn" href="https://open.kakao.com/o/gQxdgSji" target="_blank">' +
+                '<span class="kl-icon">🥕</span><span class="kl-name">당근 / 나눔</span>' +
+                '</a>' +
+                '<a class="kakao-link-btn" href="https://open.kakao.com/o/g4dOjSji" target="_blank">' +
+                '<span class="kl-icon">💼</span><span class="kl-name">구인구직</span>' +
+                '</a>' +
+                '<a class="kakao-link-btn" href="https://open.kakao.com/o/gDITUGji" target="_blank">' +
+                '<span class="kl-icon">🏠</span><span class="kl-name">부동산</span>' +
+                '</a>' +
+                '</div></div>' +
+
+                // 서비스 3대 특징
+                '<div class="features-wrap">' +
+                '<div class="features-title">✨ 씬짜오베트남 앱 서비스</div>' +
+                '<div class="features-grid">' +
+                '<div class="feature-card"><div class="feature-icon">🗺️</div>' +
+                '<div class="feature-name">베트남 전역<br>커버</div>' +
+                '<div class="feature-desc">호치민·다낭·하노이<br>전국 지역</div></div>' +
+                '<div class="feature-card"><div class="feature-icon">🌏</div>' +
+                '<div class="feature-name">3개 국어<br>지원</div>' +
+                '<div class="feature-desc">한국어·베트남어<br>영어</div></div>' +
+                '<div class="feature-card"><div class="feature-icon">🔖</div>' +
+                '<div class="feature-name">영구 보관<br>다시 찾기</div>' +
+                '<div class="feature-desc">나의 게시글을<br>언제든 조회</div></div>' +
+                '</div></div>';
+        }
+
+        // ── AdSense 광고 로드 (헤더 하단 + CTA 위) ──
+        // ❗ 실제 AdSense 코드를 아래 주석 잘라내고 붙여넣으세요
+        function loadAds() {
+            // ■ 상단 배너 (AdSense 코드 삽입 위치)
+            var topSlot = document.getElementById('ad-slot-top');
+            if (topSlot) {
+                /* === 헤더 AdSense 코드 시작 ===
+                topSlot.innerHTML = '<ins class="adsbygoogle"' +
+                    ' style="display:block;"' +
+                    ' data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"' +
+                    ' data-ad-slot="XXXXXXXXXX"' +
+                    ' data-ad-format="auto"' +
+                    ' data-full-width-responsive="true"></ins>';
+                (adsbygoogle = window.adsbygoogle || []).push({});
+                topSlot.classList.add('loaded');
+                === 헤더 AdSense 코드 끝 === */
+            }
+
+            // ■ 하단 배너 (CTA 바 위)
+            var botSlot = document.getElementById('ad-slot-bottom');
+            if (botSlot) {
+                /* === 하단 AdSense 코드 시작 ===
+                botSlot.innerHTML = '<ins class="adsbygoogle"' +
+                    ' style="display:block;"' +
+                    ' data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"' +
+                    ' data-ad-slot="XXXXXXXXXX"' +
+                    ' data-ad-format="auto"' +
+                    ' data-full-width-responsive="true"></ins>';
+                (adsbygoogle = window.adsbygoogle || []).push({});
+                botSlot.classList.add('loaded');
+                === 하단 AdSense 코드 끝 === */
+            }
         }
 
         async function loadItem() {
@@ -601,6 +1046,7 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
                 renderItem(snap.data());
+                loadAds();
             } catch (e) {
                 showError('불러오기 실패', e.message);
             }
