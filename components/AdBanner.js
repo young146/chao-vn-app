@@ -102,14 +102,20 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
 
   // ── 프로덕션 빌드: 정상 비디오 재생 ──
   const videoRef = useRef(null);
+  const isMounted = useRef(true);
   const [isMuted, setIsMuted] = useState(true);
   const [shouldPlay, setShouldPlay] = useState(true);
 
   useEffect(() => {
+    isMounted.current = true;
     return () => {
-      if (videoRef.current) {
-        videoRef.current.pauseAsync().catch(() => { });
-      }
+      // isMounted를 먼저 false로 설정하여 이후 비동기 콜백이 실행되지 않도록 함
+      isMounted.current = false;
+      // ExoPlayer는 메인 스레드에서만 조작해야 함.
+      // pauseAsync()를 호출하지 않고 ref만 해제 - ExoPlayer가 컴포넌트 라이프사이클에
+      // 맞춰 자동으로 정리됨. 비동기 pause 호출은 unmount 후 백그라운드 스레드에서
+      // ExoPlayer에 접근하여 IllegalStateException을 유발함.
+      videoRef.current = null;
     };
   }, []);
 
