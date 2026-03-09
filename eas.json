@@ -11,8 +11,7 @@
       "channel": "production",
       "android": {
         "buildType": "app-bundle",
-        "autoIncrement": true,
-        "image": "ubuntu-22.04-jdk-17-ndk-r27"
+        "autoIncrement": true
       },
       "ios": {
         "simulator": false,
