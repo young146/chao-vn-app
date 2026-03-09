@@ -32,17 +32,17 @@ if ($response) {
     $firebaseData = json_decode($response, true);
     if (isset($firebaseData['fields'])) {
         $fields = $firebaseData['fields'];
-        
+
         // 제목
         if (isset($fields['title']['stringValue'])) {
             $itemTitle = $fields['title']['stringValue'];
         }
-        
+
         // 이미지 (첫 번째 이미지)
         if (isset($fields['images']['arrayValue']['values'][0]['stringValue'])) {
             $itemImage = $fields['images']['arrayValue']['values'][0]['stringValue'];
         }
-        
+
         // 가격
         if ($type === 'danggn' && isset($fields['price']['integerValue'])) {
             $itemPrice = number_format($fields['price']['integerValue']) . 'đ';
@@ -81,11 +81,12 @@ $isIOS = preg_match('/iPhone|iPad|iPod/i', $userAgent);
 ?>
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($title); ?></title>
-    
+
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?php echo htmlspecialchars($url); ?>">
     <meta property="og:title" content="<?php echo htmlspecialchars($title); ?>">
@@ -94,42 +95,91 @@ $isIOS = preg_match('/iPhone|iPad|iPod/i', $userAgent);
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="ChaoVietnam">
-    
+
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?php echo htmlspecialchars($title); ?>">
     <meta name="twitter:description" content="<?php echo htmlspecialchars($description); ?>">
     <meta name="twitter:image" content="<?php echo htmlspecialchars($image); ?>">
-    
+
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; background:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
-        .spinner { width:50px; height:50px; border:5px solid #f3f3f3; border-top:5px solid <?php echo $data['color']; ?>; border-radius:50%; animation:spin 1s linear infinite; }
-        @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid
+                <?php echo $data['color']; ?>
+            ;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="spinner"></div>
-    
+
     <script>
         const deeplink = '<?php echo $deeplink; ?>'; // chaovietnam://type/id
         const isAndroid = <?php echo $isAndroid ? 'true' : 'false'; ?>;
         const isIOS = <?php echo $isIOS ? 'true' : 'false'; ?>;
-        
+
+        // Android: intent:// 스킴으로 URL 데이터를 확실히 전달
+        // 카카오톡 인앱 브라우저에서 chaovietnam:// 는 앱을 열지만 URL을 전달하지 않음
+        function openApp() {
+            if (isAndroid) {
+                // intent://type/id#Intent;scheme=chaovietnam;package=com.yourname.chaovnapp;end
+                var intentUrl = deeplink.replace('chaovietnam://', 'intent://');
+                intentUrl += '#Intent;scheme=chaovietnam;package=com.yourname.chaovnapp;end';
+                console.log('🔗 Android intent URL:', intentUrl);
+                window.location.href = intentUrl;
+            } else {
+                console.log('🔗 iOS/기타 딥링크:', deeplink);
+                window.location.href = deeplink;
+            }
+        }
+
         // 즉시 앱 열기 시도
-        setTimeout(function() {
-            console.log('🔗 딥링크:', deeplink);
-            window.location.href = deeplink;
-            
+        setTimeout(function () {
+            openApp();
+
             // 1초 후 앱이 안 열리면 스토어로
-            setTimeout(function() {
-                console.log('📱 앱이 안 열림 → 스토어로 이동');
-                if (isAndroid) {
-                    window.location.href = 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
-                } else if (isIOS) {
-                    window.location.href = 'https://apps.apple.com/app/id6480538597';
+            setTimeout(function () {
+                if (!document.hidden) {
+                    console.log('📱 앱이 안 열림 → 스토어로 이동');
+                    if (isAndroid) {
+                        window.location.href = 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
+                    } else if (isIOS) {
+                        window.location.href = 'https://apps.apple.com/app/id6480538597';
+                    }
                 }
-            }, 1000);
+            }, 1500);
         }, 100);
     </script>
 </body>
+
 </html>
