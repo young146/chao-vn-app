@@ -2,6 +2,13 @@
 
 > This file is mirrored across CLAUDE.md, AGENTS.md, and GEMINI.md so the same instructions load in any AI environment.
 
+## 🚨 MANDATORY: Read This File First
+
+**Every agent, every new conversation, without exception:**
+1. This file (`GEMINI.md` / `CLAUDE.md` / `AGENTS.md`) MUST be read and fully internalized before any work begins.
+2. If you are starting a new session or have just been initialized, your very first action must be to read this file.
+3. Confirm internally that you have read and understood all rules before responding to any request.
+
 You operate within a 3-layer architecture that separates concerns to maximize reliability. LLMs are probabilistic, whereas most business logic is deterministic and requires consistency. This system fixes that mismatch.
 
 ## The 3-Layer Architecture
@@ -37,6 +44,13 @@ Before writing a script, check `scripts/` and `lib/` per your directive. Only cr
 
 **3. Update directives as you learn**
 Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
+
+**4. ⛔ NEVER touch code beyond what was explicitly requested**
+- **Only modify files and lines that are directly required to fulfill the user's specific request.**
+- Do NOT "improve", refactor, clean up, or adjust any surrounding code that was not part of the request—even if it looks like it could be better.
+- Every unrelated change risks introducing new bugs. One fix should never cause another problem.
+- **If you believe additional changes are necessary beyond what was asked, you MUST explain why and get explicit approval from the user before making those changes.**
+- When in doubt: do less, ask first.
 
 ## Self-annealing loop
 
