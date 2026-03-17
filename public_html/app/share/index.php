@@ -38,9 +38,13 @@ if ($response) {
             $itemTitle = $fields['title']['stringValue'];
         }
 
-        // 이미지 (첫 번째 이미지)
+        // 이미지 (첫 번째 이미지, 없으면 두 번째)
         if (isset($fields['images']['arrayValue']['values'][0]['stringValue'])) {
             $itemImage = $fields['images']['arrayValue']['values'][0]['stringValue'];
+        }
+        // 첫 이미지가 없으면 두 번째 시도
+        if (empty($itemImage) && isset($fields['images']['arrayValue']['values'][1]['stringValue'])) {
+            $itemImage = $fields['images']['arrayValue']['values'][1]['stringValue'];
         }
 
         // 가격
@@ -92,8 +96,17 @@ $isIOS = preg_match('/iPhone|iPad|iPod/i', $userAgent);
     <meta property="og:title" content="<?php echo htmlspecialchars($title); ?>">
     <meta property="og:description" content="<?php echo htmlspecialchars($description); ?>">
     <meta property="og:image" content="<?php echo htmlspecialchars($image); ?>">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    <?php
+    // 실제 이미지 크기를 가져와 정확한 width/height 선언 (카카오 대형 카드 기준)
+    // getimagesize가 실패하면 선언 생략 → Kakao가 직접 감지 (하드코딩 오류보다 안전)
+    @ini_set('default_socket_timeout', 3);
+    $imgSize = @getimagesize($image);
+    if ($imgSize && $imgSize[0] > 0 && $imgSize[1] > 0) {
+        echo '<meta property="og:image:width" content="' . $imgSize[0] . '">' . PHP_EOL;
+        echo '    <meta property="og:image:height" content="' . $imgSize[1] . '">' . PHP_EOL;
+    }
+    ?>
+    <meta property="og:image:alt" content="<?php echo htmlspecialchars($itemTitle ?: $data['label']); ?>">
     <meta property="og:site_name" content="ChaoVietnam">
 
     <meta name="twitter:card" content="summary_large_image">

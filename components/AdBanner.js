@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions, Animated } from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import axios from "axios";
 
 // ============================================
@@ -70,28 +70,30 @@ const isInlineAdAvailable = (index) => {
   return index < inlineAdsCount;
 };
 
-// ============================================
-// 광고 미디어 렌더링 (비디오/이미지)
-// ============================================
-
-/**
- * 광고 미디어 컴포넌트 (비디오 우선, 이미지 폴백)
- * @param {object} ad - 광고 데이터
- * @param {object} style - 스타일
- * @param {string} thumbnailKey - 썸네일 키 (home_banner, header, inline, etc.)
- */
 const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
-  // ── 개발 환경(Expo Go)에서는 비디오 대신 섬네일 표시 ──
-  // expo-av의 onHostDestroy가 잘못된 스레드에서 ExoPlayer를 호출하는
-  // 네이티브 버그로 인해 Expo Go 리로드 시 항상 크래쉬 발생.
-  // 이 버그는 JS에서 수정 불가 (Java 네이티브 코드 문제).
-  // 프로덕션 APK 빌드에서는 이 경로로 호출되지 않으므로 비디오 정상 재생.
+  const [isMuted, setIsMuted] = useState(true);
+
+  // useVideoPlayer: expo-video(ExoPlayer3) - hook은 항상 최상위에 호출
+  const player = useVideoPlayer(videoUrl, (player) => {
+    player.loop = true;
+    player.muted = true;
+    if (!__DEV__) player.play();
+  });
+
+  // 음소거 상태 동기화
+  useEffect(() => {
+    if (player) {
+      player.muted = isMuted;
+    }
+  }, [isMuted, player]);
+
+  // ── 개발 환경: 써네일 표시 ──
   if (__DEV__) {
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
         {thumbnailUrl
           ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-          : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎬 광고 영상 (빌드 후 재생)</Text>
+          : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
         }
         <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, padding: '2px 6px' }}>
           <Text style={{ color: '#fff', fontSize: 10 }}>DEV</Text>
@@ -100,40 +102,22 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
     );
   }
 
-  // ── 프로덕션 빌드: 정상 비디오 재생 ──
-  const videoRef = useRef(null);
-  const isMounted = useRef(true);
-  const [isMuted, setIsMuted] = useState(true);
-  const [shouldPlay, setShouldPlay] = useState(true);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      // isMounted를 먼저 false로 설정하여 이후 비동기 콜백이 실행되지 않도록 함
-      isMounted.current = false;
-      // ExoPlayer는 메인 스레드에서만 조작해야 함.
-      // pauseAsync()를 호출하지 않고 ref만 해제 - ExoPlayer가 컴포넌트 라이프사이클에
-      // 맞춰 자동으로 정리됨. 비동기 pause 호출은 unmount 후 백그라운드 스레드에서
-      // ExoPlayer에 접근하여 IllegalStateException을 유발함.
-      videoRef.current = null;
-    };
-  }, []);
-
+  // ── 프로덕션 빌드: VideoView 렌더링 ──
   return (
     <View style={[style, { position: 'relative' }]}>
-      <Video
-        ref={videoRef}
-        source={{ uri: videoUrl }}
+      <VideoView
+        player={player}
         style={{ width: '100%', height: '100%' }}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={shouldPlay}
-        isLooping={true}
-        isMuted={isMuted}
-        useNativeControls={false}
+        contentFit="cover"
+        nativeControls={false}
       />
       <TouchableOpacity
         style={styles.muteButton}
-        onPress={() => setIsMuted(!isMuted)}
+        onPress={() => {
+          const next = !isMuted;
+          setIsMuted(next);
+          if (player) player.muted = next;
+        }}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>

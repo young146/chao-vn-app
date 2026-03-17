@@ -203,7 +203,8 @@
           }
         }
       ],
-      "expo-tracking-transparency"
+      "expo-tracking-transparency",
+      "expo-video"
     ],
     "runtimeVersion": "2.2.3",
     "updates": {

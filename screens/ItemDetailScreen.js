@@ -15,7 +15,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import ImageViewing from "react-native-image-viewing";
 import { useTranslation } from "react-i18next";
@@ -787,7 +787,41 @@ export default function ItemDetailScreen({ route, navigation }) {
         {/* 하단 광고 */}
         <DetailAdBanner position="bottom" screen="danggn" />
 
-        <View style={{ height: 200 }} />
+        {/* 📤 SNS 공유 섹션 */}
+        <View style={styles.shareSection}>
+          <Text style={styles.shareTitle}>📤 이 게시물 공유하기</Text>
+          <View style={styles.shareButtons}>
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#FEE500' }]}
+              onPress={() => handleShare('kakao')}
+            >
+              <Text style={styles.kakaoShareIcon}>💬</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#0068FF' }]}
+              onPress={() => handleShare('zalo')}
+            >
+              <Text style={styles.zaloShareIcon}>Z</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#1877F2' }]}
+              onPress={() => handleShare('facebook')}
+            >
+              <FontAwesome name="facebook" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#FF6B35' }]}
+              onPress={() => handleShare('more')}
+            >
+              <Ionicons name="share-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* 하단 버튼 */}
@@ -1223,5 +1257,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginLeft: 4,
+  },
+  // 📤 SNS 공유 섹션
+  shareSection: {
+    margin: 16,
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  shareTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  shareButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  shareButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+  },
+  kakaoShareIcon: {
+    fontSize: 26,
+  },
+  zaloShareIcon: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#fff',
   },
 });
