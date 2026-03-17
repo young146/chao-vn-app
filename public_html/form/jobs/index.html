@@ -678,23 +678,50 @@
             document.getElementById('preview-text').textContent = text;
         }
 
-        // 이미지 업로드
+        // 이미지 압축 (canvas, JPEG 0.8)
+        function compressImage(file) {
+            return new Promise(resolve => {
+                const maxW = 1200;
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const ratio = Math.min(1, maxW / img.width);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(img.width * ratio);
+                    canvas.height = Math.round(img.height * ratio);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+                    canvas.toBlob(resolve, 'image/jpeg', 0.8);
+                };
+                img.onerror = () => resolve(file);
+                img.src = url;
+            });
+        }
+
+        // 타임아웃 헬퍼
+        function withTimeout(promise, ms = 30000) {
+            const timer = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('시간 초과 (30초). 인터넷 연결 확인 후 다시 시도해 주세요.')), ms)
+            );
+            return Promise.race([promise, timer]);
+        }
+
+        // 이미지 병렬 압축+업로드
         async function uploadImages(docId) {
-            const urls = [];
             const total = selectedFiles.length;
-            document.getElementById('progress-wrap').style.display = 'block';
-            for (let i = 0; i < total; i++) {
-                document.getElementById('progress-label').textContent = `사진 업로드 중... (${i + 1}/${total})`;
-                document.getElementById('progress-bar').style.width = `${Math.round((i / total) * 100)}%`;
-                const file = selectedFiles[i];
-                const ext = file.name.split('.').pop() || 'jpg';
-                const ref = storage.ref(`jobs-web/${docId}_${i}.${ext}`);
-                await ref.put(file);
-                const url = await ref.getDownloadURL();
-                urls.push(url);
-            }
+            const progressEl = document.getElementById('progress-wrap');
+            progressEl.style.display = 'block';
+            document.getElementById('progress-label').textContent = `사진 ${total}장 동시 업로드 중...`;
+            document.getElementById('progress-bar').style.width = '10%';
+
+            const compressedFiles = await Promise.all(selectedFiles.map(f => compressImage(f)));
+            const urls = await Promise.all(compressedFiles.map(async (blob, i) => {
+                const ref = storage.ref(`jobs-web/${docId}_${i}.jpg`);
+                await ref.put(blob, { contentType: 'image/jpeg' });
+                return ref.getDownloadURL();
+            }));
             document.getElementById('progress-bar').style.width = '100%';
-            document.getElementById('progress-label').textContent = '업로드 완료!';
+            document.getElementById('progress-label').textContent = `✅ ${total}장 업로드 완료!`;
             return urls;
         }
 
@@ -710,71 +737,67 @@
             btn.textContent = '⏳ 등록 중...';
 
             try {
-                // 1. form_items 저장
-                const data = {
-                    category: 'jobs',
-                    title: title,
-                    jobType: document.getElementById('job-type').value,
-                    industry: document.getElementById('job-industry').value,
-                    employmentType: document.getElementById('job-employment').value,
-                    salary: document.getElementById('job-salary').value.trim() || '협의',
-                    city: document.getElementById('job-city').value,
-                    district: document.getElementById('job-district').value.trim(),
-                    deadline: document.getElementById('job-deadline').value.trim(),
-                    phone: document.getElementById('job-phone').value.trim(),
-                    kakao: document.getElementById('job-kakao').value.trim(),
-                    description: desc,
-                    requirements: document.getElementById('job-requirements').value.trim(),
-                    imageUrls: [],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                const doSubmit = async () => {
+                    const jobData = {
+                        title,
+                        jobType: document.getElementById('job-type').value,
+                        industry: document.getElementById('job-industry').value,
+                        employmentType: document.getElementById('job-employment').value,
+                        salary: document.getElementById('job-salary').value.trim() || '협의',
+                        city: document.getElementById('job-city').value,
+                        district: document.getElementById('job-district').value.trim(),
+                        deadline: document.getElementById('job-deadline').value.trim(),
+                        phone: document.getElementById('job-phone').value.trim(),
+                        kakao: document.getElementById('job-kakao').value.trim(),
+                        description: desc,
+                        requirements: document.getElementById('job-requirements').value.trim()
+                    };
+
+                    // 1. 이미지 먼저 업로드
+                    const formRef = db.collection('form_items').doc();
+                    const docId = formRef.id;
+                    const jobsRef = db.collection('Jobs').doc(docId);
+
+                    let imageUrls = [];
+                    if (selectedFiles.length > 0) {
+                        document.getElementById('progress-wrap').style.display = 'block';
+                        document.getElementById('progress-label').textContent = `사진 ${selectedFiles.length}장 동시 업로드 중...`;
+                        document.getElementById('progress-bar').style.width = '10%';
+                        const compressedFiles = await Promise.all(selectedFiles.map(f => compressImage(f)));
+                        imageUrls = await Promise.all(compressedFiles.map(async (blob, i) => {
+                            const ref = storage.ref(`jobs-web/${docId}_${i}.jpg`);
+                            await ref.put(blob, { contentType: 'image/jpeg' });
+                            return ref.getDownloadURL();
+                        }));
+                        document.getElementById('progress-bar').style.width = '100%';
+                        document.getElementById('progress-label').textContent = `✅ ${imageUrls.length}장 완료!`;
+                    }
+
+                    // 2. 단일 batch로 저장 (imageUrls 포함)
+                    const batch = db.batch();
+                    batch.set(formRef, { category: 'jobs', imageUrls, createdAt: firebase.firestore.FieldValue.serverTimestamp(), ...jobData });
+                    batch.set(jobsRef, {
+                        ...jobData,
+                        contact: jobData.phone,
+                        images: imageUrls,
+                        status: '모집중', source: 'web', formItemId: docId,
+                        userId: null, userEmail: null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    await batch.commit();
+
+                    sharedText = buildText(`https://chaovietnam-login.web.app/item/?id=${docId}`);
+                    document.getElementById('share-text-box').value = sharedText;
+                    document.getElementById('success-overlay').className = 'success-overlay show';
                 };
-                const docRef = await db.collection('form_items').add(data);
-                const docId = docRef.id;
-
-                // 2. 이미지 업로드
-                let imageUrls = [];
-                if (selectedFiles.length > 0) {
-                    imageUrls = await uploadImages(docId);
-                    await docRef.update({ imageUrls });
-                }
-
-                // 3. Jobs 컬렉션에 동시 저장 (앱 구인구직 탭 표시 + 딥링크)
-                await db.collection('Jobs').doc(docId).set({
-                    title: data.title,
-                    description: data.description,
-                    requirements: data.requirements,
-                    jobType: data.jobType,
-                    industry: data.industry,
-                    employmentType: data.employmentType,
-                    salary: data.salary,
-                    city: data.city,
-                    district: data.district,
-                    contact: data.phone,
-                    deadline: data.deadline,
-                    images: imageUrls,
-                    status: '모집중',
-                    source: 'web',
-                    formItemId: docId,
-                    userId: null,
-                    userEmail: null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // 4. 뷰 URL 생성
-                const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
-
-                // 5. 공유 텍스트 준비 (복사는 버튼 탭 시 수행)
-                sharedText = buildText(viewUrl);
-                document.getElementById('share-text-box').value = sharedText;
-
-                // 6. 성공 오버레이
-                document.getElementById('success-overlay').className = 'success-overlay show';
+                await withTimeout(doSubmit());
 
             } catch (e) {
                 console.error('등록 오류:', e);
-                showToast('❗ 오류: ' + e.message);
+                showToast('❗ ' + e.message);
                 btn.disabled = false;
                 btn.textContent = '💼 등록 및 카카오톡 공유';
+                document.getElementById('progress-wrap').style.display = 'none';
             }
         }
 

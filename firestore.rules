@@ -17,7 +17,11 @@ service cloud.firestore {
       allow read: if true;
       // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
       allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update, delete: if request.auth != null &&
+      // 웹폼 이미지 URL 업데이트 허용 (source=web 문서)
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin())
+        || resource.data.source == 'web';
+      allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
     }
 
@@ -28,7 +32,11 @@ service cloud.firestore {
       allow read: if true;
       // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
       allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update, delete: if request.auth != null &&
+      // 웹폼 이미지 URL 업데이트 허용 (source=web 문서)
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin())
+        || resource.data.source == 'web';
+      allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
     }
 
@@ -39,7 +47,11 @@ service cloud.firestore {
       allow read: if true;
       // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
       allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update, delete: if request.auth != null &&
+      // 웹폼 이미지 URL 업데이트 허용 (source=web 문서)
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin())
+        || resource.data.source == 'web';
+      allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
     }
 

@@ -128,6 +128,7 @@
             transition: border-color 0.2s;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
         }
 
         .field input:focus,
@@ -697,18 +698,34 @@
             });
         }
         async function uploadImages(docId) {
-            const urls = [];
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const compressed = await compressImage(selectedFiles[i]);
+            const total = selectedFiles.length;
+            document.getElementById('progress-label').textContent = `사진 ${total}장 동시 업로드 중...`;
+            document.getElementById('progress-bar').style.width = '10%';
+
+            // 모든 이미지를 병렬로 압축 + 업로드
+            const uploadOne = async (file, i) => {
+                const compressed = await compressImage(file);
                 const ref = storage.ref(`form_uploads/secondhand/${docId}/${i}.jpg`);
                 await ref.put(compressed, { contentType: 'image/jpeg' });
                 const url = await ref.getDownloadURL();
-                urls.push(url);
-                const pct = Math.round(((i + 1) / selectedFiles.length) * 100);
+                // 완료 수 기반 진행바
+                const pct = Math.round(10 + (90 / total));
                 document.getElementById('progress-bar').style.width = pct + '%';
-                document.getElementById('progress-label').textContent = `사진 업로드 중... ${i + 1}/${selectedFiles.length}장`;
-            }
-            return urls;
+                return url;
+            };
+
+            const results = await Promise.all(selectedFiles.map((f, i) => uploadOne(f, i)));
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('progress-label').textContent = `✅ ${total}장 업로드 완료!`;
+            return results;
+        }
+
+        /* 타임아웃 헬퍼 */
+        function withTimeout(promise, ms = 30000) {
+            const timer = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('시간 초과 (30초). 인터넷 연결 확인 후 다시 시도해 주세요.')), ms)
+            );
+            return Promise.race([promise, timer]);
         }
 
         /* 메인 제출 함수 */
@@ -721,70 +738,71 @@
             const btn = document.getElementById('btn-submit');
             const progressWrap = document.getElementById('progress-wrap');
             btn.disabled = true;
-            if (selectedFiles.length > 0) { progressWrap.style.display = 'block'; }
             btn.textContent = '⏳ 등록 중...';
 
             try {
-                // 1. Firestore에 기본 데이터 먼저 저장
-                const data = {
-                    category: 'secondhand',
-                    itemName: name,
-                    price: price,          // 원본 텍스트 (OG 표시용)
-                    imageUrls: [],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                const doSubmit = async () => {
+                    const city = document.getElementById('city').value;
+                    const district = document.getElementById('district').value;
+                    const apt = document.getElementById('apartment').value || '';
+                    const description = document.getElementById('item-desc').value.trim();
+                    const condition = document.getElementById('item-condition').value;
+                    const phone = document.getElementById('contact-phone').value.trim();
+                    const kakao = document.getElementById('contact-kakao').value.trim();
+
+                    // 1. 이미지 먼저 업로드 (URL 확보 후 batch에 포함)
+                    const formRef = db.collection('form_items').doc();
+                    const docId = formRef.id;
+                    const danggn = db.collection('XinChaoDanggn').doc(docId);
+
+                    let imageUrls = [];
+                    if (selectedFiles.length > 0) {
+                        progressWrap.style.display = 'block';
+                        document.getElementById('progress-label').textContent = `사진 ${selectedFiles.length}장 동시 업로드 중...`;
+                        document.getElementById('progress-bar').style.width = '10%';
+                        const compressedFiles = await Promise.all(selectedFiles.map(f => compressImage(f)));
+                        imageUrls = await Promise.all(compressedFiles.map(async (blob, i) => {
+                            const ref = storage.ref(`form_uploads/secondhand/${docId}/${i}.jpg`);
+                            await ref.put(blob, { contentType: 'image/jpeg' });
+                            return ref.getDownloadURL();
+                        }));
+                        document.getElementById('progress-bar').style.width = '100%';
+                        document.getElementById('progress-label').textContent = `✅ ${imageUrls.length}장 업로드 완료!`;
+                    }
+
+                    // 2. 이미지 URL 포함하여 단일 batch 저장
+                    const batch = db.batch();
+                    const commonData = {
+                        title: name, itemName: name, price, condition, description,
+                        city, district, apartment: apt,
+                        location: [city, district, apt].filter(Boolean).join(' '),
+                        phone, kakao,
+                        contact: { phone, kakaoId: kakao, other: '' },
+                        imageUrls, images: imageUrls,
+                        category: '중고거래',
+                        status: '판매중', source: 'web',
+                        formItemId: docId, userId: null, userEmail: null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    batch.set(formRef, commonData);
+                    batch.set(danggn, commonData);
+                    await batch.commit();
+
+                    // 3. 성공 처리
+                    const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
+                    copiedText = buildText(viewUrl);
+                    document.getElementById('share-text-box').value = copiedText;
+                    progressWrap.style.display = 'none';
+                    btn.textContent = '✅ 완료!';
+                    showSuccessOverlay();
                 };
-                const docRef = await db.collection('form_items').add(data);
-                const docId = docRef.id;
-
-                // 2. 이미지 업로드
-                let imageUrls = [];
-                if (selectedFiles.length > 0) {
-                    imageUrls = await uploadImages(docId);
-                    await docRef.update({ imageUrls });
-                }
-
-                // 3. 앱 XinChaoDanggn 컬렉션에도 동시 저장 (당근/나눔 탭 표시용)
-                //    form_items ID를 그대로 사용 → 딥링크 ID 일치
-                await db.collection('XinChaoDanggn').doc(docId).set({
-                    title: data.itemName,
-                    price: price,            // 텍스트 그대로 저장 ("30만동", "$100" 등)
-                    condition: document.getElementById('item-condition').value,
-                    description: document.getElementById('item-desc').value.trim(),
-                    category: document.getElementById('item-condition').value ? '중고거래' : '기타',
-                    city: document.getElementById('city').value,
-                    district: document.getElementById('district').value,
-                    apartment: document.getElementById('apartment').value || '',
-                    location: [document.getElementById('city').value, document.getElementById('district').value, document.getElementById('apartment').value].filter(Boolean).join(' '),
-                    images: imageUrls,
-                    contact: {
-                        phone: document.getElementById('contact-phone').value.trim() || '',
-                        kakaoId: document.getElementById('contact-kakao').value.trim() || '',
-                        other: ''
-                    },
-                    status: '판매중',
-                    source: 'web',
-                    formItemId: docId,
-                    userId: null,
-                    userEmail: null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // 4. 뷰 URL 생성
-                const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
-
-                // 5. 공유 텍스트 준비 (복사는 버튼 탭 시 수행 - 모바일 제스처 호환)
-                copiedText = buildText(viewUrl);
-                document.getElementById('share-text-box').value = copiedText;
-
-                progressWrap.style.display = 'none';
-                btn.textContent = '✅ 완료!';
-                showSuccessOverlay();
+                await withTimeout(doSubmit());
 
             } catch (e) {
                 btn.disabled = false;
                 btn.textContent = '📤 등록 및 카카오톡 공유';
-                progressWrap.style.display = 'none';
-                showToast('❗ 오류: ' + e.message);
+                document.getElementById('progress-wrap').style.display = 'none';
+                showToast('❗ ' + e.message);
             }
         }
 
