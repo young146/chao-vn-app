@@ -1,0 +1,12 @@
+﻿924f780 fix: remove expo-video plugin from app.json and bump version to 2.2.3
+038b6d9 fix: remove expo-video to resolve ExoPlayer crash (18.52% ANR rate)
+23910cb fix: revert Kotlin to 2.1.20 (expo-modules-core hardcodes this version)
+99166ea fix: AGP 8.8.2 + Gradle 8.14.3 + Kotlin 2.1.28 for RN 0.81/Expo SDK 54
+ec70a55 fix: upgrade AGP to 8.11.1 and Gradle to 8.13 for EAS compatibility
+3c4f431 fix: downgrade Gradle to 8.9 to match AGP 8.7.3 compatibility
+26cd96a fix: upgrade Gradle to 8.13 (AGP minimum requirement)
+c21ce11 fix: remove invalid EAS image, rely on pinned AGP 8.7.3
+b1d1360 fix: pin AGP 8.7.3, Kotlin 2.1.20 and EAS build image to prevent future breakage
+6594dff fix: downgrade Gradle to 8.10.2 for RN 0.81.5 compatibility
+4df73cb fix: regenerate android native code for AGP 8.11.0 compatibility
+dd583e3 chore: prepare production build and auto-submit

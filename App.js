@@ -308,6 +308,27 @@ export default function App() {
       }
     }
 
+    // 🏷️ 탭전용 딥링크: chaovietnam://danggn (ID없음) → 탭 메인으로 이동
+    if (!type) {
+      const tabOnlyMatch = url.match(/chaovietnam:\/\/([a-z]+)$/);
+      if (tabOnlyMatch) {
+        const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산' }[tabOnlyMatch[1]];
+        if (tabName) {
+          let attempts = 0;
+          const tryNav = () => {
+            attempts++;
+            if (navigationRef.isReady()) {
+              try { navigationRef.navigate('MainApp', { screen: tabName }); } catch(e) {}
+            } else if (attempts < 20) {
+              setTimeout(tryNav, 200);
+            }
+          };
+          setTimeout(tryNav, 300);
+        }
+        return;
+      }
+    }
+
     if (!type || !id) {
       console.log('🔗 [안전망] 파싱 실패:', url);
       return;
@@ -684,6 +705,19 @@ export default function App() {
 
               // 실패 시 수동으로 파싱 → 직접 state 생성
               console.log('⚠️ defaultGetStateFromPath 실패 → 수동 파싱 시도');
+              // 🏷️ 탭전용 경로: /tab/danggn 또는 /danggn (ID없음) → 탭 메인
+              const tabOnlyMatch = cleanPath.match(/^(?:tab\/)?(danggn|job|realestate)$/);
+              if (tabOnlyMatch) {
+                const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산' }[tabOnlyMatch[1]];
+                console.log(`🏷️ 탭전용 딥링크: ${tabName} 탭 메인`);
+                return {
+                  routes: [{
+                    name: 'MainApp',
+                    state: { routes: [{ name: tabName }] },
+                  }],
+                };
+              }
+
               const match = cleanPath.match(/^(danggn|job|realestate)\/([^?/]+)/);
               if (!match) {
                 console.log('❌ 경로 파싱 실패:', cleanPath);

@@ -24,6 +24,18 @@
         ],
         "rewrites": [
             {
+                "source": "/tab/danggn",
+                "destination": "/tab/danggn/index.html"
+            },
+            {
+                "source": "/tab/job",
+                "destination": "/tab/job/index.html"
+            },
+            {
+                "source": "/tab/realestate",
+                "destination": "/tab/realestate/index.html"
+            },
+            {
                 "source": "/form",
                 "destination": "/form/index.html"
             },
