@@ -11,7 +11,7 @@
     "prebuild:ios": "node scripts/prebuild-and-verify.js",
     "verify:plugin": "node scripts/verify-plugin.js",
     "verify:codegen": "node scripts/verify-codegen-exclusion.js",
-    "postinstall": "npx patch-package"
+    "postinstall": "node scripts/patch-agp-version.js && npx patch-package"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
