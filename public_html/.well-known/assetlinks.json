@@ -3,7 +3,9 @@
   "target": {
     "namespace": "android_app",
     "package_name": "com.yourname.chaovnapp",
-    "sha256_cert_fingerprints":
-    ["34:DE:B6:01:95:A0:CE:87:9C:E5:24:AB:58:09:75:71:70:91:A8:67:C2:44:5E:5B:E0:7C:43:06:C8:9C:43:FC"]
+    "sha256_cert_fingerprints": [
+      "A1:3F:CC:62:D0:78:8C:24:DF:5D:CF:74:95:A3:6A:64:CA:53:04:73:48:B1:FC:E1:57:9F:04:7A:33:54:40:A1",
+      "34:DE:B6:01:95:A0:CE:87:9C:E5:24:AB:58:09:75:71:70:91:A8:67:C2:44:5E:5B:E0:7C:43:06:C8:9C:43:FC"
+    ]
   }
 }]
