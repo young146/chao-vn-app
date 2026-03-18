@@ -56,6 +56,7 @@
         <data android:scheme="https" android:host="www.chaovietnam.co.kr" android:pathPrefix="/"/>
         <data android:scheme="https" android:host="chaovietnam-login.web.app" android:pathPrefix="/download"/>
         <data android:scheme="https" android:host="chaovietnam-login.web.app" android:pathPrefix="/view"/>
+        <data android:scheme="https" android:host="chaovietnam-login.web.app" android:pathPrefix="/tab/"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
