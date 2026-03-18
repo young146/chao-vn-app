@@ -15,15 +15,6 @@ pluginManagement {
     "../android/expo-gradle-plugin"
   ).absolutePath
   includeBuild(expoPluginsPath)
-
-  // Force AGP 8.7.3 - must match value patched in libs.versions.toml by scripts/patch-agp-version.js
-  resolutionStrategy {
-    eachPlugin {
-      if (requested.id.id.startsWith("com.android")) {
-        useVersion("8.7.3")
-      }
-    }
-  }
 }
 
 plugins {

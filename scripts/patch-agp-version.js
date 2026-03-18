@@ -1,10 +1,13 @@
 /**
- * Patches the AGP version and SDK versions in react-native's version catalog.
+ * Patches the SDK versions in react-native's version catalog.
  * 
- * react-native 0.81.5 ships with libs.versions.toml that sets agp = "8.11.0",
+ * react-native 0.81.5 ships with libs.versions.toml that sets
  * compileSdk = "36", targetSdk = "36", buildTools = "36.0.0".
- * These cause "No matching variant" errors for all RN native modules on EAS Build.
- * This script patches them to compatible values.
+ * These may cause issues with current project setup.
+ * This script patches SDK values to 35 to match our project config.
+ * 
+ * NOTE: AGP version is NOT patched because the RN Gradle Plugin's
+ * composite build forces AGP 8.11.0 regardless of what we set here.
  * 
  * Runs automatically via npm postinstall hook.
  */
@@ -21,7 +24,6 @@ const TOML_PATH = path.join(
 );
 
 const PATCHES = {
-  'agp': '8.7.3',
   'compileSdk': '35',
   'targetSdk': '35',
   'buildTools': '35.0.0',
@@ -29,7 +31,7 @@ const PATCHES = {
 
 try {
   if (!fs.existsSync(TOML_PATH)) {
-    console.log('[patch-agp] libs.versions.toml not found, skipping.');
+    console.log('[patch-rn-catalog] libs.versions.toml not found, skipping.');
     process.exit(0);
   }
 
@@ -42,15 +44,15 @@ try {
   }
 
   if (content === original) {
-    console.log('[patch-agp] All values already patched or patterns not found.');
+    console.log('[patch-rn-catalog] All values already patched or patterns not found.');
   } else {
     fs.writeFileSync(TOML_PATH, content, 'utf8');
-    console.log('[patch-agp] ✅ Patched version catalog:');
+    console.log('[patch-rn-catalog] ✅ Patched version catalog:');
     for (const [key, value] of Object.entries(PATCHES)) {
       console.log(`  - ${key} = "${value}"`);
     }
   }
 } catch (err) {
-  console.error('[patch-agp] Error patching:', err.message);
+  console.error('[patch-rn-catalog] Error patching:', err.message);
   process.exit(1);
 }
