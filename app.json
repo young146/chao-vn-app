@@ -97,6 +97,10 @@
         "NSUserTrackingUsageDescription": "맞춤형 광고를 제공하기 위해 사용됩니다."
       }
     },
+    "notification": {
+      "icon": "./assets/notification_icon.png",
+      "color": "#FF6B35"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -108,7 +112,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 95,
+      "versionCode": 96,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -122,8 +126,7 @@
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
-        },
-        "googleMobileAdsAppId": "ca-app-pub-7944314901202352~3025832510"
+        }
       },
       "intentFilters": [
         {

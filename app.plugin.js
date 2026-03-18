@@ -1,13 +1,14 @@
 /**
- * Expo Config Plugin: 
+ * Expo Config Plugin:
  * 1. react-native-google-mobile-ads의 codegenConfig를 제외 (iOS 크래시 방지)
  * 2. Android Manifest 충돌 해결 (DELAY_APP_MEASUREMENT_INIT)
+ * 3. Android build.gradle에 jitpack + kakao maven repo 추가 (prebuild 호환)
  */
-const { withDangerousMod, withAndroidManifest } = require('@expo/config-plugins');
+const { withDangerousMod, withAndroidManifest, withProjectBuildGradle } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
-module.exports = function withGoogleMobileAdsCodegenExclude(config) {
+module.exports = function withCustomConfig(config) {
   // 1. iOS: codegenConfig 제거
   config = withDangerousMod(config, [
     'ios',
@@ -49,7 +50,7 @@ module.exports = function withGoogleMobileAdsCodegenExclude(config) {
           throw error;
         }
       } else {
-        console.warn('⚠️ react-native-google-mobile-ads package.json을 찾을 수 없습니다:', googleMobileAdsPackagePath);
+        console.log('ℹ️ react-native-google-mobile-ads not found, skipping codegen exclude');
       }
 
       return config;
@@ -96,6 +97,28 @@ module.exports = function withGoogleMobileAdsCodegenExclude(config) {
       }
     }
     
+    return config;
+  });
+
+  // 3. Android: build.gradle에 jitpack + kakao maven repo 추가
+  config = withProjectBuildGradle(config, (config) => {
+    if (config.modResults.language === 'groovy') {
+      let contents = config.modResults.contents;
+      
+      // allprojects.repositories에 jitpack + kakao maven 추가
+      if (!contents.includes('jitpack.io')) {
+        contents = contents.replace(
+          /allprojects\s*\{\s*repositories\s*\{/,
+          `allprojects {
+    repositories {
+        maven { url 'https://www.jitpack.io' }
+        maven { url 'https://devrepo.kakao.com/nexus/content/groups/public/' }`
+        );
+        console.log('✅ jitpack + kakao maven repos 추가됨');
+      }
+      
+      config.modResults.contents = contents;
+    }
     return config;
   });
 
