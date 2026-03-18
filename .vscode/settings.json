@@ -1,8 +1,14 @@
 {
     "java.configuration.updateBuildConfiguration": "disabled",
     "java.import.gradle.enabled": false,
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/.expo/**",
+        "**/android/build/**"
+    ],
     "gradle.nestedProjects": false,
-    "gradle.projectLookupDirs": [],
+    "gradle.projectLookupDirs": ["android"],
+    "gradle.excludeProjectsFromAutoImport": ["**/node_modules/**"],
     "intelephense.diagnostics.undefinedFunctions": false,
     "intelephense.diagnostics.undefinedClassConstants": false,
     "intelephense.diagnostics.undefinedMethods": false,

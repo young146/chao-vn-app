@@ -108,7 +108,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 90,
+      "versionCode": 92,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -206,7 +206,7 @@
           "android": {
             "hermesEnabled": true,
             "compileSdkVersion": 35,
-            "targetSdkVersion": 34,
+            "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0"
           }
         }
