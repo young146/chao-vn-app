@@ -1,9 +1,10 @@
 /**
- * Patches the AGP version in react-native's version catalog.
+ * Patches the AGP version and SDK versions in react-native's version catalog.
  * 
- * react-native 0.81.5 ships with libs.versions.toml that sets agp = "8.11.0"
- * This causes "No matching variant" errors for all RN native modules on EAS Build.
- * This script patches it to 8.7.3 which is compatible with the current setup.
+ * react-native 0.81.5 ships with libs.versions.toml that sets agp = "8.11.0",
+ * compileSdk = "36", targetSdk = "36", buildTools = "36.0.0".
+ * These cause "No matching variant" errors for all RN native modules on EAS Build.
+ * This script patches them to compatible values.
  * 
  * Runs automatically via npm postinstall hook.
  */
@@ -19,7 +20,12 @@ const TOML_PATH = path.join(
   'libs.versions.toml'
 );
 
-const TARGET_AGP = '8.7.3';
+const PATCHES = {
+  'agp': '8.7.3',
+  'compileSdk': '35',
+  'targetSdk': '35',
+  'buildTools': '35.0.0',
+};
 
 try {
   if (!fs.existsSync(TOML_PATH)) {
@@ -30,16 +36,21 @@ try {
   let content = fs.readFileSync(TOML_PATH, 'utf8');
   const original = content;
 
-  // Replace agp version
-  content = content.replace(/^agp\s*=\s*"[^"]*"/m, `agp = "${TARGET_AGP}"`);
+  for (const [key, value] of Object.entries(PATCHES)) {
+    const regex = new RegExp(`^${key}\\s*=\\s*"[^"]*"`, 'm');
+    content = content.replace(regex, `${key} = "${value}"`);
+  }
 
   if (content === original) {
-    console.log(`[patch-agp] AGP already set to ${TARGET_AGP} or pattern not found.`);
+    console.log('[patch-agp] All values already patched or patterns not found.');
   } else {
     fs.writeFileSync(TOML_PATH, content, 'utf8');
-    console.log(`[patch-agp] ✅ Patched AGP version to ${TARGET_AGP}`);
+    console.log('[patch-agp] ✅ Patched version catalog:');
+    for (const [key, value] of Object.entries(PATCHES)) {
+      console.log(`  - ${key} = "${value}"`);
+    }
   }
 } catch (err) {
-  console.error('[patch-agp] Error patching AGP:', err.message);
+  console.error('[patch-agp] Error patching:', err.message);
   process.exit(1);
 }
