@@ -15,9 +15,7 @@ service cloud.firestore {
     // ========================================
     match /XinChaoDanggn/{docId} {
       allow read: if true;
-      // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
       allow create: if request.auth != null || request.resource.data.source == 'web';
-      // 웹폼 이미지 URL 업데이트 허용 (source=web 문서)
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin())
         || resource.data.source == 'web';
@@ -30,9 +28,7 @@ service cloud.firestore {
     // ========================================
     match /Jobs/{jobId} {
       allow read: if true;
-      // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
       allow create: if request.auth != null || request.resource.data.source == 'web';
-      // 웹폼 이미지 URL 업데이트 허용 (source=web 문서)
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin())
         || resource.data.source == 'web';
@@ -45,9 +41,7 @@ service cloud.firestore {
     // ========================================
     match /RealEstate/{itemId} {
       allow read: if true;
-      // 앱 로그인 사용자 또는 웹폼(카카오 연동)에서 등록 허용
       allow create: if request.auth != null || request.resource.data.source == 'web';
-      // 웹폼 이미지 URL 업데이트 허용 (source=web 문서)
       allow update: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin())
         || resource.data.source == 'web';
@@ -124,8 +118,15 @@ service cloud.firestore {
     match /form_items/{docId} {
       allow read: if true;
       allow create: if true;
-      allow update: if true; // 이미지 URL 업데이트용
+      allow update: if true;
       allow delete: if isAdmin();
+    }
+
+    // ========================================
+    // 💼 CRM 영업 파이프라인 (로그인 불필요 내부 도구)
+    // ========================================
+    match /xinchao_crm/{docId} {
+      allow read, write: if true;
     }
 
     // ========================================
