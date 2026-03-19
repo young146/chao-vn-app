@@ -37,6 +37,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
+import LocationMap from "../components/LocationMap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -623,6 +624,24 @@ export default function ItemDetailScreen({ route, navigation }) {
               </TranslatedText>
             </View>
           </View>
+
+          {/* 🗺️ 거래 위치 지도 */}
+          {(item.city || item.district) && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="map" size={20} color="#FF6B35" />
+                  <Text style={styles.sectionTitle}>지도</Text>
+                </View>
+                <LocationMap
+                  city={item.city}
+                  district={item.district}
+                  apartment={item.apartment}
+                />
+              </View>
+            </>
+          )}
 
           <View style={styles.divider} />
 

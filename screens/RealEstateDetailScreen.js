@@ -33,6 +33,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
+import LocationMap from "../components/LocationMap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -531,6 +532,17 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             </View>
           )}
         </View>
+
+        {/* 🗺️ 위치 지도 */}
+        {(item.city || item.district) && (
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>🗺️ {t('detail.location')}</Text>
+            <LocationMap
+              city={item.city}
+              district={item.district}
+            />
+          </View>
+        )}
 
         {/* 상세 설명 */}
         <View style={styles.descriptionCard}>

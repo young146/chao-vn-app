@@ -7,17 +7,7 @@ import { isFirstLaunch, setFirstLaunchComplete } from './i18n';
 import Constants from "expo-constants";
 // LogBox.ignoreAllLogs(true);
 
-// expo-tracking-transparency는 Expo Go에서 사용 불가 (프로덕션 빌드에서만 작동)
-let requestTrackingPermissionsAsync = null;
-const isExpoGo = Constants.appOwnership === 'expo';
-if (!isExpoGo) {
-  try {
-    const TrackingTransparency = require("expo-tracking-transparency");
-    requestTrackingPermissionsAsync = TrackingTransparency.requestTrackingPermissionsAsync;
-  } catch (e) {
-    console.log("⚠️ expo-tracking-transparency 로드 실패 (Expo Go에서는 정상)");
-  }
-}
+
 
 // AdMob SDK 초기화 (Android에서만 사용)
 let mobileAds = null;
@@ -472,8 +462,7 @@ export default function App() {
           // AdMob SDK 초기화 (Android)
           initializeAdMob(),
           getHomeDataCached(),
-          // 광고 동의도 병렬로
-          Platform.OS === "ios" && requestTrackingPermissionsAsync?.(),
+          // 광고 동의 (Android)
           Platform.OS === "android" && (async () => {
             try {
               const { requestAdConsent } = require("./services/AdConsentService");

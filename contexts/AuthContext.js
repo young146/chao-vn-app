@@ -297,8 +297,8 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log("🔵 카카오 로그인 시작");
       
-      // 카카오 로그인 (계정 선택 화면 표시)
-      const token = await KakaoLogin.loginWithKakaoAccount();
+      // 카카오 로그인 (카카오톡 설치 시 앱으로, 미설치 시 웹으로)
+      const token = await KakaoLogin.login();
       console.log("✅ 카카오 토큰 받음:", token ? "있음" : "없음");
       
       // 카카오 프로필 정보 가져오기

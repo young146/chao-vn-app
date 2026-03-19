@@ -31,6 +31,7 @@ import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
+import LocationMap from "../components/LocationMap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -468,6 +469,17 @@ export default function JobDetailScreen({ route, navigation }) {
             </View>
           )}
         </View>
+
+        {/* 🗺️ 근무지 지도 */}
+        {(job.city || job.district) && (
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>🗺️ {t('detail.workLocation')}</Text>
+            <LocationMap
+              city={job.city}
+              district={job.district}
+            />
+          </View>
+        )}
 
         {/* 상세 내용 */}
         <View style={styles.descriptionCard}>
