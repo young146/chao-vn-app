@@ -77,8 +77,20 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   const player = useVideoPlayer(videoUrl, (player) => {
     player.loop = true;
     player.muted = true;
-    if (!__DEV__) player.play();
+    player.play(); // 초기화 콜백에서 항상 play() 호출 (DEV/prod 공통)
   });
+
+  // ── 프로덕션: player mount 이후 재생 보장 ──
+  // 초기화 콜백이 player 준비 전에 실행될 수 있어 useEffect로 재호출
+  useEffect(() => {
+    if (!player || __DEV__) return;
+    try {
+      player.muted = true;
+      player.play();
+    } catch (e) {
+      // player가 아직 준비되지 않은 경우 무시
+    }
+  }, [player]);
 
   // 음소거 상태 동기화
   useEffect(() => {
@@ -87,15 +99,17 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
     }
   }, [isMuted, player]);
 
-  // ── 개발 환경: 써네일 표시 ──
+  // ── 개발 환경: 썸네일 표시 (영상 재생 중지) ──
   if (__DEV__) {
+    // player는 이미 play() 됐으므로 dev에서는 멈춤
+    try { player?.pause(); } catch (e) {}
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
         {thumbnailUrl
           ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
         }
-        <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, padding: '2px 6px' }}>
+        <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
           <Text style={{ color: '#fff', fontSize: 10 }}>DEV</Text>
         </View>
       </View>
