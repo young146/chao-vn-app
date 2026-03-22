@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.chaovnapp",
-      "buildNumber": "62",
+      "buildNumber": "63",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
@@ -181,7 +181,6 @@
           }
         }
       ],
-
       "expo-video"
     ],
     "runtimeVersion": "2.2.3",

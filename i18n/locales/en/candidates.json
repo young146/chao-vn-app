@@ -1,0 +1,87 @@
+{
+  "title": "Job Seeker Registration",
+  "subtitle": "Please enter your information",
+  "langPicker": {
+    "title": "Select Language",
+    "subtitle": "등록 양식 언어 / Form language",
+    "korean": "한국어",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "typePicker": {
+    "title": "Select Registration Type",
+    "hiring": "🏢 Post Job Opening",
+    "hiringDesc": "I am looking for employees",
+    "seeking": "👤 Register as Job Seeker",
+    "seekingDesc": "I am looking for a job"
+  },
+  "form": {
+    "nameLabel": "Full Name *",
+    "namePlaceholder": "Enter your full name",
+    "nationalityLabel": "Nationality *",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "+84-90-0000-0000",
+    "emailLabel": "Email",
+    "emailPlaceholder": "example@gmail.com",
+    "locationLabel": "Preferred Work Location",
+    "locationPlaceholder": "e.g., Hanoi, Ho Chi Minh City",
+    "koreanLabel": "Korean Level",
+    "vietnameseLabel": "Vietnamese Level",
+    "englishLabel": "English Level",
+    "jobTracksLabel": "Desired Job Type (multiple)",
+    "experienceLabel": "Experience (years)",
+    "experiencePlaceholder": "0",
+    "educationLabel": "Education",
+    "skillsLabel": "Skills / Certifications",
+    "skillsPlaceholder": "Forklift license, Excel, SAP...",
+    "visaLabel": "Visa Status",
+    "salaryLabel": "Desired Salary (USD/month)",
+    "salaryPlaceholder": "e.g., 1500",
+    "submitButton": "Register",
+    "updateButton": "Update",
+    "uploading": "Registering...",
+    "success": "Success!",
+    "registered": "Registration complete!",
+    "updated": "Updated!",
+    "error": "Error",
+    "errorMessage": "Registration failed. Please try again.",
+    "nameRequired": "Please enter your name.",
+    "nationalityRequired": "Please select nationality."
+  },
+  "levels": {
+    "none": "None",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "native": "Native"
+  },
+  "nationalities": {
+    "korea": "South Korea",
+    "vietnam": "Vietnam",
+    "other": "Other"
+  },
+  "education": {
+    "highschool": "High School",
+    "college": "Associate Degree",
+    "university": "Bachelor's Degree",
+    "graduate": "Graduate Degree",
+    "other": "Other"
+  },
+  "visa": {
+    "workpermit": "Work Visa / Work Permit",
+    "businessVisa": "Business Visa",
+    "touristVisa": "Tourist Visa",
+    "permanentResident": "Permanent Resident",
+    "citizen": "Citizen",
+    "other": "Other / Negotiable"
+  },
+  "jobTracks": {
+    "manufacturing": "Manufacturing",
+    "logistics": "Logistics",
+    "service": "Service",
+    "it": "IT",
+    "marketing": "Marketing",
+    "translation": "Translation",
+    "other": "Other"
+  }
+}

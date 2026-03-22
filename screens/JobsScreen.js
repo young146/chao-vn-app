@@ -35,6 +35,7 @@ import AdBanner, { InlineAdBanner, DetailAdBanner } from "../components/AdBanner
 import TranslatedText from "../components/TranslatedText";
 import { translateCity } from "../utils/vietnamLocations";
 import { translateIndustry } from "../utils/optionTranslations";
+import LanguagePickerModal from "../components/LanguagePickerModal";
 
 // 검색바 컴포넌트
 const SearchBar = memo(({ value, onChangeText, placeholder }) => (
@@ -161,6 +162,7 @@ export default function JobsScreen({ navigation }) {
   const [selectedIndustry, setSelectedIndustry] = useState("전체");
   const [selectedCity, setSelectedCity] = useState("전체");
   const [refreshing, setRefreshing] = useState(false);
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   // 페이지네이션 관련 state
   const [lastVisible, setLastVisible] = useState(null);
@@ -314,9 +316,18 @@ export default function JobsScreen({ navigation }) {
         ]
       );
     } else {
-      navigation.navigate("구인구직 등록");
+      setShowLangPicker(true);
     }
   }, [user, navigation, t]);
+
+  const handleLangTypeSelect = useCallback((sourceLanguage, type) => {
+    setShowLangPicker(false);
+    if (type === "hiring") {
+      navigation.navigate("구인구직 등록", { sourceLanguage });
+    } else {
+      navigation.navigate("구직자 등록", { sourceLanguage });
+    }
+  }, [navigation]);
 
   const handleJobPress = useCallback((job) => {
     const serializableJob = {
@@ -463,6 +474,13 @@ export default function JobsScreen({ navigation }) {
         <Ionicons name="add" size={24} color="#fff" />
         <Text style={styles.floatingButtonText}>{t('common:register')}</Text>
       </TouchableOpacity>
+
+      {/* 언어/유형 선택 모달 */}
+      <LanguagePickerModal
+        visible={showLangPicker}
+        onClose={() => setShowLangPicker(false)}
+        onSelect={handleLangTypeSelect}
+      />
     </View>
   );
 }

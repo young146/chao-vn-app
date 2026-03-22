@@ -1,0 +1,87 @@
+{
+  "title": "구직자 등록",
+  "subtitle": "취업 정보를 입력해주세요",
+  "langPicker": {
+    "title": "언어를 선택하세요",
+    "subtitle": "등록 양식 언어 / Form language",
+    "korean": "한국어",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "typePicker": {
+    "title": "등록 유형을 선택하세요",
+    "hiring": "🏢 구인 등록",
+    "hiringDesc": "인재를 찾고 있습니다",
+    "seeking": "👤 구직 등록",
+    "seekingDesc": "일자리를 찾고 있습니다"
+  },
+  "form": {
+    "nameLabel": "이름 *",
+    "namePlaceholder": "이름을 입력하세요",
+    "nationalityLabel": "국적 *",
+    "phoneLabel": "연락처",
+    "phonePlaceholder": "+84-90-0000-0000",
+    "emailLabel": "이메일",
+    "emailPlaceholder": "example@gmail.com",
+    "locationLabel": "취업 희망 지역",
+    "locationPlaceholder": "예: 하노이, 호치민 우선",
+    "koreanLabel": "한국어 수준",
+    "vietnameseLabel": "베트남어 수준",
+    "englishLabel": "영어 수준",
+    "jobTracksLabel": "희망 직무 (복수 선택)",
+    "experienceLabel": "경력(년)",
+    "experiencePlaceholder": "0",
+    "educationLabel": "학력",
+    "skillsLabel": "보유 기술/자격증",
+    "skillsPlaceholder": "지게차 자격, 엑셀, SAP 등",
+    "visaLabel": "비자 상태",
+    "salaryLabel": "희망 급여 (USD/월)",
+    "salaryPlaceholder": "예: 1500",
+    "submitButton": "구직 등록하기",
+    "updateButton": "수정하기",
+    "uploading": "등록 중...",
+    "success": "성공!",
+    "registered": "구직 등록이 완료되었습니다!",
+    "updated": "수정되었습니다!",
+    "error": "오류",
+    "errorMessage": "등록에 실패했습니다. 다시 시도해주세요.",
+    "nameRequired": "이름을 입력해주세요.",
+    "nationalityRequired": "국적을 선택해주세요."
+  },
+  "levels": {
+    "none": "없음",
+    "beginner": "초급",
+    "intermediate": "중급",
+    "advanced": "고급",
+    "native": "원어민"
+  },
+  "nationalities": {
+    "korea": "대한민국",
+    "vietnam": "베트남",
+    "other": "기타"
+  },
+  "education": {
+    "highschool": "고등학교",
+    "college": "전문대학",
+    "university": "대학교",
+    "graduate": "대학원",
+    "other": "기타"
+  },
+  "visa": {
+    "workpermit": "취업 비자/워크퍼밋",
+    "businessVisa": "비즈니스 비자",
+    "touristVisa": "관광 비자",
+    "permanentResident": "영주권",
+    "citizen": "해당국 시민권",
+    "other": "기타/협의"
+  },
+  "jobTracks": {
+    "manufacturing": "제조",
+    "logistics": "물류",
+    "service": "서비스",
+    "it": "IT",
+    "marketing": "마케팅",
+    "translation": "통역",
+    "other": "기타"
+  }
+}

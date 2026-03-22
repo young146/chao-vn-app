@@ -38,6 +38,7 @@ export default function AddJobScreen({ navigation, route }) {
 
   const editJob = route?.params?.editJob;
   const isEditMode = !!editJob;
+  const sourceLanguage = route?.params?.sourceLanguage || "ko";
 
   // 기본 정보
   const [title, setTitle] = useState("");
@@ -287,6 +288,7 @@ export default function AddJobScreen({ navigation, route }) {
         deadline: deadline.trim(),
         images: uploadedImages,
         status,
+        sourceLanguage,
       };
 
       if (isEditMode) {

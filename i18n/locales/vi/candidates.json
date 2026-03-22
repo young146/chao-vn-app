@@ -1,0 +1,87 @@
+{
+  "title": "Đăng ký tìm việc",
+  "subtitle": "Vui lòng nhập thông tin của bạn",
+  "langPicker": {
+    "title": "Chọn ngôn ngữ",
+    "subtitle": "등록 양식 언어 / Form language",
+    "korean": "한국어",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "typePicker": {
+    "title": "Chọn loại đăng ký",
+    "hiring": "🏢 Đăng tin tuyển dụng",
+    "hiringDesc": "Tôi đang tìm kiếm nhân viên",
+    "seeking": "👤 Đăng ký tìm việc",
+    "seekingDesc": "Tôi đang tìm việc làm"
+  },
+  "form": {
+    "nameLabel": "Họ và tên *",
+    "namePlaceholder": "Nhập họ và tên",
+    "nationalityLabel": "Quốc tịch *",
+    "phoneLabel": "Số điện thoại",
+    "phonePlaceholder": "+84-90-0000-0000",
+    "emailLabel": "Email",
+    "emailPlaceholder": "example@gmail.com",
+    "locationLabel": "Khu vực muốn làm việc",
+    "locationPlaceholder": "VD: Hà Nội, TP.HCM ưu tiên",
+    "koreanLabel": "Trình độ tiếng Hàn",
+    "vietnameseLabel": "Trình độ tiếng Việt",
+    "englishLabel": "Trình độ tiếng Anh",
+    "jobTracksLabel": "Ngành nghề mong muốn (chọn nhiều)",
+    "experienceLabel": "Kinh nghiệm (năm)",
+    "experiencePlaceholder": "0",
+    "educationLabel": "Trình độ học vấn",
+    "skillsLabel": "Kỹ năng / Chứng chỉ",
+    "skillsPlaceholder": "Bằng lái xe nâng, Excel, SAP...",
+    "visaLabel": "Tình trạng visa",
+    "salaryLabel": "Mức lương mong muốn (USD/tháng)",
+    "salaryPlaceholder": "VD: 1500",
+    "submitButton": "Đăng ký tìm việc",
+    "updateButton": "Cập nhật",
+    "uploading": "Đang đăng ký...",
+    "success": "Thành công!",
+    "registered": "Đăng ký tìm việc thành công!",
+    "updated": "Đã cập nhật!",
+    "error": "Lỗi",
+    "errorMessage": "Đăng ký thất bại. Vui lòng thử lại.",
+    "nameRequired": "Vui lòng nhập họ và tên.",
+    "nationalityRequired": "Vui lòng chọn quốc tịch."
+  },
+  "levels": {
+    "none": "Không có",
+    "beginner": "Sơ cấp",
+    "intermediate": "Trung cấp",
+    "advanced": "Cao cấp",
+    "native": "Bản ngữ"
+  },
+  "nationalities": {
+    "korea": "Hàn Quốc",
+    "vietnam": "Việt Nam",
+    "other": "Khác"
+  },
+  "education": {
+    "highschool": "Trung học phổ thông",
+    "college": "Cao đẳng",
+    "university": "Đại học",
+    "graduate": "Sau đại học",
+    "other": "Khác"
+  },
+  "visa": {
+    "workpermit": "Visa lao động / Work permit",
+    "businessVisa": "Visa thương mại",
+    "touristVisa": "Visa du lịch",
+    "permanentResident": "Thường trú nhân",
+    "citizen": "Công dân",
+    "other": "Khác / Thỏa thuận"
+  },
+  "jobTracks": {
+    "manufacturing": "Sản xuất",
+    "logistics": "Kho vận",
+    "service": "Dịch vụ",
+    "it": "IT",
+    "marketing": "Marketing",
+    "translation": "Phiên dịch",
+    "other": "Khác"
+  }
+}

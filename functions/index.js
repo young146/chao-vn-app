@@ -1,4 +1,4 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
@@ -476,3 +476,46 @@ async function sendMulticastFCM(tokens, { title, body, data, imageUrl }) {
     }
   }
 }
+
+// ============================================================
+// 🗂️ Jobs/{jobId} onWrite → Notion 구인 DB 업서트
+// (기존 onNewJobCreated FCM 함수와 별개 - 건드리지 않음)
+// ============================================================
+const { upsertJobToNotion, upsertCandidateToNotion } = require("./notion-sync");
+
+exports.onJobWritten = onDocumentWritten(
+  "Jobs/{jobId}",
+  async (event) => {
+    // 삭제 이벤트는 무시
+    if (!event.data.after.exists) return;
+
+    const jobId = event.params.jobId;
+    const jobData = event.data.after.data();
+
+    try {
+      await upsertJobToNotion(jobId, jobData);
+    } catch (err) {
+      console.error(`❌ [JobSync] ${jobId} Notion 업서트 실패:`, err.message);
+    }
+  }
+);
+
+// ============================================================
+// 👤 candidates/{candidateId} onWrite → Notion 구직자 DB 업서트
+// ============================================================
+exports.onCandidateWritten = onDocumentWritten(
+  "candidates/{candidateId}",
+  async (event) => {
+    // 삭제 이벤트는 무시
+    if (!event.data.after.exists) return;
+
+    const candidateId = event.params.candidateId;
+    const candidateData = event.data.after.data();
+
+    try {
+      await upsertCandidateToNotion(candidateId, candidateData);
+    } catch (err) {
+      console.error(`❌ [CandidateSync] ${candidateId} Notion 업서트 실패:`, err.message);
+    }
+  }
+);

@@ -7,6 +7,7 @@ import danggn from './danggn.json';
 import menu from './menu.json';
 import navigation from './navigation.json';
 import profile from './profile.json';
+import candidates from './candidates.json';
 
 export default {
   common,
@@ -18,4 +19,5 @@ export default {
   menu,
   navigation,
   profile,
+  candidates,
 };

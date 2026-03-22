@@ -226,6 +226,7 @@ import ItemDetailScreen from "./screens/ItemDetailScreen";
 import JobsScreen from "./screens/JobsScreen";
 import JobDetailScreen from "./screens/JobDetailScreen";
 import AddJobScreen from "./screens/AddJobScreen";
+import AddCandidateScreen from "./screens/AddCandidateScreen";
 import RealEstateScreen from "./screens/RealEstateScreen";
 import RealEstateDetailScreen from "./screens/RealEstateDetailScreen";
 import AddRealEstateScreen from "./screens/AddRealEstateScreen";
@@ -941,6 +942,15 @@ function JobsStack() {
         options={{
           title: t('jobs:addJob'),
           headerStyle: { backgroundColor: "#2196F3" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="구직자 등록"
+        component={AddCandidateScreen}
+        options={{
+          title: t('jobs:addJob'),
+          headerStyle: { backgroundColor: "#FF7043" },
           headerTintColor: "#fff",
         }}
       />
