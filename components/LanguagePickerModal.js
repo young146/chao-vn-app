@@ -153,8 +153,10 @@ export default function LanguagePickerModal({ visible, onClose, onSelect }) {
                     onPress={() => handleTypeSelect("hiring")}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.typeOptionTitle}>{tx.hiring}</Text>
-                    <Text style={styles.typeOptionDesc}>{tx.hiringDesc}</Text>
+                    <View style={styles.typeOptionTextBlock}>
+                      <Text style={styles.typeOptionTitle}>{tx.hiring}</Text>
+                      <Text style={styles.typeOptionDesc}>{tx.hiringDesc}</Text>
+                    </View>
                     <Ionicons name="chevron-forward" size={22} color="#1976D2" />
                   </TouchableOpacity>
 
@@ -163,8 +165,10 @@ export default function LanguagePickerModal({ visible, onClose, onSelect }) {
                     onPress={() => handleTypeSelect("seeking")}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.typeOptionTitle}>{tx.seeking}</Text>
-                    <Text style={styles.typeOptionDesc}>{tx.seekingDesc}</Text>
+                    <View style={styles.typeOptionTextBlock}>
+                      <Text style={styles.typeOptionTitle}>{tx.seeking}</Text>
+                      <Text style={styles.typeOptionDesc}>{tx.seekingDesc}</Text>
+                    </View>
                     <Ionicons name="chevron-forward" size={22} color="#E65100" />
                   </TouchableOpacity>
                 </View>
@@ -190,8 +194,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: Platform.OS === "ios" ? 34 : 20,
-    minHeight: 340,
+    paddingBottom: Platform.OS === "ios" ? 44 : 32,
+    minHeight: 420,
   },
   header: {
     flexDirection: "row",
@@ -275,7 +279,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 14,
-    paddingVertical: 18,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     borderWidth: 1.5,
   },
@@ -287,18 +291,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF3E0",
     borderColor: "#FFCC80",
   },
-  typeOptionTitle: {
+  typeOptionTextBlock: {
     flex: 1,
+    flexDirection: "column",
+    marginRight: 8,
+  },
+  typeOptionTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: "#222",
+    marginBottom: 4,
   },
   typeOptionDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
-    marginRight: 8,
-    position: "absolute",
-    bottom: 8,
-    left: 20,
   },
 });
