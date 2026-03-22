@@ -70,21 +70,16 @@ const isInlineAdAvailable = (index) => {
   return index < inlineAdsCount;
 };
 
-const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
+const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // ── Banner player (loop, muted) ──
+  // ── 단일 player: 배너와 전체화면 VideoView 공유 ──
+  // expo-video는 하나의 player를 여러 VideoView에 바인딩 가능
   const player = useVideoPlayer(videoUrl, (p) => {
     p.loop = true;
     p.muted = true;
     p.play();
-  });
-
-  // Fullscreen player (unmuted, no loop)
-  const fsPlayer = useVideoPlayer(videoUrl, (p) => {
-    p.loop = false;
-    p.muted = false;
   });
 
   // mount 이후 재생 보장
@@ -103,17 +98,26 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
 
   const openFullscreen = () => {
     setIsFullscreen(true);
-    try { fsPlayer.seek(0); fsPlayer.play(); } catch (e) {}
+    // 전체화면에서는 음소거 해제 후 처음부터 재생
+    try {
+      player.muted = false;
+      player.loop = false;
+      player.play();
+    } catch (e) {}
   };
 
   const closeFullscreen = () => {
     setIsFullscreen(false);
-    try { fsPlayer.pause(); } catch (e) {}
+    // 배너로 돌아갈 때 loop + mute 복원
+    try {
+      player.muted = isMuted;
+      player.loop = true;
+      player.play();
+    } catch (e) {}
   };
 
   // ── 개발 환경: 썸네일 표시 ──
   if (__DEV__) {
-    try { player?.pause(); } catch (e) {}
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
         {thumbnailUrl
@@ -127,7 +131,7 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
     );
   }
 
-  // ── 프로덕션: 배너 VideoView + 전체화면 Modal ──
+  // ── 프로덕션: 단일 player를 배너/전체화면에서 공유 ──
   return (
     <View style={[style, { position: 'relative' }]}>
       {/* 배너 영상 */}
@@ -138,17 +142,18 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
         nativeControls={false}
       />
 
-      {/* 탭하면 전체화면 — TouchableOpacity가 VideoView 위를 덮음 */}
+      {/* 탭 오버레이 → 전체화면 열기 */}
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         onPress={openFullscreen}
         activeOpacity={0.9}
       />
 
-      {/* 음소거 버튼 */}
+      {/* 음소거 버튼 — zIndex로 오버레이 위에 표시 */}
       <TouchableOpacity
-        style={styles.muteButton}
-        onPress={() => {
+        style={[styles.muteButton, { zIndex: 10 }]}
+        onPress={(e) => {
+          e.stopPropagation?.();
           const next = !isMuted;
           setIsMuted(next);
           if (player) player.muted = next;
@@ -158,7 +163,7 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
         <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
       </TouchableOpacity>
 
-      {/* 전체화면 Modal */}
+      {/* 전체화면 Modal — 같은 player 사용 */}
       <Modal
         visible={isFullscreen}
         transparent={false}
@@ -167,19 +172,28 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
         statusBarTranslucent
         supportedOrientations={['portrait', 'landscape']}
       >
-        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
           <VideoView
-            player={fsPlayer}
-            style={{ width: '100%', height: '100%' }}
+            player={player}
+            style={{ flex: 1 }}
             contentFit="contain"
             nativeControls={true}
           />
-          {/* 닫기 버튼 */}
           <TouchableOpacity
-            style={{ position: 'absolute', top: Platform.OS === 'ios' ? 50 : 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}
+            style={{
+              position: 'absolute',
+              top: Platform.OS === 'ios' ? 50 : 20,
+              right: 20,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
             onPress={closeFullscreen}
           >
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>✕</Text>
           </TouchableOpacity>
         </View>
       </Modal>
