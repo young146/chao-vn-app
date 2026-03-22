@@ -32,6 +32,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import LocationMap from "../components/LocationMap";
+import YouTubeCard from "../components/YouTubeCard";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -495,6 +496,14 @@ export default function JobDetailScreen({ route, navigation }) {
             <Text style={styles.cardTitle}>✅ {t('detail.requirements')}</Text>
             <TranslatedText style={styles.description}>{job.requirements}</TranslatedText>
           </View>
+        )}
+
+        {/* 소개 영상 */}
+        {job.youtubeUrl && (
+          <YouTubeCard
+            youtubeUrl={job.youtubeUrl}
+            label={job.jobType === "구직" ? "📹 자기소개 영상" : "📹 회사/업무 소개 영상"}
+          />
         )}
 
         {/* 내 공고인 경우 관리 버튼 */}

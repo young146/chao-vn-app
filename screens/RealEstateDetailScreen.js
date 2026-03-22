@@ -34,6 +34,7 @@ import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
 import LocationMap from "../components/LocationMap";
+import YouTubeCard from "../components/YouTubeCard";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -551,6 +552,14 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             {item.description || t('detail.noDescription')}
           </TranslatedText>
         </View>
+
+        {/* 매물 소개 영상 */}
+        {item.youtubeUrl && (
+          <YouTubeCard
+            youtubeUrl={item.youtubeUrl}
+            label="📹 매물 소개 영상"
+          />
+        )}
 
         {/* 내 매물인 경우 관리 버튼 */}
         {isMyItem && (

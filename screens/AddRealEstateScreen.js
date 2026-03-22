@@ -59,6 +59,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
   const [contact, setContact] = useState("");
   const [availableDate, setAvailableDate] = useState("");
   const [status, setStatus] = useState("거래가능");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
 
   // 거래 유형
   const dealTypes = ["임대", "매매"];
@@ -102,6 +103,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
       if (editItem.images && editItem.images.length > 0) {
         setImages(editItem.images);
       }
+      setYoutubeUrl(editItem.youtubeUrl || "");
     }
   }, [isEditMode, editItem]);
 
@@ -294,6 +296,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         availableDate: availableDate.trim(),
         images: uploadedImages,
         status,
+        youtubeUrl: youtubeUrl.trim() || null,
       };
 
       if (isEditMode) {
@@ -664,6 +667,25 @@ export default function AddRealEstateScreen({ navigation, route }) {
             </View>
           </View>
         )}
+
+        {/* YouTube 소개 영상 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Ionicons name="logo-youtube" size={16} color="#FF0000" /> 매물 소개 영상 (YouTube)
+          </Text>
+          <Text style={[styles.helperText, { marginBottom: 8 }]}>
+            매물을 소개하는 유튜브 영상 링크를 입력하세요
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="https://youtu.be/xxxxx 또는 youtube.com/watch?v=xxxxx"
+            placeholderTextColor="#999"
+            value={youtubeUrl}
+            onChangeText={setYoutubeUrl}
+            autoCapitalize="none"
+            keyboardType="url"
+          />
+        </View>
 
         {/* 등록 버튼 */}
         <TouchableOpacity

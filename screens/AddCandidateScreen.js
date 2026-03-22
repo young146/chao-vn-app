@@ -231,6 +231,7 @@ export default function AddCandidateScreen({ navigation, route }) {
   const [visaStatus, setVisaStatus] = useState("");
   const [desiredSalaryUsd, setDesiredSalaryUsd] = useState("");
 
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
   // 수정 모드: 기존 데이터 로드
@@ -256,6 +257,7 @@ export default function AddCandidateScreen({ navigation, route }) {
       setSkills(car.skills || "");
       setVisaStatus(we.visaStatus || "");
       setDesiredSalaryUsd(String(comp.desiredSalaryUsdPerMonth || ""));
+      setYoutubeUrl(editCandidate.youtubeUrl || "");
     }
   }, [isEditMode, editCandidate]);
 
@@ -298,9 +300,10 @@ export default function AddCandidateScreen({ navigation, route }) {
         },
         compensation: {
           desiredSalaryUsdPerMonth: parseFloat(desiredSalaryUsd) || null,
-          desiredSalaryVndPerMonth: null, // 앱에서는 USD만 입력, VND는 추후 환산
+          desiredSalaryVndPerMonth: null,
           exchangeRate: null,
         },
+        youtubeUrl: youtubeUrl.trim() || null,
         crm: {
           status: "신규 등록",
           assignedTo: null,
@@ -532,6 +535,25 @@ export default function AddCandidateScreen({ navigation, route }) {
             placeholder={L.salaryPlaceholder}
             placeholderTextColor="#aaa"
             keyboardType="numeric"
+          />
+        </View>
+
+        {/* ─── YouTube 소개 영상 ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            📹 {sourceLanguage === "vi" ? "Video giới thiệu (YouTube)" : sourceLanguage === "en" ? "Intro Video (YouTube)" : "자기소개 영상 (YouTube)"}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
+            {sourceLanguage === "vi" ? "Nhập URL YouTube để giới thiệu bản thân" : sourceLanguage === "en" ? "Enter your YouTube video URL" : "유튜브 영상 링크를 입력하세요"}
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            value={youtubeUrl}
+            onChangeText={setYoutubeUrl}
+            placeholder="https://youtu.be/xxxxx 또는 youtube.com/watch?v=xxxxx"
+            placeholderTextColor="#aaa"
+            autoCapitalize="none"
+            keyboardType="url"
           />
         </View>
 

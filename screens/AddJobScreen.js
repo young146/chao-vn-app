@@ -255,6 +255,7 @@ export default function AddJobScreen({ navigation, route }) {
 
   // 이미지
   const [images, setImages] = useState([]);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
   // 수정 모드 데이터 로드
@@ -275,6 +276,7 @@ export default function AddJobScreen({ navigation, route }) {
       setDeadline(editJob.deadline || "");
       setStatus(editJob.status || "모집중");
       if (editJob.images?.length > 0) setImages(editJob.images);
+      setYoutubeUrl(editJob.youtubeUrl || "");
     }
   }, [isEditMode, editJob]);
 
@@ -369,6 +371,7 @@ export default function AddJobScreen({ navigation, route }) {
         contact: contact.trim(),
         deadline: deadline.trim(),
         images: uploadedImages,
+        youtubeUrl: youtubeUrl.trim() || null,
       };
 
       if (isEditMode) {
@@ -492,6 +495,25 @@ export default function AddJobScreen({ navigation, route }) {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        {/* YouTube 소개 영상 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Ionicons name="logo-youtube" size={15} color="#FF0000" /> {L.sourceLanguage === "vi" ? "Video giới thiệu (YouTube)" : L.sourceLanguage === "en" ? "Company Video (YouTube)" : "회사 소개 영상 (YouTube)"}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
+            {sourceLanguage === "vi" ? "URL video YouTube giới thiệu công ty" : sourceLanguage === "en" ? "Add a YouTube URL to introduce your company" : "회사 또는 업무를 소개하는 유튜브 링크를 입력하세요"}
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            value={youtubeUrl}
+            onChangeText={setYoutubeUrl}
+            placeholder="https://youtu.be/xxxxx 또는 youtube.com/watch?v=xxxxx"
+            placeholderTextColor="#aaa"
+            autoCapitalize="none"
+            keyboardType="url"
+          />
         </View>
 
         {/* 제출 버튼 */}
