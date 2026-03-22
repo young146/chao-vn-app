@@ -70,43 +70,54 @@ const isInlineAdAvailable = (index) => {
   return index < inlineAdsCount;
 };
 
-const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
+const AdMediaVideo = ({ videoUrl, style, thumbnailUrl, onFullscreen }) => {
   const [isMuted, setIsMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // useVideoPlayer: expo-video(ExoPlayer3) - hook은 항상 최상위에 호출
-  const player = useVideoPlayer(videoUrl, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.play(); // 초기화 콜백에서 항상 play() 호출 (DEV/prod 공통)
+  // ── Banner player (loop, muted) ──
+  const player = useVideoPlayer(videoUrl, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
   });
 
-  // ── 프로덕션: player mount 이후 재생 보장 ──
-  // 초기화 콜백이 player 준비 전에 실행될 수 있어 useEffect로 재호출
+  // Fullscreen player (unmuted, no loop)
+  const fsPlayer = useVideoPlayer(videoUrl, (p) => {
+    p.loop = false;
+    p.muted = false;
+  });
+
+  // mount 이후 재생 보장
   useEffect(() => {
     if (!player || __DEV__) return;
     try {
       player.muted = true;
       player.play();
-    } catch (e) {
-      // player가 아직 준비되지 않은 경우 무시
-    }
+    } catch (e) {}
   }, [player]);
 
-  // 음소거 상태 동기화
+  // 음소거 토글 동기화
   useEffect(() => {
-    if (player) {
-      player.muted = isMuted;
-    }
+    if (player) player.muted = isMuted;
   }, [isMuted, player]);
 
-  // ── 개발 환경: 썸네일 표시 (영상 재생 중지) ──
+  const openFullscreen = () => {
+    setIsFullscreen(true);
+    try { fsPlayer.seek(0); fsPlayer.play(); } catch (e) {}
+  };
+
+  const closeFullscreen = () => {
+    setIsFullscreen(false);
+    try { fsPlayer.pause(); } catch (e) {}
+  };
+
+  // ── 개발 환경: 썸네일 표시 ──
   if (__DEV__) {
-    // player는 이미 play() 됐으므로 dev에서는 멈춤
     try { player?.pause(); } catch (e) {}
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
         {thumbnailUrl
-          ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
           : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
         }
         <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
@@ -116,15 +127,25 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
     );
   }
 
-  // ── 프로덕션 빌드: VideoView 렌더링 ──
+  // ── 프로덕션: 배너 VideoView + 전체화면 Modal ──
   return (
     <View style={[style, { position: 'relative' }]}>
+      {/* 배너 영상 */}
       <VideoView
         player={player}
         style={{ width: '100%', height: '100%' }}
         contentFit="cover"
         nativeControls={false}
       />
+
+      {/* 탭하면 전체화면 — TouchableOpacity가 VideoView 위를 덮음 */}
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        onPress={openFullscreen}
+        activeOpacity={0.9}
+      />
+
+      {/* 음소거 버튼 */}
       <TouchableOpacity
         style={styles.muteButton}
         onPress={() => {
@@ -136,6 +157,32 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
       >
         <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
       </TouchableOpacity>
+
+      {/* 전체화면 Modal */}
+      <Modal
+        visible={isFullscreen}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={closeFullscreen}
+        statusBarTranslucent
+        supportedOrientations={['portrait', 'landscape']}
+      >
+        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+          <VideoView
+            player={fsPlayer}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="contain"
+            nativeControls={true}
+          />
+          {/* 닫기 버튼 */}
+          <TouchableOpacity
+            style={{ position: 'absolute', top: Platform.OS === 'ios' ? 50 : 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}
+            onPress={closeFullscreen}
+          >
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -345,13 +392,19 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
           { transform: [{ translateX: slideAnim }] },
         ]}
       >
-        <TouchableOpacity
-          style={{ flex: 1 }}
-          onPress={() => handleAdPress(ad)}
-          activeOpacity={0.85}
-        >
+        {isVideo ? (
+          // 영상 광고: 전체화면은 AdMediaVideo 내부에서 처리
           <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} />
-        </TouchableOpacity>
+        ) : (
+          // 이미지 광고: 탭 시 linkUrl로 이동
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => handleAdPress(ad)}
+            activeOpacity={0.85}
+          >
+            <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} />
+          </TouchableOpacity>
+        )}
       </Animated.View>
 
       {/* 인디케이터 점 */}
