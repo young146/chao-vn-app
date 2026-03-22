@@ -504,7 +504,7 @@ export default function AddJobScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 240 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -475,12 +475,13 @@ export default function JobsScreen({ navigation }) {
         <Text style={styles.floatingButtonText}>{t('common:register')}</Text>
       </TouchableOpacity>
 
-      {/* 언어/유형 선택 모달 */}
-      <LanguagePickerModal
-        visible={showLangPicker}
-        onClose={() => setShowLangPicker(false)}
-        onSelect={handleLangTypeSelect}
-      />
+      {showLangPicker && (
+        <LanguagePickerModal
+          visible={showLangPicker}
+          onClose={() => setShowLangPicker(false)}
+          onSelect={handleLangTypeSelect}
+        />
+      )}
     </View>
   );
 }
