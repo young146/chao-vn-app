@@ -860,8 +860,11 @@
                     + ';S.browser_fallback_url=' + encodeURIComponent(ANDROID_STORE)
                     + ';end';
                 location.href = intentUrl;
-                // 1초 후 앱이 안열렸으면 (스토어로 fallback 대신) 오버레이만 닫기
-                openTimer = setTimeout(function () { cancelOpenApp(); }, 2500);
+                // 앱 열린 후 카카오 브라우저 닫기 시도
+                openTimer = setTimeout(function () {
+                    try { location.href = 'kakaotalk://inappbrowser/close'; } catch(e) {}
+                    openTimer = setTimeout(function () { cancelOpenApp(); }, 2000);
+                }, 800);
 
             } else if (isIOS) {
                 location.href = deepLink;
