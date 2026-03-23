@@ -410,6 +410,11 @@
                     <label>보유 기술 / 자격증</label>
                     <textarea id="seek-skills" placeholder="예: 지게차 자격, 엑셀, SAP 등" oninput="updatePreview()"></textarea>
                 </div>
+                <div class="field" style="margin-top:12px">
+                    <label>비자 상태</label>
+                    <div class="chip-group" id="seek-visa-chips"></div>
+                    <input type="hidden" id="seek-visa">
+                </div>
             </div>
 
             <!-- 희망 지역 & 급여 -->
@@ -493,6 +498,7 @@
         const LANGUAGE_LEVELS = ['없음','초급','중급','고급','원어민'];
         const EDUCATIONS = ['고등학교','전문대학','대학교','대학원','기타'];
         const NATIONALITIES = ['대한민국','베트남','기타'];
+        const VISA_TYPES = ['취업 비자/워크퍼밋','비즈니스 비자','관광 비자','영주권','시민권','기타/협의'];
 
         let selectedFiles = [];
         let selectedJobTracks = [];     // 구직 희망 직무 (multi)
@@ -546,6 +552,7 @@
             initChips('seek-vietnamese-chips', LANGUAGE_LEVELS, 'seek-vietnamese', false, 'selected-blue');
             initChips('seek-english-chips', LANGUAGE_LEVELS, 'seek-english', false, 'selected-blue');
             initChips('seek-education-chips', EDUCATIONS, 'seek-education', false, 'selected-blue');
+            initChips('seek-visa-chips', VISA_TYPES, 'seek-visa', false, 'selected-blue');
         }
 
         // ── 구인/구직 전환 ─────────────────────────────────────────
@@ -631,6 +638,8 @@
                 if (nationality) lines.push(`🌏 국적: ${nationality}`);
                 if (selectedJobTracks.length) lines.push(`💼 희망직무: ${selectedJobTracks.join(', ')}`);
                 lines.push(`🇰🇷 한국어: ${korean || '없음'}`);
+                const visa = document.getElementById('seek-visa').value;
+                if (visa) lines.push(`📄 비자: ${visa}`);
                 if (location) lines.push(`📍 희망지역: ${location}`);
                 if (salary) lines.push(`💰 희망급여: ${salary}`);
                 if (desc) { lines.push(''); lines.push(`📝 자기소개:\n${desc}`); }
@@ -813,7 +822,9 @@
                         education,
                         skills,
                     },
-                    workEligibility: { visaStatus: '' },
+                    workEligibility: {
+                        visaStatus: document.getElementById('seek-visa').value || '',
+                    },
                     compensation: {
                         desiredSalary: salary,
                         desiredSalaryUsdPerMonth: null,
