@@ -180,8 +180,7 @@
             "buildToolsVersion": "35.0.0"
           }
         }
-      ],
-      "expo-video"
+      ]
     ],
     "runtimeVersion": "2.2.3",
     "updates": {
