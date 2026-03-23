@@ -890,8 +890,11 @@
         // ── 갤러리 ─────────────────────── ────────────
         function categoryInfo(data) {
             if (data.category === 'realestate') return { label: '🏠 부동산', cls: 'cat-realestate' };
-            if (data.jobMode === 'hire') return { label: '📢 구인 (직원 구합니다)', cls: 'cat-job-hire' };
-            if (data.jobMode === 'seek') return { label: '🙋 구직 (일자리 구합니다)', cls: 'cat-job-seek' };
+            // 웹폼: category='jobs', jobType='구인'/'구직' / 앱폼: jobMode='hire'/'seek'
+            if (data.category === 'jobs' || data.jobType === '구인' || data.jobMode === 'hire')
+                return { label: '📢 구인 (직원 구합니다)', cls: 'cat-job-hire' };
+            if (data.jobType === '구직' || data.jobMode === 'seek')
+                return { label: '🙋 구직 (일자리 구합니다)', cls: 'cat-job-seek' };
             return { label: '🥕 당근 / 나눔', cls: 'cat-secondhand' };
         }
 
@@ -928,9 +931,22 @@
                 document.getElementById('og-url').content = location.href;
             }
 
-            var titleText = data.itemName || data.propName || data.jobTitle || '상품 정보';
+            // 웹폼 필드: title, industry, employmentType / 앱폼 필드: jobTitle, jobMode, dealType 등
+            var titleText = data.title || data.itemName || data.propName || data.jobTitle || '상품 정보';
             var priceText = data.price || data.propPrice || data.salary || '';
-            var metaChips = [data.condition, data.propArea, data.propRooms, data.propFloor, data.jobType, data.dealType].filter(Boolean);
+            var metaChips = [
+                data.condition,
+                data.propArea, data.propRooms, data.propFloor,
+                data.industryTrack,  // 앱/웹폼 업종 (통일 필드명)
+                data.employmentType, // 앱/웹폼 고용형태
+                data.dealType
+            ].filter(Boolean);
+            // jobTracks 배열 → 칩 추가
+            if (Array.isArray(data.jobTracks)) {
+                data.jobTracks.forEach(function(t) { if (t) metaChips.push(t); });
+            } else if (data.jobTracks && typeof data.jobTracks === 'string') {
+                metaChips.push(data.jobTracks);
+            }
             var locationParts = [data.city, data.district, data.address || data.detailAddr || data.locationDetail].filter(Boolean);
             var descText = data.description || data.desc || data.jobDesc || '';
 
@@ -947,11 +963,15 @@
                 '<span class="category-badge ' + cat.cls + '">' + cat.label + '</span>' +
                 '<div class="item-header">' +
                 '<div class="item-title">' + titleText + '</div>' +
+                (data.companyName ? '<div style="font-size:14px;color:#666;margin-top:4px;">🏢 ' + data.companyName + '</div>' : '') +
+                (data.status ? '<div style="display:inline-block;margin-top:6px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (data.status==='모집중'?'#E8F5E9':data.status==='마감'?'#FFEBEE':'#F5F5F5') + ';color:' + (data.status==='모집중'?'#2E7D32':data.status==='마감'?'#C62828':'#555') + ';">' + data.status + '</div>' : '') +
                 (priceText ? '<div class="item-price">' + priceText + '</div>' : '') +
                 (metaChips.length ? '<div class="item-meta">' + metaChips.map(function (c) { return '<span class="meta-chip">' + c + '</span>'; }).join('') + '</div>' : '') +
                 '</div>' +
                 (locationParts.length ? '<div class="section"><div class="section-title">📍 위치</div><div class="location-row"><span class="pin">📍</span><span>' + locationParts.join(' ') + '</span></div></div>' : '') +
                 (descText ? '<div class="section"><div class="section-title">📝 상세 내용</div><div class="section-body">' + descText + '</div></div>' : '') +
+                (data.requirements ? '<div class="section"><div class="section-title">✅ 자격 요건</div><div class="section-body">' + data.requirements + '</div></div>' : '') +
+                (data.deadline ? '<div class="section"><div class="section-title">📅 마감일</div><div class="section-body" style="font-weight:600;">' + data.deadline + '</div></div>' : '') +
                 (contactRows ? '<div class="section"><div class="section-title">📞 연락처</div><div class="contact-box">' + contactRows + '</div></div>' : '') +
                 '<div class="footer-date">' + (dateStr ? '등록일: ' + dateStr : '') + '</div>' +
                 '</div>' +
