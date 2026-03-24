@@ -46,9 +46,14 @@ export const AuthProvider = ({ children }) => {
         if (currentUser) {
           await AsyncStorage.setItem("@user_id", currentUser.uid);
 
-          // 📝 프로필 완성 여부 체크
+                // 📝 프로필 완성 여부 체크 (race condition 방지: 최대 3초 재시도)
           try {
-            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            let userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            // 신규 소셜 로그인 시 Firestore 문서 생성 전에 onAuthStateChanged가 먼저 실행될 수 있어 재시도
+            if (!userDoc.exists()) {
+              await new Promise(res => setTimeout(res, 800));
+              userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            }
             if (userDoc.exists()) {
               const data = userDoc.data();
               const isIncomplete = !data.city || !data.district || !data.phone || !data.name;

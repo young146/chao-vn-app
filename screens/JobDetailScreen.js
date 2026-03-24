@@ -71,26 +71,34 @@ export default function JobDetailScreen({ route, navigation }) {
               const profile = rawData.profile || {};
               const career = rawData.career || {};
               const comp = rawData.compensation || {};
+              const lang = rawData.language || {};
+
+              const personName = profile.name || rawData.name || '';
+              const extraTitle = rawData.title && rawData.title !== personName ? rawData.title : '';
+              const displayTitle = personName
+                ? (extraTitle ? `${personName} · ${extraTitle}` : personName)
+                : (extraTitle || '이름 미입력');
+
               const normalized = {
                 id: candidateSnap.id,
                 jobType: '구직',
                 sourceCollection: 'candidates',
-                title: profile.name || '이름 미입력',
+                title: displayTitle,
                 description: rawData.description || career.skills || '',
-                city: profile.desiredLocation || '',
+                city: profile.desiredLocation || rawData.city || '',
                 salary: comp.desiredSalaryUsdPerMonth ? `${comp.desiredSalaryUsdPerMonth} USD/월` : '',
-                contact: profile.phone || '',
+                contact: profile.phone || rawData.phone || '',
                 employmentType: career.jobTracks?.join(', ') || '',
-                images: [],
-                status: '신규 등록',
+                images: rawData.images || rawData.imageUrls || [],
+                status: rawData.status || '신규 등록',
                 youtubeUrl: rawData.youtubeUrl || null,
                 userId: rawData.userId || null,
                 userEmail: rawData.userEmail || null,
                 createdAt: rawData.createdAt,
-                _candidateRaw: rawData,
+                _candidateRaw: { ...rawData, id: candidateSnap.id },
               };
               setJob(normalized);
-              setCurrentStatus('신규 등록');
+              setCurrentStatus(rawData.status || '신규 등록');
             } else {
               setJobNotFound(true);
             }
@@ -331,7 +339,13 @@ export default function JobDetailScreen({ route, navigation }) {
 
   // 수정하기
   const handleEdit = () => {
-    navigation.navigate("구인구직 등록", { editJob: job });
+    if (job.sourceCollection === 'candidates' || (job.jobType === '구직' && job._candidateRaw)) {
+      // 구직자 수정 → 구직자 등록 폼
+      navigation.navigate("구직자 등록", { editCandidate: job._candidateRaw ? { ...job._candidateRaw, id: job.id } : job });
+    } else {
+      // 구인 수정 → 구인 등록 폼
+      navigation.navigate("구인구직 등록", { editJob: job });
+    }
   };
 
   // 삭제 / 헤더 → 이미 위에서 Hook으로 정의됨

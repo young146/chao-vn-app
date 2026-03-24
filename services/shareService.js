@@ -21,7 +21,7 @@ export const shareToSNS = async (platform, title, message, url) => {
                     // Android: message로 텍스트 전달 (카카오톡이 자동으로 링크 카드 생성)
                     const shareOptions = Platform.OS === 'ios'
                         ? { url: url, title: title }
-                        : { message: `${message}\n\n앱에서 보기 👉 ${url}` };
+                        : { message: `${message}\n\n상세히 보기 👉 ${url}` };
                     await Share.share(shareOptions);
                 } else {
                     return { success: false, error: 'kakao_not_installed' };
@@ -45,7 +45,7 @@ export const shareToSNS = async (platform, title, message, url) => {
                 if (zaloInstalled) {
                     const shareOptions = Platform.OS === 'ios'
                         ? { url: url, title: title }
-                        : { message: `${message}\n\n앱에서 보기 👉 ${url}` };
+                        : { message: `${message}\n\n상세히 보기 👉 ${url}` };
                     await Share.share(shareOptions);
                 } else {
                     return { success: false, error: 'zalo_not_installed' };
@@ -66,7 +66,7 @@ export const shareToSNS = async (platform, title, message, url) => {
                 // Android는 message로 전달 (자동으로 링크 미리보기 생성)
                 const shareOptions = Platform.OS === 'ios'
                     ? { url: url, title: title }
-                    : { message: `${message}\n\n앱에서 보기 👉 ${url}` };
+                    : { message: `${message}\n\n상세히 보기 👉 ${url}` };
                 await Share.share(shareOptions);
                 break;
         }

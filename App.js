@@ -1,5 +1,5 @@
 import "react-native-gesture-handler";
-import { LogBox, Platform, Alert } from "react-native";
+import { LogBox, Platform, Alert, Image as RNImage } from "react-native";
 
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
@@ -263,6 +263,47 @@ function AdInquiryHeaderButton({ color = "#fff" }) {
       </TouchableOpacity>
       <AdInquiryModal visible={showModal} onClose={() => setShowModal(false)} />
     </>
+  );
+}
+
+// 사용자 아바타 + 더보기 메뉴 버튼 (헤더 우측)
+function UserMenuButton({ navigation }) {
+  const { user } = useAuth();
+  const [avatar, setAvatar] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!user) { setAvatar(null); return; }
+    if (user.photoURL) setAvatar(user.photoURL);
+    try {
+      const { doc, getDoc } = require("firebase/firestore");
+      const { db } = require("./firebase/config");
+      if (!db) return;
+      getDoc(doc(db, "users", user.uid)).then(snap => {
+        if (snap.exists() && snap.data().profileImage) {
+          setAvatar(snap.data().profileImage);
+        }
+      }).catch(() => {});
+    } catch (e) {}
+  }, [user?.uid]);
+
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("메뉴")}
+      style={{ marginRight: 12, flexDirection: "row", alignItems: "center" }}
+      activeOpacity={0.75}
+    >
+      {avatar ? (
+        <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "rgba(255,255,255,0.8)", overflow: "hidden" }}>
+          <RNImage
+            source={{ uri: avatar }}
+            style={{ width: 24, height: 24, borderRadius: 12 }}
+          />
+        </View>
+      ) : (
+        <Ionicons name="menu" size={22} color="#fff" />
+      )}
+      <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700", marginLeft: 4 }}>더보기</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -782,7 +823,8 @@ function HomeStack() {
         component={MagazineScreen}
         initialParams={{ type: "home" }}
         options={({ navigation }) => ({
-          headerTitle: () => (
+          title: "",
+          headerLeft: () => (
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate("홈메인", {
@@ -792,28 +834,20 @@ function HomeStack() {
                 })
               }
               activeOpacity={0.7}
+              style={{ marginLeft: 16 }}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
                 {t('home:title')}
-              </Text>
-              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                {t('home:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: () => (
+          headerRight: ({ navigation: nav }) => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <TouchableOpacity
-                onPress={() => navigation.navigate("메뉴")}
-                style={{ marginRight: 16, alignItems: "center" }}
-              >
-                <Ionicons name="menu" size={22} color="#fff" />
-                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
-              </TouchableOpacity>
+              <UserMenuButton navigation={navigation} />
             </View>
           ),
         })}
@@ -840,7 +874,8 @@ function NewsStack() {
         component={MagazineScreen}
         initialParams={{ type: "news", categoryId: 31 }}
         options={({ navigation }) => ({
-          headerTitle: () => (
+          title: "",
+          headerLeft: () => (
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate("뉴스메인", {
@@ -850,28 +885,20 @@ function NewsStack() {
                 })
               }
               activeOpacity={0.7}
+              style={{ marginLeft: 16 }}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
                 {t('home:newsTitle')}
-              </Text>
-              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                {t('home:newsSubtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: () => (
+          headerRight: ({ navigation: nav }) => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <TouchableOpacity
-                onPress={() => navigation.navigate("메뉴")}
-                style={{ marginRight: 16, alignItems: "center" }}
-              >
-                <Ionicons name="menu" size={22} color="#fff" />
-                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
-              </TouchableOpacity>
+              <UserMenuButton navigation={navigation} />
             </View>
           ),
         })}
@@ -897,32 +924,25 @@ function JobsStack() {
         name="구인구직 메인"
         component={JobsScreen}
         options={({ navigation }) => ({
-          headerTitle: () => (
+          title: "",
+          headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("구인구직 메인")}
               activeOpacity={0.7}
+              style={{ marginLeft: 16 }}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
                 {t('jobs:title')}
-              </Text>
-              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                {t('jobs:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#2196F3", height: 70 },
           headerTintColor: "#fff",
-          headerRight: () => (
+          headerRight: ({ navigation: nav }) => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <TouchableOpacity
-                onPress={() => navigation.navigate("메뉴")}
-                style={{ marginRight: 16, alignItems: "center" }}
-              >
-                <Ionicons name="menu" size={22} color="#fff" />
-                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
-              </TouchableOpacity>
+              <UserMenuButton navigation={navigation} />
             </View>
           ),
         })}
@@ -975,32 +995,25 @@ function RealEstateStack() {
         name="부동산 메인"
         component={RealEstateScreen}
         options={({ navigation }) => ({
-          headerTitle: () => (
+          title: "",
+          headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("부동산 메인")}
               activeOpacity={0.7}
+              style={{ marginLeft: 16 }}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
                 {t('realEstate:title')}
-              </Text>
-              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                {t('realEstate:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#E91E63", height: 70 },
           headerTintColor: "#fff",
-          headerRight: () => (
+          headerRight: ({ navigation: nav }) => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <TouchableOpacity
-                onPress={() => navigation.navigate("메뉴", { screen: "메뉴메인" })}
-                style={{ marginRight: 16, alignItems: "center" }}
-              >
-                <Ionicons name="menu" size={22} color="#fff" />
-                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
-              </TouchableOpacity>
+              <UserMenuButton navigation={navigation} />
             </View>
           ),
         })}
@@ -1044,32 +1057,25 @@ function DanggnStack() {
         name="당근/나눔 메인"
         component={XinChaoDanggnScreen}
         options={({ navigation }) => ({
-          headerTitle: () => (
+          title: "",
+          headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("당근/나눔 메인")}
               activeOpacity={0.7}
+              style={{ marginLeft: 16 }}
             >
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
                 {t('danggn:title')}
-              </Text>
-              <Text style={{ color: "#333", fontSize: 12, marginTop: 2 }}>
-                {t('danggn:subtitle')}
               </Text>
             </TouchableOpacity>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: () => (
+          headerRight: ({ navigation: nav }) => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <TouchableOpacity
-                onPress={() => navigation.navigate("메뉴")}
-                style={{ marginRight: 16, alignItems: "center" }}
-              >
-                <Ionicons name="menu" size={22} color="#fff" />
-                <Text style={{ color: "#fff", fontSize: 9 }}>{t('common:more')}</Text>
-              </TouchableOpacity>
+              <UserMenuButton navigation={navigation} />
             </View>
           ),
         })}

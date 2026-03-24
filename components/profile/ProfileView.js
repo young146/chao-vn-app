@@ -36,6 +36,7 @@ export default function ProfileView({
     onAppSettings,
     onHelp,
     onAppInfo,
+    onDeleteAccount,
 }) {
     const { t } = useTranslation('profile');
     return (
@@ -221,6 +222,21 @@ export default function ProfileView({
             <View style={styles.versionContainer}>
                 <Text style={styles.versionText}>{t('appVersion')}</Text>
             </View>
+
+            {/* ─── 회원 탈퇴 버튼 ─── */}
+            <TouchableOpacity
+                style={styles.deleteAccountButton}
+                onPress={onDeleteAccount}
+                activeOpacity={0.7}
+            >
+                <Ionicons name="trash-outline" size={20} color="#fff" />
+                <Text style={styles.deleteAccountText}>회원 탈퇴</Text>
+            </TouchableOpacity>
+            <Text style={styles.deleteAccountNote}>
+                탈퇴 시 모든 데이터가 영구 삭제됩니다
+            </Text>
+
+            <View style={{ height: 40 }} />
         </ScrollView>
     );
 }
@@ -400,10 +416,32 @@ const styles = StyleSheet.create({
     },
     versionContainer: {
         alignItems: "center",
-        paddingBottom: 32,
+        paddingBottom: 16,
     },
     versionText: {
         fontSize: 12,
         color: "#999",
+    },
+    deleteAccountButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#D32F2F",
+        marginHorizontal: 16,
+        marginBottom: 8,
+        paddingVertical: 16,
+        borderRadius: 10,
+        gap: 8,
+    },
+    deleteAccountText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    deleteAccountNote: {
+        textAlign: "center",
+        fontSize: 12,
+        color: "#999",
+        marginBottom: 8,
     },
 });

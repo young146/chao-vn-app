@@ -4,6 +4,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   TextInput,
   FlatList,
@@ -207,25 +208,35 @@ export default function JobsScreen({ navigation }) {
 
     const salaryUsd = comp.desiredSalaryUsdPerMonth;
 
+    // 이름 fallback: profile.name → data.title → data.name → '이름 미입력'
+    const personName = profile.name || data.name || '';
+    const extraTitle = data.title && data.title !== personName ? data.title : '';
+    // 카드 제목: "이름" 또는 "이름 · 직무/제목"
+    const displayTitle = personName
+      ? (extraTitle ? `${personName} · ${extraTitle}` : personName)
+      : (extraTitle || '이름 미입력');
+
+    // 사진: 원본 데이터에서 보존
+    const images = data.images || data.imageUrls || [];
+
     return {
       id: docId,
       jobType: '구직',
-      sourceCollection: 'candidates',   // 출처 표시용
-      title: profile.name || '이름 미입력',
+      sourceCollection: 'candidates',
+      title: displayTitle,
       description: data.description || career.skills || '',
-      city: profile.desiredLocation || '',
+      city: profile.desiredLocation || data.city || '',
       district: '',
       salary: salaryUsd ? `${salaryUsd} USD/월` : (langParts.length ? langParts.join(' | ') : ''),
-      contact: profile.phone || '',
+      contact: profile.phone || data.phone || '',
       employmentType: career.jobTracks?.join(', ') || '',
       industry: career.jobTracks?.[0] || '',
-      images: [],
-      status: '신규 등록',
+      images,
+      status: data.status || '신규 등록',
       youtubeUrl: data.youtubeUrl || null,
       userId: data.userId || null,
       userEmail: data.userEmail || null,
       createdAt,
-      // 구직자 전용 원본 데이터 보존
       _candidateRaw: data,
     };
   };
@@ -413,61 +424,8 @@ export default function JobsScreen({ navigation }) {
     );
   }, [loadingMore]);
 
-  // 구인/구직 탭 버튼
-  const JobTypeTab = useMemo(() => (
-    <View style={styles.jobTypeTabContainer}>
-      {jobTypes.map((type, index) => (
-        <TouchableOpacity
-          key={type}
-          style={[
-            styles.jobTypeTab,
-            selectedJobType === type && styles.jobTypeTabActive
-          ]}
-          onPress={() => setSelectedJobType(type)}
-        >
-          <Text style={[
-            styles.jobTypeTabText,
-            selectedJobType === type && styles.jobTypeTabTextActive
-          ]}>
-            {jobTypeLabels[index]}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  ), [selectedJobType, jobTypeLabels]);
-
-  // 필터 영역
-  const FilterSection = useMemo(() => (
-    <View style={styles.filterSection}>
-      <View style={styles.filterRow}>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedCity}
-            onValueChange={setSelectedCity}
-            style={styles.picker}
-          >
-            {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
-            ))}
-          </Picker>
-        </View>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedIndustry}
-            onValueChange={setSelectedIndustry}
-            style={styles.picker}
-          >
-            {industries.map((ind) => (
-              <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} />
-            ))}
-          </Picker>
-        </View>
-      </View>
-    </View>
-  ), [selectedCity, selectedIndustry, t, i18n.language]);
-
-  // 리스트 헤더
-  const ListHeader = useMemo(() => (
+  // 리스트 헤더 (FlatList 안) — 광고/로그인배너/필터만
+  const renderListHeader = () => (
     <View>
       {/* 광고 배너 */}
       <AdBanner screen="job" style={{ marginTop: 8 }} />
@@ -481,24 +439,67 @@ export default function JobsScreen({ navigation }) {
         </TouchableOpacity>
       )}
 
-      {/* 검색바 */}
-      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
-
-      {/* 구인/구직 탭 */}
-      {JobTypeTab}
-
       {/* 필터 */}
-      {FilterSection}
+      <View style={styles.filterSection}>
+        <View style={styles.filterRow}>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedCity}
+              onValueChange={setSelectedCity}
+              style={styles.picker}
+            >
+              {cities.map((city) => (
+                <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
+              ))}
+            </Picker>
+          </View>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedIndustry}
+              onValueChange={setSelectedIndustry}
+              style={styles.picker}
+            >
+              {industries.map((ind) => (
+                <Picker.Item key={ind} label={ind === "전체" ? `💼 ${t('allIndustries')}` : translateIndustry(ind, i18n.language)} value={ind} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      </View>
     </View>
-  ), [user, searchText, JobTypeTab, FilterSection, navigation]);
+  );
 
   return (
     <View style={styles.container}>
+      {/* ─── FlatList 바깥 고정 영역: 검색바 + 서브탭 ─── */}
+      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
+      <View style={styles.jobTypeTabContainer}>
+        {jobTypes.map((type, index) => (
+          <Pressable
+            key={type}
+            style={({ pressed }) => [
+              styles.jobTypeTab,
+              selectedJobType === type && styles.jobTypeTabActive,
+              pressed && { opacity: 0.7 }
+            ]}
+            onPress={() => setSelectedJobType(type)}
+            hitSlop={8}
+          >
+            <Text style={[
+              styles.jobTypeTabText,
+              selectedJobType === type && styles.jobTypeTabTextActive
+            ]}>
+              {jobTypeLabels[index]}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <FlatList
         data={filteredJobs}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={renderListHeader}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContainer}
         refreshControl={

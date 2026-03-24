@@ -159,8 +159,12 @@ export default function MoreScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      {/* 사용자 정보 */}
-      <View style={styles.userSection}>
+      {/* 사용자 정보 - 누르면 프로필로 이동 */}
+      <TouchableOpacity
+        style={styles.userSection}
+        onPress={() => user ? navigation.navigate("My Page") : navigation.navigate("로그인")}
+        activeOpacity={0.7}
+      >
         <View style={styles.avatarContainer}>
           {profileImage ? (
             <Image
@@ -179,6 +183,7 @@ export default function MoreScreen({ navigation }) {
               {displayName || (user.email ? user.email.split("@")[0] : "사용자")}
             </Text>
             <Text style={styles.userEmail}>{displayEmail || user.email}</Text>
+            <Text style={styles.profileHint}>프로필 보기 · 수정 · 탈퇴 →</Text>
           </>
         ) : (
           <>
@@ -191,7 +196,7 @@ export default function MoreScreen({ navigation }) {
             </TouchableOpacity>
           </>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* 메뉴 리스트 */}
       <View style={styles.menuSection}>
@@ -357,6 +362,11 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: "#666",
+  },
+  profileHint: {
+    fontSize: 12,
+    color: "#FF6B35",
+    marginTop: 6,
   },
   loginButton: {
     marginTop: 12,

@@ -37,6 +37,19 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 👤 candidates (구직자) 컬렉션
+    // ========================================
+    match /candidates/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null || request.resource.data.source == 'web';
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin())
+        || resource.data.source == 'web';
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    // ========================================
     // 🏠 RealEstate (부동산) 컬렉션
     // ========================================
     match /RealEstate/{itemId} {

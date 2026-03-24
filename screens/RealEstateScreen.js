@@ -5,6 +5,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   TextInput,
   FlatList,
@@ -367,61 +368,8 @@ export default function RealEstateScreen({ navigation }) {
     );
   }, [loadingMore]);
 
-  // 임대/매매 탭 버튼
-  const DealTypeTab = useMemo(() => (
-    <View style={styles.dealTypeTabContainer}>
-      {dealTypes.map((type, index) => (
-        <TouchableOpacity
-          key={type}
-          style={[
-            styles.dealTypeTab,
-            selectedDealType === type && styles.dealTypeTabActive
-          ]}
-          onPress={() => setSelectedDealType(type)}
-        >
-          <Text style={[
-            styles.dealTypeTabText,
-            selectedDealType === type && styles.dealTypeTabTextActive
-          ]}>
-            {dealTypeLabels[index]}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  ), [selectedDealType, dealTypeLabels]);
-
-  // 필터 영역
-  const FilterSection = useMemo(() => (
-    <View style={styles.filterSection}>
-      <View style={styles.filterRow}>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedCity}
-            onValueChange={setSelectedCity}
-            style={styles.picker}
-          >
-            {cities.map((city) => (
-              <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
-            ))}
-          </Picker>
-        </View>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedPropertyType}
-            onValueChange={setSelectedPropertyType}
-            style={styles.picker}
-          >
-            {propertyTypes.map((type) => (
-              <Picker.Item key={type} label={type === "전체" ? `🏠 ${t('allTypes')}` : translatePropertyType(type, i18n.language)} value={type} />
-            ))}
-          </Picker>
-        </View>
-      </View>
-    </View>
-  ), [selectedCity, selectedPropertyType, t, i18n.language]);
-
-  // 리스트 헤더
-  const ListHeader = useMemo(() => (
+  // 리스트 헤더 (FlatList 안) — 광고/로그인배너/필터만
+  const renderListHeader = () => (
     <View>
       {/* 광고 배너 */}
       <AdBanner screen="realestate" style={{ marginTop: 8 }} />
@@ -435,24 +383,67 @@ export default function RealEstateScreen({ navigation }) {
         </TouchableOpacity>
       )}
 
-      {/* 검색바 */}
-      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
-
-      {/* 임대/매매 탭 */}
-      {DealTypeTab}
-
       {/* 필터 */}
-      {FilterSection}
+      <View style={styles.filterSection}>
+        <View style={styles.filterRow}>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedCity}
+              onValueChange={setSelectedCity}
+              style={styles.picker}
+            >
+              {cities.map((city) => (
+                <Picker.Item key={city} label={city === "전체" ? `📍 ${t('allCities')}` : translateCity(city, i18n.language)} value={city} />
+              ))}
+            </Picker>
+          </View>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedPropertyType}
+              onValueChange={setSelectedPropertyType}
+              style={styles.picker}
+            >
+              {propertyTypes.map((type) => (
+                <Picker.Item key={type} label={type === "전체" ? `🏠 ${t('allTypes')}` : translatePropertyType(type, i18n.language)} value={type} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      </View>
     </View>
-  ), [user, searchText, DealTypeTab, FilterSection, navigation]);
+  );
 
   return (
     <View style={styles.container}>
+      {/* ─── FlatList 바깥 고정 영역: 검색바 + 서브탭 ─── */}
+      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
+      <View style={styles.dealTypeTabContainer}>
+        {dealTypes.map((type, index) => (
+          <Pressable
+            key={type}
+            style={({ pressed }) => [
+              styles.dealTypeTab,
+              selectedDealType === type && styles.dealTypeTabActive,
+              pressed && { opacity: 0.7 }
+            ]}
+            onPress={() => setSelectedDealType(type)}
+            hitSlop={8}
+          >
+            <Text style={[
+              styles.dealTypeTabText,
+              selectedDealType === type && styles.dealTypeTabTextActive
+            ]}>
+              {dealTypeLabels[index]}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <FlatList
         data={filteredItems}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={renderListHeader}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContainer}
         refreshControl={

@@ -231,6 +231,7 @@ export default function AddCandidateScreen({ navigation, route }) {
   const [visaStatus, setVisaStatus] = useState("");
   const [desiredSalaryUsd, setDesiredSalaryUsd] = useState("");
 
+  const [description, setDescription] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -257,6 +258,7 @@ export default function AddCandidateScreen({ navigation, route }) {
       setSkills(car.skills || "");
       setVisaStatus(we.visaStatus || "");
       setDesiredSalaryUsd(String(comp.desiredSalaryUsdPerMonth || ""));
+      setDescription(editCandidate.description || "");
       setYoutubeUrl(editCandidate.youtubeUrl || "");
     }
   }, [isEditMode, editCandidate]);
@@ -303,6 +305,7 @@ export default function AddCandidateScreen({ navigation, route }) {
           desiredSalaryVndPerMonth: null,
           exchangeRate: null,
         },
+        description: description.trim(),
         youtubeUrl: youtubeUrl.trim() || null,
         crm: {
           status: "신규 등록",
@@ -535,6 +538,25 @@ export default function AddCandidateScreen({ navigation, route }) {
             placeholder={L.salaryPlaceholder}
             placeholderTextColor="#aaa"
             keyboardType="numeric"
+          />
+        </View>
+
+        {/* ─── 자기소개 ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Ionicons name="document-text" size={16} /> {sourceLanguage === "vi" ? "Giới thiệu bản thân" : sourceLanguage === "en" ? "Self Introduction" : "자기소개"}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
+            {sourceLanguage === "vi" ? "Kinh nghiệm, điểm mạnh, lý do tìm việc..." : sourceLanguage === "en" ? "Experience, strengths, reasons for seeking work..." : "경력, 강점, 취업 희망 사유 등을 자유롭게 작성해 주세요"}
+          </Text>
+          <TextInput
+            style={[styles.textInput, styles.multilineInput]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder={sourceLanguage === "vi" ? "Nhập thông tin giới thiệu bản thân..." : sourceLanguage === "en" ? "Write your self-introduction..." : "자유롭게 작성하세요..."}
+            placeholderTextColor="#aaa"
+            multiline
+            numberOfLines={5}
           />
         </View>
 

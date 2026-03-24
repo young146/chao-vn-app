@@ -922,7 +922,7 @@
 
         function renderItem(data) {
             var cat = categoryInfo(data);
-            var images = data.imageUrls || [];
+            var images = data.images || data.imageUrls || [];
             var ts = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null;
             var dateStr = ts ? ts.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
