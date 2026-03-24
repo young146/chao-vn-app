@@ -15,18 +15,8 @@ const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
 export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
   
-  // OG 데이터를 query param으로 전달 (PHP에서 Firestore API 없이 사용)
-  const params = new URLSearchParams();
-  if (item.title) params.set('t', item.title);
-  // 이미지: 타입별 필드 확인
-  const img = (item.images && item.images[0]) || (item.imageUrls && item.imageUrls[0]) || '';
-  if (img) params.set('img', img);
-  // 가격/급여
-  const price = formatItemPrice(type, item);
-  if (price && price !== '가격 문의') params.set('p', price);
-  
-  const qs = params.toString();
-  const webLink = `${WEB_BASE_URL}${type}/${id}${qs ? '?' + qs : ''}`;
+  // 클린 URL — PHP가 Firestore REST API로 직접 OG 태그 세팅
+  const webLink = `${WEB_BASE_URL}${type}/${id}`;
   
   const shareMessage = generateShareMessage(type, item);
   
