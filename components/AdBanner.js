@@ -73,6 +73,7 @@ const isInlineAdAvailable = (index) => {
 const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
 
   // ── 단일 player: 배너와 전체화면 VideoView 공유 ──
   // expo-video는 하나의 player를 여러 VideoView에 바인딩 가능
@@ -82,21 +83,33 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
     p.play();
   });
 
-  // mount 이후 재생 보장
+  // mount 이후 재생 보장 + unmount 시 player 정리
   useEffect(() => {
     if (!player || __DEV__) return;
+    setPlayerReady(true);
     try {
       player.muted = true;
       player.play();
     } catch (e) {}
+
+    // ★ 핵심: unmount 시 ExoPlayer release → IllegalStateException 방지
+    return () => {
+      setPlayerReady(false);
+      try {
+        player.pause();
+      } catch (e) {}
+    };
   }, [player]);
 
   // 음소거 토글 동기화
   useEffect(() => {
-    if (player) player.muted = isMuted;
-  }, [isMuted, player]);
+    if (player && playerReady) {
+      try { player.muted = isMuted; } catch (e) {}
+    }
+  }, [isMuted, player, playerReady]);
 
   const openFullscreen = () => {
+    if (!player || !playerReady) return;
     setIsFullscreen(true);
     // 전체화면에서는 음소거 해제 후 처음부터 재생
     try {
@@ -108,6 +121,7 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
 
   const closeFullscreen = () => {
     setIsFullscreen(false);
+    if (!player || !playerReady) return;
     // 배너로 돌아갈 때 loop + mute 복원
     try {
       player.muted = isMuted;
