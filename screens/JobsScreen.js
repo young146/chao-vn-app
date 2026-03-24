@@ -193,7 +193,44 @@ export default function JobsScreen({ navigation }) {
   // 도시 목록
   const cities = ["전체", "호치민", "하노이", "다낭", "냐짱", "붕따우", "빈증", "동나이", "기타"];
 
-  // 데이터 페칭
+  // candidates 컬렉션 데이터를 JobCard 표시 형식으로 정규화
+  const normalizeCandidateToJob = (docId, data) => {
+    const profile = data.profile || {};
+    const career = data.career || {};
+    const lang = data.language || {};
+    const comp = data.compensation || {};
+    const createdAt = data.createdAt?.toDate?.()?.toISOString() || data.createdAt;
+
+    const langParts = [];
+    if (lang.korean && lang.korean !== '없음') langParts.push(`한국어:${lang.korean}`);
+    if (lang.vietnamese && lang.vietnamese !== '없음') langParts.push(`베트남어:${lang.vietnamese}`);
+
+    const salaryUsd = comp.desiredSalaryUsdPerMonth;
+
+    return {
+      id: docId,
+      jobType: '구직',
+      sourceCollection: 'candidates',   // 출처 표시용
+      title: profile.name || '이름 미입력',
+      description: data.description || career.skills || '',
+      city: profile.desiredLocation || '',
+      district: '',
+      salary: salaryUsd ? `${salaryUsd} USD/월` : (langParts.length ? langParts.join(' | ') : ''),
+      contact: profile.phone || '',
+      employmentType: career.jobTracks?.join(', ') || '',
+      industry: career.jobTracks?.[0] || '',
+      images: [],
+      status: '신규 등록',
+      youtubeUrl: data.youtubeUrl || null,
+      userId: data.userId || null,
+      userEmail: data.userEmail || null,
+      createdAt,
+      // 구직자 전용 원본 데이터 보존
+      _candidateRaw: data,
+    };
+  };
+
+  // 데이터 페칭 (Jobs + candidates 통합)
   const fetchJobs = async (isFirstFetch = true) => {
     if (!isFirstFetch && (loadingMore || !hasMore)) return;
 
@@ -201,7 +238,7 @@ export default function JobsScreen({ navigation }) {
       // 캐시된 데이터 먼저 표시
       if (jobs.length === 0) {
         try {
-          const cachedData = await AsyncStorage.getItem("cached_jobs");
+          const cachedData = await AsyncStorage.getItem("cached_jobs_v2");
           if (cachedData) {
             const parsedData = JSON.parse(cachedData);
             setJobs(parsedData);
@@ -220,34 +257,50 @@ export default function JobsScreen({ navigation }) {
     }
 
     try {
-      let q = query(
+      // Jobs 컬렉션 (구인 + 예전 jobType:'구직')
+      const jobsQuery = query(
         collection(db, "Jobs"),
         limit(isFirstFetch ? 60 : ITEMS_PER_PAGE)
       );
 
-      if (!isFirstFetch && lastVisible) {
-        q = query(q, startAfter(lastVisible));
-      }
+      // candidates 컬렉션 (구직자 전용) — 첫 페이지에서만 전체 로드
+      const candidatesQuery = isFirstFetch
+        ? query(collection(db, "candidates"), limit(100))
+        : null;
 
-      const snapshot = await getDocs(q);
+      const [jobsSnapshot, candidatesSnapshot] = await Promise.all([
+        getDocs(jobsQuery),
+        candidatesQuery ? getDocs(candidatesQuery) : Promise.resolve(null),
+      ]);
 
-      const fetchedJobs = snapshot.docs.map((doc) => ({
+      // Jobs 컬렉션 데이터
+      const fetchedJobs = jobsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
       }));
 
-      // 최신순 정렬
-      fetchedJobs.sort((a, b) => {
+      // candidates 컬렉션 데이터 정규화 (첫 페이지만)
+      const fetchedCandidates = candidatesSnapshot
+        ? candidatesSnapshot.docs.map((doc) =>
+            normalizeCandidateToJob(doc.id, doc.data())
+          )
+        : [];
+
+      console.log(`📋 Jobs: ${fetchedJobs.length}개, Candidates: ${fetchedCandidates.length}개`);
+
+      // 합치고 최신순 정렬
+      const combined = [...fetchedJobs, ...fetchedCandidates];
+      combined.sort((a, b) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return timeB - timeA;
       });
 
       if (isFirstFetch) {
-        const uniqueJobs = Array.from(new Map(fetchedJobs.map(job => [job.id, job])).values());
+        const uniqueJobs = Array.from(new Map(combined.map(job => [job.id, job])).values());
         setJobs(uniqueJobs);
-        await AsyncStorage.setItem("cached_jobs", JSON.stringify(uniqueJobs));
+        await AsyncStorage.setItem("cached_jobs_v2", JSON.stringify(uniqueJobs));
       } else {
         setJobs((prev) => {
           const existingIds = new Set(prev.map((j) => j.id));
@@ -256,11 +309,10 @@ export default function JobsScreen({ navigation }) {
         });
       }
 
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length >= (isFirstFetch ? 60 : ITEMS_PER_PAGE));
+      setLastVisible(jobsSnapshot.docs[jobsSnapshot.docs.length - 1]);
+      setHasMore(jobsSnapshot.docs.length >= (isFirstFetch ? 60 : ITEMS_PER_PAGE));
     } catch (error) {
       console.error("❌ Jobs 데이터 페칭 실패:", error);
-      // 권한 오류 등의 경우 더 이상 시도하지 않음
       setHasMore(false);
     } finally {
       setRefreshing(false);

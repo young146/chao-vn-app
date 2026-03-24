@@ -55,6 +55,7 @@ export default function JobDetailScreen({ route, navigation }) {
     if (!initialJob && deepLinkId) {
       const fetchJob = async () => {
         try {
+          // 1차: Jobs 컬렉션에서 조회
           const docRef = doc(db, "Jobs", deepLinkId);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
@@ -62,7 +63,37 @@ export default function JobDetailScreen({ route, navigation }) {
             setJob(data);
             setCurrentStatus(data.status || "모집중");
           } else {
-            setJobNotFound(true);
+            // 2차: candidates 컬렉션에서 조회 (구직자)
+            const candidateRef = doc(db, "candidates", deepLinkId);
+            const candidateSnap = await getDoc(candidateRef);
+            if (candidateSnap.exists()) {
+              const rawData = candidateSnap.data();
+              const profile = rawData.profile || {};
+              const career = rawData.career || {};
+              const comp = rawData.compensation || {};
+              const normalized = {
+                id: candidateSnap.id,
+                jobType: '구직',
+                sourceCollection: 'candidates',
+                title: profile.name || '이름 미입력',
+                description: rawData.description || career.skills || '',
+                city: profile.desiredLocation || '',
+                salary: comp.desiredSalaryUsdPerMonth ? `${comp.desiredSalaryUsdPerMonth} USD/월` : '',
+                contact: profile.phone || '',
+                employmentType: career.jobTracks?.join(', ') || '',
+                images: [],
+                status: '신규 등록',
+                youtubeUrl: rawData.youtubeUrl || null,
+                userId: rawData.userId || null,
+                userEmail: rawData.userEmail || null,
+                createdAt: rawData.createdAt,
+                _candidateRaw: rawData,
+              };
+              setJob(normalized);
+              setCurrentStatus('신규 등록');
+            } else {
+              setJobNotFound(true);
+            }
           }
         } catch (error) {
           console.error("아이템 불러오기 실패:", error);
