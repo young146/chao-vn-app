@@ -276,10 +276,19 @@
 
             <!-- 급여 -->
             <div class="card">
-                <div class="card-title">💰 급여</div>
-                <div class="field">
-                    <label>급여</label>
-                    <input type="text" id="hire-salary" placeholder="예: 협의 가능, 월 500만동, 시급 5만동" oninput="updatePreview()">
+                <div class="card-title">💰 급여 (USD/월)</div>
+                <div class="row2">
+                    <div class="field">
+                        <label>최소 급여 (USD/월)</label>
+                        <input type="number" id="hire-salary-min" placeholder="예: 800" min="0" oninput="updatePreview()" style="width:100%">
+                    </div>
+                    <div class="field">
+                        <label>최대 급여 (USD/월)</label>
+                        <input type="number" id="hire-salary-max" placeholder="예: 1500" min="0" oninput="updatePreview()" style="width:100%">
+                    </div>
+                </div>
+                <div class="field" style="margin-top:10px">
+                    <label style="font-size:12px;color:#888">※ 숫자 미입력 시 '협의'로 표시됩니다</label>
                 </div>
             </div>
 
@@ -316,6 +325,13 @@
                 </div>
             </div>
 
+            <!-- 모집 상태 -->
+            <div class="card">
+                <div class="card-title">🚦 모집 상태</div>
+                <div class="chip-group" id="hire-status-chips"></div>
+                <input type="hidden" id="hire-status" value="모집중">
+            </div>
+
             <!-- 상세 내용 -->
             <div class="card">
                 <div class="card-title">📋 상세 내용</div>
@@ -335,6 +351,15 @@
                 <div class="img-add-btn" onclick="document.getElementById('img-input').click()">📷 사진 선택하기 (회사/근무환경, 최대 5장)</div>
                 <input type="file" id="img-input" accept="image/*" multiple style="display:none" onchange="handleImages(this)">
                 <div class="img-row" id="img-row"></div>
+            </div>
+
+            <!-- 회사 소개 영상 -->
+            <div class="card">
+                <div class="card-title">🎬 회사 소개 영상 <span style="font-weight:400;color:#888;font-size:12px">(YouTube, 선택)</span></div>
+                <div class="field">
+                    <label>YouTube URL</label>
+                    <input type="url" id="hire-youtube" placeholder="https://youtu.be/xxxxx 또는 youtube.com/watch?v=xxxxx" oninput="updatePreview()" autocapitalize="none">
+                </div>
             </div>
         </div>
 
@@ -361,6 +386,10 @@
                 <div class="field">
                     <label>전화번호 / Zalo</label>
                     <input type="text" id="seek-phone" placeholder="예: 090-1234-5678" oninput="updatePreview()">
+                </div>
+                <div class="field">
+                    <label>이메일</label>
+                    <input type="email" id="seek-email" placeholder="예: example@gmail.com" oninput="updatePreview()" autocapitalize="none">
                 </div>
                 <div class="field">
                     <label>카카오톡 ID</label>
@@ -425,8 +454,8 @@
                     <input type="text" id="seek-location" placeholder="예: 호치민, 하노이" oninput="updatePreview()">
                 </div>
                 <div class="field" style="margin-top:12px">
-                    <label>희망 급여</label>
-                    <input type="text" id="seek-salary" placeholder="예: 협의, 월 1000USD 이상" oninput="updatePreview()">
+                    <label>희망 급여 (USD/월)</label>
+                    <input type="number" id="seek-salary" placeholder="예: 1500" min="0" oninput="updatePreview()" style="width:160px">
                 </div>
             </div>
 
@@ -435,6 +464,15 @@
                 <div class="card-title">📝 자기소개</div>
                 <div class="field">
                     <textarea id="seek-desc" style="height:120px" placeholder="경력, 강점, 취업 희망 사유 등을 자유롭게 작성해 주세요" oninput="updatePreview()"></textarea>
+                </div>
+            </div>
+
+            <!-- 자기소개 영상 -->
+            <div class="card">
+                <div class="card-title">🎬 자기소개 영상 <span style="font-weight:400;color:#888;font-size:12px">(YouTube, 선택)</span></div>
+                <div class="field">
+                    <label>YouTube URL</label>
+                    <input type="url" id="seek-youtube" placeholder="https://youtu.be/xxxxx 또는 youtube.com/watch?v=xxxxx" oninput="updatePreview()" autocapitalize="none">
                 </div>
             </div>
         </div>
@@ -545,6 +583,10 @@
             });
             initChips('hire-employment-chips', EMPLOYMENT_TYPES, 'hire-employment', false, 'selected-green');
             initChips('hire-city-chips', CITIES, 'hire-city', false, 'selected-green');
+            initChips('hire-status-chips', ['모집중', '마감'], 'hire-status', false, 'selected-green');
+            // 모집중 기본 선택
+            const statusChips = document.querySelectorAll('#hire-status-chips .chip');
+            if (statusChips.length > 0) statusChips[0].classList.add('selected-green');
             // 구직
             initChips('seek-nationality-chips', NATIONALITIES, 'seek-nationality', false, 'selected-blue');
             initChips('seek-jobtracks-chips', JOB_TRACKS, null, true, 'selected-blue');
@@ -600,7 +642,8 @@
                 const title = document.getElementById('hire-title').value.trim();
                 const industry = document.getElementById('hire-industry').value;
                 const employment = document.getElementById('hire-employment').value;
-                const salary = document.getElementById('hire-salary').value.trim();
+                const salaryMin = document.getElementById('hire-salary-min').value.trim();
+                const salaryMax = document.getElementById('hire-salary-max').value.trim();
                 const city = document.getElementById('hire-city').value;
                 const district = document.getElementById('hire-district').value.trim();
                 const deadline = document.getElementById('hire-deadline').value.trim();
@@ -609,11 +652,15 @@
                 const desc = document.getElementById('hire-desc').value.trim();
                 const req = document.getElementById('hire-requirements').value.trim();
 
+                const salaryText = salaryMin || salaryMax
+                    ? [salaryMin && `최소 ${salaryMin}`, salaryMax && `최대 ${salaryMax}`].filter(Boolean).join(' / ') + ' USD/월'
+                    : '협의';
+
                 lines.push(`🏢 [구인] ${title}`);
                 if (company) lines.push(`📌 회사: ${company}`);
                 if (selectedHireJobTracks.length) lines.push(`💼 직무: ${selectedHireJobTracks.join(', ')}`);
                 if (industry || employment) lines.push(`🏭 업종: ${industry || '-'} | ⏰ ${employment || '-'}`);
-                if (salary) lines.push(`💰 급여: ${salary}`);
+                lines.push(`💰 급여: ${salaryText}`);
                 const loc = [city, district].filter(Boolean).join(' ');
                 if (loc) lines.push(`📍 근무지: ${loc}`);
                 if (deadline) lines.push(`📅 마감: ${deadline}`);
@@ -641,7 +688,7 @@
                 const visa = document.getElementById('seek-visa').value;
                 if (visa) lines.push(`📄 비자: ${visa}`);
                 if (location) lines.push(`📍 희망지역: ${location}`);
-                if (salary) lines.push(`💰 희망급여: ${salary}`);
+                if (salary) lines.push(`💰 희망급여: ${salary} USD/월`);
                 if (desc) { lines.push(''); lines.push(`📝 자기소개:\n${desc}`); }
                 if (phone || kakao) {
                     lines.push('');
@@ -749,7 +796,12 @@
                 const title      = document.getElementById('hire-title').value.trim();
                 const industryTrack = document.getElementById('hire-industry').value;
                 const employmentType= document.getElementById('hire-employment').value;
-                const salary     = document.getElementById('hire-salary').value.trim() || '협의';
+                const salaryMin  = parseFloat(document.getElementById('hire-salary-min').value) || null;
+                const salaryMax  = parseFloat(document.getElementById('hire-salary-max').value) || null;
+                const salaryText = salaryMin || salaryMax
+                    ? [salaryMin && `최소 ${salaryMin}`, salaryMax && `최대 ${salaryMax}`].filter(Boolean).join(' / ') + ' USD/월'
+                    : '협의';
+                const hireStatus = document.getElementById('hire-status').value || '모집중';
                 const city       = document.getElementById('hire-city').value;
                 const district   = document.getElementById('hire-district').value.trim();
                 const deadline   = document.getElementById('hire-deadline').value.trim();
@@ -757,27 +809,31 @@
                 const kakao      = document.getElementById('hire-kakao').value.trim();
                 const description= document.getElementById('hire-desc').value.trim();
                 const requirements = document.getElementById('hire-requirements').value.trim();
+                const youtubeUrl = document.getElementById('hire-youtube').value.trim() || null;
 
                 const jobData = {
                     jobType: '구인',
                     sourceLanguage: 'ko',
-                    status: '모집중',
+                    status: hireStatus,
                     companyName: company,
                     title,
                     description,
                     requirements,
-                    industryTrack,               // 앱과 동일 필드명
-                    jobTracks: selectedHireJobTracks, // 앱과 동일 필드명
-                    employmentType,              // 앱과 동일 필드명
-                    salary,
+                    industryTrack,
+                    jobTracks: selectedHireJobTracks,
+                    employmentType,
+                    salary: salaryText,          // 카카오 미리보기용 텍스트
+                    salaryMinUsdPerMonth: salaryMin,  // 앱과 동일 필드명
+                    salaryMaxUsdPerMonth: salaryMax,  // 앱과 동일 필드명
                     city,
                     district,
                     deadline,
-                    contact: phone,              // 앱은 contact 단일 필드
-                    phone,                       // 웹 상세페이지 표시용
+                    contact: phone,
+                    phone,
                     kakao,
-                    imageUrls,                   // 웹 상세페이지 표시용
-                    images: imageUrls,           // 앱과 동일 필드명
+                    imageUrls,
+                    images: imageUrls,
+                    youtubeUrl,
                     source: 'web',
                 };
 
@@ -792,9 +848,10 @@
                 const name        = document.getElementById('seek-name').value.trim();
                 const nationality = document.getElementById('seek-nationality').value;
                 const phone       = document.getElementById('seek-phone').value.trim();
+                const email       = document.getElementById('seek-email').value.trim();
                 const kakao       = document.getElementById('seek-kakao').value.trim();
                 const location    = document.getElementById('seek-location').value.trim();
-                const salary      = document.getElementById('seek-salary').value.trim();
+                const salary      = parseFloat(document.getElementById('seek-salary').value) || null;
                 const korean      = document.getElementById('seek-korean').value;
                 const vietnamese  = document.getElementById('seek-vietnamese').value;
                 const english     = document.getElementById('seek-english').value;
@@ -802,6 +859,7 @@
                 const education   = document.getElementById('seek-education').value;
                 const skills      = document.getElementById('seek-skills').value.trim();
                 const desc        = document.getElementById('seek-desc').value.trim();
+                const youtubeUrl  = document.getElementById('seek-youtube').value.trim() || null;
 
                 const candidateData = {
                     sourceLanguage: 'ko',
@@ -812,7 +870,7 @@
                         nationality,
                         phone,
                         kakao,
-                        email: '',
+                        email,
                         desiredLocation: location,
                     },
                     language: { korean, vietnamese, english },
@@ -826,10 +884,12 @@
                         visaStatus: document.getElementById('seek-visa').value || '',
                     },
                     compensation: {
-                        desiredSalary: salary,
-                        desiredSalaryUsdPerMonth: null,
+                        desiredSalaryUsdPerMonth: salary,
+                        desiredSalaryVndPerMonth: null,
+                        exchangeRate: null,
                     },
                     description: desc,
+                    youtubeUrl,
                     crm: { status: '신규 등록', assignedTo: null, notes: '' },
                     source: 'web',
                 };
@@ -842,11 +902,13 @@
                     description: desc,
                     city: location,
                     phone,
+                    email,
                     kakao,
-                    salary,
+                    salary: salary ? `${salary} USD/월` : '협의',
                     industryTrack: selectedJobTracks.join(', '),
                     employmentType: '',
                     imageUrls: [],
+                    youtubeUrl,
                     source: 'web',
                     createdAt: ts,
                 });
