@@ -17,12 +17,20 @@ export const shareToSNS = async (platform, title, message, url) => {
             case 'kakao':
                 const canOpenKakao = await Linking.canOpenURL('kakaolink://');
                 if (canOpenKakao) {
-                    // query param 제거 → 카카오톡이 OG 태그를 크롤링해서 카드 생성
+                    // query param 제거 → 카카오톡이 OG 태그 크롤링 후 카드 생성
                     const cleanUrl = url.split('?')[0];
-                    const shareOptions = Platform.OS === 'ios'
-                        ? { url: cleanUrl, title: title }
-                        : { message: `${message}\n\n상세히 보기 👉 ${cleanUrl}` };
-                    await Share.share(shareOptions);
+                    if (Platform.OS === 'ios') {
+                        await Share.share({ url: cleanUrl, title: title });
+                    } else {
+                        // Android: kakaotalk:// URI로 직접 전달 → 링크 카드 생성
+                        const kakaoIntent = `kakaotalk://send?text=${encodeURIComponent(cleanUrl)}`;
+                        const canOpen = await Linking.canOpenURL(kakaoIntent);
+                        if (canOpen) {
+                            await Linking.openURL(kakaoIntent);
+                        } else {
+                            await Share.share({ message: cleanUrl });
+                        }
+                    }
                 } else {
                     return { success: false, error: 'kakao_not_installed' };
                 }
