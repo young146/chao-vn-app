@@ -70,9 +70,10 @@ if (!$itemTitle && $id) {
 }
 
 $pageTitle   = $itemTitle ? $itemTitle . ' — 씬짜오베트남' : $data['label'] . ' — 씬짜오베트남';
-$description = $data['icon'] . ' ' . ($itemTitle ?: $data['label']);
-if (!empty($itemLocation)) $description .= ' | ' . $itemLocation;
-if ($itemPrice) $description .= ' | ' . $itemPrice;
+$descParts = [$data['icon']];
+if (!empty($itemLocation)) $descParts[] = $itemLocation;
+if ($itemPrice) $descParts[] = $itemPrice;
+$description = implode(' | ', $descParts);
 
 $defaultImages = [
     'danggn'     => 'https://chaovietnam.co.kr/assets/danggn-default.jpg',
