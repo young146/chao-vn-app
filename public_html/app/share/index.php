@@ -4,13 +4,13 @@ $uri = $_SERVER['REQUEST_URI'];
 preg_match('#/app/share/(danggn|job|realestate)/([^/\?\#]+)#', $uri, $matches);
 
 $type = $matches[1] ?? 'danggn';
-$id   = $matches[2] ?? '';
+$id = $matches[2] ?? '';
 
 // 타입별 OG 기본 정보 (카카오 미리보기용)
 $typeInfo = [
-    'danggn'     => ['label' => '당근마켓/나눔', 'icon' => '🛍️', 'color' => '#FF6B35', 'collection' => 'XinChaoDanggn'],
-    'job'        => ['label' => '구인구직',      'icon' => '💼', 'color' => '#2196F3', 'collection' => 'Jobs'],
-    'realestate' => ['label' => '부동산',        'icon' => '🏠', 'color' => '#E91E63', 'collection' => 'RealEstate'],
+    'danggn' => ['label' => '당근마켓/나눔', 'icon' => '🛍️', 'color' => '#FF6B35', 'collection' => 'XinChaoDanggn'],
+    'job' => ['label' => '구인구직', 'icon' => '💼', 'color' => '#2196F3', 'collection' => 'Jobs'],
+    'realestate' => ['label' => '부동산', 'icon' => '🏠', 'color' => '#E91E63', 'collection' => 'RealEstate'],
 ];
 $data = $typeInfo[$type];
 
@@ -25,7 +25,7 @@ if (!$itemTitle && $id) {
     $collection = $data['collection'];
     $apiUrl = "https://firestore.googleapis.com/v1/projects/{$firebaseProjectId}/databases/(default)/documents/{$collection}/{$id}";
 
-    $context  = stream_context_create(['http' => ['timeout' => 3]]);
+    $context = stream_context_create(['http' => ['timeout' => 1.5, 'ignore_errors' => true]]);
     $response = @file_get_contents($apiUrl, false, $context);
 
     if ($response) {
@@ -41,30 +41,42 @@ if (!$itemTitle && $id) {
                 if ($type === 'job') {
                     $itemPrice = $f['salary']['stringValue'] ?? '';
                 } elseif ($type === 'danggn') {
-                    $p = $f['price']['integerValue'] ?? '';
-                    $itemPrice = $p ? number_format($p) . 'đ' : '';
+                    $p = $f['price']['integerValue'] ?? $f['price']['stringValue'] ?? '';
+                    $itemPrice = $p ? number_format((int)$p) . 'đ' : '';
+                } elseif ($type === 'realestate') {
+                    $d = $f['dealType']['stringValue'] ?? '';
+                    if ($d === '임대') {
+                        $deposit = $f['deposit']['integerValue'] ?? $f['deposit']['stringValue'] ?? '';
+                        $monthly = $f['monthlyRent']['integerValue'] ?? $f['monthlyRent']['stringValue'] ?? '';
+                        $itemPrice = ($deposit ? number_format((int)$deposit) . 'đ' : '') . ' / ' . ($monthly ? number_format((int)$monthly) . 'đ/월' : '');
+                        $itemPrice = trim($itemPrice, ' /');
+                    } else {
+                        $p = $f['price']['integerValue'] ?? $f['price']['stringValue'] ?? '';
+                        $itemPrice = $p ? number_format((int)$p) . 'đ' : '';
+                    }
                 }
             }
         }
     }
 }
 
-$pageTitle   = $itemTitle ? $itemTitle . ' — 씬짜오베트남' : $data['label'] . ' — 씬짜오베트남';
+$pageTitle = $itemTitle ? $itemTitle . ' — 씬짜오베트남' : $data['label'] . ' — 씬짜오베트남';
 $description = $data['icon'] . ' ' . ($itemTitle ?: $data['label']);
-if ($itemPrice) $description .= ' | ' . $itemPrice;
+if ($itemPrice)
+    $description .= ' | ' . $itemPrice;
 
 $defaultImages = [
-    'danggn'     => 'https://chaovietnam.co.kr/assets/danggn-default.jpg',
-    'job'        => 'https://chaovietnam.co.kr/assets/job-default.jpg',
-    'realestate' => 'https://chaovietnam.co.kr/assets/realestate-default.jpg',
+    'danggn' => 'https://chaovietnam.co.kr/assets/og_danggn.png',
+    'job' => 'https://chaovietnam.co.kr/assets/og_jobs_v2.png',
+    'realestate' => 'https://chaovietnam.co.kr/assets/og_realestate.png',
 ];
-$image   = $itemImage ?: $defaultImages[$type];
+$image = $itemImage ?: $defaultImages[$type];
 $pageUrl = 'https://chaovietnam.co.kr/app/share/' . $type . '/' . $id;
 
 // 타입 → Firestore 컬렉션 매핑 (view/index.html의 col 파라미터)
 $colMap = [
-    'job'        => 'Jobs',
-    'danggn'     => 'XinChaoDanggn',
+    'job' => 'Jobs',
+    'danggn' => 'XinChaoDanggn',
     'realestate' => 'RealEstate',
 ];
 $col = $colMap[$type] ?? 'form_items';
@@ -74,34 +86,60 @@ $viewUrl = 'https://chaovietnam-login.web.app/view/?type=' . urlencode($type) . 
 ?>
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?php echo htmlspecialchars($pageTitle); ?></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($pageTitle); ?></title>
 
-<!-- OG 태그 (카카오톡 미리보기 카드용) -->
-<meta property="og:type"        content="website">
-<meta property="og:url"         content="<?php echo htmlspecialchars($pageUrl); ?>">
-<meta property="og:title"       content="<?php echo htmlspecialchars($pageTitle); ?>">
-<meta property="og:description" content="<?php echo htmlspecialchars($description); ?>">
-<meta property="og:image"       content="<?php echo htmlspecialchars($image); ?>">
-<meta property="og:site_name"   content="씬짜오베트남">
-<meta name="twitter:card"       content="summary_large_image">
-<meta name="twitter:title"      content="<?php echo htmlspecialchars($pageTitle); ?>">
-<meta name="twitter:description" content="<?php echo htmlspecialchars($description); ?>">
-<meta name="twitter:image"      content="<?php echo htmlspecialchars($image); ?>">
+    <!-- OG 태그 (카카오톡 미리보기 카드용) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?php echo htmlspecialchars($pageUrl); ?>">
+    <meta property="og:title" content="<?php echo htmlspecialchars($pageTitle); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($description); ?>">
+    <meta property="og:image" content="<?php echo htmlspecialchars($image); ?>">
+    <meta property="og:site_name" content="씬짜오베트남">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($pageTitle); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($description); ?>">
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($image); ?>">
 
-<style>
-body{margin:0;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif}
-.spinner{width:40px;height:40px;border:4px solid #f0f0f0;border-top:4px solid <?php echo $data['color']; ?>;border-radius:50%;animation:spin 0.8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
+    <style>
+        body {
+            margin: 0;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: sans-serif
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid
+                <?php echo $data['color']; ?>
+            ;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+    </style>
 </head>
+
 <body>
-<div class="spinner"></div>
-<script>
-// 웹 상세페이지로 즉시 이동
-window.location.replace('<?php echo $viewUrl; ?>');
-</script>
+    <div class="spinner"></div>
+    <script>
+        // 웹 상세페이지로 즉시 이동
+        window.location.replace('<?php echo $viewUrl; ?>');
+    </script>
 </body>
+
 </html>
