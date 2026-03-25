@@ -25,7 +25,7 @@ if (!$itemTitle && $id) {
     $collection = $data['collection'];
     $apiUrl = "https://firestore.googleapis.com/v1/projects/{$firebaseProjectId}/databases/(default)/documents/{$collection}/{$id}";
 
-    $context  = stream_context_create(['http' => ['timeout' => 3]]);
+    $context  = stream_context_create(['http' => ['timeout' => 2]]);
     $response = @file_get_contents($apiUrl, false, $context);
 
     if ($response) {
@@ -84,12 +84,12 @@ $viewUrl = 'https://chaovietnam-login.web.app/view/?type=' . urlencode($type) . 
 <meta property="og:url"         content="<?php echo htmlspecialchars($pageUrl); ?>">
 <meta property="og:title"       content="<?php echo htmlspecialchars($pageTitle); ?>">
 <meta property="og:description" content="<?php echo htmlspecialchars($description); ?>">
-<meta property="og:image"       content="<?php echo htmlspecialchars($image); ?>">
+<meta property="og:image"       content="<?php echo $image; ?>">
 <meta property="og:site_name"   content="씬짜오베트남">
 <meta name="twitter:card"       content="summary_large_image">
 <meta name="twitter:title"      content="<?php echo htmlspecialchars($pageTitle); ?>">
 <meta name="twitter:description" content="<?php echo htmlspecialchars($description); ?>">
-<meta name="twitter:image"      content="<?php echo htmlspecialchars($image); ?>">
+<meta name="twitter:image"      content="<?php echo $image; ?>">
 
 <style>
 body{margin:0;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif}
