@@ -14,23 +14,12 @@ const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
  */
 export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
-
-  // 앱에서 데이터를 직접 쿼리 파라미터로 전달 → PHP가 Firestore REST API 호출 없이
-  // 즉시 OG 태그를 세팅할 수 있어 카카오 공유 카드가 항상 안정적으로 표시됨
-  const title = item?.title || '';
-  const image = (item?.images?.[0]) || item?.imageUri || item?.imageUrl || '';
-  const price = formatItemPrice(type, item);
-
-  const params = new URLSearchParams();
-  if (title) params.set('t', title);
-  if (image) params.set('img', image);
-  if (price) params.set('p', price);
-
-  const queryString = params.toString();
-  const webLink = `${WEB_BASE_URL}${type}/${id}` + (queryString ? `?${queryString}` : '');
-
+  
+  // 클린 URL — PHP가 Firestore REST API로 직접 OG 태그 세팅
+  const webLink = `${WEB_BASE_URL}${type}/${id}`;
+  
   const shareMessage = generateShareMessage(type, item);
-
+  
   return {
     deepLink,
     webLink,
