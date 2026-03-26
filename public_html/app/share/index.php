@@ -18,6 +18,7 @@ $data = $typeInfo[$type];
 $itemTitle = isset($_GET['t']) ? $_GET['t'] : '';
 $itemImage = isset($_GET['img']) ? $_GET['img'] : '';
 $itemPrice = isset($_GET['p']) ? $_GET['p'] : '';
+$itemLocation = '';
 
 // ✅ 2순위: query param 없으면 Firestore REST API 시도 (fallback)
 if (!$itemTitle && $id) {
@@ -25,7 +26,7 @@ if (!$itemTitle && $id) {
     $collection = $data['collection'];
     $apiUrl = "https://firestore.googleapis.com/v1/projects/{$firebaseProjectId}/databases/(default)/documents/{$collection}/{$id}";
 
-    $context  = stream_context_create(['http' => ['timeout' => 3]]);
+    $context  = stream_context_create(['http' => ['timeout' => 2]]);
     $response = @file_get_contents($apiUrl, false, $context);
 
     if ($response) {
@@ -37,12 +38,31 @@ if (!$itemTitle && $id) {
                 $itemImage = $f['images']['arrayValue']['values'][0]['stringValue']
                     ?? $f['imageUrls']['arrayValue']['values'][0]['stringValue'] ?? '';
             }
+            // 지역 정보 (도시 + 구/군)
+            $city = $f['city']['stringValue'] ?? '';
+            $district = $f['district']['stringValue'] ?? '';
+            $itemLocation = trim($city . ' ' . $district);
+
+            // 가격 정보
             if (!$itemPrice) {
                 if ($type === 'job') {
                     $itemPrice = $f['salary']['stringValue'] ?? '';
                 } elseif ($type === 'danggn') {
-                    $p = $f['price']['integerValue'] ?? '';
-                    $itemPrice = $p ? number_format($p) . 'đ' : '';
+                    $p = $f['price']['stringValue'] ?? $f['price']['integerValue'] ?? '';
+                    $itemPrice = $p ?: '';
+                } elseif ($type === 'realestate') {
+                    $dealType = $f['dealType']['stringValue'] ?? '';
+                    if ($dealType === '임대') {
+                        $deposit = $f['deposit']['stringValue'] ?? '';
+                        $monthly = $f['monthlyRent']['stringValue'] ?? '';
+                        $parts = [];
+                        if ($deposit) $parts[] = '보증금 ' . number_format((int)$deposit) . 'đ';
+                        if ($monthly) $parts[] = '월세 ' . number_format((int)$monthly) . 'đ';
+                        $itemPrice = implode(' / ', $parts);
+                    } else {
+                        $p = $f['price']['stringValue'] ?? $f['price']['integerValue'] ?? '';
+                        $itemPrice = $p ?: '';
+                    }
                 }
             }
         }
@@ -50,8 +70,10 @@ if (!$itemTitle && $id) {
 }
 
 $pageTitle   = $itemTitle ? $itemTitle . ' — 씬짜오베트남' : $data['label'] . ' — 씬짜오베트남';
-$description = $data['icon'] . ' ' . ($itemTitle ?: $data['label']);
-if ($itemPrice) $description .= ' | ' . $itemPrice;
+$descParts = [$data['icon']];
+if (!empty($itemLocation)) $descParts[] = $itemLocation;
+if ($itemPrice) $descParts[] = $itemPrice;
+$description = implode(' | ', $descParts);
 
 $defaultImages = [
     'danggn'     => 'https://chaovietnam.co.kr/assets/danggn-default.jpg',
@@ -84,12 +106,12 @@ $viewUrl = 'https://chaovietnam-login.web.app/view/?type=' . urlencode($type) . 
 <meta property="og:url"         content="<?php echo htmlspecialchars($pageUrl); ?>">
 <meta property="og:title"       content="<?php echo htmlspecialchars($pageTitle); ?>">
 <meta property="og:description" content="<?php echo htmlspecialchars($description); ?>">
-<meta property="og:image"       content="<?php echo htmlspecialchars($image); ?>">
+<meta property="og:image"       content="<?php echo $image; ?>">
 <meta property="og:site_name"   content="씬짜오베트남">
 <meta name="twitter:card"       content="summary_large_image">
 <meta name="twitter:title"      content="<?php echo htmlspecialchars($pageTitle); ?>">
 <meta name="twitter:description" content="<?php echo htmlspecialchars($description); ?>">
-<meta name="twitter:image"      content="<?php echo htmlspecialchars($image); ?>">
+<meta name="twitter:image"      content="<?php echo $image; ?>">
 
 <style>
 body{margin:0;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif}
