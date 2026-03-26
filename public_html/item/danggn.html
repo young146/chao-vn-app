@@ -7,157 +7,310 @@
     <title id="page-title">씬짜오 나눔 | 중고거래 상세</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f5; min-height: 100vh; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
 
         #loading-screen {
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; min-height: 100vh; gap: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 16px;
         }
+
         .spinner {
-            width: 44px; height: 44px; border: 4px solid #FFE0D0;
-            border-top-color: #FF6B35; border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            border: 4px solid #FFE0D0;
+            border-top-color: #FF6B35;
+            border-radius: 50%;
             animation: spin .8s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         #error-screen {
-            display: none; flex-direction: column; align-items: center;
-            justify-content: center; min-height: 100vh;
-            padding: 32px; text-align: center; gap: 12px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 32px;
+            text-align: center;
+            gap: 12px;
         }
-        #error-screen h2 { font-size: 18px; color: #333; }
-        #error-screen p { font-size: 14px; color: #888; }
 
-        #detail-screen { display: none; padding-bottom: 110px; }
+        #error-screen h2 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        #error-screen p {
+            font-size: 14px;
+            color: #888;
+        }
+
+        #detail-screen {
+            display: none;
+            padding-bottom: 110px;
+        }
 
         .top-header {
             background: linear-gradient(135deg, #FF6B35, #FF8E53);
-            color: #fff; display: flex; align-items: center;
-            padding: 14px 16px; gap: 10px;
-            position: sticky; top: 0; z-index: 10;
-            box-shadow: 0 2px 8px rgba(255,107,53,.3);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, .3);
         }
-        .top-header span { font-size: 16px; font-weight: 700; }
 
-        .gallery { position: relative; background: #111; }
+        .top-header span {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .gallery {
+            position: relative;
+            background: #111;
+        }
+
         .gallery-slides {
-            display: flex; overflow-x: auto;
-            scroll-snap-type: x mandatory; scrollbar-width: none;
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
         }
-        .gallery-slides::-webkit-scrollbar { display: none; }
-        .gallery-slide { flex-shrink: 0; width: 100%; scroll-snap-align: start; }
+
+        .gallery-slides::-webkit-scrollbar {
+            display: none;
+        }
+
+        .gallery-slide {
+            flex-shrink: 0;
+            width: 100%;
+            scroll-snap-align: start;
+        }
+
         .gallery-slide img {
-            width: 100%; height: 300px; object-fit: cover;
-            display: block; cursor: pointer;
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            display: block;
         }
+
         .img-count {
-            position: absolute; bottom: 12px; right: 12px;
-            background: rgba(0,0,0,.6); color: #fff;
-            border-radius: 12px; padding: 4px 10px;
-            font-size: 12px; font-weight: 600;
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, .6);
+            color: #fff;
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
         }
+
         .no-image {
-            height: 200px; background: #f0f0f0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center; gap: 8px;
+            height: 200px;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .no-image span { font-size: 52px; }
-        .no-image p { font-size: 14px; color: #aaa; }
 
-        .card { background: #fff; margin: 8px 0; padding: 20px 16px; }
-        .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #fff; }
-        .badge-sale { background: #4CAF50; }
-        .badge-adj { background: #FF9800; }
-        .badge-sold { background: #9E9E9E; }
-        .badge-cat { background: #FF6B35; }
+        .no-image span {
+            font-size: 52px;
+        }
 
-        .item-title { font-size: 20px; font-weight: 700; color: #222; line-height: 1.4; margin-bottom: 8px; }
-        .item-price { font-size: 22px; font-weight: 700; color: #FF6B35; margin-bottom: 10px; }
-        .item-meta { font-size: 13px; color: #aaa; }
+        .no-image p {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .card {
+            background: #fff;
+            margin: 8px 0;
+            padding: 20px 16px;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .badge-sale {
+            background: #4CAF50;
+        }
+
+        .badge-adj {
+            background: #FF9800;
+        }
+
+        .badge-sold {
+            background: #9E9E9E;
+        }
+
+        .badge-cat {
+            background: #FF6B35;
+        }
+
+        .item-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #222;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .item-price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #FF6B35;
+            margin-bottom: 10px;
+        }
+
+        .item-meta {
+            font-size: 13px;
+            color: #aaa;
+        }
 
         .section-title {
-            font-size: 14px; font-weight: 700; color: #333;
-            display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
         }
-        .desc-text { font-size: 15px; color: #444; line-height: 1.8; white-space: pre-wrap; word-break: break-all; }
+
+        .desc-text {
+            font-size: 15px;
+            color: #444;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
 
         .contact-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 12px; background: #f9f9f9; border-radius: 10px; margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            margin-bottom: 8px;
         }
-        .contact-icon { font-size: 20px; }
-        .contact-val { font-size: 14px; color: #333; font-weight: 500; }
 
-        .seller-row { display: flex; align-items: center; gap: 12px; }
-        .seller-avatar {
-            width: 44px; height: 44px; border-radius: 22px;
-            background: linear-gradient(135deg, #FF6B35, #FF8E53);
-            display: flex; align-items: center; justify-content: center; font-size: 20px;
+        .contact-icon {
+            font-size: 20px;
         }
-        .seller-name { font-size: 15px; font-weight: 600; color: #333; }
-        .seller-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+        .contact-val {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .seller-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .seller-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .seller-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .seller-sub {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+        }
 
         .bottom-bar {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: #fff; border-top: 1px solid #eee;
-            padding: 12px 16px 28px; display: flex; gap: 10px;
-        }
-        .btn-app {
-            flex: 1; background: linear-gradient(135deg, #FF6B35, #FF8E53);
-            color: #fff; border: none; border-radius: 12px; padding: 14px;
-            font-size: 16px; font-weight: 700; font-family: inherit;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-store {
-            background: #f5f5f5; color: #666; border: none;
-            border-radius: 12px; padding: 14px 16px;
-            font-size: 14px; font-weight: 600; font-family: inherit;
-            cursor: pointer; white-space: nowrap;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid #eee;
+            padding: 12px 16px 28px;
+            display: flex;
+            gap: 10px;
         }
 
-        /* ── 라이트박스 (전체화면 이미지 뷰어) ── */
-        .lightbox {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,.95); z-index: 2000;
-            flex-direction: column; align-items: center; justify-content: center;
+        .btn-app {
+            flex: 1;
+            background: linear-gradient(135deg, #FF6B35, #FF8E53);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .lightbox.open { display: flex; }
-        .lightbox-close {
-            position: absolute; top: 16px; right: 16px;
-            color: #fff; font-size: 36px; line-height: 1;
-            cursor: pointer; z-index: 10; padding: 8px;
-        }
-        .lightbox-inner {
-            width: 100%; height: 100%;
-            display: flex; overflow: hidden; position: relative;
-        }
-        .lightbox-slides {
-            display: flex; width: 100%; height: 100%;
-            transition: transform .3s ease;
-        }
-        .lightbox-slide {
-            flex-shrink: 0; width: 100%; height: 100%;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .lightbox-slide img {
-            max-width: 100%; max-height: 100%;
-            object-fit: contain; user-select: none; -webkit-user-drag: none;
-        }
-        .lightbox-arrow {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            color: #fff; font-size: 36px; cursor: pointer;
-            padding: 16px 12px; background: rgba(0,0,0,.3);
-            border-radius: 8px; z-index: 10; line-height: 1;
-        }
-        .lightbox-arrow.left { left: 8px; }
-        .lightbox-arrow.right { right: 8px; }
-        .lightbox-counter {
-            position: absolute; bottom: 24px;
-            left: 50%; transform: translateX(-50%);
-            color: rgba(255,255,255,.8); font-size: 14px; font-weight: 600;
-            background: rgba(0,0,0,.4); padding: 4px 14px; border-radius: 20px;
+
+        .btn-store {
+            background: #f5f5f5;
+            color: #666;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -219,17 +372,6 @@
         </div>
     </div>
 
-    <!-- 🔍 전체화면 이미지 라이트박스 -->
-    <div class="lightbox" id="lightbox">
-        <span class="lightbox-close" onclick="closeLightbox()">✕</span>
-        <div class="lightbox-inner">
-            <div class="lightbox-slides" id="lb-slides"></div>
-            <span class="lightbox-arrow left" id="lb-prev" onclick="lbMove(-1)">‹</span>
-            <span class="lightbox-arrow right" id="lb-next" onclick="lbMove(1)">›</span>
-            <div class="lightbox-counter" id="lb-counter"></div>
-        </div>
-    </div>
-
     <div class="bottom-bar" id="bottom-bar" style="display:none">
         <button class="btn-app" onclick="openInApp()">🚀 앱에서 자세히 보기</button>
         <button class="btn-store" onclick="goStore()">앱 설치</button>
@@ -287,54 +429,6 @@
             return 'badge-sold';
         }
 
-        // ── 라이트박스 로직 ──
-        let lbImages = [], lbIndex = 0;
-
-        window.openLightbox = function (images, index) {
-            lbImages = images;
-            lbIndex = index;
-            const slidesEl = document.getElementById('lb-slides');
-            slidesEl.innerHTML = '';
-            images.forEach(url => {
-                const slide = document.createElement('div');
-                slide.className = 'lightbox-slide';
-                const img = document.createElement('img');
-                img.src = url;
-                slide.appendChild(img);
-                slidesEl.appendChild(slide);
-            });
-            updateLightbox();
-            document.getElementById('lightbox').classList.add('open');
-            document.body.style.overflow = 'hidden';
-        };
-
-        window.closeLightbox = function () {
-            document.getElementById('lightbox').classList.remove('open');
-            document.body.style.overflow = '';
-        };
-
-        window.lbMove = function (dir) {
-            lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length;
-            updateLightbox();
-        };
-
-        function updateLightbox() {
-            document.getElementById('lb-slides').style.transform = `translateX(-${lbIndex * 100}%)`;
-            document.getElementById('lb-counter').textContent = `${lbIndex + 1} / ${lbImages.length}`;
-            document.getElementById('lb-prev').style.display = lbImages.length > 1 ? 'block' : 'none';
-            document.getElementById('lb-next').style.display = lbImages.length > 1 ? 'block' : 'none';
-        }
-
-        // 터치 스와이프 지원
-        let touchStartX = 0;
-        document.getElementById('lightbox').addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-        document.getElementById('lightbox').addEventListener('touchend', e => {
-            const dx = e.changedTouches[0].clientX - touchStartX;
-            if (Math.abs(dx) > 50) lbMove(dx < 0 ? 1 : -1);
-        });
-        // ESC 닫기
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
-
         async function load() {
             if (!itemId) { showError(); return; }
             try {
@@ -357,8 +451,6 @@
                     const img = document.createElement('img');
                     img.src = url; img.alt = `사진 ${i + 1}`;
                     img.onerror = () => slide.style.display = 'none';
-                    // 클릭 시 라이트박스 열기
-                    img.addEventListener('click', () => openLightbox(images, i));
                     slide.appendChild(img);
                     slidesEl.appendChild(slide);
                 });
