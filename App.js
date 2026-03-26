@@ -4,7 +4,6 @@ import { LogBox, Platform, Alert, Image as RNImage } from "react-native";
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
 import { isFirstLaunch, setFirstLaunchComplete } from './i18n';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from "expo-constants";
 // LogBox.ignoreAllLogs(true);
 
