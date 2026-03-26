@@ -599,7 +599,18 @@ export default function App() {
                   isPreferred: true,
                   onPress: async () => {
                     try {
-                      await Updates.reloadAsync();
+                      // Navigation 상태 초기화 후 리로드 (탭 멈춤 버그 방지)
+                      if (navigationRef.isReady()) {
+                        navigationRef.resetRoot({ index: 0, routes: [{ name: 'MainApp' }] });
+                      }
+                      // 약간의 딜레이 후 리로드 (state reset 완료 후)
+                      setTimeout(async () => {
+                        try {
+                          await Updates.reloadAsync();
+                        } catch (e) {
+                          console.log("업데이트 적용 실패:", e);
+                        }
+                      }, 300);
                     } catch (e) {
                       console.log("업데이트 적용 실패:", e);
                     }
