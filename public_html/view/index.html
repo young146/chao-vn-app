@@ -1013,7 +1013,17 @@
 
             // 웹폼 필드: title, industry, employmentType / 앱폼 필드: jobTitle, jobMode, dealType 등
             var titleText = data.title || data.itemName || data.propName || data.jobTitle || '상품 정보';
-            var priceText = data.price || data.propPrice || data.salary || '';
+            // 타입별 가격 필드 매핑 (구인구직은 가격 불필요)
+            var priceText = '';
+            if (type === 'realestate') {
+                priceText = data.price || data.propPrice || '';
+            } else if (type === 'danggn') {
+                priceText = data.price || '';
+            }
+            // job은 가격/급여 표시 안 함
+            if (priceText) {
+                priceText = String(priceText);
+            }
             var metaChips = [
                 data.condition,
                 data.propArea, data.propRooms, data.propFloor,
