@@ -135,6 +135,69 @@
             overflow: hidden;
         }
 
+        /* 풀스크린 이미지 뷰어 */
+        .viewer-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(0, 0, 0, 0.95);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .viewer-overlay.show { display: flex; }
+        .viewer-close {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            z-index: 310;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .viewer-counter {
+            position: absolute;
+            top: 18px;
+            left: 16px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 310;
+        }
+        .viewer-img-wrap {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .viewer-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.15s ease;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .viewer-hint {
+            position: absolute;
+            bottom: 24px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            text-align: center;
+        }
+
         .img-thumbs {
             display: flex;
             gap: 4px;
@@ -826,6 +889,16 @@
         <button class="ov-cancel" id="ov-cancel-btn" onclick="cancelOpenApp()">취소</button>
     </div>
 
+    <!-- 풀스크린 이미지 뷰어 -->
+    <div class="viewer-overlay" id="viewer-overlay">
+        <button class="viewer-close" id="viewer-close" onclick="closeViewer()">✕</button>
+        <div class="viewer-counter" id="viewer-counter"></div>
+        <div class="viewer-img-wrap" id="viewer-img-wrap">
+            <img class="viewer-img" id="viewer-img" src="" alt="확대 이미지">
+        </div>
+        <div class="viewer-hint">좌우 스와이프로 이동 · 더블탭으로 확대</div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -922,7 +995,7 @@
                     '<img src="' + url + '" loading="lazy"></button>';
             }).join('');
             return '<div class="img-gallery" id="img-gallery">' +
-                '<img class="img-main" id="img-main" src="' + images[0] + '" alt="상품 이미지">' +
+                '<img class="img-main" id="img-main" src="' + images[0] + '" alt="상품 이미지" onclick="openViewer()" style="cursor:pointer">' +
                 '<div class="img-count" id="img-count">📷 1 / ' + images.length + '</div>' +
                 (images.length > 1 ? '<div class="img-thumbs">' + thumbs + '</div>' : '') +
                 '</div>';
@@ -996,6 +1069,112 @@
                 isSwiping = false;
             }, { passive: true });
         }
+
+        // ── 풀스크린 이미지 뷰어 ──────────────────────────
+        var viewerScale = 1;
+        var viewerIndex = 0;
+        var viewerPinchDist = 0;
+
+        window.openViewer = function(idx) {
+            if (!allImages.length) return;
+            viewerIndex = idx || currentImageIndex;
+            viewerScale = 1;
+            var overlay = document.getElementById('viewer-overlay');
+            var img = document.getElementById('viewer-img');
+            img.src = allImages[viewerIndex];
+            img.style.transform = 'scale(1)';
+            document.getElementById('viewer-counter').textContent = (viewerIndex + 1) + ' / ' + allImages.length;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeViewer = function() {
+            document.getElementById('viewer-overlay').classList.remove('show');
+            document.body.style.overflow = '';
+        };
+
+        function viewerGoTo(idx) {
+            if (idx < 0 || idx >= allImages.length) return;
+            viewerIndex = idx;
+            viewerScale = 1;
+            var img = document.getElementById('viewer-img');
+            img.style.transform = 'scale(1)';
+            img.src = allImages[viewerIndex];
+            document.getElementById('viewer-counter').textContent = (viewerIndex + 1) + ' / ' + allImages.length;
+            // 갤러리 썸네일도 동기화
+            goToImage(viewerIndex);
+        }
+
+        // 뷰어 터치 이벤트 (스와이프 + 핀치줌 + 더블탭)
+        function initViewerTouch() {
+            var wrap = document.getElementById('viewer-img-wrap');
+            var img = document.getElementById('viewer-img');
+            var startX = 0, startY = 0, lastTap = 0;
+            var isSwiping = false;
+
+            wrap.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 2) {
+                    // 핀치 시작
+                    var dx = e.touches[0].clientX - e.touches[1].clientX;
+                    var dy = e.touches[0].clientY - e.touches[1].clientY;
+                    viewerPinchDist = Math.sqrt(dx*dx + dy*dy);
+                } else if (e.touches.length === 1) {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    isSwiping = false;
+
+                    // 더블탭 감지
+                    var now = Date.now();
+                    if (now - lastTap < 300) {
+                        e.preventDefault();
+                        viewerScale = viewerScale > 1 ? 1 : 2.5;
+                        img.style.transform = 'scale(' + viewerScale + ')';
+                    }
+                    lastTap = now;
+                }
+            }, { passive: false });
+
+            wrap.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 2) {
+                    // 핀치줌
+                    e.preventDefault();
+                    var dx = e.touches[0].clientX - e.touches[1].clientX;
+                    var dy = e.touches[0].clientY - e.touches[1].clientY;
+                    var dist = Math.sqrt(dx*dx + dy*dy);
+                    if (viewerPinchDist > 0) {
+                        viewerScale = Math.max(1, Math.min(4, viewerScale * (dist / viewerPinchDist)));
+                        img.style.transform = 'scale(' + viewerScale + ')';
+                    }
+                    viewerPinchDist = dist;
+                } else if (e.touches.length === 1 && viewerScale <= 1) {
+                    var dx2 = e.touches[0].clientX - startX;
+                    var dy2 = e.touches[0].clientY - startY;
+                    if (Math.abs(dx2) > Math.abs(dy2) && Math.abs(dx2) > 15) {
+                        isSwiping = true;
+                        e.preventDefault();
+                    }
+                }
+            }, { passive: false });
+
+            wrap.addEventListener('touchend', function(e) {
+                viewerPinchDist = 0;
+                if (isSwiping && viewerScale <= 1) {
+                    var endX = e.changedTouches[0].clientX;
+                    var diff = endX - startX;
+                    if (Math.abs(diff) > 50) {
+                        if (diff < 0 && viewerIndex < allImages.length - 1) viewerGoTo(viewerIndex + 1);
+                        else if (diff > 0 && viewerIndex > 0) viewerGoTo(viewerIndex - 1);
+                    }
+                }
+                isSwiping = false;
+            }, { passive: true });
+
+            // 배경 클릭으로 닫기 (확대 안 된 상태에서만)
+            wrap.addEventListener('click', function(e) {
+                if (e.target === wrap && viewerScale <= 1) closeViewer();
+            });
+        }
+        initViewerTouch();
 
         function renderItem(data) {
             var cat = categoryInfo(data);
