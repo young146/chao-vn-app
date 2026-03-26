@@ -4,6 +4,7 @@ import { LogBox, Platform, Alert, Image as RNImage } from "react-native";
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
 import { isFirstLaunch, setFirstLaunchComplete } from './i18n';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from "expo-constants";
 // LogBox.ignoreAllLogs(true);
 
@@ -448,12 +449,19 @@ export default function App() {
           return;
         }
 
+        // 🚀 1. OTA 직후 재시작 여부 확인 (캐시보다 먼저)
+        const otaFlag = await AsyncStorage.getItem('OTA_JUST_APPLIED').catch(() => null);
+        if (otaFlag) {
+          await AsyncStorage.removeItem('OTA_JUST_APPLIED').catch(() => {});
+          console.log('🔄 OTA 직후 재시작 - 캐시 우회, 새 데이터 로드');
+          // hasCache 블록 전체 skip → slow-path(프로그레스 바 + API)로 진행
+        } else {
         // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
         const hasCache = await hasHomeDataCache();
 
         if (hasCache) {
-          console.log("✅ 캐시 발견! 즉시 진입");
-          setIsReady(true);
+            console.log('✅ 캐시 발견! 즉시 진입');
+            setIsReady(true);
 
           // 백그라운드에서 모든 초기화 + 데이터 갱신 (사용자는 안 기다림)
           Promise.allSettled([
@@ -476,11 +484,12 @@ export default function App() {
                 }
               } catch (e) { }
             })(),
-          ]).then(() => console.log("✅ 백그라운드 초기화 완료"));
+          ]).then(() => console.log('✅ 백그라운드 초기화 완료'));
 
           console.log(`⏱️ 즉시 진입: ${Date.now() - startTime}ms`);
           return;
         }
+        } // end else (no OTA flag)
 
         // 🚀 2. 캐시 없음 → 프로그레스 바 표시 + 빠른 초기화
         console.log("⏳ 첫 실행, 프로그레스 바 표시...");
@@ -599,21 +608,12 @@ export default function App() {
                   isPreferred: true,
                   onPress: async () => {
                     try {
-                      // 홈 캐시 삭제 → 새 번들 로드 후 fresh 데이터 보장
                       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                      await AsyncStorage.removeItem('HOME_DATA_CACHE').catch(() => {});
-                      // Navigation 상태 초기화 후 리로드 (탭 멈춤 버그 방지)
-                      if (navigationRef.isReady()) {
-                        navigationRef.resetRoot({ index: 0, routes: [{ name: 'MainApp' }] });
-                      }
-                      // 약간의 딜레이 후 리로드 (state reset 완료 후)
-                      setTimeout(async () => {
-                        try {
-                          await Updates.reloadAsync();
-                        } catch (e) {
-                          console.log("업데이트 적용 실패:", e);
-                        }
-                      }, 300);
+                      // OTA 재시작 플래그 저장 안 죄 로드
+                      await AsyncStorage.multiRemove(['HOME_DATA_CACHE', 'OTA_JUST_APPLIED']).catch(() => {});
+                      await AsyncStorage.setItem('OTA_JUST_APPLIED', '1').catch(() => {});
+                      // resetRoot 없이 바로 reloadAsync (Android native 충돌 방지)
+                      await Updates.reloadAsync();
                     } catch (e) {
                       console.log("업데이트 적용 실패:", e);
                     }
