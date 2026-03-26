@@ -599,6 +599,9 @@ export default function App() {
                   isPreferred: true,
                   onPress: async () => {
                     try {
+                      // 홈 캐시 삭제 → 새 번들 로드 후 fresh 데이터 보장
+                      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                      await AsyncStorage.removeItem('HOME_DATA_CACHE').catch(() => {});
                       // Navigation 상태 초기화 후 리로드 (탭 멈춤 버그 방지)
                       if (navigationRef.isReady()) {
                         navigationRef.resetRoot({ index: 0, routes: [{ name: 'MainApp' }] });
