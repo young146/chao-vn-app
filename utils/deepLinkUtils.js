@@ -18,7 +18,7 @@ export const generateDeepLink = async (type, id, item) => {
   // 클린 URL — PHP가 Firestore REST API로 직접 OG 태그 세팅
   const webLink = `${WEB_BASE_URL}${type}/${id}`;
   
-  const shareMessage = generateShareMessage(type, item);
+  const shareMessage = generateShareMessage(type, item, webLink);
   
   return {
     deepLink,
@@ -28,49 +28,121 @@ export const generateDeepLink = async (type, id, item) => {
 };
 
 /**
- * 공유 메시지 생성 (간단하게)
+ * 공유 메시지 생성 (웹폼과 동일한 상세 포맷)
  */
-const generateShareMessage = (type, item) => {
-  const title = item.title || '';
-  const price = formatItemPrice(type, item);
-  
+const generateShareMessage = (type, item, webLink) => {
   switch (type) {
     case 'danggn':
-      return `🛍️ ${title}\n💰 ${price}`;
-    
+      return buildDanggnText(item, webLink);
     case 'job':
-      return `💼 ${title}\n💵 ${price}`;
-    
+      return buildJobText(item, webLink);
     case 'realestate':
-      return `🏠 ${title}\n💰 ${price}`;
-    
+      return buildRealEstateText(item, webLink);
     default:
-      return `${title}`;
+      return item.title || '';
   }
 };
 
 /**
- * 가격 포맷팅
+ * 당근/나눔 공유 텍스트 (웹폼 secondhand/index.html buildText와 동일)
  */
-const formatItemPrice = (type, item) => {
-  if (type === 'danggn') {
-    return item.price ? `${Number(item.price).toLocaleString()}đ` : '가격 문의';
+const buildDanggnText = (item, webLink) => {
+  const name = item.title || '';
+  const price = item.price ? String(item.price) : '가격 문의';
+  const cond = item.condition || '';
+  const city = item.city || '';
+  const district = item.district || '';
+  const apt = (item.apartment && item.apartment !== '기타') ? item.apartment : '';
+  const desc = item.description || '';
+  const phone = item.contact?.phone || item.phone || '';
+  const kakaoId = item.contact?.kakaoId || item.kakao || '';
+  const other = item.contact?.other || '';
+
+  const loc = [city, district, apt].filter(Boolean).join(' ');
+
+  const lines = ['🥕 씬짜오 당근 / 나눔', '━━━━━━━━━━━━━━━━━━━━'];
+  if (name) lines.push('📦 상품명: ' + name);
+  if (price) lines.push('💰 가격: ' + price);
+  if (cond) lines.push('✨ 상태: ' + cond);
+  if (loc) lines.push('📍 위치: ' + loc);
+  if (desc) { lines.push(''); lines.push('📝 설명:'); lines.push(desc); }
+  if (phone || kakaoId || other) {
+    lines.push('');
+    lines.push('📞 연락처:');
+    if (phone) lines.push('   전화/Zalo: ' + phone);
+    if (kakaoId) lines.push('   카카오톡: ' + kakaoId);
+    if (other) lines.push('   기타: ' + other);
   }
-  
-  if (type === 'job') {
-    return item.salary || '협의';
+  if (webLink) { lines.push(''); lines.push('🔗 상세 페이지 (사진 포함):'); lines.push(webLink); }
+
+  return lines.join('\n');
+};
+
+/**
+ * 구인구직 공유 텍스트
+ */
+const buildJobText = (item, webLink) => {
+  const title = item.title || item.jobTitle || '';
+  const salary = item.salary || '급여 협의';
+  const jobType = item.jobType || '';
+  const industry = item.industry || '';
+  const city = item.city || '';
+  const district = item.district || '';
+  const desc = item.description || item.desc || '';
+  const phone = item.contact?.phone || item.phone || '';
+  const kakaoId = item.contact?.kakaoId || item.kakao || '';
+
+  const loc = [city, district].filter(Boolean).join(' ');
+
+  const lines = ['💼 씬짜오 구인구직', '━━━━━━━━━━━━━━━━━━━━'];
+  if (jobType) lines.push('🔖 구분: ' + jobType);
+  if (title) lines.push('📋 제목: ' + title);
+  if (industry) lines.push('🏭 업종: ' + industry);
+  if (salary) lines.push('💵 급여: ' + salary);
+  if (loc) lines.push('📍 위치: ' + loc);
+  if (desc) { lines.push(''); lines.push('📝 설명:'); lines.push(desc); }
+  if (phone || kakaoId) {
+    lines.push('');
+    lines.push('📞 연락처:');
+    if (phone) lines.push('   전화/Zalo: ' + phone);
+    if (kakaoId) lines.push('   카카오톡: ' + kakaoId);
   }
-  
-  if (type === 'realestate') {
-    if (item.dealType === '임대') {
-      const deposit = item.deposit ? `${Number(item.deposit).toLocaleString()}đ` : '';
-      const monthly = item.monthlyRent ? `${Number(item.monthlyRent).toLocaleString()}đ/월` : '';
-      return `${deposit} / ${monthly}`;
-    }
-    return item.price ? `${Number(item.price).toLocaleString()}đ` : '가격 문의';
+  if (webLink) { lines.push(''); lines.push('🔗 상세 페이지:'); lines.push(webLink); }
+
+  return lines.join('\n');
+};
+
+/**
+ * 부동산 공유 텍스트
+ */
+const buildRealEstateText = (item, webLink) => {
+  const title = item.title || item.propName || '';
+  const dealType = item.dealType || '';
+  const price = item.price || item.propPrice || '';
+  const city = item.city || '';
+  const district = item.district || '';
+  const apt = (item.apartment && item.apartment !== '기타') ? item.apartment : '';
+  const desc = item.description || item.desc || '';
+  const phone = item.contact?.phone || item.phone || '';
+  const kakaoId = item.contact?.kakaoId || item.kakao || '';
+
+  const loc = [city, district, apt].filter(Boolean).join(' ');
+
+  const lines = ['🏠 씬짜오 부동산', '━━━━━━━━━━━━━━━━━━━━'];
+  if (dealType) lines.push('🔖 거래 유형: ' + dealType);
+  if (title) lines.push('🏡 매물명: ' + title);
+  if (price) lines.push('💰 가격: ' + String(price));
+  if (loc) lines.push('📍 위치: ' + loc);
+  if (desc) { lines.push(''); lines.push('📝 설명:'); lines.push(desc); }
+  if (phone || kakaoId) {
+    lines.push('');
+    lines.push('📞 연락처:');
+    if (phone) lines.push('   전화/Zalo: ' + phone);
+    if (kakaoId) lines.push('   카카오톡: ' + kakaoId);
   }
-  
-  return '가격 문의';
+  if (webLink) { lines.push(''); lines.push('🔗 상세 페이지:'); lines.push(webLink); }
+
+  return lines.join('\n');
 };
 
 /**
@@ -81,7 +153,7 @@ const formatItemPrice = (type, item) => {
  * @param {string} platform - 'kakao' | 'facebook' | 'zalo' | 'more'
  */
 export const shareItem = async (type, id, item, platform = 'more') => {
-  const { webLink, shareMessage } = await generateDeepLink(type, id, item);  // await 추가!
+  const { webLink, shareMessage } = await generateDeepLink(type, id, item);
   
   const { shareToSNS } = require('../services/shareService');
   

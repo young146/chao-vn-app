@@ -17,9 +17,8 @@ export const shareToSNS = async (platform, title, message, url) => {
             case 'kakao':
                 const canOpenKakao = await Linking.canOpenURL('kakaolink://');
                 if (canOpenKakao) {
-                    const shareOptions = Platform.OS === 'ios'
-                        ? { url: url, title: title }
-                        : { message: `${message}\n\n상세히 보기 👉 ${url}` };
+                    // message에 이미 🔗 링크가 포함되어 있으므로 URL 중복 없이 그대로 전달
+                    const shareOptions = { message };
                     await Share.share(shareOptions);
                 } else {
                     return { success: false, error: 'kakao_not_installed' };
