@@ -568,14 +568,6 @@ export default function ItemDetailScreen({ route, navigation }) {
                   ))}
                 </View>
               )}
-
-              {/* 🔍 이미지 확대 뷰어 */}
-              <ImageViewing
-                images={images.map((uri) => ({ uri }))}
-                imageIndex={currentImageIndex}
-                visible={isImageViewVisible}
-                onRequestClose={() => setIsImageViewVisible(false)}
-              />
             </>
           ) : (
             <View style={styles.noImageContainer}>
@@ -940,6 +932,16 @@ export default function ItemDetailScreen({ route, navigation }) {
         onClose={() => setShowPopup(false)}
         screen="danggn"
         autoCloseSeconds={10}
+      />
+
+      {/* 🔍 전체화면 이미지 뷰어 (최상위 레벨 - 전체화면 보장) */}
+      <ImageViewing
+        images={images.map((uri) => ({ uri }))}
+        imageIndex={currentImageIndex}
+        visible={isImageViewVisible}
+        onRequestClose={() => setIsImageViewVisible(false)}
+        swipeToCloseEnabled={true}
+        doubleTapToZoomEnabled={true}
       />
     </View>
   );
