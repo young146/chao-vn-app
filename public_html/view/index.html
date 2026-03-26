@@ -125,6 +125,14 @@
             aspect-ratio: 4/3;
             object-fit: cover;
             display: block;
+            transition: opacity 0.2s ease;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .img-gallery {
+            touch-action: pan-y;
+            overflow: hidden;
         }
 
         .img-thumbs {
@@ -901,24 +909,93 @@
             return { label: '🥕 당근 / 나눔', cls: 'cat-secondhand' };
         }
 
+        // 갤러리 전역 상태
+        var allImages = [];
+        var currentImageIndex = 0;
+
         function renderGallery(images) {
             if (!images || images.length === 0) return '';
+            allImages = images;
+            currentImageIndex = 0;
             var thumbs = images.map(function (url, i) {
                 return '<button class="img-thumb-btn ' + (i === 0 ? 'active' : '') + '" onclick="switchImg(this,\'' + url + '\')" data-idx="' + i + '">' +
                     '<img src="' + url + '" loading="lazy"></button>';
             }).join('');
-            return '<div class="img-gallery">' +
+            return '<div class="img-gallery" id="img-gallery">' +
                 '<img class="img-main" id="img-main" src="' + images[0] + '" alt="상품 이미지">' +
-                '<div class="img-count">📷 ' + images.length + '</div>' +
+                '<div class="img-count" id="img-count">📷 1 / ' + images.length + '</div>' +
                 (images.length > 1 ? '<div class="img-thumbs">' + thumbs + '</div>' : '') +
                 '</div>';
         }
 
+        // 특정 인덱스 이미지로 이동
+        function goToImage(idx) {
+            if (idx < 0 || idx >= allImages.length) return;
+            currentImageIndex = idx;
+            var mainImg = document.getElementById('img-main');
+            mainImg.style.opacity = '0.5';
+            setTimeout(function () {
+                mainImg.src = allImages[idx];
+                mainImg.style.opacity = '1';
+            }, 100);
+            // 카운터 업데이트
+            var counter = document.getElementById('img-count');
+            if (counter) counter.textContent = '📷 ' + (idx + 1) + ' / ' + allImages.length;
+            // 미리보기 버튼 활성 상태 동기화
+            document.querySelectorAll('.img-thumb-btn').forEach(function (b) {
+                b.classList.toggle('active', parseInt(b.dataset.idx) === idx);
+            });
+            // 활성 미리보기를 스크롤 뷰로 이동
+            var activeThumb = document.querySelector('.img-thumb-btn.active');
+            if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
         window.switchImg = function (btn, url) {
-            document.getElementById('img-main').src = url;
-            document.querySelectorAll('.img-thumb-btn').forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
+            var idx = parseInt(btn.dataset.idx) || 0;
+            goToImage(idx);
         };
+
+        // 터치 스와이프 이벤트 바인딩
+        function initGallerySwipe() {
+            var gallery = document.getElementById('img-gallery');
+            if (!gallery || allImages.length <= 1) return;
+
+            var startX = 0;
+            var startY = 0;
+            var isSwiping = false;
+
+            gallery.addEventListener('touchstart', function (e) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                isSwiping = false;
+            }, { passive: true });
+
+            gallery.addEventListener('touchmove', function (e) {
+                if (!startX) return;
+                var dx = e.touches[0].clientX - startX;
+                var dy = e.touches[0].clientY - startY;
+                // 수평 이동이 수직보다 크면 스와이프로 판단
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 15) {
+                    isSwiping = true;
+                    e.preventDefault(); // 수평 스와이프 시 스크롤 방지
+                }
+            }, { passive: false });
+
+            gallery.addEventListener('touchend', function (e) {
+                if (!isSwiping) return;
+                var endX = e.changedTouches[0].clientX;
+                var diff = endX - startX;
+                if (Math.abs(diff) > 50) {
+                    if (diff < 0 && currentImageIndex < allImages.length - 1) {
+                        goToImage(currentImageIndex + 1); // 왼쪽 스와이프 → 다음
+                    } else if (diff > 0 && currentImageIndex > 0) {
+                        goToImage(currentImageIndex - 1); // 오른쪽 스와이프 → 이전
+                    }
+                }
+                startX = 0;
+                isSwiping = false;
+            }, { passive: true });
+        }
 
         function renderItem(data) {
             var cat = categoryInfo(data);
@@ -982,6 +1059,9 @@
 
             // 하단 CTA 버튼 표시
             document.getElementById('app-cta-bar').classList.add('show');
+
+            // 갤러리 스와이프 이벤트 바인딩
+            initGallerySwipe();
         }
 
         // ── 홍보 섹션 렌더 (기존 renderItem 로직과 완전 분리) ──

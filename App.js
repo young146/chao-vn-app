@@ -451,8 +451,9 @@ export default function App() {
         // 🚀 1. OTA 직후 재시작 여부 확인 (캐시보다 먼저)
         const otaFlag = await AsyncStorage.getItem('OTA_JUST_APPLIED').catch(() => null);
         if (otaFlag) {
-          await AsyncStorage.removeItem('OTA_JUST_APPLIED').catch(() => {});
-          console.log('🔄 OTA 직후 재시작 - 캐시 우회, 새 데이터 로드');
+          // OTA 플래그 + 캐시 동시 삭제 → 새 데이터 로드 강제
+          await AsyncStorage.multiRemove(['OTA_JUST_APPLIED', 'HOME_DATA_CACHE']).catch(() => {});
+          console.log('🔄 OTA 직후 재시작 - 캐시 삭제 완료, 새 데이터 로드');
           // hasCache 블록 전체 skip → slow-path(프로그레스 바 + API)로 진행
         } else {
         // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
@@ -608,11 +609,16 @@ export default function App() {
                   onPress: async () => {
                     try {
                       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                      // OTA 재시작 플래그 저장 안 죄 로드
-                      await AsyncStorage.multiRemove(['HOME_DATA_CACHE', 'OTA_JUST_APPLIED']).catch(() => {});
-                      await AsyncStorage.setItem('OTA_JUST_APPLIED', '1').catch(() => {});
-                      // resetRoot 없이 바로 reloadAsync (Android native 충돌 방지)
-                      await Updates.reloadAsync();
+                      // OTA 플래그만 저장 (캐시 삭제는 재시작 후 처리)
+                      await AsyncStorage.setItem('OTA_JUST_APPLIED', '1');
+                      // AsyncStorage 쓰기 완료 보장 후 재시작
+                      setTimeout(async () => {
+                        try {
+                          await Updates.reloadAsync();
+                        } catch (e2) {
+                          console.log('reloadAsync 실패:', e2);
+                        }
+                      }, 100);
                     } catch (e) {
                       console.log("업데이트 적용 실패:", e);
                     }
