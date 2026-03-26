@@ -572,7 +572,7 @@ export default function App() {
         updatesCheckedRef.current = true;
 
         try {
-          console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작...");
+          console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작... (v2.2.4-freeze-fix)");
 
           // 타임아웃과 함께 안전하게 체크
           const update = await Promise.race([
