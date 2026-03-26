@@ -15,8 +15,16 @@ const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
 export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
   
-  // 클린 URL — PHP가 Firestore REST API로 직접 OG 태그 세팅
-  const webLink = `${WEB_BASE_URL}${type}/${id}`;
+  // 쿼리 파라미터로 이미지/제목/가격 전달 → PHP OG 태그 즉시 세팅 (Firestore REST API 불필요)
+  const firstImage = (item.images && item.images[0]) || (item.imageUrls && item.imageUrls[0]) || '';
+  const itemTitle = item.title || item.itemName || item.propName || item.jobTitle || '';
+  const itemPrice = item.price || item.propPrice || item.salary || '';
+  const params = new URLSearchParams();
+  if (itemTitle) params.set('t', itemTitle);
+  if (firstImage) params.set('img', firstImage);
+  if (itemPrice) params.set('p', String(itemPrice));
+  const qs = params.toString();
+  const webLink = `${WEB_BASE_URL}${type}/${id}${qs ? '?' + qs : ''}`;
   
   const shareMessage = generateShareMessage(type, item, webLink);
   
