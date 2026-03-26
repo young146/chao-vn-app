@@ -611,14 +611,15 @@ export default function App() {
                       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
                       // OTA 플래그만 저장 (캐시 삭제는 재시작 후 처리)
                       await AsyncStorage.setItem('OTA_JUST_APPLIED', '1');
-                      // AsyncStorage 쓰기 완료 보장 후 재시작
-                      setTimeout(async () => {
-                        try {
-                          await Updates.reloadAsync();
-                        } catch (e2) {
-                          console.log('reloadAsync 실패:', e2);
-                        }
-                      }, 100);
+                      if (Platform.OS === 'ios') {
+                        // iOS: setTimeout 없이 바로 reloadAsync (JS 런타임 충돌 방지)
+                        await Updates.reloadAsync();
+                      } else {
+                        // Android: AsyncStorage 쓰기 완료 보장 후 재시작
+                        setTimeout(async () => {
+                          try { await Updates.reloadAsync(); } catch (e2) {}
+                        }, 100);
+                      }
                     } catch (e) {
                       console.log("업데이트 적용 실패:", e);
                     }

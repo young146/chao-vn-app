@@ -65,7 +65,7 @@ const buildDanggnText = (item, webLink) => {
   if (price) lines.push('💰 가격: ' + price);
   if (cond) lines.push('✨ 상태: ' + cond);
   if (loc) lines.push('📍 위치: ' + loc);
-  if (desc) { lines.push(''); lines.push('📝 설명:'); lines.push(desc); }
+  if (desc) { var shortDesc = desc.length > 200 ? desc.substring(0, 200) + '...' : desc; lines.push(''); lines.push('📝 설명:'); lines.push(shortDesc); }
   if (phone || kakaoId || other) {
     lines.push('');
     lines.push('📞 연락처:');
@@ -100,7 +100,7 @@ const buildJobText = (item, webLink) => {
   if (industry) lines.push('🏭 업종: ' + industry);
   if (salary) lines.push('💵 급여: ' + salary);
   if (loc) lines.push('📍 위치: ' + loc);
-  if (desc) { lines.push(''); lines.push('📝 설명:'); lines.push(desc); }
+  if (desc) { var shortDesc = desc.length > 200 ? desc.substring(0, 200) + '...' : desc; lines.push(''); lines.push('📝 설명:'); lines.push(shortDesc); }
   if (phone || kakaoId) {
     lines.push('');
     lines.push('📞 연락처:');
@@ -133,7 +133,7 @@ const buildRealEstateText = (item, webLink) => {
   if (title) lines.push('🏡 매물명: ' + title);
   if (price) lines.push('💰 가격: ' + String(price));
   if (loc) lines.push('📍 위치: ' + loc);
-  if (desc) { lines.push(''); lines.push('📝 설명:'); lines.push(desc); }
+  if (desc) { var shortDesc = desc.length > 200 ? desc.substring(0, 200) + '...' : desc; lines.push(''); lines.push('📝 설명:'); lines.push(shortDesc); }
   if (phone || kakaoId) {
     lines.push('');
     lines.push('📞 연락처:');
