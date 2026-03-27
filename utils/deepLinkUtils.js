@@ -15,16 +15,8 @@ const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
 export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
   
-  // 쿼리 파라미터로 이미지/제목/가격 전달 → PHP OG 태그 즉시 세팅 (Firestore REST API 불필요)
-  const firstImage = (item.images && item.images[0]) || (item.imageUrls && item.imageUrls[0]) || '';
-  const itemTitle = item.title || item.itemName || item.propName || item.jobTitle || '';
-  const itemPrice = item.price || item.propPrice || item.salary || '';
-  const params = new URLSearchParams();
-  if (itemTitle) params.set('t', itemTitle);
-  if (firstImage) params.set('img', firstImage);
-  if (itemPrice) params.set('p', String(itemPrice));
-  const qs = params.toString();
-  const webLink = `${WEB_BASE_URL}${type}/${id}${qs ? '?' + qs : ''}`;
+  // 클린 URL — 카카오톡 미리보기 카드가 예쁘게 생성되도록 깔끔한 원래 주소로 원복
+  const webLink = `${WEB_BASE_URL}${type}/${id}`;
   
   const shareMessage = generateShareMessage(type, item, webLink);
   
