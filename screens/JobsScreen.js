@@ -55,7 +55,8 @@ const SearchBar = memo(({ value, onChangeText, placeholder }) => (
 // Jobs 카드 컴포넌트
 const JobCard = memo(({ item, onPress, index, t }) => {
   const status = item.status || t('recruiting');
-  const originalImage = item.images?.[0];
+  const DEFAULT_JOB_IMAGE = 'https://chaovietnam.co.kr/assets/og_jobs_v2.png';
+  const originalImage = item.images?.[0] || DEFAULT_JOB_IMAGE;
 
   const getStatusColor = (status) => {
     switch (status) {
