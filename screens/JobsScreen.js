@@ -55,7 +55,7 @@ const SearchBar = memo(({ value, onChangeText, placeholder }) => (
 // Jobs 카드 컴포넌트
 const JobCard = memo(({ item, onPress, index, t }) => {
   const status = item.status || t('recruiting');
-  const originalImage = item.images?.[0] || null;
+  const originalImage = item.images?.[0] || item.imageUrls?.[0] || null;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -287,11 +287,15 @@ export default function JobsScreen({ navigation }) {
       ]);
 
       // Jobs 컬렉션 데이터
-      const fetchedJobs = jobsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
-      }));
+      const fetchedJobs = jobsSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          images: (data.images?.length > 0 ? data.images : null) || (data.imageUrls?.length > 0 ? data.imageUrls : null) || [],
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        };
+      });
 
       // candidates 컬렉션 데이터 정규화 (첫 페이지만)
       const fetchedCandidates = candidatesSnapshot

@@ -229,7 +229,7 @@ export default function JobDetailScreen({ route, navigation }) {
   }
 
   // ── job 확정 후 사용되는 변수들 ──
-  const images = job.images || [];
+  const images = (job.images?.length > 0 ? job.images : null) || (job.imageUrls?.length > 0 ? job.imageUrls : null) || [];
   const canEdit = !!(isMyJob || isAdmin());
 
   const formatDate = (timestamp) => {
