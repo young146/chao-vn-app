@@ -722,6 +722,11 @@ export default function App() {
               screens: {
                 MainApp: {
                   screens: {
+                    '뉴스': {
+                      screens: {
+                        '뉴스메인': 'daily-news-terminal',
+                      },
+                    },
                     '당근/나눔': {
                       screens: {
                         '당근/나눔 상세': 'danggn/:id',
@@ -755,6 +760,17 @@ export default function App() {
 
               // 실패 시 수동으로 파싱 → 직접 state 생성
               console.log('⚠️ defaultGetStateFromPath 실패 → 수동 파싱 시도');
+              // 📰 뉴스 터미널 URL → 뉴스 탭 메인으로 이동
+              if (/^daily-news-terminal/.test(cleanPath)) {
+                console.log('📰 뉴스 탭 딥링크 → 뉴스메인 이동');
+                return {
+                  routes: [{
+                    name: 'MainApp',
+                    state: { routes: [{ name: '뉴스', state: { routes: [{ name: '뉴스메인' }] } }] },
+                  }],
+                };
+              }
+
               // 🏷️ 탭전용 경로: /tab/danggn 또는 /danggn (ID없음) → 탭 메인
               const tabOnlyMatch = cleanPath.match(/^(?:tab\/)?(danggn|job|realestate)$/);
               if (tabOnlyMatch) {
