@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions, Animated } from "react-native";
-import { VideoView, useVideoPlayer } from "expo-video";
+let VideoView = () => null;
+let useVideoPlayer = () => null;
+try {
+  const expoVideo = require('expo-video');
+  VideoView = expoVideo.VideoView;
+  useVideoPlayer = expoVideo.useVideoPlayer;
+} catch (e) {
+  console.log('⚠️ expo-video 네이티브 모듈 없음 - 영상 광고 비활성화');
+}
 import axios from "axios";
 
 // ============================================

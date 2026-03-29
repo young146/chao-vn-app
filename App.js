@@ -266,8 +266,21 @@ function AdInquiryHeaderButton({ color = "#fff" }) {
   );
 }
 
-// 사용자 아바타 + 더보기 메뉴 버튼 (헤더 우측)
-function UserMenuButton({ navigation }) {
+// 햄버거 메뉴 버튼 (헤더 좌측)
+function HamburgerMenuButton({ navigation }) {
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("메뉴")}
+      style={{ marginLeft: 12, padding: 4 }}
+      activeOpacity={0.75}
+    >
+      <Ionicons name="menu" size={26} color="#fff" />
+    </TouchableOpacity>
+  );
+}
+
+// 사용자 아바타 버튼 (헤더 우측)
+function UserAvatarButton({ navigation }) {
   const { user } = useAuth();
   const [avatar, setAvatar] = React.useState(null);
 
@@ -286,23 +299,17 @@ function UserMenuButton({ navigation }) {
     } catch (e) {}
   }, [user?.uid]);
 
+  if (!avatar) return null;
+
   return (
     <TouchableOpacity
       onPress={() => navigation.navigate("메뉴")}
-      style={{ marginRight: 12, flexDirection: "row", alignItems: "center" }}
+      style={{ marginRight: 8 }}
       activeOpacity={0.75}
     >
-      {avatar ? (
-        <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "rgba(255,255,255,0.8)", overflow: "hidden" }}>
-          <RNImage
-            source={{ uri: avatar }}
-            style={{ width: 24, height: 24, borderRadius: 12 }}
-          />
-        </View>
-      ) : (
-        <Ionicons name="menu" size={22} color="#fff" />
-      )}
-      <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700", marginLeft: 4 }}>더보기</Text>
+      <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "rgba(255,255,255,0.8)", overflow: "hidden" }}>
+        <RNImage source={{ uri: avatar }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -845,29 +852,32 @@ function HomeStack() {
         options={({ navigation }) => ({
           title: "",
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("홈메인", {
-                  type: "home",
-                  categoryId: null,
-                  resetSearch: Date.now(),
-                })
-              }
-              activeOpacity={0.7}
-              style={{ marginLeft: 16 }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                {t('home:title')}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("홈메인", {
+                    type: "home",
+                    categoryId: null,
+                    resetSearch: Date.now(),
+                  })
+                }
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  {t('home:title')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: ({ navigation: nav }) => (
+          headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <UserMenuButton navigation={navigation} />
+              <UserAvatarButton navigation={navigation} />
             </View>
           ),
         })}
@@ -896,29 +906,32 @@ function NewsStack() {
         options={({ navigation }) => ({
           title: "",
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("뉴스메인", {
-                  type: "news",
-                  categoryId: 31,
-                  resetSearch: Date.now(),
-                })
-              }
-              activeOpacity={0.7}
-              style={{ marginLeft: 16 }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                {t('home:newsTitle')}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("뉴스메인", {
+                    type: "news",
+                    categoryId: 31,
+                    resetSearch: Date.now(),
+                  })
+                }
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  {t('home:newsTitle')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: ({ navigation: nav }) => (
+          headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <UserMenuButton navigation={navigation} />
+              <UserAvatarButton navigation={navigation} />
             </View>
           ),
         })}
@@ -946,23 +959,26 @@ function JobsStack() {
         options={({ navigation }) => ({
           title: "",
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("구인구직 메인")}
-              activeOpacity={0.7}
-              style={{ marginLeft: 16 }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                {t('jobs:title')}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("구인구직 메인")}
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  {t('jobs:title')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ),
           headerStyle: { backgroundColor: "#2196F3", height: 70 },
           headerTintColor: "#fff",
-          headerRight: ({ navigation: nav }) => (
+          headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <UserMenuButton navigation={navigation} />
+              <UserAvatarButton navigation={navigation} />
             </View>
           ),
         })}
@@ -1017,23 +1033,26 @@ function RealEstateStack() {
         options={({ navigation }) => ({
           title: "",
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("부동산 메인")}
-              activeOpacity={0.7}
-              style={{ marginLeft: 16 }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                {t('realEstate:title')}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("부동산 메인")}
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  {t('realEstate:title')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ),
           headerStyle: { backgroundColor: "#E91E63", height: 70 },
           headerTintColor: "#fff",
-          headerRight: ({ navigation: nav }) => (
+          headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <UserMenuButton navigation={navigation} />
+              <UserAvatarButton navigation={navigation} />
             </View>
           ),
         })}
@@ -1079,23 +1098,26 @@ function DanggnStack() {
         options={({ navigation }) => ({
           title: "",
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("당근/나눔 메인")}
-              activeOpacity={0.7}
-              style={{ marginLeft: 16 }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
-                {t('danggn:title')}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("당근/나눔 메인")}
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  {t('danggn:title')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ),
           headerStyle: { backgroundColor: "#FF6B35", height: 70 },
           headerTintColor: "#fff",
-          headerRight: ({ navigation: nav }) => (
+          headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <AdInquiryHeaderButton />
               <LanguageSwitcher />
-              <UserMenuButton navigation={navigation} />
+              <UserAvatarButton navigation={navigation} />
             </View>
           ),
         })}
@@ -1292,23 +1314,6 @@ function MenuStack() {
   );
 }
 
-function DanggnHeaderRight({ navigation }) {
-  const { t } = useTranslation('common');
-  return (
-    <View
-      style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}
-    >
-      <LanguageSwitcher />
-      <TouchableOpacity
-        style={{ padding: 8, alignItems: "center" }}
-        onPress={() => navigation.navigate("메뉴")}
-      >
-        <Ionicons name="menu" size={22} color="#fff" />
-        <Text style={{ color: "#fff", fontSize: 9 }}>{t('more')}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
