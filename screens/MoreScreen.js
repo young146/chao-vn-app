@@ -7,8 +7,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Platform,
-  Modal,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES, changeLanguage } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
 import * as Updates from "expo-updates";
+import RNRestart from "react-native-restart";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 
@@ -25,7 +24,6 @@ export default function MoreScreen({ navigation }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [isReloading, setIsReloading] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [displayName, setDisplayName] = useState(null);
   const [displayEmail, setDisplayEmail] = useState(null);
@@ -81,15 +79,7 @@ export default function MoreScreen({ navigation }) {
             { text: t('common:later'), style: "cancel" },
             {
               text: t('restartNow'),
-              onPress: () => {
-                setIsReloading(true);
-                const delay = Platform.OS === 'android' ? 800 : 100;
-                setTimeout(async () => {
-                  try { await Updates.reloadAsync(); } catch (e) {
-                    setIsReloading(false);
-                  }
-                }, delay);
-              },
+              onPress: () => RNRestart.Restart(),
             },
           ]
         );
@@ -169,7 +159,6 @@ export default function MoreScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
     <ScrollView style={styles.container}>
       {/* 사용자 정보 - 누르면 프로필로 이동 */}
       <TouchableOpacity
@@ -342,56 +331,8 @@ export default function MoreScreen({ navigation }) {
         )}
       </View>
     </ScrollView>
-
-    {/* 🔄 OTA 업데이트 적용 중 로딩 오버레이 */}
-    <Modal
-      visible={isReloading}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-    >
-      <View style={reloadStyles.overlay}>
-        <View style={reloadStyles.box}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={reloadStyles.title}>업데이트 적용 중</Text>
-          <Text style={reloadStyles.sub}>잠시 후 앱이 재시작됩니다</Text>
-        </View>
-      </View>
-    </Modal>
-    </View>
   );
 }
-
-const reloadStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  box: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingVertical: 32,
-    paddingHorizontal: 40,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  title: {
-    marginTop: 16,
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#111',
-  },
-  sub: {
-    marginTop: 6,
-    fontSize: 13,
-    color: '#666',
-  },
-});
 
 const styles = StyleSheet.create({
   container: {
