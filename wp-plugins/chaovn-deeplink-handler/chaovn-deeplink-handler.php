@@ -351,19 +351,22 @@ add_action('wp_footer', function () {
             ? '<?php echo esc_js($app_store_url); ?>'
             : '<?php echo esc_js($play_store_url); ?>';
 
-        // 앱 열기 시도 (즉시)
+        var alreadyFailed = new URLSearchParams(window.location.search).has('noapp');
+
+        // 앱 열기 시도 (즉시) — noapp 파라미터가 있으면 건너뜀 (무한 루프 방지)
         function tryOpenApp() {
+            if (alreadyFailed) return;
             if (isAndroid) {
-                // intent:// 방식: 앱 있으면 앱으로, 없으면 아무 일도 없음 (다이얼로그 없이)
-                window.location.href = 'intent://<?php echo esc_js(CHAOVN_NEWS_TERMINAL_SLUG); ?>#Intent;scheme=chaovietnam;package=<?php echo esc_js(CHAOVN_ANDROID_PACKAGE); ?>;S.browser_fallback_url=' + encodeURIComponent(window.location.href) + ';end';
+                var fallback = window.location.href + (window.location.search ? '&' : '?') + 'noapp=1';
+                window.location.href = 'intent://<?php echo esc_js(CHAOVN_NEWS_TERMINAL_SLUG); ?>#Intent;scheme=chaovietnam;package=<?php echo esc_js(CHAOVN_ANDROID_PACKAGE); ?>;S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
             } else {
-                // iOS: Universal Links 설정 시 이 라인 자체 없어도 앱이 열림
                 window.location.href = '<?php echo esc_js($app_scheme); ?>';
             }
         }
 
-        // 팝업 열기
+        // 팝업 열기 (이미 거절한 경우 표시하지 않음)
         function openPopup() {
+            if (sessionStorage.getItem('chaovn_popup_dismissed')) return;
             var el = document.getElementById('chaovn-overlay');
             if (el) el.classList.add('chaovn-show');
         }
@@ -373,13 +376,14 @@ add_action('wp_footer', function () {
             tryOpenApp();
             setTimeout(function () {
                 if (!document.hidden) openPopup();
-            }, 1500);
+            }, alreadyFailed ? 500 : 1500);
         });
     })();
 
     function chaovnClose() {
         var el = document.getElementById('chaovn-overlay');
         if (el) el.classList.remove('chaovn-show');
+        try { sessionStorage.setItem('chaovn_popup_dismissed', '1'); } catch(e) {}
     }
 
     function chaovnHandleOverlay(e) {
@@ -498,18 +502,20 @@ function chaovn_render_share_page($type, $id)
             var storeUrl  = isIOS ? '<?php echo esc_js($appstore_url); ?>' : '<?php echo esc_js($play_url); ?>';
 
             document.getElementById('install-btn').href = storeUrl;
+            var alreadyFailed = new URLSearchParams(window.location.search).has('noapp');
 
             function openApp() {
+                if (alreadyFailed) return;
                 if (isAndroid) {
+                    var fallback = window.location.href + (window.location.search ? '&' : '?') + 'noapp=1';
                     var intent = '<?php echo esc_js($app_scheme); ?>'.replace('chaovietnam://', 'intent://');
-                    intent += '#Intent;scheme=chaovietnam;package=<?php echo esc_js($android_pkg); ?>;S.browser_fallback_url=' + encodeURIComponent(window.location.href) + ';end';
+                    intent += '#Intent;scheme=chaovietnam;package=<?php echo esc_js($android_pkg); ?>;S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
                     window.location.href = intent;
                 } else {
                     window.location.href = '<?php echo esc_js($app_scheme); ?>';
                 }
             }
 
-            // 페이지 HTML 파싱 즉시 앱 열기 시도 (이미지/CSS 기다리지 않음)
             document.addEventListener('DOMContentLoaded', function(){
                 openApp();
                 setTimeout(function(){
@@ -518,7 +524,7 @@ function chaovn_render_share_page($type, $id)
                         document.getElementById('msg').textContent = '앱이 설치되어 있지 않은 것 같습니다.';
                         document.getElementById('install-section').style.display = 'block';
                     }
-                }, 1500);
+                }, alreadyFailed ? 500 : 1500);
             });
         })();
         </script>
