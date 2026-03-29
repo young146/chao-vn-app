@@ -1,5 +1,5 @@
 import "react-native-gesture-handler";
-import { LogBox, Platform, Alert, Image as RNImage, View, Text, ActivityIndicator, StyleSheet, Modal } from "react-native";
+import { LogBox, Platform, Alert, Image as RNImage } from "react-native";
 
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
@@ -124,6 +124,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from 'expo-linking';
