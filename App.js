@@ -1,5 +1,5 @@
 import "react-native-gesture-handler";
-import { LogBox, Platform, Alert, Image as RNImage } from "react-native";
+import { LogBox, Platform, Alert, Image as RNImage, View, Text, ActivityIndicator, StyleSheet, Modal } from "react-native";
 
 // i18n 초기화 (앱 시작 시 바로 실행)
 import './i18n';
@@ -319,6 +319,7 @@ export default function App() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [showLanguageSelect, setShowLanguageSelect] = useState(false);
   const [showStartupPopup, setShowStartupPopup] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
   const deepLinkHandledRef = useRef(false); // 중복 처리 방지
@@ -616,19 +617,25 @@ export default function App() {
                   onPress: async () => {
                     try {
                       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                      // OTA 플래그만 저장 (캐시 삭제는 재시작 후 처리)
                       await AsyncStorage.setItem('OTA_JUST_APPLIED', '1');
+                      // 로딩 오버레이 표시 - 사용자 터치 완전 차단
+                      setIsReloading(true);
                       if (Platform.OS === 'ios') {
-                        // iOS: setTimeout 없이 바로 reloadAsync (JS 런타임 충돌 방지)
-                        await Updates.reloadAsync();
-                      } else {
-                        // Android: AsyncStorage 쓰기 완료 보장 후 재시작
+                        // iOS: 짧은 딜레이 후 재로드 (오버레이 렌더링 완료 후)
                         setTimeout(async () => {
                           try { await Updates.reloadAsync(); } catch (e2) {}
                         }, 100);
+                      } else {
+                        // Android: Firebase 리스너 정리 시간 확보 후 재로드
+                        setTimeout(async () => {
+                          try { await Updates.reloadAsync(); } catch (e2) {
+                            setIsReloading(false);
+                          }
+                        }, 800);
                       }
                     } catch (e) {
                       console.log("업데이트 적용 실패:", e);
+                      setIsReloading(false);
                     }
                   }
                 }
@@ -829,10 +836,57 @@ export default function App() {
           screen="startup"
           autoCloseSeconds={10}
         />
+
+        {/* 🔄 OTA 업데이트 적용 중 로딩 오버레이 (터치 완전 차단) */}
+        <Modal
+          visible={isReloading}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+        >
+          <View style={otaStyles.overlay}>
+            <View style={otaStyles.box}>
+              <ActivityIndicator size="large" color="#FF6B35" />
+              <Text style={otaStyles.title}>업데이트 적용 중</Text>
+              <Text style={otaStyles.sub}>잠시 후 앱이 재시작됩니다</Text>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaProvider>
     </AuthProvider>
   );
 }
+
+const otaStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  box: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 32,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  title: {
+    marginTop: 16,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111',
+  },
+  sub: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#666',
+  },
+});
 
 // 스택 및 탭 정의
 const Stack = createNativeStackNavigator();
