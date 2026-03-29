@@ -55,8 +55,7 @@ const SearchBar = memo(({ value, onChangeText, placeholder }) => (
 // Jobs 카드 컴포넌트
 const JobCard = memo(({ item, onPress, index, t }) => {
   const status = item.status || t('recruiting');
-  const DEFAULT_JOB_IMAGE = 'https://chaovietnam.co.kr/assets/og_jobs_v2.png';
-  const originalImage = item.images?.[0] || DEFAULT_JOB_IMAGE;
+  const originalImage = item.images?.[0] || null;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -97,9 +96,11 @@ const JobCard = memo(({ item, onPress, index, t }) => {
             priority={index < 4 ? "high" : "normal"}
           />
         ) : (
-          <View style={styles.noImagePlaceholder}>
-            <Ionicons name="briefcase-outline" size={40} color="#ccc" />
-          </View>
+          <Image
+            source={require('../assets/og_jobs_seeker.png')}
+            style={styles.jobImage}
+            contentFit="cover"
+          />
         )}
         {/* 상태 배지 */}
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>

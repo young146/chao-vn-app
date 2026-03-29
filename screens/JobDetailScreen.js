@@ -229,8 +229,7 @@ export default function JobDetailScreen({ route, navigation }) {
   }
 
   // ── job 확정 후 사용되는 변수들 ──
-  const DEFAULT_JOB_IMAGE = 'https://chaovietnam.co.kr/assets/og_jobs_v2.png';
-  const images = (job.images && job.images.length > 0) ? job.images : [DEFAULT_JOB_IMAGE];
+  const images = job.images || [];
   const canEdit = !!(isMyJob || isAdmin());
 
   const formatDate = (timestamp) => {
@@ -406,10 +405,11 @@ export default function JobDetailScreen({ route, navigation }) {
             />
           </View>
         ) : (
-          <View style={styles.noImageContainer}>
-            <Ionicons name="briefcase-outline" size={80} color="#ddd" />
-            <Text style={styles.noImageText}>{t('detail.noImage')}</Text>
-          </View>
+          <Image
+            source={require('../assets/og_jobs_seeker.png')}
+            style={{ width: '100%', height: 220 }}
+            contentFit="cover"
+          />
         )}
 
         {/* 광고 배너 */}
