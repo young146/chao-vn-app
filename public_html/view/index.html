@@ -499,6 +499,19 @@
             flex-shrink: 0;
         }
 
+        .btn-web-dismiss {
+            display: block;
+            width: 100%;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 13px;
+            padding: 10px 0 2px;
+            cursor: pointer;
+            font-family: inherit;
+            text-decoration: underline;
+        }
+
         /* 앱 열기 중 오버레이 */
         .open-overlay {
             display: none;
@@ -879,6 +892,7 @@
                     onclick="(function(){var ua=navigator.userAgent;if(/iPhone|iPad|iPod/.test(ua)){location.href='kakaoweb://closeBrowser';}else{location.href='kakaotalk://inappbrowser/close';}})()">↩
                     카카오톡<br>으로</button>
             </div>
+            <button class="btn-web-dismiss" onclick="dismissCta()">웹으로 그냥 보기</button>
         </div>
     </div>
 
