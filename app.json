@@ -79,7 +79,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.chaovnapp",
-      "versionCode": 100,
+      "versionCode": 101,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -89,6 +89,7 @@
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "softwareKeyboardLayoutMode": "pan",
+      "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {

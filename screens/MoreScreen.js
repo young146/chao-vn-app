@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES, changeLanguage } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
 import * as Updates from "expo-updates";
+import Constants from "expo-constants";
 import RNRestart from "react-native-restart";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -318,8 +319,7 @@ export default function MoreScreen({ navigation }) {
 
       {/* 앱 정보 */}
       <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>{t('appVersion')}</Text>
-        <Text style={styles.appInfoText}>{t('appDescription')}</Text>
+        <Text style={styles.appInfoText}>{t('appVersion', { version: Constants.expoConfig?.version || '2.2.5' })}</Text>
         {__DEV__ ? (
           <Text style={[styles.appInfoText, { color: "#FF6B35" }]}>
             {t('devMode')}
