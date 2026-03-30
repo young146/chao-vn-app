@@ -3,7 +3,7 @@
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
     "owner": "young146",
-    "version": "2.2.4",
+    "version": "2.2.5",
     "newArchEnabled": false,
     "scheme": "chaovietnam",
     "orientation": "portrait",
@@ -177,7 +177,7 @@
         }
       ]
     ],
-    "runtimeVersion": "2.2.4",
+    "runtimeVersion": "2.2.5",
     "updates": {
       "url": "https://u.expo.dev/9b58881f-f09a-4042-acc3-a8593658c231",
       "checkAutomatically": "ON_LOAD",
