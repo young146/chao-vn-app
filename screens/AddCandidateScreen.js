@@ -22,7 +22,11 @@ import {
   doc,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, storage } from "../firebase/config";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { Image } from "expo-image";
 
 // ─── 선택 옵션들 ─────────────────────────────────────────────────
 const NATIONALITIES_KO = ["대한민국", "베트남", "기타"];
@@ -233,6 +237,7 @@ export default function AddCandidateScreen({ navigation, route }) {
 
   const [description, setDescription] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   // 수정 모드: 기존 데이터 로드
@@ -260,8 +265,63 @@ export default function AddCandidateScreen({ navigation, route }) {
       setDesiredSalaryUsd(String(comp.desiredSalaryUsdPerMonth || ""));
       setDescription(editCandidate.description || "");
       setYoutubeUrl(editCandidate.youtubeUrl || "");
+      if (editCandidate.images?.length > 0) setImages(editCandidate.images);
+      else if (editCandidate.imageUrls?.length > 0) setImages(editCandidate.imageUrls);
     }
   }, [isEditMode, editCandidate]);
+
+  // ─── 이미지 처리 ─────────────────────────────────────────────
+  const requestGalleryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") { Alert.alert(L.error || "권한 필요", "갤러리 접근 권한이 필요합니다."); return false; }
+    return true;
+  };
+
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") { Alert.alert(L.error || "권한 필요", "카메라 접근 권한이 필요합니다."); return false; }
+    return true;
+  };
+
+  const pickImages = () => {
+    if (images.length >= 5) { Alert.alert("안내", "최대 5장까지 첨부 가능합니다."); return; }
+    Alert.alert("사진 추가", "방법을 선택하세요", [
+      { text: "📷 카메라 촬영", onPress: takePhoto },
+      { text: "🖼️ 갤러리 선택", onPress: pickFromGallery },
+      { text: "취소", style: "cancel" },
+    ]);
+  };
+
+  const takePhoto = async () => {
+    if (!await requestCameraPermission()) return;
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+    if (!result.canceled) setImages([...images, result.assets[0].uri]);
+  };
+
+  const pickFromGallery = async () => {
+    if (!await requestGalleryPermission()) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.8, selectionLimit: 5 - images.length });
+    if (!result.canceled) setImages([...images, ...result.assets.map(a => a.uri)].slice(0, 5));
+  };
+
+  const removeImage = (idx) => setImages(images.filter((_, i) => i !== idx));
+
+  const resizeImage = async (uri) => {
+    try {
+      const r = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 800 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
+      return r.uri;
+    } catch { return uri; }
+  };
+
+  const uploadImage = async (uri) => {
+    if (uri.startsWith("https://")) return uri;
+    const resized = await resizeImage(uri);
+    const blob = await (await fetch(resized)).blob();
+    const filename = `candidates/${user.uid}_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+    const storageRef = ref(storage, filename);
+    await uploadBytes(storageRef, blob);
+    return await getDownloadURL(storageRef);
+  };
 
   const validateForm = () => {
     if (!name.trim()) {
@@ -276,6 +336,14 @@ export default function AddCandidateScreen({ navigation, route }) {
     setUploading(true);
 
     try {
+      const uploadedImages = [];
+      for (const uri of images) uploadedImages.push(await uploadImage(uri));
+
+      // 사진이 없으면 디폴트 이미지 세팅
+      const finalImages = uploadedImages.length > 0 
+        ? uploadedImages 
+        : ["https://chaovietnam-login.web.app/assets/og_jobs_v2.png"];
+
       const candidateData = {
         sourceLanguage,
         status: "신규 등록",
@@ -307,6 +375,8 @@ export default function AddCandidateScreen({ navigation, route }) {
         },
         description: description.trim(),
         youtubeUrl: youtubeUrl.trim() || null,
+        images: finalImages,
+        imageUrls: finalImages,
         crm: {
           status: "신규 등록",
           assignedTo: null,
@@ -560,6 +630,29 @@ export default function AddCandidateScreen({ navigation, route }) {
           />
         </View>
 
+        {/* ─── 사진 첨부 ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Ionicons name="image-outline" size={16} /> {sourceLanguage === "vi" ? "Hình ảnh (tối đa 5 ảnh)" : sourceLanguage === "en" ? "Photos (max 5)" : "사진 첨부 (최대 5장 - 필수아님)"}
+          </Text>
+          <View style={styles.imageRow}>
+            {images.map((uri, idx) => (
+              <View key={idx} style={styles.imageWrapper}>
+                <Image source={{ uri }} style={styles.previewImage} />
+                <TouchableOpacity style={styles.removeImageBtn} onPress={() => removeImage(idx)}>
+                  <Ionicons name="close-circle" size={20} color="#f44" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {images.length < 5 && (
+              <TouchableOpacity style={styles.addImageBtn} onPress={pickImages}>
+                <Ionicons name="add" size={28} color="#90a4ae" />
+                <Text style={styles.addImageText}>{sourceLanguage === "vi" ? "➕ Thêm ảnh" : sourceLanguage === "en" ? "➕ Add Photo" : "➕ 사진 추가"}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* ─── YouTube 소개 영상 ─── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -691,6 +784,15 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
   },
+  imageRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  imageWrapper: { position: "relative" },
+  previewImage: { width: 80, height: 80, borderRadius: 10 },
+  removeImageBtn: { position: "absolute", top: -6, right: -6 },
+  addImageBtn: {
+    width: 80, height: 80, borderRadius: 10, borderWidth: 2, borderColor: "#cfd8dc",
+    borderStyle: "dashed", alignItems: "center", justifyContent: "center", backgroundColor: "#fafafa",
+  },
+  addImageText: { fontSize: 9, color: "#90a4ae", marginTop: 2 },
   submitButton: {
     flexDirection: "row",
     alignItems: "center",

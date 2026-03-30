@@ -467,6 +467,14 @@
                 </div>
             </div>
 
+            <!-- 사진 -->
+            <div class="card">
+                <div class="card-title">📸 사진 <span style="font-weight:400;color:#888;font-size:12px">(선택, 최대 5장)</span></div>
+                <div class="img-add-btn" onclick="document.getElementById('seek-img-input').click()">📷 사진 선택하기 (자기사진, 관련 서류 등, 최대 5장)</div>
+                <input type="file" id="seek-img-input" accept="image/*" multiple style="display:none" onchange="handleSeekImages(this)">
+                <div class="img-row" id="seek-img-row"></div>
+            </div>
+
             <!-- 자기소개 영상 -->
             <div class="card">
                 <div class="card-title">🎬 자기소개 영상 <span style="font-weight:400;color:#888;font-size:12px">(YouTube, 선택)</span></div>
@@ -539,6 +547,7 @@
         const VISA_TYPES = ['취업 비자/워크퍼밋','비즈니스 비자','관광 비자','영주권','시민권','기타/협의'];
 
         let selectedFiles = [];
+        let selectedSeekFiles = [];
         let selectedJobTracks = [];     // 구직 희망 직무 (multi)
         let selectedHireJobTracks = []; // 구인 채용 직무 (multi)
         let sharedText = '';
@@ -631,6 +640,27 @@
         }
 
         function removeImg(i) { selectedFiles.splice(i, 1); renderImageRow(); }
+
+        function handleSeekImages(input) {
+            const files = Array.from(input.files);
+            const remaining = 5 - selectedSeekFiles.length;
+            selectedSeekFiles = [...selectedSeekFiles, ...files.slice(0, remaining)];
+            renderSeekImageRow();
+        }
+
+        function renderSeekImageRow() {
+            const row = document.getElementById('seek-img-row');
+            row.innerHTML = '';
+            selectedSeekFiles.forEach((file, i) => {
+                const div = document.createElement('div');
+                div.className = 'img-thumb';
+                const url = URL.createObjectURL(file);
+                div.innerHTML = `<img src="${url}"><button class="remove-btn" onclick="removeSeekImg(${i})">✕</button>`;
+                row.appendChild(div);
+            });
+        }
+
+        function removeSeekImg(i) { selectedSeekFiles.splice(i, 1); renderSeekImageRow(); }
 
         // ── 미리보기 ────────────────────────────────────────────────
         function buildText(viewUrl) {
@@ -773,6 +803,8 @@
             const docId = formRef.id;
 
             let imageUrls = [];
+            let seekImageUrls = [];
+
             if (jobType === '구인' && selectedFiles.length > 0) {
                 document.getElementById('progress-wrap').style.display = 'block';
                 document.getElementById('progress-label').textContent = `사진 ${selectedFiles.length}장 업로드 중...`;
@@ -785,6 +817,22 @@
                 }));
                 document.getElementById('progress-bar').style.width = '100%';
                 document.getElementById('progress-label').textContent = `✅ ${imageUrls.length}장 완료!`;
+            } else if (jobType === '구직' && selectedSeekFiles.length > 0) {
+                document.getElementById('progress-wrap').style.display = 'block';
+                document.getElementById('progress-label').textContent = `사진 ${selectedSeekFiles.length}장 업로드 중...`;
+                document.getElementById('progress-bar').style.width = '10%';
+                const compressed = await Promise.all(selectedSeekFiles.map(f => compressImage(f)));
+                seekImageUrls = await Promise.all(compressed.map(async (blob, i) => {
+                    const ref = storage.ref(`candidates-web/${docId}_${i}.jpg`);
+                    await ref.put(blob, { contentType: 'image/jpeg' });
+                    return ref.getDownloadURL();
+                }));
+                document.getElementById('progress-bar').style.width = '100%';
+                document.getElementById('progress-label').textContent = `✅ ${seekImageUrls.length}장 완료!`;
+            }
+
+            if (jobType === '구직' && seekImageUrls.length === 0) {
+                seekImageUrls = ["https://chaovietnam-login.web.app/assets/og_jobs_v2.png"];
             }
 
             const batch = db.batch();
@@ -890,6 +938,8 @@
                     },
                     description: desc,
                     youtubeUrl,
+                    images: seekImageUrls,
+                    imageUrls: seekImageUrls,
                     crm: { status: '신규 등록', assignedTo: null, notes: '' },
                     source: 'web',
                 };
@@ -907,7 +957,7 @@
                     salary: salary ? `${salary} USD/월` : '협의',
                     industryTrack: selectedJobTracks.join(', '),
                     employmentType: '',
-                    imageUrls: [],
+                    imageUrls: seekImageUrls,
                     youtubeUrl,
                     source: 'web',
                     createdAt: ts,
