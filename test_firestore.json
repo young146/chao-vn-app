@@ -1,0 +1,81 @@
+{
+  "documents": [
+    {
+      "name": "projects/chaovietnam-login/databases/(default)/documents/XinChaoDanggn/0D7h22hstWvizdhz6S7W",
+      "fields": {
+        "city": {
+          "stringValue": "호치민"
+        },
+        "status": {
+          "stringValue": "판매중"
+        },
+        "title": {
+          "stringValue": "Garmin Venu X1 판매"
+        },
+        "images": {
+          "arrayValue": {
+            "values": [
+              {
+                "stringValue": "https://firebasestorage.googleapis.com/v0/b/chaovietnam-login.firebasestorage.app/o/items%2Ft8YY23k8Blep6GnqZBOiSVgHe4o2_1772467694025_9smpqp.jpg?alt=media&token=1895a77d-4dc9-4634-a771-7914334e13e5"
+              },
+              {
+                "stringValue": "https://firebasestorage.googleapis.com/v0/b/chaovietnam-login.firebasestorage.app/o/items%2Ft8YY23k8Blep6GnqZBOiSVgHe4o2_1772467698291_orgkzl.jpg?alt=media&token=780964bb-a83c-459b-9998-61c2de55c38c"
+              },
+              {
+                "stringValue": "https://firebasestorage.googleapis.com/v0/b/chaovietnam-login.firebasestorage.app/o/items%2Ft8YY23k8Blep6GnqZBOiSVgHe4o2_1772467701054_xdjdm9.jpg?alt=media&token=19da201c-b80d-4a04-8f09-1f9c2969af74"
+              },
+              {
+                "stringValue": "https://firebasestorage.googleapis.com/v0/b/chaovietnam-login.firebasestorage.app/o/items%2Ft8YY23k8Blep6GnqZBOiSVgHe4o2_1772467704246_n0bzh.jpg?alt=media&token=971bbe63-ec71-4000-88c3-5bdf26e8aaf1"
+              }
+            ]
+          }
+        },
+        "category": {
+          "stringValue": "전자제품"
+        },
+        "location": {
+          "stringValue": "호치민 Q2 Masteri Thảo Điền"
+        },
+        "createdAt": {
+          "timestampValue": "2026-03-02T16:08:28.183Z"
+        },
+        "userId": {
+          "stringValue": "t8YY23k8Blep6GnqZBOiSVgHe4o2"
+        },
+        "contact": {
+          "mapValue": {
+            "fields": {
+              "phone": {
+                "stringValue": ""
+              },
+              "other": {
+                "stringValue": ""
+              },
+              "kakaoId": {
+                "stringValue": "awesomenlucky"
+              }
+            }
+          }
+        },
+        "district": {
+          "stringValue": "Q2"
+        },
+        "userEmail": {
+          "stringValue": "chaovietnamchoi@gmail.com"
+        },
+        "price": {
+          "integerValue": "10000000"
+        },
+        "apartment": {
+          "stringValue": "Masteri Thảo Điền"
+        },
+        "description": {
+          "stringValue": "K ID: awesomenlucky \n전번 :0779653837\n거주지: 호치민 2군 근처 \nGarmin Venu X1 팔아요 신형\n산지 2달\n참고로 모든 운동. 고도 방향\n 심지어 건강체크 다 되고\n3일전에 안건대 골프 지도 엄청 정확하고 요.\n줄도 오리지날. 자석식 도 같이 드려요\n1000만동에 팝니다\n개인톡 주세요"
+        }
+      },
+      "createTime": "2026-03-02T16:08:28.195103Z",
+      "updateTime": "2026-03-02T16:08:28.195103Z"
+    }
+  ],
+  "nextPageToken": "AFTOeJy5fH2PFMYyg_jAlMx8zUzypgcDBKWjR7ylg94cfycBiZ0zSuOfTJkTz1UPW76Jt7UmVhOQiA26UibBZ2wnwcBeGyW-16mLGBJQes9ckLzxDsyFoL4e3xrj7CsvhTHdEnDp4pk"
+}

@@ -57,7 +57,7 @@ const SearchBar = memo(({ value, onChangeText, placeholder }) => (
 const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) => {
   const { t } = useTranslation('danggn');
   const status = item.status || "판매중";
-  const originalImage = item.images?.[0] || item.imageUri;
+  const originalImage = item.images?.[0] || item.imageUrls?.[0] || item.imageUri;
 
   // 상태 번역
   const getTranslatedStatus = (s) => {
@@ -202,16 +202,24 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
 
     try {
-      // 인덱스 에러 방지를 위해 orderBy를 제거하고 조건문만 사용하여 쿼리
-      let q = query(
-        collection(db, "XinChaoDanggn"),
-        limit(isFirstFetch ? 60 : ITEMS_PER_PAGE) // 충분한 양을 가져와서 앱에서 정렬
-      );
-
-      if (!isFirstFetch && lastVisible) {
-        // 커서 기반 페이지네이션을 사용하기 위해 기본 쿼리에 orderBy를 다시 넣어야 할 수 있으나,
-        // 인덱스 에러 방지를 위해 일단 모든 데이터를 가져오거나 limit을 늘립니다.
-        q = query(q, startAfter(lastVisible));
+      // orderBy('createdAt', 'desc')로 최신순 정렬하여 가져옴
+      // 지역별 검색을 위해 전체 데이터를 로드 (limit 500)
+      let q;
+      if (isFirstFetch) {
+        q = query(
+          collection(db, "XinChaoDanggn"),
+          orderBy("createdAt", "desc"),
+          limit(500)
+        );
+      } else if (lastVisible) {
+        q = query(
+          collection(db, "XinChaoDanggn"),
+          orderBy("createdAt", "desc"),
+          startAfter(lastVisible),
+          limit(ITEMS_PER_PAGE)
+        );
+      } else {
+        return;
       }
 
       const snapshot = await getDocs(q);
@@ -222,13 +230,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
         // 직렬화 가능한 형태로 변환
         createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
       }));
-
-      // 클라이언트 사이드 정렬 (인덱스 없이도 날짜순으로 정렬되도록 함)
-      fetchedItems.sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
-      });
 
       if (isFirstFetch) {
         // 중복 방지를 위해 Map 사용
@@ -250,8 +251,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       }
 
       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      // limit을 60으로 늘렸으므로, ITEMS_PER_PAGE 대신 실제 가져온 개수로 비교
-      setHasMore(snapshot.docs.length >= (isFirstFetch ? 60 : ITEMS_PER_PAGE));
+      setHasMore(snapshot.docs.length >= (isFirstFetch ? 500 : ITEMS_PER_PAGE));
     } catch (error) {
       console.error("❌ 데이터 페칭 실패:", error);
     } finally {

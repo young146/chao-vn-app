@@ -1,0 +1,78 @@
+﻿{
+    "documents":  [
+                      {
+                          "name":  "projects/chaovietnam-login/databases/(default)/documents/RealEstate/2Aqbhn60o4DmMNjqt7Vp",
+                          "fields":  {
+                                         "floor":  {
+                                                       "stringValue":  ""
+                                                   },
+                                         "contact":  {
+                                                         "stringValue":  "nhatrangworker"
+                                                     },
+                                         "status":  {
+                                                        "stringValue":  "거래가능"
+                                                    },
+                                         "userEmail":  {
+                                                           "stringValue":  "chaovietnamchoi@gmail.com"
+                                                       },
+                                         "monthlyRent":  {
+                                                             "stringValue":  "17500000"
+                                                         },
+                                         "deposit":  {
+                                                         "stringValue":  "44000000"
+                                                     },
+                                         "area":  {
+                                                      "stringValue":  ""
+                                                  },
+                                         "title":  {
+                                                       "stringValue":  "4군 골드뷰 아파트 승계"
+                                                   },
+                                         "city":  {
+                                                      "stringValue":  "호치민"
+                                                  },
+                                         "availableDate":  {
+                                                               "stringValue":  "3월부터"
+                                                           },
+                                         "rooms":  {
+                                                       "stringValue":  "2룸 1욕실"
+                                                   },
+                                         "district":  {
+                                                          "stringValue":  "4군"
+                                                      },
+                                         "userId":  {
+                                                        "stringValue":  "t8YY23k8Blep6GnqZBOiSVgHe4o2"
+                                                    },
+                                         "updatedAt":  {
+                                                           "timestampValue":  "2026-02-26T01:33:56.396Z"
+                                                       },
+                                         "description":  {
+                                                             "stringValue":  "4군 골드뷰 아파트 승계받으실 분 찾아요\n월세 1750 / 보증금 4400만동 / 2베드 1베스 / 9월까지\n- 건물 안 헬스장, 수영장, 탁구장, 포켓볼, 스파 \u0026 마사지(상업)\n- 집 앞에 마트, 스벅, 캘리포니아 짐, 롯시, 패밀리 마트\n\n* 3월달부터 입주 가능하시고, 3월달은 월세 1500까지 도와드릴께요. \n* 카톡 nhatrangworker"
+                                                         },
+                                         "dealType":  {
+                                                          "stringValue":  "임대"
+                                                      },
+                                         "images":  {
+                                                        "arrayValue":  {
+                                                                           "values":  [
+                                                                                          {
+                                                                                              "stringValue":  "https://firebasestorage.googleapis.com/v0/b/chaovietnam-login.firebasestorage.app/o/realestate%2Ft8YY23k8Blep6GnqZBOiSVgHe4o2_1770376684965_axgwws.jpg?alt=media\u0026token=bd2a1fbf-9dcd-427d-8171-41d86f51fa53"
+                                                                                          }
+                                                                                      ]
+                                                                       }
+                                                    },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-02-06T11:18:08.483Z"
+                                                       },
+                                         "price":  {
+                                                       "nullValue":  null
+                                                   },
+                                         "propertyType":  {
+                                                              "stringValue":  "아파트"
+                                                          }
+                                     },
+                          "createTime":  "2026-02-06T11:18:08.515344Z",
+                          "updateTime":  "2026-02-26T01:33:56.420022Z"
+                      }
+                  ],
+    "nextPageToken":  "AFTOeJy-pXBQhNXdU2q8L20IOvwuTbstVphERKEep05ZGrojgiWKt2ZqPQXYvv_YIzj1gmPjrExq8v97U_-6zsaLXz1Drvezxyli5bHysJJUaoc8pKvckFdvMgWBQgGBaxYx4IU"
+}

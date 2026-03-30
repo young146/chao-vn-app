@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>씬짜오베트남 — 앱 설치 팝업 디자인</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --brand: #FF6B35;
+      --brand-dark: #e85a22;
+      --brand-light: #ff8c5a;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #e8e8e8;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+
+    /* ══════════════════════════════════════════════════
+       OVERLAY
+    ══════════════════════════════════════════════════ */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 900;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ══════════════════════════════════════════════════
+       POPUP SHEET
+    ══════════════════════════════════════════════════ */
+    .sheet {
+      width: 100%;
+      max-width: 430px;
+      background: #fff;
+      border-radius: 28px 28px 0 0;
+      overflow: hidden;
+      transform: translateY(0);
+      position: relative;
+    }
+
+    /* 상단 그라데이션 띠 */
+    .sheet-hero {
+      background: linear-gradient(135deg, #FF6B35 0%, #f7941d 60%, #ffc55a 100%);
+      padding: 28px 24px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .sheet-hero::before {
+      content: '';
+      position: absolute;
+      width: 240px; height: 240px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      top: -80px; right: -60px;
+    }
+    .sheet-hero::after {
+      content: '';
+      position: absolute;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      bottom: -50px; left: -30px;
+    }
+
+    /* 핸들 */
+    .handle {
+      width: 36px; height: 4px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+      margin: 0 auto 22px;
+    }
+
+    /* 닫기 */
+    .close-btn {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+      z-index: 2;
+      line-height: 1;
+    }
+    .close-btn:hover { background: rgba(255,255,255,0.38); }
+
+    /* 앱 아이콘 + 앱 이름 */
+    .hero-app-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+      z-index: 2;
+    }
+    .hero-icon {
+      width: 72px; height: 72px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+      flex-shrink: 0;
+      background: #fff;
+    }
+    .hero-icon img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .hero-text-wrap {}
+    .hero-app-name {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.5px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .hero-app-cat {
+      font-size: 12px;
+      color: rgba(255,255,255,0.82);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+    /* 별점 */
+    .hero-stars {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-top: 6px;
+    }
+    .star { color: #FFD700; font-size: 13px; }
+    .hero-rating-text { font-size: 11px; color: rgba(255,255,255,0.78); margin-left: 4px; }
+
+    /* ── 메인 카피 ── */
+    .sheet-body { padding: 24px 22px 20px; }
+
+    .copy-headline {
+      font-size: 16px;
+      font-weight: 800;
+      color: #111;
+      line-height: 1.45;
+      letter-spacing: -0.3px;
+      margin-bottom: 5px;
+    }
+    .copy-sub {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    /* ── 서비스 그리드 ── */
+    .services-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .service-card {
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 14px;
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .service-icon-wrap {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .service-text {}
+    .service-name { font-size: 12px; font-weight: 700; color: #222; }
+    .service-desc { font-size: 10px; color: #999; margin-top: 1px; }
+
+    /* 아이콘 배경 색상 */
+    .ic-news    { background: #fff4ee; }
+    .ic-market  { background: #fff0f0; }
+    .ic-job     { background: #eef4ff; }
+    .ic-home    { background: #f0fff4; }
+
+    /* ── 설치 버튼 ── */
+    .install-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 18px 20px;
+      background: linear-gradient(135deg, var(--brand) 0%, #f7941d 100%);
+      border: none;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 6px 20px rgba(255, 107, 53, 0.42);
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .install-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,107,53,0.5); }
+    .install-btn:active { transform: scale(0.98); box-shadow: 0 3px 10px rgba(255,107,53,0.35); }
+
+    /* ── 건너뛰기 ── */
+    .skip-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      color: #bbb;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      transition: color 0.2s;
+      letter-spacing: 0.1px;
+    }
+    .skip-btn:hover { color: #888; }
+
+    .sheet-footer {
+      padding: 0 22px 36px;
+    }
+
+
+  </style>
+</head>
+<body>
+
+
+<!-- ════════════════════════════════════
+     앱 설치 팝업 (바텀시트)
+════════════════════════════════════ -->
+<div class="overlay" id="overlay" onclick="handleOverlay(event)">
+  <div class="sheet" id="sheet">
+
+    <!-- 상단 히어로 영역 -->
+    <div class="sheet-hero">
+      <div class="handle"></div>
+      <button class="close-btn" onclick="closePopup()" aria-label="닫기">✕</button>
+
+      <div class="hero-app-row">
+        <!-- 실제 앱 아이콘 -->
+        <div class="hero-icon">
+          <img src="../assets/icon.png" alt="씬짜오베트남 아이콘"
+               onerror="this.style.display='none'; this.parentElement.style.background='#FF6B35'; this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;\'>🇻🇳</div>'">
+        </div>
+        <div class="hero-text-wrap">
+          <div class="hero-app-name">씬짜오베트남</div>
+          <div class="hero-app-cat">재베트남 한인 종합 정보 앱</div>
+          <div class="hero-stars">
+            <span class="star">★</span><span class="star">★</span>
+            <span class="star">★</span><span class="star">★</span>
+            <span class="star">★</span>
+            <span class="hero-rating-text">5.0 · 무료</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 본문 -->
+    <div class="sheet-body">
+
+      <!-- 메인 카피 -->
+      <p class="copy-headline">씬짜오베트남 앱으로 보시면<br>더욱 편리합니다</p>
+      <p class="copy-sub">씬짜오베트남에서 제공하는 모든 서비스를<br>한곳에서 즐길 수 있습니다.</p>
+
+      <!-- 서비스 그리드 -->
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-icon-wrap ic-news">📰</div>
+          <div class="service-text">
+            <div class="service-name">오늘의 뉴스</div>
+            <div class="service-desc">매일 아침 베트남 뉴스</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon-wrap ic-market">🛍️</div>
+          <div class="service-text">
+            <div class="service-name">당근마켓</div>
+            <div class="service-desc">한인 중고거래 커뮤니티</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon-wrap ic-job">💼</div>
+          <div class="service-text">
+            <div class="service-name">구인구직</div>
+            <div class="service-desc">베트남 취업 정보</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon-wrap ic-home">🏠</div>
+          <div class="service-text">
+            <div class="service-name">부동산</div>
+            <div class="service-desc">현지 부동산 매물</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설치 버튼 + 스킵 -->
+    <div class="sheet-footer">
+      <a class="install-btn" id="installBtn" href="#" onclick="handleInstall(event)">
+        <span style="font-size:22px;">📲</span>
+        <span>앱 설치하기</span>
+      </a>
+      <button class="skip-btn" onclick="closePopup()">
+        괜찮아요, 웹에서 계속 볼게요
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+  /* OS 자동 감지 → 스토어 URL 결정 */
+  var ua = navigator.userAgent || '';
+  var storeUrl = /iPhone|iPad|iPod/i.test(ua)
+    ? 'https://apps.apple.com/app/id123456789'
+    : 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
+
+  function closePopup() {
+    document.getElementById('overlay').style.display = 'none';
+  }
+
+  function handleOverlay(e) {
+    if (e.target === document.getElementById('overlay')) closePopup();
+  }
+
+  function handleInstall(e) {
+    e.preventDefault();
+    closePopup();
+    window.location.href = storeUrl;
+  }
+</script>
+</body>
+</html>

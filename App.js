@@ -375,9 +375,9 @@ export default function App() {
     }
 
     const screenMap = {
-      danggn: { tab: '당근/나눔', screen: '당근/나눔 상세' },
-      job: { tab: '구인구직', screen: '구인구직 상세' },
-      realestate: { tab: '부동산', screen: '부동산 상세' },
+      danggn: { tab: '당근/나눔', main: '당근/나눔 메인', screen: '당근/나눔 상세' },
+      job: { tab: '구인구직', main: '구인구직 메인', screen: '구인구직 상세' },
+      realestate: { tab: '부동산', main: '부동산 메인', screen: '부동산 상세' },
     };
     const target = screenMap[type];
     if (!target) return;
@@ -390,13 +390,23 @@ export default function App() {
       attempts++;
       if (navigationRef.isReady()) {
         try {
+          // 먼저 탭 메인으로 이동
           navigationRef.navigate('MainApp', {
             screen: target.tab,
             params: {
-              screen: target.screen,
-              params: { id },
+              screen: target.main,
             },
           });
+          // 그 후 상세 화면을 push (메인 위에 쌓임 → 뒤로가기 시 메인으로 돌아감)
+          setTimeout(() => {
+            navigationRef.navigate('MainApp', {
+              screen: target.tab,
+              params: {
+                screen: target.screen,
+                params: { id },
+              },
+            });
+          }, 100);
           console.log('✅ [안전망] 네비게이션 성공');
         } catch (e) {
           console.log('❌ [안전망] 네비게이션 실패:', e.message);
@@ -794,14 +804,15 @@ export default function App() {
               console.log(`🔗 수동 파싱 성공: type=${type}, id=${id}`);
 
               const screenMap = {
-                danggn: { tab: '당근/나눔', screen: '당근/나눔 상세' },
-                job: { tab: '구인구직', screen: '구인구직 상세' },
-                realestate: { tab: '부동산', screen: '부동산 상세' },
+                danggn: { tab: '당근/나눔', main: '당근/나눔 메인', screen: '당근/나눔 상세' },
+                job: { tab: '구인구직', main: '구인구직 메인', screen: '구인구직 상세' },
+                realestate: { tab: '부동산', main: '부동산 메인', screen: '부동산 상세' },
               };
               const target = screenMap[type];
               if (!target) return undefined;
 
               // React Navigation state 구조 수동 생성
+              // 메인 화면을 스택에 먼저 넣어서 뒤로가기 시 목록으로 돌아가도록 함
               return {
                 routes: [
                   {
@@ -812,6 +823,7 @@ export default function App() {
                           name: target.tab,
                           state: {
                             routes: [
+                              { name: target.main },
                               { name: target.screen, params: { id } },
                             ],
                           },

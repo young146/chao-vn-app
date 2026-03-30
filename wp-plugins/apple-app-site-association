@@ -5,7 +5,6 @@
       {
         "appID": "9NAKBDVGPP.com.yourname.chaovnapp",
         "paths": [
-          "/daily-news-terminal*",
           "/app/share/danggn/*",
           "/app/share/job/*",
           "/app/share/realestate/*"

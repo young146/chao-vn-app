@@ -56,7 +56,7 @@ const SearchBar = memo(({ value, onChangeText, placeholder }) => (
 // 부동산 카드 컴포넌트
 const RealEstateCard = memo(({ item, onPress, index, t, language }) => {
   const status = item.status || t('available');
-  const originalImage = item.images?.[0];
+  const originalImage = item.images?.[0] || item.imageUrls?.[0];
 
   const getStatusColor = (status) => {
     switch (status) {

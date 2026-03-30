@@ -1,0 +1,66 @@
+﻿{
+    "documents":  [
+                      {
+                          "name":  "projects/chaovietnam-login/databases/(default)/documents/Jobs/2QFyL8ClN0xhkZiV0aXt",
+                          "fields":  {
+                                         "userId":  {
+                                                        "stringValue":  "t8YY23k8Blep6GnqZBOiSVgHe4o2"
+                                                    },
+                                         "deadline":  {
+                                                          "stringValue":  "채용시 마감"
+                                                      },
+                                         "contact":  {
+                                                         "stringValue":  "BYUNGSOOMOON69@GMAIL.COM"
+                                                     },
+                                         "requirements":  {
+                                                              "stringValue":  "자격요건 : 관련 업무 경력자 / 베트남어,영어 우대"
+                                                          },
+                                         "employmentType":  {
+                                                                "stringValue":  "정규직"
+                                                            },
+                                         "industry":  {
+                                                          "stringValue":  "건설/인테리어"
+                                                      },
+                                         "city":  {
+                                                      "stringValue":  "하노이"
+                                                  },
+                                         "salary":  {
+                                                        "stringValue":  "약 5,000USD"
+                                                    },
+                                         "title":  {
+                                                       "stringValue":  "TN 테크닉스 건설 채용 공고"
+                                                   },
+                                         "description":  {
+                                                             "stringValue":  "TN 테크닉스 건설 채용 공고 \n업종 : 플렌트 설비 전문 시공 회사 \n담당업무 : 하노이 본사 관리자\n근무지 : 하노이\n자격요건 : 관련 업무 경력자 / 베트남어,영어 우대\n    - 급여조건 : 약 USD5,000  - 복리후생 : 면접후 협의\n문의/접수 : BYUNGSOOMOON69@GMAIL.COM"
+                                                         },
+                                         "images":  {
+                                                        "arrayValue":  {
+                                                                           "values":  [
+                                                                                          {
+                                                                                              "stringValue":  "https://firebasestorage.googleapis.com/v0/b/chaovietnam-login.firebasestorage.app/o/jobs%2Ft8YY23k8Blep6GnqZBOiSVgHe4o2_1770696749330_7i4z66.jpg?alt=media\u0026token=d836dbae-3ef3-4d28-b9d4-c34916d2a87c"
+                                                                                          }
+                                                                                      ]
+                                                                       }
+                                                    },
+                                         "jobType":  {
+                                                         "stringValue":  "구인"
+                                                     },
+                                         "district":  {
+                                                          "stringValue":  ""
+                                                      },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-02-10T04:12:32.399Z"
+                                                       },
+                                         "status":  {
+                                                        "stringValue":  "모집중"
+                                                    },
+                                         "userEmail":  {
+                                                           "stringValue":  "chaovietnamchoi@gmail.com"
+                                                       }
+                                     },
+                          "createTime":  "2026-02-10T04:12:32.415711Z",
+                          "updateTime":  "2026-03-22T16:13:59.551775Z"
+                      }
+                  ],
+    "nextPageToken":  "AFTOeJwFOGcUI09u6kFwknSpZTgk3Ezd-wDmSb6hjUf0rYHnA21Gkxm2JAzzQlP5es1b_c4n2RKSlzShlDjht-VPVWA_3dCx6RRk4ZBnYagfgYsF8TqRYqgh8W3vfAM"
+}

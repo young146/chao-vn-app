@@ -831,9 +831,8 @@
                 document.getElementById('progress-label').textContent = `✅ ${seekImageUrls.length}장 완료!`;
             }
 
-            if (jobType === '구직' && seekImageUrls.length === 0) {
-                seekImageUrls = ["https://chaovietnam-login.web.app/assets/og_jobs_v2.png"];
-            }
+
+
 
             const batch = db.batch();
             const ts = firebase.firestore.FieldValue.serverTimestamp();
