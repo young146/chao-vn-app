@@ -1350,6 +1350,16 @@
             if (!id) { showError('잘못된 링크입니다', '올바른 링크를 통해 접속해주세요.'); return; }
             try {
                 var snap = await db.collection(col).doc(id).get();
+
+                // ① col에서 못 찾으면 Jobs 시도 (form_items 기본값으로 왔을 때)
+                if (!snap.exists && col !== 'Jobs') {
+                    snap = await db.collection('Jobs').doc(id).get();
+                }
+                // ② Jobs에서도 못 찾으면 candidates 시도 (구직자는 candidates 컬렉션에 있음)
+                if (!snap.exists) {
+                    snap = await db.collection('candidates').doc(id).get();
+                }
+
                 if (!snap.exists) { showError('게시글을 찾을 수 없습니다', '삭제됐거나 잘못된 링크입니다.'); return; }
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
