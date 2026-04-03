@@ -968,7 +968,10 @@
 
             await batch.commit();
 
-            const viewUrl = `https://chaovietnam-login.web.app/item/?id=${docId}`;
+            // 앱 공유와 동일한 URL 구조 사용 (PHP 라우터 → 웹 상세페이지)
+            // 구직(candidates)은 col=candidates 파라미터 추가 → PHP가 올바른 컬렉션 조회
+            const colParam = jobType === '구직' ? '?col=candidates' : '';
+            const viewUrl = `https://chaovietnam.co.kr/app/share/job/${docId}${colParam}`;
             sharedText = buildText(viewUrl);
             document.getElementById('share-text-box').value = sharedText;
             document.getElementById('success-overlay').className = 'success-overlay show';

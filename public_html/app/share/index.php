@@ -14,6 +14,9 @@ $typeInfo = [
 ];
 $data = $typeInfo[$type];
 
+// col 파라미터로 컬렉션 오버라이드 허용 (구직자는 col=candidates)
+$colOverride = isset($_GET['col']) ? preg_replace('/[^a-zA-Z0-9_]/', '', $_GET['col']) : '';
+
 // ✅ 1순위: 앱에서 query param으로 전달한 데이터 (App Check 우회)
 $itemTitle = isset($_GET['t']) ? $_GET['t'] : '';
 $itemImage = isset($_GET['img']) ? $_GET['img'] : '';
@@ -23,7 +26,8 @@ $itemLocation = '';
 // ✅ 2순위: query param 없으면 Firestore REST API 시도 (fallback)
 if (!$itemTitle && $id) {
     $firebaseProjectId = 'chaovietnam-login';
-    $collection = $data['collection'];
+    // colOverride가 있으면 우선 사용 (예: candidates)
+    $collection = $colOverride ?: $data['collection'];
     $apiUrl = "https://firestore.googleapis.com/v1/projects/{$firebaseProjectId}/databases/(default)/documents/{$collection}/{$id}";
 
     $context  = stream_context_create(['http' => ['timeout' => 2]]);
@@ -89,7 +93,8 @@ $colMap = [
     'danggn'     => 'XinChaoDanggn',
     'realestate' => 'RealEstate',
 ];
-$col = $colMap[$type] ?? 'form_items';
+// colOverride가 있으면 우선 사용 (예: candidates 구직자)
+$col = $colOverride ?: ($colMap[$type] ?? 'form_items');
 
 // 웹 상세페이지 URL (Firebase Hosting)
 $viewUrl = 'https://chaovietnam-login.web.app/view/?type=' . urlencode($type) . '&id=' . urlencode($id) . '&col=' . urlencode($col);

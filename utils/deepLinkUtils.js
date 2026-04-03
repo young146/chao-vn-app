@@ -16,7 +16,11 @@ export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
   
   // 클린 URL — 카카오톡 미리보기 카드가 예쁘게 생성되도록 깔끔한 원래 주소로 원복
-  const webLink = `${WEB_BASE_URL}${type}/${id}`;
+  // 구직자(candidates)는 Jobs 컬렉션이 아닌 candidates 컬렉션에 저장됨 → col 파라미터로 전달
+  const sourceCollection = item?.sourceCollection;
+  const webLink = sourceCollection === 'candidates'
+    ? `${WEB_BASE_URL}${type}/${id}?col=candidates`
+    : `${WEB_BASE_URL}${type}/${id}`;
   
   const shareMessage = generateShareMessage(type, item, webLink);
   
