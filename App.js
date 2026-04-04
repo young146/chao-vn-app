@@ -296,8 +296,8 @@ function UserAvatarButton({ navigation }) {
         if (snap.exists() && snap.data().profileImage) {
           setAvatar(snap.data().profileImage);
         }
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
   }, [user?.uid]);
 
   if (!avatar) return null;
@@ -358,7 +358,7 @@ export default function App() {
           const tryNav = () => {
             attempts++;
             if (navigationRef.isReady()) {
-              try { navigationRef.navigate('MainApp', { screen: tabName }); } catch(e) {}
+              try { navigationRef.navigate('MainApp', { screen: tabName }); } catch (e) { }
             } else if (attempts < 20) {
               setTimeout(tryNav, 200);
             }
@@ -470,43 +470,43 @@ export default function App() {
         const otaFlag = await AsyncStorage.getItem('OTA_JUST_APPLIED').catch(() => null);
         if (otaFlag) {
           // OTA 플래그 + 캐시 동시 삭제 → 새 데이터 로드 강제
-          await AsyncStorage.multiRemove(['OTA_JUST_APPLIED', 'HOME_DATA_CACHE']).catch(() => {});
+          await AsyncStorage.multiRemove(['OTA_JUST_APPLIED', 'HOME_DATA_CACHE']).catch(() => { });
           console.log('🔄 OTA 직후 재시작 - 캐시 삭제 완료, 새 데이터 로드');
           // hasCache 블록 전체 skip → slow-path(프로그레스 바 + API)로 진행
         } else {
-        // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
-        const hasCache = await hasHomeDataCache();
+          // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
+          const hasCache = await hasHomeDataCache();
 
-        if (hasCache) {
+          if (hasCache) {
             console.log('✅ 캐시 발견! 즉시 진입');
             setIsReady(true);
 
-          // 백그라운드에서 모든 초기화 + 데이터 갱신 (사용자는 안 기다림)
-          Promise.allSettled([
-            // Firebase 초기화
-            waitForFirebase(2000),
-            initializeFirebase(),
-            !__DEV__ && initializeAppCheck(),
-            // AdMob SDK 초기화 (Android)
-            initializeAdMob(),
-            // 데이터 갱신
-            getHomeDataCached(true),
-            // 광고 동의 (백그라운드)
-            Platform.OS === "android" && (async () => {
-              try {
-                const { requestAdConsent } = require("./services/AdConsentService");
-                const result = await requestAdConsent();
-                if (result.canShowAds) {
-                  const { preloadInterstitialAd } = require("./services/InterstitialAdService");
-                  preloadInterstitialAd();
-                }
-              } catch (e) { }
-            })(),
-          ]).then(() => console.log('✅ 백그라운드 초기화 완료'));
+            // 백그라운드에서 모든 초기화 + 데이터 갱신 (사용자는 안 기다림)
+            Promise.allSettled([
+              // Firebase 초기화
+              waitForFirebase(2000),
+              initializeFirebase(),
+              !__DEV__ && initializeAppCheck(),
+              // AdMob SDK 초기화 (Android)
+              initializeAdMob(),
+              // 데이터 갱신
+              getHomeDataCached(true),
+              // 광고 동의 (백그라운드)
+              Platform.OS === "android" && (async () => {
+                try {
+                  const { requestAdConsent } = require("./services/AdConsentService");
+                  const result = await requestAdConsent();
+                  if (result.canShowAds) {
+                    const { preloadInterstitialAd } = require("./services/InterstitialAdService");
+                    preloadInterstitialAd();
+                  }
+                } catch (e) { }
+              })(),
+            ]).then(() => console.log('✅ 백그라운드 초기화 완료'));
 
-          console.log(`⏱️ 즉시 진입: ${Date.now() - startTime}ms`);
-          return;
-        }
+            console.log(`⏱️ 즉시 진입: ${Date.now() - startTime}ms`);
+            return;
+          }
         } // end else (no OTA flag)
 
         // 🚀 2. 캐시 없음 → 프로그레스 바 표시 + 빠른 초기화
@@ -738,11 +738,13 @@ export default function App() {
                       },
                     },
                     '당근/나눔': {
+                      initialRouteName: '당근/나눔 메인',
                       screens: {
                         '당근/나눔 상세': 'danggn/:id',
                       },
                     },
                     '구인구직': {
+                      initialRouteName: '구인구직 메인',
                       screens: {
                         '구인구직 상세': 'job/:id',
                       },
