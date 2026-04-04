@@ -146,13 +146,17 @@
             align-items: center;
             justify-content: center;
         }
-        .viewer-overlay.show { display: flex; }
+
+        .viewer-overlay.show {
+            display: flex;
+        }
+
         .viewer-close {
             position: absolute;
             top: 12px;
             right: 14px;
             z-index: 310;
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             border: none;
             color: #fff;
             font-size: 28px;
@@ -164,15 +168,17 @@
             align-items: center;
             justify-content: center;
         }
+
         .viewer-counter {
             position: absolute;
             top: 18px;
             left: 16px;
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             font-size: 14px;
             font-weight: 600;
             z-index: 310;
         }
+
         .viewer-img-wrap {
             width: 100%;
             height: 100%;
@@ -182,6 +188,7 @@
             overflow: hidden;
             touch-action: none;
         }
+
         .viewer-img {
             max-width: 100%;
             max-height: 100%;
@@ -190,10 +197,11 @@
             user-select: none;
             -webkit-user-drag: none;
         }
+
         .viewer-hint {
             position: absolute;
             bottom: 24px;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
             font-size: 12px;
             text-align: center;
         }
@@ -957,7 +965,7 @@
                 location.href = intentUrl;
                 // 앱 열린 후 카카오 브라우저 닫기 시도
                 openTimer = setTimeout(function () {
-                    try { location.href = 'kakaotalk://inappbrowser/close'; } catch(e) {}
+                    try { location.href = 'kakaotalk://inappbrowser/close'; } catch (e) { }
                     openTimer = setTimeout(function () { cancelOpenApp(); }, 2000);
                 }, 800);
 
@@ -1089,7 +1097,7 @@
         var viewerIndex = 0;
         var viewerPinchDist = 0;
 
-        window.openViewer = function(idx) {
+        window.openViewer = function (idx) {
             if (!allImages.length) return;
             viewerIndex = idx || currentImageIndex;
             viewerScale = 1;
@@ -1102,7 +1110,7 @@
             document.body.style.overflow = 'hidden';
         };
 
-        window.closeViewer = function() {
+        window.closeViewer = function () {
             document.getElementById('viewer-overlay').classList.remove('show');
             document.body.style.overflow = '';
         };
@@ -1126,12 +1134,12 @@
             var startX = 0, startY = 0, lastTap = 0;
             var isSwiping = false;
 
-            wrap.addEventListener('touchstart', function(e) {
+            wrap.addEventListener('touchstart', function (e) {
                 if (e.touches.length === 2) {
                     // 핀치 시작
                     var dx = e.touches[0].clientX - e.touches[1].clientX;
                     var dy = e.touches[0].clientY - e.touches[1].clientY;
-                    viewerPinchDist = Math.sqrt(dx*dx + dy*dy);
+                    viewerPinchDist = Math.sqrt(dx * dx + dy * dy);
                 } else if (e.touches.length === 1) {
                     startX = e.touches[0].clientX;
                     startY = e.touches[0].clientY;
@@ -1148,13 +1156,13 @@
                 }
             }, { passive: false });
 
-            wrap.addEventListener('touchmove', function(e) {
+            wrap.addEventListener('touchmove', function (e) {
                 if (e.touches.length === 2) {
                     // 핀치줌
                     e.preventDefault();
                     var dx = e.touches[0].clientX - e.touches[1].clientX;
                     var dy = e.touches[0].clientY - e.touches[1].clientY;
-                    var dist = Math.sqrt(dx*dx + dy*dy);
+                    var dist = Math.sqrt(dx * dx + dy * dy);
                     if (viewerPinchDist > 0) {
                         viewerScale = Math.max(1, Math.min(4, viewerScale * (dist / viewerPinchDist)));
                         img.style.transform = 'scale(' + viewerScale + ')';
@@ -1170,7 +1178,7 @@
                 }
             }, { passive: false });
 
-            wrap.addEventListener('touchend', function(e) {
+            wrap.addEventListener('touchend', function (e) {
                 viewerPinchDist = 0;
                 if (isSwiping && viewerScale <= 1) {
                     var endX = e.changedTouches[0].clientX;
@@ -1184,7 +1192,7 @@
             }, { passive: true });
 
             // 배경 클릭으로 닫기 (확대 안 된 상태에서만)
-            wrap.addEventListener('click', function(e) {
+            wrap.addEventListener('click', function (e) {
                 if (e.target === wrap && viewerScale <= 1) closeViewer();
             });
         }
@@ -1226,7 +1234,7 @@
             ].filter(Boolean);
             // jobTracks 배열 → 칩 추가
             if (Array.isArray(data.jobTracks)) {
-                data.jobTracks.forEach(function(t) { if (t) metaChips.push(t); });
+                data.jobTracks.forEach(function (t) { if (t) metaChips.push(t); });
             } else if (data.jobTracks && typeof data.jobTracks === 'string') {
                 metaChips.push(data.jobTracks);
             }
@@ -1247,7 +1255,7 @@
                 '<div class="item-header">' +
                 '<div class="item-title">' + titleText + '</div>' +
                 (data.companyName ? '<div style="font-size:14px;color:#666;margin-top:4px;">🏢 ' + data.companyName + '</div>' : '') +
-                (data.status ? '<div style="display:inline-block;margin-top:6px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (data.status==='모집중'?'#E8F5E9':data.status==='마감'?'#FFEBEE':'#F5F5F5') + ';color:' + (data.status==='모집중'?'#2E7D32':data.status==='마감'?'#C62828':'#555') + ';">' + data.status + '</div>' : '') +
+                (data.status ? '<div style="display:inline-block;margin-top:6px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (data.status === '모집중' ? '#E8F5E9' : data.status === '마감' ? '#FFEBEE' : '#F5F5F5') + ';color:' + (data.status === '모집중' ? '#2E7D32' : data.status === '마감' ? '#C62828' : '#555') + ';">' + data.status + '</div>' : '') +
                 (priceText ? '<div class="item-price">' + priceText + '</div>' : '') +
                 (metaChips.length ? '<div class="item-meta">' + metaChips.map(function (c) { return '<span class="meta-chip">' + c + '</span>'; }).join('') + '</div>' : '') +
                 '</div>' +
@@ -1379,6 +1387,36 @@
 
         loadItem();
     </script>
+</body>
+
+</html> // ② Jobs에서도 못 찾으면 candidates 시도 (구직자는 candidates 컬렉션에 있음)
+if (!snap.exists) {
+snap = await db.collection('candidates').doc(id).get();
+}
+
+if (!snap.exists) { showError('게시글을 찾을 수 없습니다', '삭제됐거나 잘못된 링크입니다.'); return; }
+document.getElementById('loading').style.display = 'none';
+document.getElementById('app').style.display = 'block';
+renderItem(snap.data());
+loadAds();
+} catch (e) {
+showError('불러오기 실패', e.message);
+}
+}
+
+function showError(title, msg) {
+document.getElementById('loading').style.display = 'none';
+document.getElementById('app').style.display = 'block';
+document.getElementById('app').innerHTML =
+'<div class="error-box">
+    <div class="error-emoji">😕</div>
+    <h2>' + title + '</h2>
+    <p>' + msg + '</p>
+</div>';
+}
+
+loadItem();
+</script>
 </body>
 
 </html>
