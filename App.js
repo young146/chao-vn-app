@@ -748,6 +748,7 @@ export default function App() {
                       },
                     },
                     '부동산': {
+                      initialRouteName: '부동산 메인',
                       screens: {
                         '부동산 상세': 'realestate/:id',
                       },
