@@ -415,8 +415,7 @@ export default function RealEstateScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* ─── FlatList 바깥 고정 영역: 검색바 + 서브탭 ─── */}
-      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
+      {/* ─── FlatList 바깥 고정 영역: 서브탭 ─── */}
       <View style={styles.dealTypeTabContainer}>
         {dealTypes.map((type, index) => (
           <Pressable

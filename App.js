@@ -226,11 +226,13 @@ import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
 import JobsScreen from "./screens/JobsScreen";
 import JobDetailScreen from "./screens/JobDetailScreen";
+import CandidateDetailScreen from "./screens/CandidateDetailScreen";
 import AddJobScreen from "./screens/AddJobScreen";
 import AddCandidateScreen from "./screens/AddCandidateScreen";
 import RealEstateScreen from "./screens/RealEstateScreen";
 import RealEstateDetailScreen from "./screens/RealEstateDetailScreen";
 import AddRealEstateScreen from "./screens/AddRealEstateScreen";
+import AddAgentScreen from "./screens/AddAgentScreen";
 import AdminScreen from "./screens/AdminScreen";
 import LanguageSelectScreen from "./screens/LanguageSelectScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
@@ -1035,6 +1037,15 @@ function JobsStack() {
         }}
       />
       <Stack.Screen
+        name="구직자 상세"
+        component={CandidateDetailScreen}
+        options={{
+          title: "구직자 프로필",
+          headerStyle: { backgroundColor: "#FF7043" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{
@@ -1095,6 +1106,15 @@ function RealEstateStack() {
         component={AddRealEstateScreen}
         options={{
           title: t('realEstate:addProperty'),
+          headerStyle: { backgroundColor: "#E91E63" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="중개인 등록"
+        component={AddAgentScreen}
+        options={{
+          title: "중개인 프로필",
           headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
         }}

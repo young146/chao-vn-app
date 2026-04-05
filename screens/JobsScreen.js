@@ -402,11 +402,17 @@ export default function JobsScreen({ navigation }) {
   }, [navigation]);
 
   const handleJobPress = useCallback((job) => {
-    const serializableJob = {
-      ...job,
-      createdAt: job.createdAt,
-    };
-    navigation.navigate("구인구직 상세", { job: serializableJob });
+    const serializableJob = { ...job, createdAt: job.createdAt };
+    // 구직자(candidates 컬렉션)는 전용 상세 화면으로 이동
+    if (job.sourceCollection === 'candidates' || job.jobType === '구직') {
+      // _candidateRaw가 있으면 원본 candidate 데이터 사용
+      const candidateData = job._candidateRaw
+        ? { ...job._candidateRaw, id: job.id }
+        : serializableJob;
+      navigation.navigate("구직자 상세", { candidate: candidateData });
+    } else {
+      navigation.navigate("구인구직 상세", { job: serializableJob });
+    }
   }, [navigation]);
 
   const renderItem = useCallback(({ item, index }) => (
@@ -480,8 +486,7 @@ export default function JobsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* ─── FlatList 바깥 고정 영역: 검색바 + 서브탭 ─── */}
-      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
+      {/* ─── FlatList 바깥 고정 영역: 서브탭 ─── */}
       <View style={styles.jobTypeTabContainer}>
         {jobTypes.map((type, index) => (
           <Pressable

@@ -143,6 +143,21 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 🏢 Agents (부동산 중개인) 컬렉션
+    // ========================================
+    match /Agents/{agentId} {
+      // 누구나 열람 가능 (매물 상세에서 표시)
+      allow read: if true;
+      // 로그인한 사용자만 등록
+      allow create: if request.auth != null;
+      // 본인 또는 관리자만 수정/삭제
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin());
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.userId || isAdmin());
+    }
+
+    // ========================================
     // 🚫 기본 거부 (위에서 정의되지 않은 모든 문서)
     // ========================================
     match /{document=**} {

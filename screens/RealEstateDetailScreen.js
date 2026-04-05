@@ -26,6 +26,11 @@ import {
   getDoc,
   deleteDoc,
   updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -35,6 +40,7 @@ import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
 import LocationMap from "../components/LocationMap";
 import YouTubeCard from "../components/YouTubeCard";
+import AgentCard from "../components/AgentCard";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -46,6 +52,10 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   const [item, setItem] = useState(routeItem || null);
   const [loadingItem, setLoadingItem] = useState(!routeItem);
   const [itemNotFound, setItemNotFound] = useState(false);
+  const [liveAgent, setLiveAgent] = useState(null);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [similarItems, setSimilarItems] = useState([]);
+  const [agentItems, setAgentItems] = useState([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(routeItem?.status || "거래가능");
@@ -80,24 +90,134 @@ export default function RealEstateDetailScreen({ route, navigation }) {
     }
   }, [routeItem, deepLinkId]);
 
-  // 화면 복귀 시 최신 데이터 재로드 (수정 후 자동 갱신)
+  // 화면 포커스 시마다 Firebase에서 최신 데이터 재로드
+  // routeItem.id 또는 deepLinkId 기반으로 항상 최신 상태 유지
+  const stableItemId = routeItem?.id || deepLinkId || null;
   useFocusEffect(
     useCallback(() => {
-      if (!item?.id) return;
+      if (!stableItemId) return;
       const fetchLatest = async () => {
         try {
-          const docRef = doc(db, "RealEstate", item.id);
+          const docRef = doc(db, "RealEstate", stableItemId);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const fresh = { id: docSnap.id, ...docSnap.data() };
+            console.log("🔄 상세 재로드 agentSnapshot=", !!fresh.agentSnapshot, fresh.agentId);
             setItem(fresh);
             setCurrentStatus(fresh.status || "거래가능");
           }
-        } catch (e) { }
+        } catch (e) { console.error("상세 재로드 실패:", e); }
       };
       fetchLatest();
-    }, [item?.id])
+    }, [stableItemId]) // stableItemId는 route.params에서 오므로 변하지 않음
   );
+
+  // 에이전트 조회: agentId 직접 조회 → 없으면 매물 소유자의 에이전트 자동 조회 후 연결 저장
+  useEffect(() => {
+    if (!item) return;
+    setAgentLoading(true);
+
+    const fetchAgent = async () => {
+      try {
+        // 1) agentId가 있으면 직접 조회
+        if (item.agentId) {
+          const agentSnap = await getDoc(doc(db, "Agents", item.agentId));
+          if (agentSnap.exists()) {
+            setLiveAgent({ id: agentSnap.id, ...agentSnap.data() });
+            return;
+          }
+          // agentId가 있지만 문서 없음 → 삭제된 에이전트, 매물 agentId도 정리
+          setLiveAgent(null);
+          try {
+            await updateDoc(doc(db, "RealEstate", item.id), { agentId: null, agentSnapshot: null });
+          } catch {}
+          return;
+        }
+
+        // 2) agentId 없음 → 매물 소유자(userId)로 에이전트 자동 조회
+        if (item.userId) {
+          const q = query(collection(db, "Agents"), where("userId", "==", item.userId));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const agentData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+            setLiveAgent(agentData);
+            // RealEstate 문서에 agentId/agentSnapshot 자동 저장 (다음 진입부터 빠르게 로드)
+            try {
+              await updateDoc(doc(db, "RealEstate", item.id), {
+                agentId: agentData.id,
+                agentSnapshot: {
+                  name: agentData.name || "",
+                  company: agentData.company || "",
+                  phone: agentData.phone || "",
+                  kakaoId: agentData.kakaoId || "",
+                  profileImage: agentData.profileImage || null,
+                  licenseNumber: agentData.licenseNumber || "",
+                  experienceYears: agentData.experienceYears || 0,
+                  description: agentData.description || "",
+                  city: agentData.city || "",
+                  district: agentData.district || "",
+                  addressDetail: agentData.addressDetail || "",
+                },
+              });
+              console.log("✅ 에이전트 자동 연결 완료:", agentData.id);
+            } catch (updateErr) {
+              console.error("에이전트 자동 연결 저장 실패:", updateErr);
+            }
+            return;
+          }
+        }
+
+        setLiveAgent(null);
+      } catch (e) {
+        console.error("에이전트 조회 실패:", e);
+        setLiveAgent(null);
+      } finally {
+        setAgentLoading(false);
+      }
+    };
+
+    fetchAgent();
+  }, [item?.agentId, item?.userId, item?.id]);
+
+  // 유사 매물 5개 + 중개인 매물 3개 조회 (orderBy 없이 JS 정렬로 복합 인덱스 회피)
+  useEffect(() => {
+    if (!item) return;
+    const fetchSimilar = async () => {
+      try {
+        const q = query(
+          collection(db, "RealEstate"),
+          where("dealType", "==", item.dealType),
+          limit(20)
+        );
+        const snap = await getDocs(q);
+        const results = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => d.id !== item.id)
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 5);
+        setSimilarItems(results);
+      } catch (e) { console.error("유사 매물 조회 실패:", e); }
+    };
+    const fetchAgentItems = async () => {
+      if (!item.userId) return;
+      try {
+        const q = query(
+          collection(db, "RealEstate"),
+          where("userId", "==", item.userId),
+          limit(10)
+        );
+        const snap = await getDocs(q);
+        const results = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => d.id !== item.id)
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 3);
+        setAgentItems(results);
+      } catch (e) { console.error("중개인 매물 조회 실패:", e); }
+    };
+    fetchSimilar();
+    fetchAgentItems();
+  }, [item?.id, item?.dealType, item?.userId]);
 
   // ── 모든 Hook을 early return 위에 배치 (Rules of Hooks 준수) ──
 
@@ -353,7 +473,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         {/* 상단 광고 */}
         <DetailAdBanner position="top" screen="realestate" />
 
-        {/* 이미지 영역 */}
+        {/* 이미지 영역 — 히어로 스타일 */}
         {images.length > 0 ? (
           <View style={styles.imageContainer}>
             <ScrollView
@@ -384,6 +504,25 @@ export default function RealEstateDetailScreen({ route, navigation }) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
+            {/* 하단 그라데이션 오버레이 */}
+            <View style={styles.heroGradient} pointerEvents="none" />
+
+            {/* 좌하단 배지 */}
+            <View style={styles.heroBadges}>
+              <View style={[styles.heroBadge, { backgroundColor: getStatusColor(currentStatus) }]}>
+                <Text style={styles.heroBadgeText}>{currentStatus}</Text>
+              </View>
+              <View style={[styles.heroBadge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.heroBadgeText, { color: badge.color }]}>{badge.text}</Text>
+              </View>
+              {item.propertyType && (
+                <View style={[styles.heroBadge, { backgroundColor: "rgba(255,255,255,0.92)" }]}>
+                  <Text style={[styles.heroBadgeText, { color: "#555" }]}>{item.propertyType}</Text>
+                </View>
+              )}
+            </View>
+
             {images.length > 1 && (
               <View style={styles.imageIndicator}>
                 <Text style={styles.imageIndicatorText}>
@@ -407,47 +546,76 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         )}
 
         {/* 광고 배너 */}
-        <DetailAdBanner position="top" screen="realestate" style={{ marginTop: 12 }} />
+        <DetailAdBanner position="top" screen="realestate" style={{ marginTop: 8 }} />
 
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
-          {/* 상태 + 임대/매매 배지 */}
-          <View style={styles.badgeRow}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentStatus) }]}>
-              <Text style={styles.statusText}>{currentStatus}</Text>
-            </View>
-            <View style={[styles.typeBadge, { backgroundColor: badge.bg }]}>
-              <Text style={[styles.typeText, { color: badge.color }]}>{badge.text}</Text>
-            </View>
-            {item.propertyType && (
-              <View style={styles.propertyTypeBadge}>
-                <Text style={styles.propertyTypeText}>{item.propertyType}</Text>
-              </View>
-            )}
-          </View>
-
           {/* 제목 */}
           <TranslatedText style={styles.title}>{item.title}</TranslatedText>
 
-          {/* 가격 정보 */}
+          {/* 가격 정보 — 크게 강조 */}
           <View style={styles.priceSection}>
             {item.dealType === "임대" ? (
-              <>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>{t('detail.deposit')}</Text>
-                  <Text style={styles.priceValue}>{displayPrice(item.deposit)}</Text>
+              <View style={styles.priceGrid}>
+                <View style={styles.priceGridItem}>
+                  <Text style={styles.priceGridLabel}>{t('detail.deposit')}</Text>
+                  <Text style={styles.priceGridValue}>{displayPrice(item.deposit)}</Text>
                 </View>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>{t('detail.monthlyRent')}</Text>
-                  <Text style={styles.priceValue}>{displayPrice(item.monthlyRent)}</Text>
+                <View style={styles.priceGridDivider} />
+                <View style={styles.priceGridItem}>
+                  <Text style={styles.priceGridLabel}>{t('detail.monthlyRent')}</Text>
+                  <Text style={styles.priceGridValue}>{displayPrice(item.monthlyRent)}</Text>
                 </View>
-              </>
+              </View>
             ) : (
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>{t('detail.salePrice')}</Text>
                 <Text style={styles.priceValue}>{displayPrice(item.price)}</Text>
               </View>
             )}
+          </View>
+
+          {/* 스펙 바: 면적 · 방 · 층 */}
+          <View style={styles.specBar}>
+            {item.area ? (
+              <View style={styles.specItem}>
+                <Ionicons name="resize-outline" size={16} color="#E91E63" />
+                <Text style={styles.specVal}>{item.area}㎡</Text>
+                <Text style={styles.specKey}>면적</Text>
+              </View>
+            ) : null}
+            {item.rooms ? (
+              <>
+                <View style={styles.specDivider} />
+                <View style={styles.specItem}>
+                  <Ionicons name="bed-outline" size={16} color="#9C27B0" />
+                  <Text style={styles.specVal}>{item.rooms}</Text>
+                  <Text style={styles.specKey}>방/화장실</Text>
+                </View>
+              </>
+            ) : null}
+            {item.floor ? (
+              <>
+                <View style={styles.specDivider} />
+                <View style={styles.specItem}>
+                  <Ionicons name="layers-outline" size={16} color="#FF9800" />
+                  <Text style={styles.specVal}>{item.floor}</Text>
+                  <Text style={styles.specKey}>층</Text>
+                </View>
+              </>
+            ) : null}
+            {(item.city || item.district) ? (
+              <>
+                <View style={styles.specDivider} />
+                <View style={styles.specItem}>
+                  <Ionicons name="location-outline" size={16} color="#4CAF50" />
+                  <Text style={styles.specVal} numberOfLines={1}>
+                    {item.district || item.city}
+                  </Text>
+                  <Text style={styles.specKey}>위치</Text>
+                </View>
+              </>
+            ) : null}
           </View>
 
           {/* 등록 정보 */}
@@ -561,6 +729,40 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           />
         )}
 
+        {/* 중개인 카드 — Agents 컬렉션 실시간 조회 결과만 사용 (삭제된 에이전트 자동 숨김) */}
+        {agentLoading ? (
+          <View style={styles.noAgentCard}>
+            <ActivityIndicator size="small" color="#E91E63" style={{ marginVertical: 12 }} />
+          </View>
+        ) : liveAgent ? (
+          <AgentCard
+            agent={liveAgent}
+            onEdit={isMyItem ? () => navigation.navigate("중개인 등록", {
+              editAgent: liveAgent
+            }) : null}
+          />
+        ) : (
+          <View style={styles.noAgentCard}>
+            <View style={styles.noAgentHeader}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#E91E63" />
+              <Text style={styles.noAgentTitle}>🏢 담당 중개인</Text>
+            </View>
+            <View style={styles.noAgentBody}>
+              <Ionicons name="person-circle-outline" size={48} color="#ddd" />
+              <Text style={styles.noAgentText}>등록된 중개인 정보가 없습니다.</Text>
+              {isMyItem && (
+                <TouchableOpacity
+                  style={styles.noAgentBtn}
+                  onPress={() => navigation.navigate("중개인 등록")}
+                >
+                  <Ionicons name="add-circle-outline" size={16} color="#E91E63" />
+                  <Text style={styles.noAgentBtnText}>중개인 프로필 등록하기</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* 내 매물인 경우 관리 버튼 */}
         {isMyItem && (
           <View style={styles.ownerActions}>
@@ -605,8 +807,77 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 하단 광고 */}
+        {/* 중간 광고 — 매물 정보 하단 */}
         <DetailAdBanner position="bottom" screen="realestate" />
+
+        {/* 유사 매물 5개 */}
+        {similarItems.length > 0 && (
+          <View style={styles.relatedSection}>
+            <Text style={styles.relatedTitle}>🏠 비슷한 매물</Text>
+            {similarItems.map(sim => (
+              <TouchableOpacity
+                key={sim.id}
+                style={styles.relatedCard}
+                onPress={() => navigation.push("부동산 상세", { item: sim })}
+              >
+                {sim.images?.[0] ? (
+                  <Image source={{ uri: sim.images[0] }} style={styles.relatedThumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.relatedThumb, styles.relatedThumbFallback]}>
+                    <Ionicons name="home-outline" size={22} color="#ccc" />
+                  </View>
+                )}
+                <View style={styles.relatedInfo}>
+                  <Text style={styles.relatedItemTitle} numberOfLines={1}>{sim.title}</Text>
+                  <Text style={styles.relatedItemSub} numberOfLines={1}>
+                    {sim.dealType} · {sim.city} {sim.district}
+                  </Text>
+                  <Text style={styles.relatedItemPrice} numberOfLines={1}>
+                    {sim.dealType === "임대"
+                      ? `보증금 ${sim.deposit || "-"} / 월세 ${sim.monthlyRent || "-"}`
+                      : `매매 ${sim.price || "-"}`}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 중개인 등록 매물 3개 */}
+        {agentItems.length > 0 && liveAgent && (
+          <View style={styles.relatedSection}>
+            <Text style={styles.relatedTitle}>👤 {liveAgent.name} 중개인의 다른 매물</Text>
+            {agentItems.map(ag => (
+              <TouchableOpacity
+                key={ag.id}
+                style={styles.relatedCard}
+                onPress={() => navigation.push("부동산 상세", { item: ag })}
+              >
+                {ag.images?.[0] ? (
+                  <Image source={{ uri: ag.images[0] }} style={styles.relatedThumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.relatedThumb, styles.relatedThumbFallback]}>
+                    <Ionicons name="home-outline" size={22} color="#ccc" />
+                  </View>
+                )}
+                <View style={styles.relatedInfo}>
+                  <Text style={styles.relatedItemTitle} numberOfLines={1}>{ag.title}</Text>
+                  <Text style={styles.relatedItemSub} numberOfLines={1}>
+                    {ag.dealType} · {ag.city} {ag.district}
+                  </Text>
+                  <Text style={styles.relatedItemPrice} numberOfLines={1}>
+                    {ag.dealType === "임대"
+                      ? `보증금 ${ag.deposit || "-"} / 월세 ${ag.monthlyRent || "-"}`
+                      : `매매 ${ag.price || "-"}`}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 최하단 광고 */}
+        <DetailAdBanner position="top" screen="realestate" style={{ marginTop: 4 }} />
 
         <View style={{ height: 200 }} />
       </ScrollView>
@@ -651,21 +922,50 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: SCREEN_WIDTH,
-    height: 280,
-    backgroundColor: "#f0f0f0",
+    height: 300,
+    backgroundColor: "#111",
+    position: "relative",
   },
   image: {
     width: SCREEN_WIDTH,
-    height: 280,
+    height: 300,
+  },
+  heroGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: "transparent",
+    // react-native 에서 linear-gradient 없이 단순 반투명 오버레이
+  },
+  heroBadges: {
+    position: "absolute",
+    bottom: 14,
+    left: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  heroBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.3,
   },
   imageIndicator: {
     position: "absolute",
-    bottom: 12,
+    bottom: 14,
     right: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   imageIndicatorText: {
     color: "#fff",
@@ -674,7 +974,7 @@ const styles = StyleSheet.create({
   },
   noImageContainer: {
     width: SCREEN_WIDTH,
-    height: 200,
+    height: 220,
     backgroundColor: "#f8f9fa",
     justifyContent: "center",
     alignItems: "center",
@@ -689,68 +989,83 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
   },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 12,
-    gap: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  typeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  propertyTypeBadge: {
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  propertyTypeText: {
-    fontSize: 12,
-    color: "#666",
-  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: "#1A1A2E",
     lineHeight: 28,
     marginBottom: 12,
   },
   priceSection: {
     backgroundColor: "#FFF8F8",
-    padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 12,
+    overflow: "hidden",
+  },
+  priceGrid: {
+    flexDirection: "row",
+  },
+  priceGridItem: {
+    flex: 1,
+    padding: 14,
+    alignItems: "center",
+  },
+  priceGridDivider: {
+    width: 1,
+    backgroundColor: "#FFE0E8",
+    marginVertical: 8,
+  },
+  priceGridLabel: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 4,
+  },
+  priceGridValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#E91E63",
   },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 4,
+    padding: 14,
   },
   priceLabel: {
     fontSize: 14,
     color: "#666",
   },
   priceValue: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "800",
     color: "#E91E63",
+  },
+  specBar: {
+    flexDirection: "row",
+    backgroundColor: "#F8F9FF",
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  specItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 3,
+  },
+  specDivider: {
+    width: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: 8,
+  },
+  specVal: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#333",
+  },
+  specKey: {
+    fontSize: 10,
+    color: "#888",
   },
   metaRow: {
     flexDirection: "row",
@@ -908,4 +1223,87 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
   },
+  noAgentCard: {
+    backgroundColor: "#fff",
+    marginTop: 8,
+    padding: 16,
+  },
+  noAgentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  noAgentTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#333",
+  },
+  noAgentBody: {
+    alignItems: "center",
+    paddingVertical: 16,
+    gap: 8,
+  },
+  noAgentText: {
+    fontSize: 14,
+    color: "#aaa",
+    marginTop: 4,
+  },
+  noAgentBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: "#FCE4EC",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  noAgentBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#E91E63",
+  },
+
+  // 유사 매물 섹션
+  relatedSection: {
+    marginHorizontal: 12,
+    marginTop: 16,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#ececec",
+  },
+  relatedTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 12,
+  },
+  relatedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  relatedThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+  },
+  relatedThumbFallback: {
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  relatedInfo: { flex: 1 },
+  relatedItemTitle: { fontSize: 14, fontWeight: "600", color: "#222" },
+  relatedItemSub: { fontSize: 12, color: "#888", marginTop: 2 },
+  relatedItemPrice: { fontSize: 13, color: "#E91E63", fontWeight: "700", marginTop: 3 },
 });

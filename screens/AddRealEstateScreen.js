@@ -1,5 +1,6 @@
 import { StackActions } from "@react-navigation/native";
-import React, { useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,6 +22,10 @@ import {
   addDoc,
   updateDoc,
   doc,
+  getDoc,
+  query,
+  where,
+  getDocs,
   serverTimestamp,
 } from "firebase/firestore";
 import { db, storage } from "../firebase/config";
@@ -60,6 +65,11 @@ export default function AddRealEstateScreen({ navigation, route }) {
   const [availableDate, setAvailableDate] = useState("");
   const [status, setStatus] = useState("거래가능");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+
+  // 중개인 연결
+  const [myAgent, setMyAgent] = useState(null);       // 내 등록된 중개인 프로필
+  const [linkedAgent, setLinkedAgent] = useState(null); // 이 매물에 연결할 중개인
+  const [agentLoading, setAgentLoading] = useState(false);
 
   // 거래 유형
   const dealTypes = ["임대", "매매"];
@@ -104,8 +114,59 @@ export default function AddRealEstateScreen({ navigation, route }) {
         setImages(editItem.images);
       }
       setYoutubeUrl(editItem.youtubeUrl || "");
+      if (editItem.agentId) {
+        // agentSnapshot을 임시로 설정 (useFocusEffect에서 최신 데이터로 덮어씌워짐)
+        setLinkedAgent({ id: editItem.agentId, ...(editItem.agentSnapshot || {}) });
+        // Agents 컬렉션에서 최신 데이터 직접 조회
+        getDoc(doc(db, "Agents", editItem.agentId))
+          .then((agentSnap) => {
+            if (agentSnap.exists()) {
+              setLinkedAgent({ id: agentSnap.id, ...agentSnap.data() });
+            } else {
+              // 에이전트 삭제됨 → 연결 해제
+              setLinkedAgent(null);
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [isEditMode, editItem]);
+
+  // 내 중개인 프로필 조회 — 화면 포커스마다 실행 (중개인 등록/수정 후 돌아올 때 자동 반영)
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      const fetchMyAgent = async () => {
+        setAgentLoading(true);
+        try {
+          const q = query(collection(db, "Agents"), where("userId", "==", user.uid));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const agentData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+            setMyAgent(agentData);
+            // linkedAgent가 이 에이전트와 같은 id면 최신 데이터로 갱신 (사진 등 동기화)
+            setLinkedAgent(prev => {
+              if (!prev) return agentData; // 미연결 → 자동 연결
+              if (prev.id === agentData.id) return agentData; // 같은 에이전트면 최신 데이터로 교체
+              return prev; // 다른 에이전트면 유지
+            });
+          } else {
+            setMyAgent(null);
+            // 내 에이전트가 삭제됐으면 연결도 해제
+            setLinkedAgent(prev =>
+              prev?.userId === user.uid ? null : prev
+            );
+          }
+        } catch (e) {
+          console.log("중개인 프로필 없음:", e?.code || e?.message);
+          setMyAgent(null);
+        } finally {
+          setAgentLoading(false);
+        }
+      };
+      fetchMyAgent();
+    }, [user])
+  );
 
   // 권한 요청
   const requestCameraPermission = async () => {
@@ -297,17 +358,32 @@ export default function AddRealEstateScreen({ navigation, route }) {
         images: uploadedImages,
         status,
         youtubeUrl: youtubeUrl.trim() || null,
+        // 중개인 연결
+        agentId: linkedAgent?.id || null,
+        agentSnapshot: linkedAgent ? {
+          name: linkedAgent.name || "",
+          company: linkedAgent.company || "",
+          phone: linkedAgent.phone || "",
+          kakaoId: linkedAgent.kakaoId || "",
+          profileImage: linkedAgent.profileImage || null,
+          licenseNumber: linkedAgent.licenseNumber || "",
+          experienceYears: linkedAgent.experienceYears || 0,
+          description: linkedAgent.description || "",
+          city: linkedAgent.city || "",
+          district: linkedAgent.district || "",
+          addressDetail: linkedAgent.addressDetail || "",
+        } : null,
       };
 
       if (isEditMode) {
         // 수정
-        console.log("💾 부동산 수정 중...");
+        console.log("💾 부동산 수정 중... agentId=", itemData.agentId, "agentSnapshot=", JSON.stringify(itemData.agentSnapshot));
         const itemRef = doc(db, "RealEstate", editItem.id);
         await updateDoc(itemRef, {
           ...itemData,
           updatedAt: serverTimestamp(),
         });
-        console.log("✅ 부동산 수정 완료!");
+        console.log("✅ 부동산 수정 완료! agentSnapshot 저장됨:", !!itemData.agentSnapshot);
 
         // 캐시 무효화 (수정 후 최신 데이터 표시)
         await AsyncStorage.removeItem("cached_realestate");
@@ -315,7 +391,10 @@ export default function AddRealEstateScreen({ navigation, route }) {
         Alert.alert(t('form.success'), t('form.propertyUpdated'), [
           {
             text: "확인",
-            onPress: () => navigation.goBack(),
+            onPress: () => {
+              // goBack 후 상세 화면이 포커스를 받으면 useFocusEffect가 즉시 재로드함
+              navigation.goBack();
+            },
           },
         ]);
       } else {
@@ -667,6 +746,61 @@ export default function AddRealEstateScreen({ navigation, route }) {
             </View>
           </View>
         )}
+
+        {/* ── 중개인 연결 ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Ionicons name="shield-checkmark" size={16} color="#E91E63" /> 중개인 프로필 연결
+          </Text>
+
+          {agentLoading ? (
+            <ActivityIndicator color="#E91E63" />
+          ) : myAgent ? (
+            linkedAgent ? (
+              // ✅ 연결됨 — 이름·회사 + X 버튼
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#FFF8FB", borderWidth: 1.5, borderColor: "#E91E63", borderRadius: 12, padding: 12 }}>
+                <Ionicons name="shield-checkmark" size={22} color="#E91E63" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#222" }}>{linkedAgent.name}</Text>
+                  <Text style={{ fontSize: 12, color: "#888" }}>{linkedAgent.company || "업체 미등록"}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setLinkedAgent(null)} style={{ padding: 6 }}>
+                  <Ionicons name="close-circle" size={22} color="#ccc" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // 내 프로필 있음 — + 버튼으로 연결
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 12, color: "#888", lineHeight: 18 }}>
+                  아래 <Text style={{ fontWeight: "700", color: "#E91E63" }}>＋ 버튼</Text>을 눌러야 이 매물에 중개인 프로필이 연결됩니다.
+                </Text>
+                <TouchableOpacity
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#FCE4EC", borderRadius: 12, padding: 14, borderWidth: 1.5, borderColor: "#E91E63" }}
+                  onPress={() => setLinkedAgent(myAgent)}
+                >
+                  <Ionicons name="person-circle" size={28} color="#E91E63" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#E91E63" }}>{myAgent.name}</Text>
+                    <Text style={{ fontSize: 12, color: "#888" }}>{myAgent.company || "업체 미등록"}</Text>
+                  </View>
+                  <Ionicons name="add-circle" size={28} color="#E91E63" />
+                </TouchableOpacity>
+              </View>
+            )
+          ) : (
+            // 중개인 프로필 없음 — 등록 안내
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FCE4EC", borderRadius: 12, padding: 16, borderWidth: 1.5, borderColor: "#E91E63", borderStyle: "dashed" }}
+              onPress={() => navigation.navigate("중개인 등록")}
+            >
+              <Ionicons name="add-circle-outline" size={24} color="#E91E63" />
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#E91E63" }}>중개인 프로필 등록하기</Text>
+                <Text style={{ fontSize: 11, color: "#888", marginTop: 2 }}>등록 후 ＋ 버튼으로 연결할 수 있습니다</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* YouTube 소개 영상 */}
         <View style={styles.section}>

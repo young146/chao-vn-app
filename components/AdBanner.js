@@ -642,6 +642,7 @@ export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, inter
  */
 export function DetailAdBanner({ position = 'top', screen = 'all', style, intervalMs = 5000 }) {
   const [adList, setAdList] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const slot = position === 'top' ? 'detail_top' : 'detail_bottom';
 
   useEffect(() => {
@@ -650,19 +651,28 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style, interv
       const detailAds = (ads?.[slot] || []).filter(a => a?.imageUrl || a?.videoUrl);
       detailAds.sort((a, b) => (b.priority || 10) - (a.priority || 10));
       setAdList(detailAds);
+      setLoaded(true);
     };
     loadAd();
   }, [position, screen, slot]);
 
-  if (adList.length === 0) return null;
+  // 광고 있으면 슬라이더 표시
+  if (adList.length > 0) {
+    return (
+      <AdSlider
+        ads={adList}
+        containerStyle={[styles.headerBanner, style]}
+        thumbnailKey="banner"
+        intervalMs={intervalMs}
+      />
+    );
+  }
 
+  // 광고 없어도 자리 확보 (플레이스홀더)
   return (
-    <AdSlider
-      ads={adList}
-      containerStyle={[styles.headerBanner, style]}
-      thumbnailKey="banner"
-      intervalMs={intervalMs}
-    />
+    <View style={[styles.detailAdPlaceholder, style]}>
+      <Text style={styles.detailAdPlaceholderText}>광고</Text>
+    </View>
   );
 }
 
@@ -968,6 +978,24 @@ const styles = StyleSheet.create({
   adImage: {
     width: "100%",
     height: "100%",
+  },
+  // 광고 없을 때 자리 확보 플레이스홀더
+  detailAdPlaceholder: {
+    width: "100%",
+    height: 60,
+    backgroundColor: "#f0f0f0",
+    marginVertical: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderStyle: "dashed",
+  },
+  detailAdPlaceholderText: {
+    fontSize: 11,
+    color: "#bbb",
+    letterSpacing: 2,
   },
   // 비디오 음소거 버튼
   muteButton: {

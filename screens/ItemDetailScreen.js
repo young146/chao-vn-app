@@ -30,6 +30,7 @@ import {
   serverTimestamp,
   updateDoc,
   getDoc,
+  limit,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -49,6 +50,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   const [item, setItem] = useState(initialItem || null);
   const [loadingItem, setLoadingItem] = useState(!initialItem);
   const [itemNotFound, setItemNotFound] = useState(false);
+  const [similarItems, setSimilarItems] = useState([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [reviews, setReviews] = useState([]);
@@ -89,6 +91,28 @@ export default function ItemDetailScreen({ route, navigation }) {
   const images = item ? (item.images || (item.imageUri ? [item.imageUri] : [])) : [];
   const isMyItem = item?.userId === user?.uid;
   const canDelete = isMyItem || isAdmin();
+
+  // 같은 지역 상품 5개 (orderBy 없이 JS 정렬로 복합 인덱스 회피)
+  useEffect(() => {
+    if (!item?.city) return;
+    const fetchSimilar = async () => {
+      try {
+        const q = query(
+          collection(db, "XinChaoDanggn"),
+          where("city", "==", item.city),
+          limit(20)
+        );
+        const snap = await getDocs(q);
+        const results = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => d.id !== item.id)
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 5);
+        setSimilarItems(results);
+      } catch (e) { console.error("유사 상품 조회 실패:", e); }
+    };
+    fetchSimilar();
+  }, [item?.id, item?.city]);
 
   // ✅ 리뷰 데이터 불러오기
   useEffect(() => {
@@ -516,7 +540,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         {/* 상단 광고 */}
         <DetailAdBanner position="top" screen="danggn" />
 
-        {/* 이미지 갤러리 */}
+        {/* 이미지 갤러리 — 히어로 스타일 */}
         <View style={styles.imageContainer}>
           {images.length > 0 ? (
             <>
@@ -547,6 +571,27 @@ export default function ItemDetailScreen({ route, navigation }) {
                 ))}
               </ScrollView>
 
+              {/* 그라데이션 오버레이 */}
+              <View style={styles.heroOverlay} pointerEvents="none" />
+
+              {/* 좌하단: 상태 배지 + 카테고리 */}
+              <View style={styles.heroBadges}>
+                <View style={[styles.heroBadge, { backgroundColor: getStatusColor(currentStatus) }]}>
+                  <Text style={styles.heroBadgeText}>{currentStatus}</Text>
+                </View>
+                {item.category ? (
+                  <View style={[styles.heroBadge, { backgroundColor: "rgba(255,255,255,0.92)" }]}>
+                    <Text style={[styles.heroBadgeText, { color: "#FF6B35" }]}>{item.category}</Text>
+                  </View>
+                ) : null}
+                {item.price === 0 || item.priceText === "무료나눔" || item.priceText === "나눔" ? (
+                  <View style={[styles.heroBadge, { backgroundColor: "#2E7D32" }]}>
+                    <Text style={styles.heroBadgeText}>🎁 무료나눔</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* 우하단: 이미지 카운터 */}
               {images.length > 1 && (
                 <View style={styles.imageIndicator}>
                   <Text style={styles.imageIndicatorText}>
@@ -555,6 +600,7 @@ export default function ItemDetailScreen({ route, navigation }) {
                 </View>
               )}
 
+              {/* 하단 도트 */}
               {images.length > 1 && (
                 <View style={styles.dotContainer}>
                   {images.map((_, index) => (
@@ -568,6 +614,15 @@ export default function ItemDetailScreen({ route, navigation }) {
                   ))}
                 </View>
               )}
+
+              {/* 찜 버튼 오버레이 */}
+              <TouchableOpacity style={styles.favOverlay} onPress={handleFavorite}>
+                <Ionicons
+                  name={isFavorited ? "heart" : "heart-outline"}
+                  size={22}
+                  color={isFavorited ? "#E91E63" : "#9CA3AF"}
+                />
+              </TouchableOpacity>
 
               {/* 🔍 이미지 확대 뷰어 */}
               <ImageViewing
@@ -589,23 +644,46 @@ export default function ItemDetailScreen({ route, navigation }) {
         <View style={styles.contentContainer}>
           {/* 제목 & 가격 & 상태 */}
           <View style={styles.headerSection}>
-            <View style={styles.titleRow}>
-              <TranslatedText style={styles.title}>{item.title}</TranslatedText>
-              {/* ✅ 상태 배지 */}
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(currentStatus) },
-                ]}
-              >
-                <Text style={styles.statusText}>{currentStatus}</Text>
-              </View>
-            </View>
-            <Text style={styles.price}>{item.priceText || String(item.price || '가격 문의')}</Text>
+            <TranslatedText style={styles.title}>{item.title}</TranslatedText>
+            <Text style={[
+              styles.price,
+              (item.price === 0 || item.priceText === "무료나눔" || item.priceText === "나눔")
+                && { color: "#2E7D32" }
+            ]}>
+              {item.priceText || (item.price === 0 ? "무료나눔" : String(item.price || '가격 문의'))}
+            </Text>
             <View style={styles.metaInfo}>
-              <Text style={styles.category}>{item.category}</Text>
-              <Text style={styles.metaDot}>•</Text>
+              {item.condition ? (
+                <>
+                  <View style={styles.conditionTag}>
+                    <Text style={styles.conditionTagText}>{item.condition}</Text>
+                  </View>
+                </>
+              ) : null}
               <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+            </View>
+          </View>
+
+          {/* 스탯 바 (조회/찜/등록위치) */}
+          <View style={styles.statsBar}>
+            <View style={styles.statItem}>
+              <Ionicons name="eye-outline" size={18} color="#666" />
+              <Text style={styles.statVal}>{item.viewCount || 0}</Text>
+              <Text style={styles.statKey}>조회</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={[styles.statItem, styles.statFav]}>
+              <Ionicons name="heart-outline" size={18} color="#E91E63" />
+              <Text style={[styles.statVal, { color: "#E91E63" }]}>{item.favoriteCount || 0}</Text>
+              <Text style={styles.statKey}>찜</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Ionicons name="location-outline" size={18} color="#FF6B35" />
+              <Text style={styles.statVal} numberOfLines={1}>
+                {item.district || item.city || "-"}
+              </Text>
+              <Text style={styles.statKey}>거래지역</Text>
             </View>
           </View>
 
@@ -803,8 +881,40 @@ export default function ItemDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* 하단 광고 */}
+        {/* 중간 광고 */}
         <DetailAdBanner position="bottom" screen="danggn" />
+
+        {/* 같은 지역 상품 5개 */}
+        {similarItems.length > 0 && (
+          <View style={styles.relatedSection}>
+            <Text style={styles.relatedTitle}>📍 {item.city} 근처 상품</Text>
+            {similarItems.map(sim => (
+              <TouchableOpacity
+                key={sim.id}
+                style={styles.relatedCard}
+                onPress={() => navigation.push("당근/나눔 상세", { item: sim })}
+              >
+                {(sim.images?.[0] || sim.imageUri) ? (
+                  <Image source={{ uri: sim.images?.[0] || sim.imageUri }} style={styles.relatedThumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.relatedThumb, styles.relatedThumbFallback]}>
+                    <Ionicons name="pricetag-outline" size={22} color="#ccc" />
+                  </View>
+                )}
+                <View style={styles.relatedInfo}>
+                  <Text style={styles.relatedItemTitle} numberOfLines={1}>{sim.title}</Text>
+                  <Text style={styles.relatedItemSub} numberOfLines={1}>{sim.city} {sim.district}</Text>
+                  <Text style={styles.relatedItemPrice}>
+                    {sim.isFree ? "무료나눔" : sim.price ? `₫ ${Number(sim.price).toLocaleString()}` : "-"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 최하단 광고 */}
+        <DetailAdBanner position="top" screen="danggn" style={{ marginTop: 8 }} />
 
         {/* 📤 SNS 공유 섹션 */}
         <View style={styles.shareSection}>
@@ -882,18 +992,6 @@ export default function ItemDetailScreen({ route, navigation }) {
           </>
         ) : (
           <>
-            {/* ✅ 찜하기 버튼 */}
-            <TouchableOpacity
-              style={styles.heartButton}
-              onPress={handleFavorite}
-            >
-              <Ionicons
-                name={isFavorited ? "heart" : "heart-outline"}
-                size={24}
-                color={isFavorited ? "#FF6B35" : "#333"}
-              />
-            </TouchableOpacity>
-
             {/* ✅ 리뷰 작성 버튼 */}
             <TouchableOpacity
               style={[styles.actionButton, styles.reviewButton]}
@@ -955,19 +1053,61 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: SCREEN_WIDTH,
-    height: 300,
-    backgroundColor: "#f0f0f0",
+    height: 320,
+    backgroundColor: "#111",
     position: "relative",
   },
   image: {
     width: SCREEN_WIDTH,
-    height: 300,
+    height: 320,
     resizeMode: "cover",
   },
+  heroOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: "transparent",
+  },
+  heroBadges: {
+    position: "absolute",
+    bottom: 44,
+    left: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  heroBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.3,
+  },
+  favOverlay: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
   noImageContainer: {
-    flex: 1,
+    width: SCREEN_WIDTH,
+    height: 320,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f8f9fa",
   },
   imagePlaceholder: {
     marginTop: 10,
@@ -976,84 +1116,103 @@ const styles = StyleSheet.create({
   },
   imageIndicator: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    bottom: 14,
+    right: 14,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
   },
   imageIndicatorText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   dotContainer: {
     position: "absolute",
-    bottom: 10,
+    bottom: 14,
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-    marginHorizontal: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.45)",
+    marginHorizontal: 3,
   },
   activeDot: {
+    width: 18,
     backgroundColor: "#fff",
+    borderRadius: 3,
   },
+  statsBar: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    marginTop: 8,
+    borderRadius: 0,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    gap: 2,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "#f0f0f0",
+    marginVertical: 10,
+  },
+  statVal: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+  },
+  statKey: {
+    fontSize: 10,
+    color: "#888",
+  },
+  statFav: {},
   contentContainer: {
     paddingBottom: 100,
   },
   headerSection: {
     padding: 16,
     backgroundColor: "#fff",
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+    marginTop: 8,
   },
   title: {
-    flex: 1,
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
-    marginRight: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
+    color: "#1A1A2E",
+    marginBottom: 8,
+    lineHeight: 28,
   },
   price: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 26,
+    fontWeight: "800",
     color: "#FF6B35",
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  conditionTag: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  conditionTagText: {
+    fontSize: 12,
+    color: "#555",
+    fontWeight: "600",
   },
   metaInfo: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  category: {
-    fontSize: 14,
-    color: "#666",
-    textDecorationLine: "underline",
-  },
-  metaDot: {
-    marginHorizontal: 6,
-    color: "#ccc",
+    flexWrap: "wrap",
+    gap: 6,
   },
   date: {
     fontSize: 13,
@@ -1319,4 +1478,39 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#fff',
   },
+
+  // 유사 상품 섹션
+  relatedSection: {
+    marginHorizontal: 12,
+    marginTop: 16,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#ececec",
+  },
+  relatedTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 12,
+  },
+  relatedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  relatedThumb: { width: 64, height: 64, borderRadius: 10 },
+  relatedThumbFallback: {
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  relatedInfo: { flex: 1 },
+  relatedItemTitle: { fontSize: 14, fontWeight: "600", color: "#222" },
+  relatedItemSub: { fontSize: 12, color: "#888", marginTop: 2 },
+  relatedItemPrice: { fontSize: 13, color: "#FF6B35", fontWeight: "700", marginTop: 3 },
 });

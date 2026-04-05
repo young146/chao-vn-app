@@ -25,6 +25,10 @@ import {
   deleteDoc,
   updateDoc,
   getDoc,
+  collection,
+  query,
+  limit,
+  getDocs,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -44,6 +48,7 @@ export default function JobDetailScreen({ route, navigation }) {
   const [job, setJob] = useState(initialJob || null);
   const [loadingJob, setLoadingJob] = useState(!initialJob);
   const [jobNotFound, setJobNotFound] = useState(false);
+  const [similarJobs, setSimilarJobs] = useState([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(initialJob?.status || "모집중");
@@ -116,6 +121,27 @@ export default function JobDetailScreen({ route, navigation }) {
       setLoadingJob(false);
     }
   }, [initialJob, deepLinkId]);
+
+  // 최근 구인 5개 조회 (orderBy 없이 JS 정렬로 복합 인덱스 회피)
+  useEffect(() => {
+    if (!job) return;
+    const fetchSimilar = async () => {
+      try {
+        const q = query(
+          collection(db, "Jobs"),
+          limit(20)
+        );
+        const snap = await getDocs(q);
+        const results = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => d.id !== job.id)
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 5);
+        setSimilarJobs(results);
+      } catch (e) { console.error("유사 구인 조회 실패:", e); }
+    };
+    fetchSimilar();
+  }, [job?.id]);
 
   // ── 모든 Hook을 early return 위에 배치 (Rules of Hooks 준수) ──
 
@@ -358,7 +384,7 @@ export default function JobDetailScreen({ route, navigation }) {
         {/* 상단 광고 */}
         <DetailAdBanner position="top" screen="job" />
 
-        {/* 이미지 영역 */}
+        {/* 이미지 영역 — 히어로 스타일 */}
         {images.length > 0 ? (
           <View style={styles.imageContainer}>
             <ScrollView
@@ -389,6 +415,24 @@ export default function JobDetailScreen({ route, navigation }) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
+            {/* 하단 배지 오버레이 */}
+            <View style={styles.heroBadges}>
+              <View style={[styles.heroBadge, { backgroundColor: getStatusColor(currentStatus) }]}>
+                <Text style={styles.heroBadgeText}>{currentStatus}</Text>
+              </View>
+              <View style={[styles.heroBadge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.heroBadgeText, { color: badge.color }]}>{badge.text}</Text>
+              </View>
+              {(job.industry || job.industryTrack) && (
+                <View style={[styles.heroBadge, { backgroundColor: "rgba(255,255,255,0.92)" }]}>
+                  <Text style={[styles.heroBadgeText, { color: "#555" }]}>
+                    {job.industry || job.industryTrack}
+                  </Text>
+                </View>
+              )}
+            </View>
+
             {images.length > 1 && (
               <View style={styles.imageIndicator}>
                 <Text style={styles.imageIndicatorText}>
@@ -405,35 +449,76 @@ export default function JobDetailScreen({ route, navigation }) {
             />
           </View>
         ) : (
-          <Image
-            source={require('../assets/og_jobs_seeker.png')}
-            style={{ width: '100%', height: 220 }}
-            contentFit="cover"
-          />
+          <View style={styles.bannerContainer}>
+            <Image
+              source={require('../assets/og_jobs_seeker.png')}
+              style={{ width: '100%', height: 200 }}
+              contentFit="cover"
+            />
+            {/* 기본 배너 위 배지 */}
+            <View style={styles.heroBadges}>
+              <View style={[styles.heroBadge, { backgroundColor: getStatusColor(currentStatus) }]}>
+                <Text style={styles.heroBadgeText}>{currentStatus}</Text>
+              </View>
+              <View style={[styles.heroBadge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.heroBadgeText, { color: badge.color }]}>{badge.text}</Text>
+              </View>
+            </View>
+          </View>
         )}
 
         {/* 광고 배너 */}
-        <DetailAdBanner position="top" screen="job" style={{ marginTop: 12 }} />
+        <DetailAdBanner position="top" screen="job" style={{ marginTop: 8 }} />
 
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
-          {/* 상태 + 구인/구직 배지 */}
-          <View style={styles.badgeRow}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentStatus) }]}>
-              <Text style={styles.statusText}>{currentStatus}</Text>
+          {/* 회사명 */}
+          {job.companyName ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 6 }}>
+              <Ionicons name="business-outline" size={15} color="#888" />
+              <TranslatedText style={{ fontSize: 14, color: "#555", fontWeight: "600" }}>
+                {job.companyName}
+              </TranslatedText>
             </View>
-            <View style={[styles.jobTypeBadge, { backgroundColor: badge.bg }]}>
-              <Text style={[styles.jobTypeText, { color: badge.color }]}>{badge.text}</Text>
-            </View>
-            {job.industry && (
-              <View style={styles.industryBadge}>
-                <TranslatedText style={styles.industryText}>{job.industry}</TranslatedText>
-              </View>
-            )}
-          </View>
+          ) : null}
 
           {/* 제목 */}
           <TranslatedText style={styles.title}>{job.title}</TranslatedText>
+
+          {/* 급여 강조 */}
+          {job.salary ? (
+            <View style={styles.salaryBox}>
+              <Ionicons name="cash-outline" size={20} color="#2196F3" />
+              <Text style={styles.salaryText}>{job.salary}</Text>
+            </View>
+          ) : null}
+
+          {/* 스펙 그리드 */}
+          <View style={styles.specBar}>
+            <View style={styles.specItem}>
+              <Ionicons name="time-outline" size={16} color="#2196F3" />
+              <Text style={styles.specVal} numberOfLines={1}>
+                {job.employmentType || "-"}
+              </Text>
+              <Text style={styles.specKey}>고용형태</Text>
+            </View>
+            <View style={styles.specDivider} />
+            <View style={styles.specItem}>
+              <Ionicons name="location-outline" size={16} color="#FF5722" />
+              <Text style={styles.specVal} numberOfLines={1}>
+                {job.district || job.city || "-"}
+              </Text>
+              <Text style={styles.specKey}>근무지</Text>
+            </View>
+            <View style={styles.specDivider} />
+            <View style={styles.specItem}>
+              <Ionicons name="calendar-outline" size={16} color="#795548" />
+              <Text style={styles.specVal} numberOfLines={1}>
+                {job.deadline || "상시"}
+              </Text>
+              <Text style={styles.specKey}>마감일</Text>
+            </View>
+          </View>
 
           {/* 등록 정보 */}
           <View style={styles.metaRow}>
@@ -470,14 +555,14 @@ export default function JobDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* 업종 */}
-          {job.industry && (
+          {/* 업종 (industry 또는 하위호환 industryTrack) */}
+          {(job.industry || job.industryTrack) && (
             <View style={styles.infoRow}>
               <View style={styles.infoLabel}>
                 <Ionicons name="briefcase-outline" size={18} color="#9C27B0" />
                 <Text style={styles.labelText}>{t('detail.industry')}</Text>
               </View>
-              <TranslatedText style={styles.infoValue}>{job.industry}</TranslatedText>
+              <TranslatedText style={styles.infoValue}>{job.industry || job.industryTrack}</TranslatedText>
             </View>
           )}
 
@@ -596,8 +681,42 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 하단 광고 */}
+        {/* 중간 광고 */}
         <DetailAdBanner position="bottom" screen="job" />
+
+        {/* 최근 구인 5개 */}
+        {similarJobs.length > 0 && (
+          <View style={styles.relatedSection}>
+            <Text style={styles.relatedTitle}>💼 최근 구인 공고</Text>
+            {similarJobs.map(j => (
+              <TouchableOpacity
+                key={j.id}
+                style={styles.relatedCard}
+                onPress={() => navigation.push("구인구직 상세", { job: j })}
+              >
+                {j.images?.[0] ? (
+                  <Image source={{ uri: j.images[0] }} style={styles.relatedThumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.relatedThumb, styles.relatedThumbFallback]}>
+                    <Ionicons name="briefcase-outline" size={22} color="#ccc" />
+                  </View>
+                )}
+                <View style={styles.relatedInfo}>
+                  <Text style={styles.relatedItemTitle} numberOfLines={1}>{j.title}</Text>
+                  <Text style={styles.relatedItemSub} numberOfLines={1}>
+                    {j.jobType || j.industry || ""} · {j.city || ""}
+                  </Text>
+                  <Text style={styles.relatedItemPrice} numberOfLines={1}>
+                    {j.salaryType ? `${j.salaryType} ${j.salary || ""}` : "급여 협의"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 최하단 광고 */}
+        <DetailAdBanner position="top" screen="job" style={{ marginTop: 8 }} />
 
         {/* 📤 SNS 공유 섹션 */}
         <View style={styles.shareSection}>
@@ -676,85 +795,104 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: SCREEN_WIDTH,
-    height: 280,
-    backgroundColor: "#f0f0f0",
+    height: 260,
+    backgroundColor: "#111",
+    position: "relative",
   },
   image: {
     width: SCREEN_WIDTH,
-    height: 280,
+    height: 260,
+  },
+  bannerContainer: {
+    width: SCREEN_WIDTH,
+    height: 200,
+    position: "relative",
+  },
+  heroBadges: {
+    position: "absolute",
+    bottom: 14,
+    left: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  heroBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.3,
   },
   imageIndicator: {
     position: "absolute",
-    bottom: 12,
+    bottom: 14,
     right: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   imageIndicatorText: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "600",
   },
-  noImageContainer: {
-    width: SCREEN_WIDTH,
-    height: 200,
-    backgroundColor: "#f8f9fa",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  noImageText: {
-    marginTop: 8,
-    color: "#999",
-    fontSize: 14,
-  },
   mainInfo: {
     backgroundColor: "#fff",
     padding: 16,
     marginTop: 8,
   },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 12,
-    gap: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  jobTypeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  jobTypeText: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  industryBadge: {
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  industryText: {
-    fontSize: 12,
-    color: "#666",
-  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: "#1A1A2E",
     lineHeight: 28,
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  salaryBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#E3F2FD",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  salaryText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1565C0",
+  },
+  specBar: {
+    flexDirection: "row",
+    backgroundColor: "#F8F9FF",
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  specItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 3,
+  },
+  specDivider: {
+    width: 1,
+    backgroundColor: "#E0E0E0",
+    marginVertical: 8,
+  },
+  specVal: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#333",
+  },
+  specKey: {
+    fontSize: 10,
+    color: "#888",
   },
   metaRow: {
     flexDirection: "row",
@@ -954,4 +1092,30 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#fff',
   },
+
+  // 유사 구인 섹션
+  relatedSection: {
+    marginHorizontal: 12,
+    marginTop: 16,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#ececec",
+  },
+  relatedTitle: { fontSize: 15, fontWeight: "700", color: "#333", marginBottom: 12 },
+  relatedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  relatedThumb: { width: 64, height: 64, borderRadius: 10 },
+  relatedThumbFallback: { backgroundColor: "#f5f5f5", alignItems: "center", justifyContent: "center" },
+  relatedInfo: { flex: 1 },
+  relatedItemTitle: { fontSize: 14, fontWeight: "600", color: "#222" },
+  relatedItemSub: { fontSize: 12, color: "#888", marginTop: 2 },
+  relatedItemPrice: { fontSize: 13, color: "#2196F3", fontWeight: "700", marginTop: 3 },
 });

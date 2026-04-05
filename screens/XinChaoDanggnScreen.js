@@ -514,7 +514,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
       {/* 🔥 메인 헤더 광고 */}
       <AdBanner screen="danggn" style={{ marginTop: 8 }} />
       {headerBanners}
-      <SearchBar value={searchText} onChangeText={setSearchText} placeholder={t('searchPlaceholder')} />
       {headerFilters}
       {headerCategories}
     </View>
