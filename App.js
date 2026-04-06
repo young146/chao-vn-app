@@ -237,6 +237,7 @@ import AdminScreen from "./screens/AdminScreen";
 import LanguageSelectScreen from "./screens/LanguageSelectScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import AdInquiryModal from "./components/AdInquiryModal";
+import SplashAnimation from "./components/SplashAnimation";
 
 // ============================================
 // 📢 광고문의 헤더 버튼 (모든 탭에서 공유)
@@ -482,7 +483,10 @@ export default function App() {
 
           if (hasCache) {
             console.log('✅ 캐시 발견! 즉시 진입');
-            setIsReady(true);
+            // 애니메이션 감상을 위해 무조건 최소 5.0초는 로딩 화면을 보여줌
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 5000 - elapsedTime);
+            setTimeout(() => setIsReady(true), remainingTime);
 
             // 백그라운드에서 모든 초기화 + 데이터 갱신 (사용자는 안 기다림)
             Promise.allSettled([
@@ -524,8 +528,8 @@ export default function App() {
           }
         }, 100);
 
-        // 모든 초기화를 병렬로 + 최대 2초 타임아웃
-        const MAX_INIT_TIME = 2000; // 최대 2초
+        // 모든 초기화를 병렬로 + 최대 5.0초 타임아웃
+        const MAX_INIT_TIME = 5000; // 최대 5.0초
 
         const allInitPromise = Promise.allSettled([
           waitForFirebase(1500),
@@ -560,7 +564,9 @@ export default function App() {
           console.log(`⏱️ 초기화 완료: ${Date.now() - startTime}ms`);
         }
 
-        setTimeout(() => setIsReady(true), 100);
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 5000 - elapsedTime);
+        setTimeout(() => setIsReady(true), remainingTime);
       } catch (error) {
         console.log("초기화 에러:", error);
         setIsReady(true); // 에러 시에도 진입
@@ -680,25 +686,18 @@ export default function App() {
   // AuthProvider 내부의 onAuthStateChanged가 null auth를 참조하면 크래시 발생
   if (!isReady) {
     return (
-      <View style={styles.loadingOverlay}>
-        <ExpoImage
-          source={require("./assets/icon.png")}
-          style={{ width: 150, height: 150, marginBottom: 50 }}
-          contentFit="contain"
-        />
-        <View style={styles.progressBottomContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingPercentText}>
-            첫 실행 데이터 준비 중...
+      <View style={[styles.loadingOverlay, { backgroundColor: '#0f0f13' }]}>
+        <SplashAnimation />
+        <View style={[styles.progressBottomContainer, { position: 'absolute', bottom: 50, zIndex: 10 }]}>
+          <ActivityIndicator size="small" color="#d4af37" />
+          <Text style={[styles.loadingPercentText, { color: 'rgba(212, 175, 55, 0.7)', marginTop: 8 }]}>
+            XinChaoVietnam 로딩 중...
           </Text>
-          <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarBg, { backgroundColor: 'rgba(255,255,255,0.1)', height: 3 }]}>
             <View
-              style={[styles.progressBarFill, { width: `${loadProgress}%` }]}
+              style={[styles.progressBarFill, { width: `${loadProgress}%`, backgroundColor: '#d4af37' }]}
             />
           </View>
-          <Text style={styles.loadingPercent}>
-            {Math.round(loadProgress)}%
-          </Text>
         </View>
       </View>
     );
