@@ -3,6 +3,7 @@ import React, {
   useLayoutEffect,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
 import {
   View,
@@ -31,6 +32,7 @@ import {
   updateDoc,
   getDoc,
   limit,
+  increment,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
@@ -87,6 +89,26 @@ export default function ItemDetailScreen({ route, navigation }) {
       setLoadingItem(false);
     }
   }, [initialItem, deepLinkId]);
+
+  const viewIncrementedRef = useRef(false);
+
+  // ✅ 조회수 증가 로직
+  useEffect(() => {
+    if (!item?.id || viewIncrementedRef.current) return;
+
+    viewIncrementedRef.current = true;
+    const incrementViewCount = async () => {
+      try {
+        const itemRef = doc(db, "XinChaoDanggn", item.id);
+        await updateDoc(itemRef, { viewCount: increment(1) });
+        setItem((prev) => (prev ? { ...prev, viewCount: (prev.viewCount || 0) + 1 } : prev));
+      } catch (e) {
+        console.error("조회수 증가 실패:", e);
+      }
+    };
+
+    incrementViewCount();
+  }, [item?.id]);
 
   const images = item ? (item.images || (item.imageUri ? [item.imageUri] : [])) : [];
   const isMyItem = item?.userId === user?.uid;
@@ -477,6 +499,10 @@ export default function ItemDetailScreen({ route, navigation }) {
           await deleteDoc(docSnap.ref);
         }
 
+        // ✅ 물품의 favoriteCount 감소
+        await updateDoc(doc(db, "XinChaoDanggn", item.id), { favoriteCount: increment(-1) });
+        setItem((prev) => (prev ? { ...prev, favoriteCount: Math.max(0, (prev.favoriteCount || 0) - 1) } : prev));
+
         setIsFavorited(false);
         Alert.alert(t('detail.complete'), t('detail.favoriteRemoved'));
       } else {
@@ -507,6 +533,10 @@ export default function ItemDetailScreen({ route, navigation }) {
 
           console.log("✅ 찜 알림 전송 완료:", item.userId);
         }
+
+        // ✅ 물품의 favoriteCount 증가
+        await updateDoc(doc(db, "XinChaoDanggn", item.id), { favoriteCount: increment(1) });
+        setItem((prev) => (prev ? { ...prev, favoriteCount: (prev.favoriteCount || 0) + 1 } : prev));
 
         setIsFavorited(true);
         Alert.alert(t('detail.complete'), t('detail.favoriteAdded'));
