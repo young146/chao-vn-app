@@ -187,9 +187,8 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
 
     try {
-<<<<<<< Updated upstream
-      // orderBy('createdAt', 'desc')로 최신순 정렬하여 가져옴
-      // 지역별 검색을 위해 전체 데이터를 로드 (limit 500)
+      // createdAt 내림차순으로 서버에서 정렬하여 항상 최신 글이 맨 앞에 오도록 함
+      // (이전에는 orderBy를 제거하여 iOS에서 최신 글이 중간에 끼는 버그 발생)
       let q;
       if (isFirstFetch) {
         q = query(
@@ -198,28 +197,14 @@ export default function XinChaoDanggnScreen({ navigation }) {
           limit(500)
         );
       } else if (lastVisible) {
-=======
-      // createdAt 내림차순으로 서버에서 정렬하여 항상 최신 글이 맨 앞에 오도록 함
-      // (이전에는 orderBy를 제거하여 iOS에서 최신 글이 중간에 끼는 버그 발생)
-      let q = query(
-        collection(db, "XinChaoDanggn"),
-        orderBy("createdAt", "desc"),
-        limit(isFirstFetch ? 500 : ITEMS_PER_PAGE)
-      );
-
-      if (!isFirstFetch && lastVisible) {
->>>>>>> Stashed changes
         q = query(
           collection(db, "XinChaoDanggn"),
           orderBy("createdAt", "desc"),
           startAfter(lastVisible),
           limit(ITEMS_PER_PAGE)
         );
-<<<<<<< Updated upstream
       } else {
         return;
-=======
->>>>>>> Stashed changes
       }
 
       const snapshot = await getDocs(q);
