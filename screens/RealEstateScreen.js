@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
-  TextInput,
   FlatList,
   Alert,
   RefreshControl,
@@ -39,19 +38,7 @@ import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../util
 import { translateCity } from "../utils/vietnamLocations";
 import { translatePropertyType, translateDealType } from "../utils/optionTranslations";
 
-// 검색바 컴포넌트
-const SearchBar = memo(({ value, onChangeText, placeholder }) => (
-  <View style={styles.searchContainer}>
-    <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-    <TextInput
-      style={styles.searchInput}
-      placeholder={placeholder}
-      placeholderTextColor="rgba(0, 0, 0, 0.38)"
-      value={value}
-      onChangeText={onChangeText}
-    />
-  </View>
-));
+
 
 // 부동산 카드 컴포넌트
 const RealEstateCard = memo(({ item, onPress, index, t, language }) => {
@@ -181,7 +168,6 @@ export default function RealEstateScreen({ navigation }) {
   const colors = getColors(colorScheme);
 
   const [items, setItems] = useState([]);
-  const [searchText, setSearchText] = useState("");
   const [selectedDealType, setSelectedDealType] = useState("전체");
   const [selectedPropertyType, setSelectedPropertyType] = useState("전체");
   const [selectedCity, setSelectedCity] = useState("전체");
@@ -308,21 +294,18 @@ export default function RealEstateScreen({ navigation }) {
   // 필터링
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = !searchText ||
-        item.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchText.toLowerCase());
       const matchesDealType = selectedDealType === "전체" || item.dealType === selectedDealType;
       const matchesPropertyType = selectedPropertyType === "전체" || item.propertyType === selectedPropertyType;
       const matchesCity = selectedCity === "전체" || item.city === selectedCity;
 
-      return matchesSearch && matchesDealType && matchesPropertyType && matchesCity;
+      return matchesDealType && matchesPropertyType && matchesCity;
     }).sort((a, b) => {
       // 거래완료는 맨 아래로
       if (a.status === "거래완료" && b.status !== "거래완료") return 1;
       if (a.status !== "거래완료" && b.status === "거래완료") return -1;
       return 0;
     });
-  }, [items, searchText, selectedDealType, selectedPropertyType, selectedCity]);
+  }, [items, selectedDealType, selectedPropertyType, selectedCity]);
 
   const handleAddItem = useCallback(() => {
     if (!user) {

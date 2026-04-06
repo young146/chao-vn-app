@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
-  TextInput,
   FlatList,
   Alert,
   RefreshControl,
@@ -38,19 +37,7 @@ import { translateCity } from "../utils/vietnamLocations";
 import { translateIndustry } from "../utils/optionTranslations";
 import LanguagePickerModal from "../components/LanguagePickerModal";
 
-// 검색바 컴포넌트
-const SearchBar = memo(({ value, onChangeText, placeholder }) => (
-  <View style={styles.searchContainer}>
-    <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-    <TextInput
-      style={styles.searchInput}
-      placeholder={placeholder}
-      placeholderTextColor="rgba(0, 0, 0, 0.38)"
-      value={value}
-      onChangeText={onChangeText}
-    />
-  </View>
-));
+
 
 // Jobs 카드 컴포넌트
 const JobCard = memo(({ item, onPress, index, t }) => {
@@ -163,7 +150,6 @@ export default function JobsScreen({ navigation }) {
   const colors = getColors(colorScheme);
 
   const [jobs, setJobs] = useState([]);
-  const [searchText, setSearchText] = useState("");
   const [selectedJobType, setSelectedJobType] = useState("전체");
   const [selectedIndustry, setSelectedIndustry] = useState("전체");
   const [selectedCity, setSelectedCity] = useState("전체");
@@ -360,22 +346,18 @@ export default function JobsScreen({ navigation }) {
   // 필터링
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      // 마감된 공고는 맨 아래로 (필터링에서 제외하지 않음)
-      const matchesSearch = !searchText ||
-        job.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-        job.description?.toLowerCase().includes(searchText.toLowerCase());
       const matchesJobType = selectedJobType === "전체" || job.jobType === selectedJobType;
       const matchesIndustry = selectedIndustry === "전체" || job.industry === selectedIndustry;
       const matchesCity = selectedCity === "전체" || job.city === selectedCity;
 
-      return matchesSearch && matchesJobType && matchesIndustry && matchesCity;
+      return matchesJobType && matchesIndustry && matchesCity;
     }).sort((a, b) => {
       // 마감된 공고는 맨 아래로
       if (a.status === "마감" && b.status !== "마감") return 1;
       if (a.status !== "마감" && b.status === "마감") return -1;
       return 0;
     });
-  }, [jobs, searchText, selectedJobType, selectedIndustry, selectedCity]);
+  }, [jobs, selectedJobType, selectedIndustry, selectedCity]);
 
   const handleAddJob = useCallback(() => {
     if (!user) {

@@ -882,7 +882,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         </View>
 
         {/* 중간 광고 */}
-        <DetailAdBanner position="bottom" screen="danggn" />
+        <DetailAdBanner position="middle" screen="danggn" />
 
         {/* 같은 지역 상품 5개 */}
         {similarItems.length > 0 && (
@@ -914,7 +914,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         )}
 
         {/* 최하단 광고 */}
-        <DetailAdBanner position="top" screen="danggn" style={{ marginTop: 8 }} />
+        <DetailAdBanner position="bottom" screen="danggn" style={{ marginTop: 8 }} />
 
         {/* 📤 SNS 공유 섹션 */}
         <View style={styles.shareSection}>

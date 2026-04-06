@@ -457,6 +457,9 @@ export default function CandidateDetailScreen({ route, navigation }) {
           </View>
         ) : null}
 
+        {/* ── 중간 광고 ── */}
+        <DetailAdBanner position="middle" screen="job" />
+
         {/* ── 연락처 (로그인 전용) ── */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📞 연락처</Text>
@@ -597,11 +600,8 @@ export default function CandidateDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* ── 중간 광고 ── */}
-        <DetailAdBanner position="bottom" screen="job" />
-
         {/* ── 최하단 광고 ── */}
-        <DetailAdBanner position="top" screen="job" style={{ marginTop: 8 }} />
+        <DetailAdBanner position="bottom" screen="job" style={{ marginTop: 8 }} />
 
         <View style={{ height: 120 }} />
       </ScrollView>

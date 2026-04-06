@@ -472,8 +472,9 @@ export default function App() {
         const otaFlag = await AsyncStorage.getItem('OTA_JUST_APPLIED').catch(() => null);
         if (otaFlag) {
           // OTA 플래그 + 캐시 동시 삭제 → 새 데이터 로드 강제
-          await AsyncStorage.multiRemove(['OTA_JUST_APPLIED', 'HOME_DATA_CACHE']).catch(() => { });
-          console.log('🔄 OTA 직후 재시작 - 캐시 삭제 완료, 새 데이터 로드');
+          await AsyncStorage.multiRemove(['OTA_JUST_APPLIED', 'HOME_DATA_CACHE']).catch(() => {});
+          updatesCheckedRef.current = true; // ⏩ 이번 세션 업데이트 체크 완전 스킵 (루프 방지)
+          console.log('🔄 OTA 직후 재시작 - 캐시 삭제 완료, 업데이트 체크 스킵');
           // hasCache 블록 전체 skip → slow-path(프로그레스 바 + API)로 진행
         } else {
           // 🚀 1. 캐시 먼저 확인 - 있으면 즉시 진입! (최우선)
@@ -591,8 +592,16 @@ export default function App() {
       if (!updatesCheckedRef.current && !__DEV__ && Updates.isEnabled) {
         updatesCheckedRef.current = true;
 
+        // OTA 직후 재시작인 경우 업데이트 체크 스킵 (루프 방지)
+        const skipCheck = await AsyncStorage.getItem('OTA_SKIP_CHECK').catch(() => null);
+        if (skipCheck) {
+          await AsyncStorage.removeItem('OTA_SKIP_CHECK').catch(() => {});
+          console.log('⏩ OTA_SKIP_CHECK 감지 - 이번 세션 업데이트 체크 스킵');
+          return;
+        }
+
         try {
-          console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작... (v2.2.4-freeze-fix)");
+          console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작...");
 
           // 타임아웃과 함께 안전하게 체크
           const update = await Promise.race([
@@ -628,9 +637,12 @@ export default function App() {
                   isPreferred: true,
                   onPress: async () => {
                     try {
-                      await AsyncStorage.setItem('OTA_JUST_APPLIED', '1');
-                      // 프로세스 완전 재시작 (iOS/Android 동일) - 껐다 켜는 것과 동일
-                      RNRestart.Restart();
+                      // OTA_JUST_APPLIED: 캐시 삭제, OTA_SKIP_CHECK: 재시작 후 업데이트 체크 스킵 (루프 방지)
+                      await AsyncStorage.multiSet([
+                        ['OTA_JUST_APPLIED', '1'],
+                        ['OTA_SKIP_CHECK', '1'],
+                      ]);
+                      await Updates.reloadAsync();
                     } catch (e) {
                       console.log("업데이트 적용 실패:", e);
                     }

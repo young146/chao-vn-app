@@ -86,12 +86,20 @@ function chaovn_get_news_terminal($request) {
         }
 
         // ── 캐시 확인 ──────────────────────────────────────
-        $cache_key = CHAOVN_NEWS_CACHE_PREFIX . $target_date;
-        $cached    = get_transient($cache_key);
+        $cache_key  = CHAOVN_NEWS_CACHE_PREFIX . $target_date;
+        $cached     = get_transient($cache_key);
+        $is_today   = ($target_date === $now->format('Y-m-d'));
+
         if ($cached !== false) {
-            // 캐시 히트: DB 조회 없이 즉시 반환
-            $cached['_cache'] = 'hit';
-            return new WP_REST_Response($cached, 200);
+            // 오늘 날짜인데 캐시된 결과가 비어있으면 → 재확인 (뉴스가 추가됐을 수 있음)
+            $cached_empty = (isset($cached['totalCount']) && intval($cached['totalCount']) === 0);
+            if ($is_today && $cached_empty) {
+                // 빈 캐시 무시, DB에서 다시 조회
+                delete_transient($cache_key);
+            } else {
+                $cached['_cache'] = 'hit';
+                return new WP_REST_Response($cached, 200);
+            }
         }
         // ────────────────────────────────────────────────────
 
@@ -150,10 +158,17 @@ function chaovn_get_news_terminal($request) {
             '_cache'       => 'miss',
         );
 
-        // ── 캐시 저장 (해당 날짜 자정까지) ─────────────────
-        $midnight = new DateTime('tomorrow midnight', $tz);
-        $ttl      = $midnight->getTimestamp() - time();
-        if ($ttl < 60) $ttl = DAY_IN_SECONDS; // 안전장치
+        // ── 캐시 저장 ──────────────────────────────────────
+        $total = count($result['top_news']) + count($result['regular']);
+        if ($is_today && $total === 0) {
+            // 오늘인데 뉴스가 없으면 짧은 TTL (60초) — 곧 발행될 수 있으므로
+            $ttl = 60;
+        } else {
+            // 뉴스가 있거나 과거 날짜면 자정까지 캐시
+            $midnight = new DateTime('tomorrow midnight', $tz);
+            $ttl      = $midnight->getTimestamp() - time();
+            if ($ttl < 60) $ttl = DAY_IN_SECONDS; // 안전장치
+        }
         set_transient($cache_key, $response_data, $ttl);
         // ────────────────────────────────────────────────────
 
@@ -182,10 +197,9 @@ function chaovn_on_post_published($post_id) {
     // 기존 캐시 삭제
     delete_transient($cache_key);
 
-    // 5초 후 WP-Cron으로 재생성 (현재 요청을 막지 않음)
-    if (!wp_next_scheduled('chaovn_rebuild_news_cache', array($date))) {
-        wp_schedule_single_event(time() + 5, 'chaovn_rebuild_news_cache', array($date));
-    }
+    // 기존 스케줄 제거 후 5초 후 재생성 (항상 최신 상태 보장)
+    wp_clear_scheduled_hook('chaovn_rebuild_news_cache', array($date));
+    wp_schedule_single_event(time() + 5, 'chaovn_rebuild_news_cache', array($date));
 }
 
 function chaovn_on_post_updated($post_id, $post_after, $post_before) {

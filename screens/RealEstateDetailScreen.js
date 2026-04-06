@@ -545,9 +545,6 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 광고 배너 */}
-        <DetailAdBanner position="top" screen="realestate" style={{ marginTop: 8 }} />
-
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
           {/* 제목 */}
@@ -808,7 +805,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         )}
 
         {/* 중간 광고 — 매물 정보 하단 */}
-        <DetailAdBanner position="bottom" screen="realestate" />
+        <DetailAdBanner position="middle" screen="realestate" />
 
         {/* 유사 매물 5개 */}
         {similarItems.length > 0 && (
@@ -877,7 +874,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
         )}
 
         {/* 최하단 광고 */}
-        <DetailAdBanner position="top" screen="realestate" style={{ marginTop: 4 }} />
+        <DetailAdBanner position="bottom" screen="realestate" style={{ marginTop: 4 }} />
 
         <View style={{ height: 200 }} />
       </ScrollView>

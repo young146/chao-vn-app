@@ -31,6 +31,7 @@ const AD_SLOTS = {
   HEADER: 'header',                // 리스트 상단 배너
   INLINE: 'inline',                // 리스트 인라인 광고
   DETAIL_TOP: 'detail_top',        // 상세 페이지 상단
+  DETAIL_MIDDLE: 'detail_middle',  // 상세 페이지 중간
   DETAIL_BOTTOM: 'detail_bottom',  // 상세 페이지 하단
   POPUP: 'popup',                  // 전면 팝업 광고
 };
@@ -636,14 +637,16 @@ export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, inter
 }
 
 /**
- * 상세 페이지 광고 (상단/하단)
- * @param {string} position - 'top' 또는 'bottom'
+ * 상세 페이지 광고 (상단/중간/하단)
+ * @param {string} position - 'top', 'middle', 또는 'bottom'
  * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
  */
 export function DetailAdBanner({ position = 'top', screen = 'all', style, intervalMs = 5000 }) {
   const [adList, setAdList] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const slot = position === 'top' ? 'detail_top' : 'detail_bottom';
+  let slot = 'detail_top';
+  if (position === 'middle') slot = 'detail_middle';
+  if (position === 'bottom') slot = 'detail_bottom';
 
   useEffect(() => {
     const loadAd = async () => {

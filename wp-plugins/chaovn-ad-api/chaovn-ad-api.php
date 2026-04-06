@@ -52,6 +52,11 @@ function chaovn_get_ad_slots()
             'size' => 'app-banner',
             'dimensions' => array(750, 200),
         ),
+        'detail_middle' => array(
+            'label' => '상세 페이지 중간',
+            'size' => 'app-banner',
+            'dimensions' => array(750, 200),
+        ),
         'detail_bottom' => array(
             'label' => '상세 페이지 하단',
             'size' => 'app-banner',

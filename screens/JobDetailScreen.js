@@ -467,9 +467,6 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 광고 배너 */}
-        <DetailAdBanner position="top" screen="job" style={{ marginTop: 8 }} />
-
         {/* 메인 정보 */}
         <View style={styles.mainInfo}>
           {/* 회사명 */}
@@ -682,7 +679,7 @@ export default function JobDetailScreen({ route, navigation }) {
         )}
 
         {/* 중간 광고 */}
-        <DetailAdBanner position="bottom" screen="job" />
+        <DetailAdBanner position="middle" screen="job" />
 
         {/* 최근 구인 5개 */}
         {similarJobs.length > 0 && (
@@ -716,7 +713,7 @@ export default function JobDetailScreen({ route, navigation }) {
         )}
 
         {/* 최하단 광고 */}
-        <DetailAdBanner position="top" screen="job" style={{ marginTop: 8 }} />
+        <DetailAdBanner position="bottom" screen="job" style={{ marginTop: 8 }} />
 
         {/* 📤 SNS 공유 섹션 */}
         <View style={styles.shareSection}>

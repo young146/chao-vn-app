@@ -111,6 +111,14 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
             <Ionicons name="close-circle" size={22} color="#FF6B35" />
           </TouchableOpacity>
         )}
+        {/* 찾기 버튼 */}
+        <TouchableOpacity
+          style={styles.searchSubmitButton}
+          onPress={handleSubmit}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.searchSubmitText}>찾기</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 🔍 최근 검색어 */}
@@ -845,6 +853,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#333',
+  },
+  searchSubmitButton: {
+    marginLeft: 8,
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  searchSubmitText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   // 🔍 검색 히스토리 스타일
   historyContainer: {

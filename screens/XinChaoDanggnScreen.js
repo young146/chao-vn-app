@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   FlatList,
   Alert,
   RefreshControl,
@@ -39,19 +38,6 @@ import TranslatedText from "../components/TranslatedText";
 import { formatPrice } from "../utils/priceFormatter";
 import { translateCity, translateOther } from "../utils/vietnamLocations";
 
-// 검색바 컴포넌트 분리 (입력 시 전체 헤더 재렌더링 방지)
-const SearchBar = memo(({ value, onChangeText, placeholder }) => (
-  <View style={styles.searchContainer}>
-    <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-    <TextInput
-      style={styles.searchInput}
-      placeholder={placeholder}
-      placeholderTextColor="rgba(0, 0, 0, 0.38)"
-      value={value}
-      onChangeText={onChangeText}
-    />
-  </View>
-));
 
 // 별도 컴포넌트로 분리하여 메모이제이션 적용
 const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) => {
@@ -112,7 +98,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
 
 
   const [items, setItems] = useState([]);
-  const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [selectedCity, setSelectedCity] = useState("전체");
   const [selectedDistrict, setSelectedDistrict] = useState("전체");
@@ -202,6 +187,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
 
     try {
+<<<<<<< Updated upstream
       // orderBy('createdAt', 'desc')로 최신순 정렬하여 가져옴
       // 지역별 검색을 위해 전체 데이터를 로드 (limit 500)
       let q;
@@ -212,14 +198,28 @@ export default function XinChaoDanggnScreen({ navigation }) {
           limit(500)
         );
       } else if (lastVisible) {
+=======
+      // createdAt 내림차순으로 서버에서 정렬하여 항상 최신 글이 맨 앞에 오도록 함
+      // (이전에는 orderBy를 제거하여 iOS에서 최신 글이 중간에 끼는 버그 발생)
+      let q = query(
+        collection(db, "XinChaoDanggn"),
+        orderBy("createdAt", "desc"),
+        limit(isFirstFetch ? 500 : ITEMS_PER_PAGE)
+      );
+
+      if (!isFirstFetch && lastVisible) {
+>>>>>>> Stashed changes
         q = query(
           collection(db, "XinChaoDanggn"),
           orderBy("createdAt", "desc"),
           startAfter(lastVisible),
           limit(ITEMS_PER_PAGE)
         );
+<<<<<<< Updated upstream
       } else {
         return;
+=======
+>>>>>>> Stashed changes
       }
 
       const snapshot = await getDocs(q);
@@ -285,9 +285,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
       // ✅ 판매완료된 물품은 리스트에서 제외
       if (item.status === "판매완료") return false;
 
-      const matchesSearch = !searchText || item.title
-        ?.toLowerCase()
-        .includes(searchText.toLowerCase());
       const matchesCategory =
         selectedCategory === "전체" || item.category === selectedCategory;
       const matchesCity = selectedCity === "전체" || item.city === selectedCity;
@@ -297,14 +294,13 @@ export default function XinChaoDanggnScreen({ navigation }) {
         selectedApartment === "전체" || item.apartment === selectedApartment;
 
       return (
-        matchesSearch &&
         matchesCategory &&
         matchesCity &&
         matchesDistrict &&
         matchesApartment
       );
     });
-  }, [items, searchText, selectedCategory, selectedCity, selectedDistrict, selectedApartment]);
+  }, [items, selectedCategory, selectedCity, selectedDistrict, selectedApartment]);
 
   // 아이템을 2개씩 묶어서 행(row) 단위로 변환 + 광고 삽입
   const rowsWithAds = useMemo(() => {
@@ -517,7 +513,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
       {headerFilters}
       {headerCategories}
     </View>
-  ), [headerBanners, searchText, headerFilters, headerCategories]);
+  ), [headerBanners, headerFilters, headerCategories]);
 
   return (
     <View style={styles.container}>
