@@ -96,7 +96,10 @@ export default function CandidateDetailScreen({ route, navigation }) {
     if (!candidate) return;
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: "row", gap: 4, marginRight: 8 }}>
+        <View style={{ flexDirection: "row", gap: 12, marginRight: 8, alignItems: "center" }}>
+          <TouchableOpacity onPress={() => handleShare('more')} style={{ marginRight: canManage ? 4 : 8 }}>
+            <Ionicons name="share-outline" size={24} color="#fff" />
+          </TouchableOpacity>
           {canManage && (
             <TouchableOpacity
               style={styles.headerBtn}
@@ -108,7 +111,7 @@ export default function CandidateDetailScreen({ route, navigation }) {
         </View>
       ),
     });
-  }, [candidate, canManage, navigation]);
+  }, [candidate, canManage, navigation, handleShare]);
 
   // ── 삭제 ──
   const handleDelete = () => {
@@ -142,6 +145,47 @@ export default function CandidateDetailScreen({ route, navigation }) {
       editCandidate: { ...candidate, id: candidate.id },
     });
   };
+
+  // ── 📤 공유 ──
+  const handleShare = useCallback(async (platform = "more") => {
+    if (!candidate) return;
+    const { shareItem } = require("../utils/deepLinkUtils");
+
+    const profile = candidate.profile || {};
+    const career = candidate.career || {};
+    const comp = candidate.compensation || {};
+
+    const fallbackName = profile.name || candidate.name || "이름 미입력";
+    const shareTitle = candidate.title ? `${fallbackName} · ${candidate.title}` : fallbackName;
+
+    const shareableItem = {
+      ...candidate,
+      title: shareTitle,
+      jobType: "구직",
+      sourceCollection: "candidates",
+      salary: comp.desiredSalaryUsdPerMonth ? `${comp.desiredSalaryUsdPerMonth} USD/월` : "급여 협의",
+      industry: career.jobTracks?.[0] || "",
+      city: profile.desiredLocation || candidate.city || "",
+      description: candidate.description || career.skills || "",
+      contact: {
+        phone: profile.phone || candidate.phone || "",
+      },
+    };
+
+    try {
+      const result = await shareItem("job", candidate.id, shareableItem, platform);
+      if (result && !result.success) {
+        if (result.error === "kakao_not_installed") {
+          Alert.alert("KakaoTalk", t("detail.installKakao", "카카오톡이 설치되어 있지 않습니다."));
+        } else if (result.error === "zalo_not_installed") {
+          Alert.alert("Zalo", "Zalo 앱이 설치되어 있지 않습니다.");
+        }
+      }
+    } catch (error) {
+      console.error("공유 실패:", error);
+      Alert.alert(t("common:error"), "공유에 실패했습니다.");
+    }
+  }, [candidate, t]);
 
   // ── 전화 ──
   const handleCall = () => {
@@ -603,6 +647,40 @@ export default function CandidateDetailScreen({ route, navigation }) {
         {/* ── 최하단 광고 ── */}
         <DetailAdBanner position="bottom" screen="job" style={{ marginTop: 8 }} />
 
+        {/* 📤 SNS 공유 섹션 */}
+        <View style={styles.shareSection}>
+          <Text style={styles.shareTitle}>📤 이 게시물 공유하기</Text>
+          <View style={styles.shareButtons}>
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#FEE500' }]}
+              onPress={() => handleShare('kakao')}
+            >
+              <Text style={styles.kakaoShareIcon}>💬</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#0068FF' }]}
+              onPress={() => handleShare('zalo')}
+            >
+              <Text style={styles.zaloShareIcon}>Z</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#1877F2' }]}
+              onPress={() => handleShare('facebook')}
+            >
+              <Ionicons name="logo-facebook" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.shareButton, { backgroundColor: '#FF7043' }]}
+              onPress={() => handleShare('more')}
+            >
+              <Ionicons name="share-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={{ height: 120 }} />
       </ScrollView>
 
@@ -795,4 +873,12 @@ const styles = StyleSheet.create({
     gap: 6, backgroundColor: "#2196F3", borderRadius: 12, paddingVertical: 14,
   },
   chatButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+
+  // share
+  shareSection: { backgroundColor: "#fff", padding: 20, marginTop: 8, alignItems: "center" },
+  shareTitle: { fontSize: 15, fontWeight: "700", color: "#333", marginBottom: 16 },
+  shareButtons: { flexDirection: "row", gap: 16 },
+  shareButton: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+  kakaoShareIcon: { fontSize: 24, color: "#3C1E1E", fontWeight: "bold", top: -2 },
+  zaloShareIcon: { fontSize: 22, color: "#fff", fontWeight: "900", fontFamily: "sans-serif-medium" },
 });

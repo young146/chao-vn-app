@@ -246,7 +246,7 @@ export const AuthProvider = ({ children }) => {
       console.error("구글 로그인 오류:", error);
       let message = "구글 로그인에 실패했습니다.";
       if (error.code === 'auth/account-exists-with-different-credential') {
-        message = "이미 다른 방법으로 가입된 이메일입니다.";
+        message = "이미 동일한 이메일로 가입된 계정(이메일 또는 다른 SNS)이 존재합니다.\n\n이메일 로그인으로 접속하시거나 '비밀번호 재설정'을 이용해주세요.";
       }
       return { success: false, error: message };
     }
@@ -291,7 +291,7 @@ export const AuthProvider = ({ children }) => {
       console.error("애플 로그인 오류:", error);
       let message = "애플 로그인에 실패했습니다.";
       if (error.code === 'auth/account-exists-with-different-credential') {
-        message = "이미 가입된 이메일입니다.";
+        message = "이미 동일한 이메일로 가입된 계정(이메일 또는 다른 SNS)이 존재합니다.\n\n이메일 로그인으로 접속하시거나 '비밀번호 재설정'을 이용해주세요.";
       }
       return { success: false, error: message };
     }
@@ -303,7 +303,10 @@ export const AuthProvider = ({ children }) => {
       console.log("🔵 카카오 로그인 시작");
       
       // 카카오 로그인 (카카오톡 설치 시 앱으로, 미설치 시 웹으로)
-      const token = await KakaoLogin.login();
+      // iOS에서 무한 대기를 방지하기 위해 12초 타임아웃 적용
+      const loginPromise = KakaoLogin.login();
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 12000));
+      const token = await Promise.race([loginPromise, timeoutPromise]);
       console.log("✅ 카카오 토큰 받음:", token ? "있음" : "없음");
       
       // 카카오 프로필 정보 가져오기

@@ -15,14 +15,16 @@ export const shareToSNS = async (platform, title, message, url) => {
     try {
         switch (platform) {
             case 'kakao':
-                const canOpenKakao = await Linking.canOpenURL('kakaolink://');
-                if (canOpenKakao) {
-                    // message에 이미 🔗 링크가 포함되어 있으므로 URL 중복 없이 그대로 전달
-                    const shareOptions = { message };
-                    await Share.share(shareOptions);
-                } else {
-                    return { success: false, error: 'kakao_not_installed' };
+                try {
+                    const canOpenKakao = await Linking.canOpenURL('kakaolink://');
+                    if (!canOpenKakao) {
+                        console.log('Kakao scheme not registered, falling back to native share');
+                    }
+                } catch (e) {
+                    console.log('Kakao check error', e);
                 }
+                const kakaoShareOptions = { message };
+                await Share.share(kakaoShareOptions);
                 break;
 
             case 'facebook':
@@ -38,15 +40,18 @@ export const shareToSNS = async (platform, title, message, url) => {
                 break;
 
             case 'zalo':
-                const zaloInstalled = await Linking.canOpenURL('zalo://');
-                if (zaloInstalled) {
-                    const shareOptions = Platform.OS === 'ios'
-                        ? { url: url, title: title }
-                        : { message };
-                    await Share.share(shareOptions);
-                } else {
-                    return { success: false, error: 'zalo_not_installed' };
+                try {
+                    const zaloInstalled = await Linking.canOpenURL('zalo://');
+                    if (!zaloInstalled) {
+                        console.log('Zalo scheme not registered, falling back to native share');
+                    }
+                } catch (e) {
+                    console.log('Zalo check error', e);
                 }
+                const zaloShareOptions = Platform.OS === 'ios'
+                    ? { url: url, title: title }
+                    : { message };
+                await Share.share(zaloShareOptions);
                 break;
 
             case 'sms':

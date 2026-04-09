@@ -169,8 +169,12 @@ function chaovn_firebase_login_shortcode()
         var isSignupMode = false;
         var allBtns = [loginBtn, googleBtn, kakaoBtn, appleBtn];
 
-        function showError(msg) {
-            errorDiv.textContent = msg;
+        function showError(msg, isHtml = false) {
+            if (isHtml) {
+                errorDiv.innerHTML = msg;
+            } else {
+                errorDiv.textContent = msg;
+            }
             errorDiv.style.display = 'block';
             loadingDiv.style.display = 'none';
             allBtns.forEach(function(b){ if(b) b.disabled = false; });
@@ -180,7 +184,7 @@ function chaovn_firebase_login_shortcode()
             allBtns.forEach(function(b){ if(b) b.disabled = true; });
         }
 
-        function verifyTokenWithWP(idToken) {
+        function verifyTokenWithWP(idToken, kakaoInfo) {
             loadingDiv.textContent = "워드프레스와 안전하게 로그인 동기화 중입니다...";
             loadingDiv.style.display = 'block';
 
@@ -203,7 +207,12 @@ function chaovn_firebase_login_shortcode()
                     }
                 }
             };
-            xhr.send('token=' + encodeURIComponent(idToken));
+            var reqData = 'token=' + encodeURIComponent(idToken);
+            if (kakaoInfo) {
+                if (kakaoInfo.email) reqData += '&kakao_email=' + encodeURIComponent(kakaoInfo.email);
+                if (kakaoInfo.name)  reqData += '&kakao_name='  + encodeURIComponent(kakaoInfo.name);
+            }
+            xhr.send(reqData);
         }
 
         // 회원가입/로그인 모드 전환
@@ -244,28 +253,37 @@ function chaovn_firebase_login_shortcode()
                  .then(function(t) { verifyTokenWithWP(t); })
                  .catch(function(err) {
                     var msg = (isSignupMode ? "회원가입 실패: " : "로그인 실패: ") + err.message;
-                    if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = "이메일이나 비밀번호가 올바르지 않습니다.";
+                    var isHtml = false;
+                    if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                        msg = "이메일이나 비밀번호가 올바르지 않습니다.<br><br><button type='button' id='chaovn-reset-pw-btn' style='background:none; border:none; color:#1a73e8; cursor:pointer; font-weight:bold; padding:0; text-decoration:underline;'>비밀번호 재설정 메일 받기</button>";
+                        isHtml = true;
+                    }
                     else if (err.code === 'auth/email-already-in-use') msg = "이미 가입된 이메일입니다. 로그인 모드로 전환해주세요.";
                     else if (err.code === 'auth/weak-password') msg = "비밀번호는 최소 6자리 이상이어야 합니다.";
-                    showError(msg);
+                    
+                    showError(msg, isHtml);
+
+                    if (isHtml) {
+                        var resetBtn = document.getElementById('chaovn-reset-pw-btn');
+                        if (resetBtn) {
+                            resetBtn.addEventListener('click', function() {
+                                errorDiv.style.display = 'none';
+                                loadingDiv.textContent = "비밀번호 재설정 메일을 보내고 있습니다...";
+                                loadingDiv.style.display = 'block';
+                                disableAll();
+                                auth.sendPasswordResetEmail(email)
+                                    .then(function() {
+                                        loadingDiv.style.display = 'none';
+                                        alert("비밀번호 재설정 메일이 전송되었습니다. 메일함을 확인해주세요.");
+                                        allBtns.forEach(function(b){ if(b) b.disabled = false; });
+                                    })
+                                    .catch(function(resetErr) {
+                                        showError("메일 전송 실패: " + resetErr.message);
+                                    });
+                            });
+                        }
+                    }
                  });
-            });
-        }
-
-        // Google 로그인
-        if (googleBtn) {
-            googleBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                errorDiv.style.display = 'none';
-                loadingDiv.textContent = "Google 로그인 창을 여는 중입니다...";
-                loadingDiv.style.display = 'block';
-                disableAll();
-
-                var provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider)
-                    .then(function(r) { return r.user.getIdToken(true); })
-                    .then(function(t) { verifyTokenWithWP(t); })
-                    .catch(function(err) { showError("Google 로그인 취소 또는 실패: " + err.message); });
             });
         }
 
@@ -280,13 +298,28 @@ function chaovn_firebase_login_shortcode()
                 disableAll();
 
                 Kakao.Auth.login({
+                    scope: 'profile_nickname,profile_image,account_email',
                     success: function(authObj) {
                         Kakao.API.request({
                             url: '/v2/user/me',
+                            data: { property_keys: ['kakao_account.email', 'kakao_account.profile', 'properties.nickname'] },
                             success: function(res) {
                                 var kakaoId = res.id;
                                 var kakaoEmail = 'kakao_' + kakaoId + '@chaovietnam.co.kr';
                                 var kakaoPassword = 'kakao_login_sec_' + kakaoId;
+
+                                // 닉네임: kakao_account.profile.nickname 또는 properties.nickname
+                                var realName = '';
+                                if (res.kakao_account && res.kakao_account.profile && res.kakao_account.profile.nickname) {
+                                    realName = res.kakao_account.profile.nickname;
+                                } else if (res.properties && res.properties.nickname) {
+                                    realName = res.properties.nickname;
+                                }
+
+                                // 이메일: kakao_account.email
+                                var realEmail = (res.kakao_account && res.kakao_account.email) ? res.kakao_account.email : '';
+
+                                var kakaoInfo = { email: realEmail, name: realName };
                                 loadingDiv.textContent = "Kakao 인증 성공, 서버 동기화 중...";
 
                                 auth.signInWithEmailAndPassword(kakaoEmail, kakaoPassword)
@@ -297,7 +330,7 @@ function chaovn_firebase_login_shortcode()
                                         throw err;
                                     })
                                     .then(function(uc) { return uc.user.getIdToken(true); })
-                                    .then(function(t) { verifyTokenWithWP(t); })
+                                    .then(function(t) { verifyTokenWithWP(t, kakaoInfo); })
                                     .catch(function(err) { showError("카카오 계정 동기화 실패: " + err.message); });
                             },
                             fail: function() { showError("Kakao 프로필 가져오기 실패."); }
@@ -366,6 +399,16 @@ function chaovn_verify_firebase_token(WP_REST_Request $request)
     $email = isset($payload['email']) ? $payload['email'] : '';
     $name = isset($payload['name']) ? $payload['name'] : 'Chaovn User';
 
+    // 프론트엔드 카카오 로그인에서 실제 이름/이메일을 별도로 넘긴 경우 오버라이드
+    $kakao_email = $request->get_param('kakao_email');
+    $kakao_name = $request->get_param('kakao_name');
+    if (!empty($kakao_email)) {
+        $email = $kakao_email;
+    }
+    if (!empty($kakao_name)) {
+        $name = $kakao_name;
+    }
+
     // 이미 연동된 사용자인지 uid로 확인 (User Meta 'firebase_uid')
     $users = get_users(array(
         'meta_key' => 'firebase_uid',
@@ -378,6 +421,29 @@ function chaovn_verify_firebase_token(WP_REST_Request $request)
     if (!empty($users)) {
         // 이미 연동된 회원 존재
         $wp_user = $users[0];
+        
+        // 기존 카카오 유저의 닉네임과 이메일을 업데이트
+        $user_data_to_update = array('ID' => $wp_user->ID);
+        $needs_update = false;
+
+        // 카카오 닉네임이 있으면 항상 업데이트 (user_login에 kakao_ 있는 경우)
+        if (!empty($kakao_name) && strpos($wp_user->user_login, 'kakao_') !== false) {
+            $user_data_to_update['display_name'] = $kakao_name;
+            $user_data_to_update['first_name'] = $kakao_name;
+            $needs_update = true;
+        }
+
+        if (!empty($kakao_email) && strpos($wp_user->user_email, '@chaovietnam.co.kr') !== false) {
+            if (!email_exists($kakao_email) || get_user_by('email', $kakao_email)->ID === $wp_user->ID) {
+                $user_data_to_update['user_email'] = $kakao_email;
+                $needs_update = true;
+            }
+        }
+
+        if ($needs_update) {
+            wp_update_user($user_data_to_update);
+            $wp_user = get_userdata($wp_user->ID); // 업데이트 후 새로고침
+        }
     } else {
         // UID로 검색 실패 시 이메일로 검색
         if (!empty($email)) {
@@ -464,6 +530,53 @@ function chaovn_firebase_redirect_after_logout()
     // 로그아웃 완료 후 홈 화면(또는 통합 로그인 화면)으로 보냅니다.
     wp_redirect(home_url()); // 로그인 창으로 바로 보내시려면 home_url('/login/') 처럼 변경하세요.
     exit();
+}
+
+// 8. 모든 페이지 푸터에 로그인 상태 플로팅 배지 출력
+add_action('wp_footer', 'chaovn_floating_user_badge');
+function chaovn_floating_user_badge() {
+    if (!is_user_logged_in()) return;
+
+    $current_user = wp_get_current_user();
+    $display_name = esc_html($current_user->display_name);
+    $user_email   = esc_html($current_user->user_email);
+    $initial      = mb_strtoupper(mb_substr($display_name, 0, 1));
+    $logout_url   = wp_logout_url(home_url());
+
+    echo '
+    <div id="chaovn-user-badge" style="
+        position: fixed;
+        top: 70px;
+        right: 15px;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+        padding: 12px 16px;
+        min-width: 190px;
+        font-family: sans-serif;
+        cursor: pointer;
+    ">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="
+                width:38px; height:38px; border-radius:50%;
+                background:#FF6B35; color:#fff;
+                display:flex; align-items:center; justify-content:center;
+                font-size:18px; font-weight:bold; flex-shrink:0;
+            ">' . $initial . '</div>
+            <div style="overflow:hidden;">
+                <div style="font-weight:700; font-size:14px; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' . $display_name . '</div>
+                <div style="font-size:11px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' . $user_email . '</div>
+            </div>
+        </div>
+        <a href="' . $logout_url . '" style="
+            display:block; margin-top:10px; text-align:center;
+            background:#FF6B35; color:#fff; text-decoration:none;
+            border-radius:6px; padding:6px 0; font-size:13px; font-weight:600;
+        ">로그아웃</a>
+    </div>
+    ';
 }
 
 // 7. 카카오 웹훅 수신 엔드포인트 (User Unlinked / 연결 해제)

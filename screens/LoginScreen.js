@@ -29,7 +29,7 @@ export default function LoginScreen({ navigation }) {
   const [appleLoading, setAppleLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, googleLogin, appleLogin, kakaoLogin } = useAuth();
+  const { login, googleLogin, appleLogin, kakaoLogin, findPassword } = useAuth();
 
   // Google Sign-In 초기화 (Android + iOS 둘 다 활성화)
   useEffect(() => {
@@ -156,7 +156,25 @@ export default function LoginScreen({ navigation }) {
     setLoading(false);
 
     if (!result.success) {
-      Alert.alert(t('loginFailed'), result.error);
+      // 로그인 실패 시 오류 메시지와 함께 비밀번호 재설정 옵션 제공
+      Alert.alert(
+        t('loginFailed'),
+        `${result.error}\n\n비밀번호가 기억나지 않으시나요?`,
+        [
+          { text: t('common:cancel') || '취소', style: 'cancel' },
+          {
+            text: '비밀번호 재설정',
+            onPress: async () => {
+              const resetResult = await findPassword(email);
+              if (resetResult.success) {
+                Alert.alert('메일 발송 완료', '비밀번호 재설정 링크가 이메일로 전송되었습니다. 메일함을 확인해주세요.');
+              } else {
+                Alert.alert('재설정 실패', resetResult.error);
+              }
+            },
+          },
+        ]
+      );
     } else {
       Alert.alert(t('loginSuccess'), t('welcome'), [
         {
