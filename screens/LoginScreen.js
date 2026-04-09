@@ -67,7 +67,28 @@ export default function LoginScreen({ navigation }) {
             { text: t('common:confirm'), onPress: () => navigation.goBack() },
           ]);
         } else {
-          Alert.alert(t('appleLoginFailed'), result.error);
+          if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
+            Alert.alert(
+              t('appleLoginFailed'),
+              `${result.error}\n\n[비밀번호 재설정]을 진행하시겠습니까?`,
+              [
+                { text: t('common:cancel') || '취소', style: 'cancel' },
+                {
+                  text: '재설정 메일 보내기',
+                  onPress: async () => {
+                    const resetResult = await findPassword(result.email);
+                    if (resetResult.success) {
+                      Alert.alert('메일 발송 완료', '비밀번호 재설정 링크가 이메일로 전송되었습니다.');
+                    } else {
+                      Alert.alert('재설정 실패', resetResult.error);
+                    }
+                  },
+                },
+              ]
+            );
+          } else {
+            Alert.alert(t('appleLoginFailed'), result.error);
+          }
         }
       }
     } catch (error) {
@@ -111,7 +132,28 @@ export default function LoginScreen({ navigation }) {
             { text: t('common:confirm'), onPress: () => navigation.goBack() },
           ]);
         } else {
-          Alert.alert(t('googleLoginFailed'), result.error);
+          if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
+            Alert.alert(
+              t('googleLoginFailed'),
+              `${result.error}\n\n[비밀번호 재설정]을 진행하시겠습니까?`,
+              [
+                { text: t('common:cancel') || '취소', style: 'cancel' },
+                {
+                  text: '재설정 메일 보내기',
+                  onPress: async () => {
+                    const resetResult = await findPassword(result.email);
+                    if (resetResult.success) {
+                      Alert.alert('메일 발송 완료', '비밀번호 재설정 링크가 이메일로 전송되었습니다.');
+                    } else {
+                      Alert.alert('재설정 실패', resetResult.error);
+                    }
+                  },
+                },
+              ]
+            );
+          } else {
+            Alert.alert(t('googleLoginFailed'), result.error);
+          }
         }
       }
     } catch (error) {
@@ -156,25 +198,28 @@ export default function LoginScreen({ navigation }) {
     setLoading(false);
 
     if (!result.success) {
-      // 로그인 실패 시 오류 메시지와 함께 비밀번호 재설정 옵션 제공
-      Alert.alert(
-        t('loginFailed'),
-        `${result.error}\n\n비밀번호가 기억나지 않으시나요?`,
-        [
-          { text: t('common:cancel') || '취소', style: 'cancel' },
-          {
-            text: '비밀번호 재설정',
-            onPress: async () => {
-              const resetResult = await findPassword(email);
-              if (resetResult.success) {
-                Alert.alert('메일 발송 완료', '비밀번호 재설정 링크가 이메일로 전송되었습니다. 메일함을 확인해주세요.');
-              } else {
-                Alert.alert('재설정 실패', resetResult.error);
-              }
+      if (result.code === "auth/user-not-found" || result.code === "auth/wrong-password" || result.code === "auth/invalid-credential") {
+        Alert.alert(
+          t('loginFailed'),
+          `${result.error}\n\n비밀번호가 기억나지 않으시나요?`,
+          [
+            { text: t('common:cancel') || '취소', style: 'cancel' },
+            {
+              text: '비밀번호 재설정',
+              onPress: async () => {
+                const resetResult = await findPassword(email);
+                if (resetResult.success) {
+                  Alert.alert('메일 발송 완료', '비밀번호 재설정 링크가 이메일로 전송되었습니다. 메일함을 확인해주세요.');
+                } else {
+                  Alert.alert('재설정 실패', resetResult.error);
+                }
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      } else {
+        Alert.alert(t('loginFailed'), result.error);
+      }
     } else {
       Alert.alert(t('loginSuccess'), t('welcome'), [
         {

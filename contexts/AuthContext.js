@@ -154,7 +154,7 @@ export const AuthProvider = ({ children }) => {
       } else if (error.code === "auth/invalid-email") {
         message = "유효하지 않은 이메일 형식입니다.";
       }
-      return { success: false, error: message };
+      return { success: false, error: message, code: error.code };
     }
   };
 
@@ -248,7 +248,7 @@ export const AuthProvider = ({ children }) => {
       if (error.code === 'auth/account-exists-with-different-credential') {
         message = "이미 동일한 이메일로 가입된 계정(이메일 또는 다른 SNS)이 존재합니다.\n\n이메일 로그인으로 접속하시거나 '비밀번호 재설정'을 이용해주세요.";
       }
-      return { success: false, error: message };
+      return { success: false, error: message, code: error.code, email: error.customData?.email };
     }
   };
 
@@ -293,7 +293,7 @@ export const AuthProvider = ({ children }) => {
       if (error.code === 'auth/account-exists-with-different-credential') {
         message = "이미 동일한 이메일로 가입된 계정(이메일 또는 다른 SNS)이 존재합니다.\n\n이메일 로그인으로 접속하시거나 '비밀번호 재설정'을 이용해주세요.";
       }
-      return { success: false, error: message };
+      return { success: false, error: message, code: error.code, email: error.customData?.email };
     }
   };
 
@@ -381,9 +381,9 @@ export const AuthProvider = ({ children }) => {
       console.error("❌ 에러 코드:", error.code);
       console.error("❌ 에러 메시지:", error.message);
       if (error.code === 'E_CANCELLED_OPERATION') {
-        return { success: false, error: "로그인이 취소되었습니다." };
+        return { success: false, error: "로그인이 취소되었습니다.", code: error.code };
       }
-      return { success: false, error: "카카오 로그인에 실패했습니다." };
+      return { success: false, error: "카카오 로그인에 실패했습니다.", code: error.code };
     }
   };
 
