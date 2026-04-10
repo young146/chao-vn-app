@@ -311,12 +311,16 @@
             <!-- 마감일 & 연락처 -->
             <div class="card">
                 <div class="card-title">📅 마감일 &amp; 연락처</div>
+                <div style="background:#e8f5e9;border-left:4px solid #2E7D32;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#1B5E20;line-height:1.7;">
+                    ⚠️ <strong>연락처를 반드시 하나 이상 입력해주세요.</strong><br>
+                    전화번호, 카카오톡 ID 중 하나는 있어야 지원자가 연락할 수 있습니다.
+                </div>
                 <div class="field">
                     <label>마감일</label>
                     <input type="text" id="hire-deadline" placeholder="예: 2025-04-30, 채용시 마감" oninput="updatePreview()">
                 </div>
                 <div class="field">
-                    <label>전화번호 / Zalo <span class="req">*</span></label>
+                    <label>전화번호 / Zalo</label>
                     <input type="text" id="hire-phone" placeholder="예: 090-1234-5678" oninput="updatePreview()">
                 </div>
                 <div class="field">
@@ -383,6 +387,10 @@
             <!-- 연락처 -->
             <div class="card">
                 <div class="card-title">📞 연락처</div>
+                <div style="background:#e1f5fe;border-left:4px solid #0288D1;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#01579b;line-height:1.7;">
+                    ⚠️ <strong>연락처를 반드시 하나 이상 입력해주세요.</strong><br>
+                    전화번호, 이메일, 카카오톡 ID 중 하나는 있어야 채용담당자가 연락할 수 있습니다.
+                </div>
                 <div class="field">
                     <label>전화번호 / Zalo</label>
                     <input type="text" id="seek-phone" placeholder="예: 090-1234-5678" oninput="updatePreview()">
@@ -772,13 +780,18 @@
             if (jobType === '구인') {
                 const title = document.getElementById('hire-title').value.trim();
                 const phone = document.getElementById('hire-phone').value.trim();
+                const kakao = document.getElementById('hire-kakao').value.trim();
                 const desc = document.getElementById('hire-desc').value.trim();
-                if (!title)  { showToast('❗ 공고 제목을 입력해 주세요'); return; }
-                if (!phone)  { showToast('❗ 연락처를 입력해 주세요'); return; }
-                if (!desc)   { showToast('❗ 업무 내용을 입력해 주세요'); return; }
+                if (!title) { showToast('❗ 공고 제목을 입력해 주세요'); return; }
+                if (!phone && !kakao) { showToast('❗ 전화번호 또는 카카오톡 ID를 입력해주세요'); return; }
+                if (!desc)  { showToast('❗ 업무 내용을 입력해 주세요'); return; }
             } else {
-                const name = document.getElementById('seek-name').value.trim();
+                const name  = document.getElementById('seek-name').value.trim();
+                const phone = document.getElementById('seek-phone').value.trim();
+                const email = document.getElementById('seek-email').value.trim();
+                const kakao = document.getElementById('seek-kakao').value.trim();
                 if (!name) { showToast('❗ 이름을 입력해 주세요'); return; }
+                if (!phone && !email && !kakao) { showToast('❗ 전화번호, 이메일, 카카오톡 ID 중 하나를 입력해주세요'); return; }
             }
 
             const btn = document.getElementById('btn-submit');

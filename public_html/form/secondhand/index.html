@@ -505,9 +505,13 @@
         </div>
         <div class="card">
             <div class="card-title">📞 연락처</div>
+            <div style="background:#fff3e0;border-left:4px solid #FF6B35;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#bf360c;line-height:1.7;">
+                ⚠️ <strong>연락처를 반드시 하나 이상 입력해주세요.</strong><br>
+                전화번호, 카카오톡 ID 중 하나는 있어야 구매자가 연락할 수 있습니다.
+            </div>
             <div class="field"><label>전화번호 / Zalo</label><input type="tel" id="contact-phone"
-                    placeholder="예) 090-123-4567"></div>
-            <div class="field"><label>카카오톡 ID</label><input type="text" id="contact-kakao" placeholder="예) xinchao2025">
+                    placeholder="예) 090-123-4567" oninput="updatePreview()"></div>
+            <div class="field"><label>카카오톡 ID</label><input type="text" id="contact-kakao" placeholder="예) xinchao2025" oninput="updatePreview()">
             </div>
         </div>
         <div class="card">
@@ -734,6 +738,13 @@
             const price = document.getElementById('item-price').value.trim();
             if (!name) { showToast('❗ 상품명을 입력해주세요'); return; }
             if (!price) { showToast('❗ 가격을 입력해주세요'); return; }
+
+            const phone = document.getElementById('contact-phone').value.trim();
+            const kakao = document.getElementById('contact-kakao').value.trim();
+            if (!phone && !kakao) {
+                showToast('❗ 전화번호 또는 카카오톡 ID를 입력해주세요');
+                return;
+            }
 
             const btn = document.getElementById('btn-submit');
             const progressWrap = document.getElementById('progress-wrap');

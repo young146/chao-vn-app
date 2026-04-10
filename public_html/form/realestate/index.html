@@ -530,6 +530,10 @@
         <!-- 연락처 -->
         <div class="card">
             <div class="card-title">📞 연락처</div>
+            <div style="background:#e3f2fd;border-left:4px solid #1976D2;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#0d47a1;line-height:1.7;">
+                ⚠️ <strong>연락처를 반드시 하나 이상 입력해주세요.</strong><br>
+                전화번호, 카카오톡 ID 중 하나는 있어야 임차인/구매자가 연락할 수 있습니다.
+            </div>
             <div class="field">
                 <label>전화번호 / Zalo</label>
                 <input type="text" id="prop-phone" placeholder="예: 090-1234-5678" oninput="updatePreview()">
@@ -779,6 +783,12 @@
             }
             if (dealType === '매매' && !document.getElementById('sale-price').value.trim()) {
                 showToast('❗ 매매가를 입력해 주세요'); return;
+            }
+
+            const propPhone = document.getElementById('prop-phone').value.trim();
+            const propKakao = document.getElementById('prop-kakao').value.trim();
+            if (!propPhone && !propKakao) {
+                showToast('❗ 전화번호 또는 카카오톡 ID를 입력해주세요'); return;
             }
 
             const btn = document.getElementById('btn-submit');
