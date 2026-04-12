@@ -990,7 +990,16 @@
         };
 
         window.dismissCta = function () {
-            document.getElementById('app-cta-bar').style.display = 'none';
+            // URL 파라미터에서 vnkorlife.com URL 가져오기 (index.php가 web= 파라미터로 전달)
+            var webParam = params.get('web');
+            if (webParam) {
+                location.href = webParam;
+                return;
+            }
+            // fallback: type/id 기반으로 vnkorlife.com URL 직접 생성
+            var webPathMap = { danggn: 'market', job: 'jobs', realestate: 'realestate' };
+            var webPath = webPathMap[type] || 'market';
+            location.href = 'https://www.vnkorlife.com/' + webPath + '/' + (id || '');
         };
 
         // ── 갤러리 ─────────────────────── ────────────
@@ -1387,36 +1396,6 @@
 
         loadItem();
     </script>
-</body>
-
-</html> // ② Jobs에서도 못 찾으면 candidates 시도 (구직자는 candidates 컬렉션에 있음)
-if (!snap.exists) {
-snap = await db.collection('candidates').doc(id).get();
-}
-
-if (!snap.exists) { showError('게시글을 찾을 수 없습니다', '삭제됐거나 잘못된 링크입니다.'); return; }
-document.getElementById('loading').style.display = 'none';
-document.getElementById('app').style.display = 'block';
-renderItem(snap.data());
-loadAds();
-} catch (e) {
-showError('불러오기 실패', e.message);
-}
-}
-
-function showError(title, msg) {
-document.getElementById('loading').style.display = 'none';
-document.getElementById('app').style.display = 'block';
-document.getElementById('app').innerHTML =
-'<div class="error-box">
-    <div class="error-emoji">😕</div>
-    <h2>' + title + '</h2>
-    <p>' + msg + '</p>
-</div>';
-}
-
-loadItem();
-</script>
 </body>
 
 </html>

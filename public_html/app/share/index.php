@@ -87,17 +87,24 @@ $defaultImages = [
 $image   = $itemImage ?: $defaultImages[$type];
 $pageUrl = 'https://chaovietnam.co.kr/app/share/' . $type . '/' . $id;
 
-// 타입 → Firestore 컬렉션 매핑 (view/index.html의 col 파라미터)
+// 타입 → Firestore 컬렉션 매핑
 $colMap = [
     'job'        => 'Jobs',
     'danggn'     => 'XinChaoDanggn',
     'realestate' => 'RealEstate',
 ];
-// colOverride가 있으면 우선 사용 (예: candidates 구직자)
 $col = $colOverride ?: ($colMap[$type] ?? 'form_items');
 
-// 웹 상세페이지 URL (Firebase Hosting)
-$viewUrl = 'https://chaovietnam-login.web.app/view/?type=' . urlencode($type) . '&id=' . urlencode($id) . '&col=' . urlencode($col);
+// 타입 → vnkorlife.com 경로 매핑
+$webPathMap = [
+    'danggn'     => 'market',
+    'job'        => 'jobs',
+    'realestate' => 'realestate',
+];
+$webPath = $webPathMap[$type] ?? 'market';
+
+// 웹 상세페이지 URL (vnkorlife.com)
+$vnkorlifeUrl = 'https://www.vnkorlife.com/' . $webPath . '/' . urlencode($id);
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -127,8 +134,8 @@ body{margin:0;background:#fff;display:flex;align-items:center;justify-content:ce
 <body>
 <div class="spinner"></div>
 <script>
-// 웹 상세페이지로 즉시 이동
-window.location.replace('<?php echo $viewUrl; ?>');
+var viewUrl = 'https://chaovietnam-login.web.app/view/?type=<?php echo urlencode($type); ?>&id=<?php echo urlencode($id); ?>&col=<?php echo urlencode($col); ?>&web=<?php echo urlencode($vnkorlifeUrl); ?>';
+window.location.replace(viewUrl);
 </script>
 </body>
 </html>

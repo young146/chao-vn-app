@@ -40,3 +40,12 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# local editor/work artifacts
+.cursor/
+diff.txt
+diff2.txt
+diff3.txt
+out.txt
+status.txt
+status2.txt
