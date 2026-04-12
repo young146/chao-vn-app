@@ -1,0 +1,389 @@
+<!doctype html>
+<html class="light" lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+    <title>씬짜오베트남 - 부동산 상세</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              accent: "#E91E63",
+              "accent-light": "#FCE4EC",
+              "accent-dark": "#C2185B",
+              primary: "#1A1A2E",
+              surface: "#F8F9FA",
+              card: "#FFFFFF",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      body {
+        font-family: 'Noto Sans KR', sans-serif;
+        background: #F0F2F5;
+        max-width: 390px;
+        margin: 0 auto;
+        min-height: 100dvh;
+        position: relative;
+        overflow-x: hidden;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        font-size: 22px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+      .glass-bar {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-bottom: 1px solid rgba(255,255,255,0.6);
+      }
+      .card-shadow { box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04); }
+      .card-shadow-lg { box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05); }
+      .accent-gradient { background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%); }
+      .hero-gradient { background: linear-gradient(to top, rgba(26,26,46,0.85) 0%, rgba(26,26,46,0.3) 50%, transparent 100%); }
+      .swipe-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); transition: all 0.2s; }
+      .swipe-dots .dot.active { width: 18px; border-radius: 3px; background: #fff; }
+      .info-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #F0F2F5; }
+      .info-row:last-child { border-bottom: none; }
+      .info-icon { width: 36px; height: 36px; border-radius: 10px; background: #FCE4EC; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .info-icon .material-symbols-outlined { font-size: 18px; color: #E91E63; }
+      .spec-pill { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; padding: 10px 4px; background: #F8F9FA; border-radius: 12px; }
+      .spec-pill .material-symbols-outlined { font-size: 20px; color: #E91E63; }
+      .btn-kakao { background: #FEE500; color: #3C1E1E; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; font-size: 14px; transition: all 0.15s; }
+      .btn-kakao:active { transform: scale(0.97); }
+      .btn-primary { background: linear-gradient(135deg, #E91E63, #C2185B); color: white; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; font-size: 14px; transition: all 0.15s; }
+      .btn-primary:active { transform: scale(0.97); }
+      .collapse-text { overflow: hidden; max-height: 72px; transition: max-height 0.3s ease; }
+      .collapse-text.expanded { max-height: 500px; }
+      .ad-banner { border: 2px dashed #D1D5DB; border-radius: 12px; height: 80px; display: flex; align-items: center; justify-content: center; background: #F9FAFB; }
+      .tab-active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24; }
+      .bottom-action { box-shadow: 0 -4px 24px rgba(0,0,0,0.10); }
+      .yt-card { border-radius: 14px; overflow: hidden; position: relative; background: #000; height: 120px; }
+      .yt-play { width: 44px; height: 44px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    </style>
+  </head>
+  <body>
+
+    <!-- Glass Top App Bar -->
+    <header class="glass-bar fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50 flex items-center justify-between px-4 h-[60px]">
+      <button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors" aria-label="뒤로가기">
+        <span class="material-symbols-outlined text-gray-800">arrow_back</span>
+      </button>
+      <span style="font-family:'Manrope',sans-serif;" class="font-extrabold text-[17px] tracking-tight text-[#1A1A2E]">부동산 상세</span>
+      <button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors" aria-label="공유">
+        <span class="material-symbols-outlined text-gray-800">ios_share</span>
+      </button>
+    </header>
+
+    <main class="pt-[60px] pb-[140px]">
+
+      <!-- Hero Image Gallery -->
+      <section class="relative w-full h-[280px] bg-gray-200 overflow-hidden">
+        <img alt="아파트 거실 전경" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80" />
+        <div class="hero-gradient absolute inset-0"></div>
+
+        <!-- Floating Badges -->
+        <div class="absolute top-[72px] left-4 flex gap-2">
+          <span class="accent-gradient text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide uppercase">추천매물</span>
+          <span class="bg-white/25 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wide">1군 중심부</span>
+        </div>
+
+        <!-- Page Counter -->
+        <div class="absolute top-[72px] right-4 bg-black/40 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+          1 / 5
+        </div>
+
+        <!-- Swipe Dots -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 swipe-dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </section>
+
+      <!-- Main Info Card -->
+      <section class="px-4 -mt-5 relative z-10">
+        <div class="card-shadow-lg bg-white rounded-2xl p-5">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 pr-3">
+              <h1 class="text-[18px] font-bold text-gray-900 leading-snug">Vinhomes Golden River · 3BR 프리미엄 스위트</h1>
+              <p class="text-gray-500 text-[13px] mt-1 flex items-center gap-1">
+                <span class="material-symbols-outlined" style="font-size:14px;color:#E91E63;">location_on</span>
+                호치민시 1군 · 빈홈스 리버사이드
+              </p>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p class="text-[20px] font-extrabold text-[#E91E63] leading-none">$3,500</p>
+              <p class="text-gray-400 text-[11px] mt-0.5">/ 월세</p>
+            </div>
+          </div>
+
+          <!-- Spec Icons Bar -->
+          <div class="flex gap-2 mt-4">
+            <div class="spec-pill">
+              <span class="material-symbols-outlined">bed</span>
+              <span class="text-[11px] font-semibold text-gray-600">침실 3</span>
+            </div>
+            <div class="spec-pill">
+              <span class="material-symbols-outlined">bathtub</span>
+              <span class="text-[11px] font-semibold text-gray-600">욕실 2</span>
+            </div>
+            <div class="spec-pill">
+              <span class="material-symbols-outlined">square_foot</span>
+              <span class="text-[11px] font-semibold text-gray-600">124 m²</span>
+            </div>
+            <div class="spec-pill">
+              <span class="material-symbols-outlined">stairs</span>
+              <span class="text-[11px] font-semibold text-gray-600">18층</span>
+            </div>
+          </div>
+
+          <!-- Deposit / Rent Tags -->
+          <div class="flex gap-2 mt-4">
+            <span class="bg-[#FCE4EC] text-[#C2185B] text-[11px] font-bold px-3 py-1.5 rounded-full">보증금 $5,000</span>
+            <span class="bg-gray-100 text-gray-600 text-[11px] font-semibold px-3 py-1.5 rounded-full">월세 $3,500</span>
+            <span class="bg-gray-100 text-gray-600 text-[11px] font-semibold px-3 py-1.5 rounded-full">관리비 포함</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ad Banner -->
+      <section class="px-4 mt-4">
+        <div class="ad-banner">
+          <div class="flex flex-col items-center gap-1">
+            <span class="material-symbols-outlined text-gray-300" style="font-size:28px;">ad_units</span>
+            <span class="text-[11px] text-gray-400 font-medium">광고 배너 영역 (728×90)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Detail Info Card -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-2">상세 정보</h2>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">home_work</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">건물유형</p>
+              <p class="text-[14px] font-semibold text-gray-800">고급 아파트 (콘도미니엄)</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">elevator</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">층수</p>
+              <p class="text-[14px] font-semibold text-gray-800">18층 / 총 45층</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">meeting_room</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">방향</p>
+              <p class="text-[14px] font-semibold text-gray-800">동향 (강 조망)</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">local_parking</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">주차</p>
+              <p class="text-[14px] font-semibold text-gray-800">지하 2대 포함</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">calendar_month</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">입주 가능일</p>
+              <p class="text-[14px] font-semibold text-gray-800">즉시 입주 가능</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">apartment</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">단지명</p>
+              <p class="text-[14px] font-semibold text-gray-800">Vinhomes Golden River · Ba Son</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Description Card -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-3">매물 소개</h2>
+          <div class="collapse-text" id="descText">
+            <p class="text-[13px] text-gray-600 leading-relaxed">
+              호치민시 1군 중심부에 위치한 Vinhomes Golden River 단지의 프리미엄 코너 스위트입니다.
+              사이공 강과 투티엠 2교를 파노라마로 조망할 수 있는 최상급 뷰를 자랑합니다.
+              유럽산 고급 가구와 스마트홈 시스템이 완비되어 있으며, 국제학교, 대형 쇼핑몰,
+              금융 중심지까지 도보 이동이 가능합니다. 단지 내 수영장, 헬스장, 스파, 컨시어지 서비스를
+              24시간 이용하실 수 있습니다. 외국인 명의 등기 가능 물건입니다.
+            </p>
+          </div>
+          <button onclick="toggleDesc()" id="descBtn" class="mt-3 flex items-center gap-1 text-[#E91E63] text-[12px] font-semibold">
+            <span id="descBtnText">더 보기</span>
+            <span class="material-symbols-outlined" id="descArrow" style="font-size:16px;transition:transform 0.3s;">expand_more</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- YouTube Card Slot -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-md flex items-center justify-center" style="background:#FF0000;">
+              <span class="material-symbols-outlined icon-fill text-white" style="font-size:14px;">play_arrow</span>
+            </span>
+            YouTube 매물 영상
+          </h2>
+          <div class="yt-card relative">
+            <img alt="유튜브 썸네일" class="w-full h-full object-cover opacity-70" src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80" />
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="yt-play">
+                <span class="material-symbols-outlined icon-fill text-red-600" style="font-size:26px;">play_arrow</span>
+              </div>
+            </div>
+            <div class="absolute bottom-2 left-3">
+              <p class="text-white text-[11px] font-semibold drop-shadow">Vinhomes Golden River 풀투어 · 3BR 18층</p>
+            </div>
+            <div class="absolute top-2 right-3 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">4:32</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Map Teaser -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-3">위치</h2>
+          <div class="relative h-[140px] rounded-xl overflow-hidden bg-gray-100 cursor-pointer group">
+            <img alt="지도" class="w-full h-full object-cover group-active:opacity-80 transition-opacity" src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" style="filter:saturate(0.7);" />
+            <div class="absolute inset-0 bg-black/20"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+                <span class="material-symbols-outlined icon-fill text-[#E91E63]" style="font-size:18px;">location_on</span>
+                <span class="text-[12px] font-bold text-gray-800">지도에서 보기 · 1군 빈홈스</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-[12px] text-gray-500 mt-3 flex items-start gap-1.5">
+            <span class="material-symbols-outlined text-gray-400" style="font-size:14px;margin-top:1px;">place</span>
+            2 Ton Duc Thang, Ben Nghe Ward, District 1, Ho Chi Minh City
+          </p>
+        </div>
+      </section>
+
+      <!-- Contact Section -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="relative">
+              <img alt="담당자" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" />
+              <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center" style="background:#E91E63;">
+                <span class="material-symbols-outlined icon-fill text-white" style="font-size:12px;">verified</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-[15px] font-bold text-gray-900">김민수</p>
+              <p class="text-[12px] text-gray-500">씬짜오 부동산 전문가 · 경력 15년</p>
+              <div class="flex items-center gap-1 mt-1">
+                <span class="material-symbols-outlined icon-fill text-yellow-400" style="font-size:14px;">star</span>
+                <span class="text-[12px] font-semibold text-gray-700">4.9</span>
+                <span class="text-[11px] text-gray-400">(128건 거래)</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2.5">
+            <button class="btn-kakao flex-1">
+              <span class="material-symbols-outlined" style="font-size:18px;">chat_bubble</span>
+              카카오톡 문의
+            </button>
+            <button class="btn-primary flex-1">
+              <span class="material-symbols-outlined" style="font-size:18px;">call</span>
+              전화 연결
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Ad Banner -->
+      <section class="px-4 mt-4">
+        <div class="ad-banner">
+          <div class="flex flex-col items-center gap-1">
+            <span class="material-symbols-outlined text-gray-300" style="font-size:28px;">ad_units</span>
+            <span class="text-[11px] text-gray-400 font-medium">광고 배너 영역 (320×50)</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Fixed Bottom Action Bar -->
+    <div class="bottom-action fixed bottom-[72px] left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white px-4 py-3 flex gap-3 z-40">
+      <button class="flex-1 h-12 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-[14px] transition-all active:scale-97" style="border-color:#E91E63;color:#E91E63;">
+        <span class="material-symbols-outlined" style="font-size:18px;">call</span>
+        전화하기
+      </button>
+      <button class="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-[14px] text-white transition-all active:scale-97 accent-gradient shadow-md">
+        <span class="material-symbols-outlined" style="font-size:18px;">chat_bubble</span>
+        채팅 문의
+      </button>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex justify-around items-center h-[72px] pb-safe">
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">newspaper</span>
+        <span class="text-[10px] font-semibold">뉴스</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">volunteer_activism</span>
+        <span class="text-[10px] font-semibold">당근나눔</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">work</span>
+        <span class="text-[10px] font-semibold">구인구직</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] tab-active" style="color:#E91E63;">
+        <span class="material-symbols-outlined icon-fill" style="font-size:22px;">domain</span>
+        <span class="text-[10px] font-bold">부동산</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">menu</span>
+        <span class="text-[10px] font-semibold">메뉴</span>
+      </button>
+    </nav>
+
+    <script>
+      let descExpanded = false;
+      function toggleDesc() {
+        descExpanded = !descExpanded;
+        const el = document.getElementById('descText');
+        const btn = document.getElementById('descBtnText');
+        const arrow = document.getElementById('descArrow');
+        if (descExpanded) {
+          el.classList.add('expanded');
+          btn.textContent = '접기';
+          arrow.style.transform = 'rotate(180deg)';
+        } else {
+          el.classList.remove('expanded');
+          btn.textContent = '더 보기';
+          arrow.style.transform = 'rotate(0deg)';
+        }
+      }
+    </script>
+  </body>
+</html>

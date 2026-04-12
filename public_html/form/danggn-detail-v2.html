@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390,initial-scale=1">
+<title>당근/나눔 상세 – 씬짜오베트남</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #FF6B35;
+    --accent-light: #FFF3EE;
+    --accent-dark: #E5521A;
+    --bg: #F5F5F7;
+    --card: #FFFFFF;
+    --text-primary: #1A1A2E;
+    --text-secondary: #6B7280;
+    --border: #E8EAF0;
+    --radius: 16px;
+    --shadow: 0 2px 16px rgba(0,0,0,.08);
+  }
+  html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text-primary); }
+
+  .app-bar {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px; padding: 0 8px;
+    background: rgba(255,255,255,.85); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(0,0,0,.06);
+  }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,.05); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn .material-symbols-outlined { font-size: 22px; color: var(--text-primary); }
+  .app-bar-actions { display: flex; gap: 4px; }
+  .app-bar-title { font-size: 16px; font-weight: 600; }
+
+  /* Hero */
+  .hero { position: relative; width: 100%; aspect-ratio: 1/1; background: #111; overflow: hidden; }
+  .hero-slides { display: flex; width: 300%; height: 100%; transition: transform .35s ease; }
+  .hero-slide { width: 33.33%; height: 100%; flex-shrink: 0; }
+  .hero-slide img { width: 100%; height: 100%; object-fit: cover; }
+  .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.1) 0%, transparent 40%, rgba(0,0,0,.4) 100%); }
+  .hero-counter { position: absolute; bottom: 14px; right: 14px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; backdrop-filter: blur(6px); }
+  .hero-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+  .hero-dot { width: 6px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.45); transition: all .3s; }
+  .hero-dot.active { width: 18px; background: #fff; }
+  .hero-badges { position: absolute; top: 14px; left: 12px; display: flex; gap: 6px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+  .badge-free { background: linear-gradient(135deg, #2E7D32, #43A047); color: #fff; }
+  .badge-cat { background: rgba(255,255,255,.92); color: var(--accent); backdrop-filter: blur(6px); }
+
+  /* Favorite button on image */
+  .fav-overlay {
+    position: absolute; top: 12px; right: 12px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,.9); backdrop-filter: blur(8px);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .fav-overlay .material-symbols-outlined { font-size: 22px; color: #9CA3AF; transition: all .2s; }
+  .fav-overlay.active .material-symbols-outlined { color: #E91E63; font-variation-settings: 'FILL' 1; }
+
+  .content { padding: 12px 14px 120px; display: flex; flex-direction: column; gap: 12px; }
+
+  .ad-banner { border: 2px dashed #D1D5DB; border-radius: var(--radius); background: #FAFAFA; height: 60px; display: flex; align-items: center; justify-content: center; color: #9CA3AF; font-size: 12px; gap: 6px; }
+
+  .card { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+
+  /* Main Info */
+  .price-free { font-size: 28px; font-weight: 800; color: #2E7D32; margin-bottom: 4px; }
+  .price-paid { font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+  .title { font-size: 18px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
+
+  .stats-row { display: flex; gap: 0; border-radius: 12px; overflow: hidden; background: var(--border); margin-bottom: 0; }
+  .stat-item { flex: 1; background: #F8F9FF; padding: 10px 6px; text-align: center; display: flex; flex-direction: column; gap: 3px; }
+  .stat-item + .stat-item { margin-left: 1px; }
+  .stat-val { font-size: 15px; font-weight: 700; }
+  .stat-key { font-size: 10px; color: var(--text-secondary); }
+  .stat-fav .stat-val { color: #E91E63; }
+  .stat-chat .stat-val { color: var(--accent); }
+
+  /* Section */
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .section-header .material-symbols-outlined { font-size: 20px; color: var(--accent); }
+  .section-title { font-size: 15px; font-weight: 700; }
+
+  .info-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .material-symbols-outlined { font-size: 18px; color: var(--text-secondary); width: 24px; flex-shrink: 0; }
+  .info-label { font-size: 13px; color: var(--text-secondary); width: 80px; flex-shrink: 0; margin-left: 6px; }
+  .info-value { font-size: 14px; font-weight: 500; flex: 1; }
+  .info-value-accent { color: var(--accent); font-weight: 600; }
+
+  /* Description */
+  .desc-text { font-size: 14px; line-height: 1.7; color: #374151; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; line-clamp: 4; }
+  .desc-text.expanded { -webkit-line-clamp: unset; line-clamp: unset; display: block; }
+  .more-btn { margin-top: 10px; padding: 0; border: none; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; }
+  .more-btn .material-symbols-outlined { font-size: 16px; }
+
+  /* Seller */
+  .seller-row { display: flex; align-items: center; gap: 12px; }
+  .seller-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #FFB347); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .seller-avatar .material-symbols-outlined { font-size: 28px; color: #fff; }
+  .seller-name { font-size: 16px; font-weight: 700; }
+  .seller-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .verified-badge { display: inline-flex; align-items: center; gap: 3px; background: #E8F5E9; color: #2E7D32; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
+  .verified-badge .material-symbols-outlined { font-size: 13px; }
+
+  /* Map Teaser */
+  .map-teaser { border-radius: 12px; overflow: hidden; position: relative; height: 140px; background: #E0E8F0; display: flex; align-items: center; justify-content: center; }
+  .map-bg { width: 100%; height: 100%; object-fit: cover; filter: brightness(.9) saturate(.7); }
+  .map-overlay-chip { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.92); backdrop-filter: blur(8px); padding: 8px 16px; border-radius: 24px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+  .map-overlay-chip .material-symbols-outlined { font-size: 18px; color: var(--accent); }
+
+  /* Reviews */
+  .rating-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .rating-big { font-size: 48px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+  .rating-stars { color: #FFC107; font-size: 18px; }
+  .rating-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .rating-bar-row { display: flex; align-items: center; gap: 6px; }
+  .rating-bar-row span { font-size: 11px; color: var(--text-secondary); width: 16px; text-align: right; }
+  .bar-track { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: #FFC107; }
+
+  .review-card { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .review-card:last-child { border-bottom: none; }
+  .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .reviewer-info { display: flex; align-items: center; gap: 8px; }
+  .reviewer-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; }
+  .reviewer-avatar .material-symbols-outlined { font-size: 18px; color: var(--accent); }
+  .reviewer-name { font-size: 13px; font-weight: 600; }
+  .review-stars { color: #FFC107; font-size: 13px; }
+  .review-content { font-size: 13px; line-height: 1.6; color: #374151; }
+  .review-date { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* Contact */
+  .contact-btns { display: flex; gap: 10px; }
+  .btn { flex: 1; height: 44px; border-radius: 22px; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .btn .material-symbols-outlined { font-size: 18px; }
+  .btn-kakao { background: #FEE500; color: #3A1D00; }
+  .btn-outline { border: 2px solid var(--accent); color: var(--accent); background: transparent; }
+
+  /* Bottom */
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 390px; margin: 0 auto; background: rgba(255,255,255,.95); backdrop-filter: blur(16px); border-top: 1px solid var(--border); padding: 12px 16px 24px; display: flex; gap: 10px; z-index: 200; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #FFB347); color: #fff; }
+  .btn-full { flex: 1; }
+  .btn-icon-only { width: 48px; border-radius: 24px; flex: none; }
+</style>
+</head>
+<body>
+
+<!-- App Bar -->
+<div class="app-bar">
+  <button class="icon-btn" onclick="history.back()">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </button>
+  <span class="app-bar-title">당근/나눔 상세</span>
+  <div class="app-bar-actions">
+    <button class="icon-btn">
+      <span class="material-symbols-outlined">share</span>
+    </button>
+    <button class="icon-btn">
+      <span class="material-symbols-outlined">more_vert</span>
+    </button>
+  </div>
+</div>
+
+<!-- Hero Gallery -->
+<div class="hero" id="heroGallery">
+  <div class="hero-slides" id="heroSlides">
+    <div class="hero-slide">
+      <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80" alt="상품1">
+      <div class="hero-overlay"></div>
+    </div>
+    <div class="hero-slide">
+      <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80" alt="상품2">
+      <div class="hero-overlay"></div>
+    </div>
+    <div class="hero-slide">
+      <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800&q=80" alt="상품3">
+      <div class="hero-overlay"></div>
+    </div>
+  </div>
+
+  <div class="hero-badges">
+    <span class="badge badge-free">🎁 무료나눔</span>
+    <span class="badge badge-cat">전자기기</span>
+  </div>
+
+  <!-- Favorite Button -->
+  <button class="fav-overlay" id="favBtn" onclick="toggleFav()">
+    <span class="material-symbols-outlined">favorite_border</span>
+  </button>
+
+  <div class="hero-counter" id="heroCounter">1 / 3</div>
+  <div class="hero-dots" id="heroDots">
+    <div class="hero-dot active"></div>
+    <div class="hero-dot"></div>
+    <div class="hero-dot"></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Ad Banner -->
+  <div class="ad-banner">
+    <span class="material-symbols-outlined" style="font-size:16px">campaign</span>
+    광고 배너 영역
+  </div>
+
+  <!-- Main Info -->
+  <div class="card">
+    <div class="price-free">무료</div>
+    <div class="title">삼성 갤럭시워치 4 – 거의 새것 나눔합니다</div>
+
+    <div class="stats-row">
+      <div class="stat-item stat-fav">
+        <span class="stat-val">❤️ 34</span>
+        <span class="stat-key">찜</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-val">👁 128</span>
+        <span class="stat-key">조회</span>
+      </div>
+      <div class="stat-item stat-chat">
+        <span class="stat-val">💬 12</span>
+        <span class="stat-key">채팅</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-val">🕐 2시간</span>
+        <span class="stat-key">게시</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Info -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">info</span>
+      <span class="section-title">상품 정보</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">category</span>
+      <span class="info-label">카테고리</span>
+      <span class="info-value">전자기기 / 스마트워치</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">stars</span>
+      <span class="info-label">상품 상태</span>
+      <span class="info-value info-value-accent">거의 새것</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">swap_horiz</span>
+      <span class="info-label">거래 방식</span>
+      <span class="info-value">직거래 / 택배 가능</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">calendar_today</span>
+      <span class="info-label">마감일</span>
+      <span class="info-value">2025년 5월 10일</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">inventory_2</span>
+      <span class="info-label">수량</span>
+      <span class="info-value">1개</span>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">article</span>
+      <span class="section-title">상세 설명</span>
+    </div>
+    <p class="desc-text" id="descText">
+      구매 후 3번 밖에 사용하지 않았습니다. 충전기와 박스 포함입니다. 스크래치 없이 깨끗한 상태이며 기능 모두 정상 작동합니다. 베트남에서 구매한 제품으로 베트남 내 직거래 원칙입니다. 호치민 1군, 2군, 3군 가능합니다. 연락 주시면 사진 더 보내드리겠습니다. 선착순으로 가져가시는 분께 드립니다.
+    </p>
+    <button class="more-btn" id="moreBtn" onclick="toggleDesc()">
+      더 보기 <span class="material-symbols-outlined">expand_more</span>
+    </button>
+  </div>
+
+  <!-- Location / Map -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">location_on</span>
+      <span class="section-title">거래 위치</span>
+    </div>
+    <div class="map-teaser">
+      <img class="map-bg" src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80" alt="지도">
+      <div class="map-overlay-chip">
+        <span class="material-symbols-outlined">location_on</span>
+        호치민시 2군 · 지도에서 보기
+      </div>
+    </div>
+  </div>
+
+  <!-- Seller Info -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">person</span>
+      <span class="section-title">판매자 정보</span>
+    </div>
+    <div class="seller-row">
+      <div class="seller-avatar">
+        <span class="material-symbols-outlined">person</span>
+      </div>
+      <div>
+        <div class="seller-name">nguyen_minh</div>
+        <div class="seller-sub">거래 완료 23회</div>
+        <div class="verified-badge">
+          <span class="material-symbols-outlined">verified</span> 인증 회원
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Buttons -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">contact_phone</span>
+      <span class="section-title">연락하기</span>
+    </div>
+    <div class="contact-btns">
+      <button class="btn btn-outline">
+        <span class="material-symbols-outlined">call</span> 전화
+      </button>
+      <button class="btn btn-kakao">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#3A1D00"><path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.72 1.6 5.12 4 6.56L4.8 21l4.16-2.8c.96.2 1.96.3 3.04.3 5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/></svg>
+        카카오톡
+      </button>
+    </div>
+  </div>
+
+  <!-- Reviews -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined" style="color:#FFC107">star</span>
+      <span class="section-title">거래 후기</span>
+    </div>
+    <div class="rating-summary">
+      <div>
+        <div class="rating-big">4.8</div>
+        <div class="rating-stars">★★★★★</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:3px">후기 23개</div>
+      </div>
+      <div class="rating-bars">
+        <div class="rating-bar-row"><span>5</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div></div>
+        <div class="rating-bar-row"><span>4</span><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div></div>
+        <div class="rating-bar-row"><span>3</span><div class="bar-track"><div class="bar-fill" style="width:5%"></div></div></div>
+        <div class="rating-bar-row"><span>2</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div>
+        <div class="rating-bar-row"><span>1</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="review-card">
+      <div class="review-header">
+        <div class="reviewer-info">
+          <div class="reviewer-avatar"><span class="material-symbols-outlined">person</span></div>
+          <span class="reviewer-name">kim_****</span>
+        </div>
+        <span class="review-stars">★★★★★</span>
+      </div>
+      <p class="review-content">상품 상태 설명 그대로였어요. 친절하게 거래해주셔서 감사합니다!</p>
+      <div class="review-date">2025.04.01</div>
+    </div>
+    <div class="review-card">
+      <div class="review-header">
+        <div class="reviewer-info">
+          <div class="reviewer-avatar"><span class="material-symbols-outlined">person</span></div>
+          <span class="reviewer-name">tran_****</span>
+        </div>
+        <span class="review-stars">★★★★★</span>
+      </div>
+      <p class="review-content">빠른 거래 감사합니다. 물건 완전 새것 같아요!</p>
+      <div class="review-date">2025.03.28</div>
+    </div>
+  </div>
+
+  <!-- Ad Banner Bottom -->
+  <div class="ad-banner">
+    <span class="material-symbols-outlined" style="font-size:16px">campaign</span>
+    하단 광고 배너 영역
+  </div>
+
+</div>
+
+<!-- Bottom Action Bar -->
+<div class="bottom-bar">
+  <button class="btn btn-icon-only" id="bottomFavBtn" onclick="toggleFav()" style="border:2px solid #E91E63;color:#E91E63;background:transparent;border-radius:24px;">
+    <span class="material-symbols-outlined">favorite_border</span>
+  </button>
+  <button class="btn btn-primary btn-full">
+    <span class="material-symbols-outlined">chat_bubble</span>
+    채팅하기
+  </button>
+</div>
+
+<script>
+  // Gallery
+  let current = 0;
+  const total = 3;
+  const slides = document.getElementById('heroSlides');
+  const counter = document.getElementById('heroCounter');
+  const dots = document.querySelectorAll('.hero-dot');
+
+  function goTo(n) {
+    current = (n + total) % total;
+    slides.style.transform = `translateX(-${current * 33.33}%)`;
+    counter.textContent = `${current + 1} / ${total}`;
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  let startX = 0;
+  const hero = document.getElementById('heroGallery');
+  hero.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
+  hero.addEventListener('touchend', e => {
+    const dx = startX - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 40) goTo(current + (dx > 0 ? 1 : -1));
+  });
+
+  // Favorite
+  let fav = false;
+  function toggleFav() {
+    fav = !fav;
+    const heroIcon = document.querySelector('#favBtn .material-symbols-outlined');
+    const bottomIcon = document.querySelector('#bottomFavBtn .material-symbols-outlined');
+    const botBtn = document.getElementById('bottomFavBtn');
+    heroIcon.textContent = fav ? 'favorite' : 'favorite_border';
+    heroIcon.style.color = fav ? '#E91E63' : '';
+    document.getElementById('favBtn').classList.toggle('active', fav);
+    bottomIcon.textContent = fav ? 'favorite' : 'favorite_border';
+    botBtn.style.background = fav ? '#FCE4EC' : 'transparent';
+    botBtn.style.color = '#E91E63';
+  }
+
+  // Description expand
+  let expanded = false;
+  function toggleDesc() {
+    expanded = !expanded;
+    document.getElementById('descText').classList.toggle('expanded', expanded);
+    document.getElementById('moreBtn').innerHTML = expanded
+      ? '접기 <span class="material-symbols-outlined">expand_less</span>'
+      : '더 보기 <span class="material-symbols-outlined">expand_more</span>';
+  }
+</script>
+</body>
+</html>

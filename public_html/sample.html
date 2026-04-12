@@ -1,0 +1,288 @@
+<!doctype html>
+<html class="light" lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>씬짜오베트남 - 부동산 상세</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Work_Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              tertiary: "#011837",
+              "secondary-container": "#e02a21",
+              "on-tertiary-container": "#8195ba",
+              "on-error-container": "#93000a",
+              error: "#ba1a1a",
+              "surface-container-low": "#f3f3f3",
+              "primary-fixed-dim": "#aec7fb",
+              "on-secondary": "#ffffff",
+              "surface-tint": "#465e8c",
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#d6e3ff",
+              "inverse-surface": "#2f3131",
+              "primary-container": "#102c57",
+              "secondary-fixed": "#ffdad5",
+              "surface-container": "#eeeeee",
+              "on-primary-fixed-variant": "#2e4673",
+              "on-secondary-fixed-variant": "#930004",
+              "on-primary": "#ffffff",
+              "on-tertiary-fixed-variant": "#344768",
+              "on-secondary-container": "#fffbff",
+              "on-secondary-fixed": "#410001",
+              "surface-container-lowest": "#ffffff",
+              "surface-bright": "#f9f9f9",
+              outline: "#747780",
+              "on-tertiary-fixed": "#041b3a",
+              "on-primary-container": "#7c94c6",
+              "inverse-primary": "#aec7fb",
+              "primary-fixed": "#d7e2ff",
+              "on-error": "#ffffff",
+              "inverse-on-surface": "#f1f1f1",
+              background: "#f9f9f9",
+              "on-background": "#1a1c1c",
+              secondary: "#bb0308",
+              "surface-dim": "#dadada",
+              "on-tertiary": "#ffffff",
+              "secondary-fixed-dim": "#ffb4a9",
+              "surface-container-highest": "#e2e2e2",
+              primary: "#00173a",
+              "outline-variant": "#c4c6d0",
+              "surface-variant": "#e2e2e2",
+              surface: "#f9f9f9",
+              "tertiary-container": "#182d4d",
+              "surface-container-high": "#e8e8e8",
+              "on-surface": "#1a1c1c",
+              "on-surface-variant": "#44474f",
+              "on-primary-fixed": "#001a40",
+              "tertiary-fixed-dim": "#b3c7ef",
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem",
+            },
+            fontFamily: {
+              headline: ["Manrope", "sans-serif"],
+              body: ["Work Sans", "sans-serif"],
+              label: ["Work Sans", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Material Symbols 기본 스타일 */
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      /* FILL=1 아이콘 유틸리티 클래스 */
+      .icon-filled {
+        font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+      /* 글래스 헤더 */
+      .glass-header {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      /* 전역 폰트 */
+      body {
+        font-family: "Work Sans", sans-serif;
+        background-color: #f9f9f9;
+        min-height: max(884px, 100dvh);
+      }
+      h1, h2, h3, .headline {
+        font-family: "Manrope", sans-serif;
+      }
+      /* 모바일 탭 하이라이트 제거 */
+      .tap-highlight-transparent {
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* iOS safe-area 대응 */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+    </style>
+  </head>
+  <body class="text-on-surface antialiased">
+
+    <!-- 상단 앱바 -->
+    <header class="fixed top-0 w-full z-50 glass-header flex justify-between items-center px-6 h-16">
+      <button
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-neutral-100/50 transition-colors active:scale-95 duration-150"
+        aria-label="뒤로가기"
+      >
+        <span class="material-symbols-outlined text-[#102C57]">arrow_back</span>
+      </button>
+      <span class="text-xl font-extrabold tracking-tighter text-[#102C57] uppercase font-headline">
+        씬짜오베트남
+      </span>
+      <button
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-neutral-100/50 transition-colors active:scale-95 duration-150"
+        aria-label="공유"
+      >
+        <span class="material-symbols-outlined text-[#102C57]">share</span>
+      </button>
+    </header>
+
+    <main class="pt-16 pb-32">
+
+      <!-- 히어로 이미지 -->
+      <section class="relative w-full h-[397px] overflow-hidden">
+        <img
+          alt="고급 아파트 인테리어"
+          class="w-full h-full object-cover"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAufIi81xzzD0BiQsUSXeVSfZ1ppewxpwzniawn6Ict04hwdBoZn8PMp8cnviYkX3TFadicfQ7jg7hDnI6uk7ol7l90yx0RdXgFtJONdpeg2MyPVeOO6AjCedfaGUVm9YBPdmHQ4QQDRAphUegPZKTF8BKO7UplBPKeLwWkC0aF5kuaWzvdnGm0a2q4VsBtFBikCcbkC51tNHC9EHIaAL0gKuuvJDi6i80LW1jbbFdhk1pIXCzxX0-dJHwM6RB1g_USBlPIi2A9UZpV"
+        />
+        <div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-primary/80 to-transparent">
+          <div class="flex gap-2 mb-2">
+            <span class="bg-secondary text-on-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-sm">
+              추천
+            </span>
+            <span class="bg-white/20 backdrop-blur-md text-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-sm">
+              1군
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 매물 정보 카드 -->
+      <section class="px-6 -mt-8 relative z-10">
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_12px_32px_rgba(26,28,28,0.06)]">
+          <div class="flex justify-between items-start mb-4">
+            <h1 class="text-2xl font-extrabold text-primary leading-tight max-w-[65%]">
+              Vinhomes Golden River - 3BR 프리미엄 스위트
+            </h1>
+            <div class="text-right">
+              <p class="text-secondary font-bold text-xl">$3,500</p>
+              <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-semibold">/ 월</p>
+            </div>
+          </div>
+          <div class="flex gap-6 py-4 border-y border-outline-variant/15">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-on-surface-variant text-lg">bed</span>
+              <span class="text-sm font-medium">침실 3</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-on-surface-variant text-lg">bathtub</span>
+              <span class="text-sm font-medium">욕실 2</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-on-surface-variant text-lg">square_foot</span>
+              <span class="text-sm font-medium">124 m²</span>
+            </div>
+          </div>
+          <p class="mt-6 text-on-surface-variant leading-relaxed text-sm">
+            1군 중심부의 최고급 코너 스위트. 사이공 강과 투티엠 2교를 한눈에 조망할 수 있으며,
+            유럽산 가구와 스마트홈 시스템이 완비되어 있습니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- 담당 에이전트 섹션 -->
+      <section class="px-6 mt-8">
+        <div class="bg-surface-container-low rounded-xl p-6 relative overflow-hidden">
+          <div class="absolute top-0 right-0 p-2">
+            <span class="text-[9px] font-bold text-on-tertiary-container/50 uppercase tracking-widest">
+              공인 전문가
+            </span>
+          </div>
+          <div class="flex items-center gap-5">
+            <div class="relative">
+              <img
+                alt="담당 에이전트"
+                class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSOwvGn_CFMsW5shlKH0y5msXOmzn59mJr14OaJOqCJ3epf1cyNTca6bBsMUujg7ZPieItCdCEKts1g_zwsSuCB7E_PZRCM0EfIMD0Qg3bca9oa5stxHOOAhk5480lbgaWNvoVWRo2D_zR5WthPHpH0DbHQBwVghuDYL4hrbkc8hvdSUG43pDfIiUfot9kiX4W6v7iSbgq8M0veHFtxAsYi6zUJAGzpenbOrk0iV4uWxn1A3pRUpFMe60PlkKfHl-kKBMGIFQDEIlQ"
+              />
+              <div class="absolute -bottom-1 -right-1 bg-secondary w-5 h-5 rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-[12px] icon-filled">verified</span>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-primary">김민수</h3>
+              <p class="text-xs text-on-surface-variant font-medium mb-1">
+                씬짜오 부동산 전문가 · 경력 15년
+              </p>
+              <p class="text-[11px] text-primary/70 italic leading-snug">
+                "2009년부터 외국인 고급 이주 및 고수익 부동산 포트폴리오를 전문으로 합니다."
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 grid grid-cols-2 gap-3">
+            <button
+              class="flex items-center justify-center gap-2 bg-[#fee500] text-[#3c1e1e] py-3 rounded-lg text-xs font-bold transition-all active:scale-95"
+            >
+              <span class="material-symbols-outlined text-lg">chat_bubble</span>
+              카카오톡 문의
+            </button>
+            <button
+              class="flex items-center justify-center gap-2 bg-primary text-on-primary py-3 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-md"
+            >
+              <span class="material-symbols-outlined text-lg">calendar_month</span>
+              방문 예약
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 위치 섹션 -->
+      <section class="px-6 mt-8">
+        <h2 class="text-sm font-bold text-primary uppercase tracking-widest mb-4">위치</h2>
+        <div class="h-40 bg-surface-container rounded-xl overflow-hidden relative group cursor-pointer">
+          <img
+            alt="지도"
+            class="w-full h-full object-cover opacity-60"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBZLKHiMfuDAAdzqADOJc27wGiVtvp17sWijqd-rjL8kleHoyWD9KM8x_ByFRFicQUpA0vKIEzJJTYgRyWbd41c6NUvjv-POr8f8bIMhF6MmElFZx9r1pwgmTw6nYA7q1whW4ZEtFvXwl3YMsh4-ZtZKW2ujVR81vRdqHkO8wET7lGgftFj_QyTE7k-M2mWk6gZSOufqQQqjdnO_2H6jggGM4xSmeuQCBkApWHwZr1-PgkzllaY7v3Uq_UdQvMtccRj-FUYMYp5jUo"
+          />
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-primary/10">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary text-xl icon-filled">location_on</span>
+                <span class="text-xs font-bold text-primary">지도에서 보기 · 타오디엔 지구</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 하단 탭 네비게이션 -->
+    <nav class="fixed bottom-0 w-full rounded-t-xl z-50 bg-white/90 backdrop-blur-xl border-t border-neutral-100/20 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] flex justify-around items-center h-20 pb-safe px-4">
+      <button class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity tap-highlight-transparent">
+        <span class="material-symbols-outlined">newspaper</span>
+        <span class="font-body text-[10px] font-semibold uppercase tracking-widest mt-1">뉴스</span>
+      </button>
+      <button class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity tap-highlight-transparent">
+        <span class="material-symbols-outlined">gift</span>
+        <span class="font-body text-[10px] font-semibold uppercase tracking-widest mt-1">당근</span>
+      </button>
+      <button class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity tap-highlight-transparent">
+        <span class="material-symbols-outlined">briefcase</span>
+        <span class="font-body text-[10px] font-semibold uppercase tracking-widest mt-1">구인구직</span>
+      </button>
+      <!-- 활성 탭: 부동산 -->
+      <button class="flex flex-col items-center justify-center text-secondary bg-red-50 rounded-xl px-3 py-1 transition-all tap-highlight-transparent">
+        <span class="material-symbols-outlined icon-filled">domain</span>
+        <span class="font-body text-[10px] font-bold uppercase tracking-widest mt-1">부동산</span>
+      </button>
+      <button class="flex flex-col items-center justify-center text-slate-500 opacity-70 hover:opacity-100 transition-opacity tap-highlight-transparent">
+        <span class="material-symbols-outlined">menu</span>
+        <span class="font-body text-[10px] font-semibold uppercase tracking-widest mt-1">메뉴</span>
+      </button>
+    </nav>
+
+  </body>
+</html>

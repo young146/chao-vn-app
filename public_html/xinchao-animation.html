@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XinChaoVietnam Animation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #0f0f13;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+        }
+
+        .brand-text {
+            font-family: 'Alex Brush', cursive;
+            font-size: 8rem;
+            color: transparent;
+            background: linear-gradient(45deg, #d4af37, #f3e5ab, #d4af37);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            white-space: nowrap;
+            /* Handwriting mask reveal effect */
+            -webkit-mask-image: linear-gradient(to right, black 50%, rgba(0,0,0,0) 50%);
+            -webkit-mask-size: 200% 100%;
+            -webkit-mask-position: 100% 0;
+            animation: 
+                writeEffect 3s ease-in-out forwards,
+                shimmerEffect 4s linear infinite;
+        }
+
+        .glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-family: 'Alex Brush', cursive;
+            font-size: 8rem;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            white-space: nowrap;
+            -webkit-mask-image: linear-gradient(to right, black 50%, rgba(0,0,0,0) 50%);
+            -webkit-mask-size: 200% 100%;
+            -webkit-mask-position: 100% 0;
+            animation: writeEffect 3s ease-in-out forwards;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes writeEffect {
+            0% {
+                -webkit-mask-position: 100% 0;
+            }
+            100% {
+                -webkit-mask-position: 0% 0;
+            }
+        }
+
+        @keyframes shimmerEffect {
+            to {
+                background-position: 200% center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="brand-text">XinChaoVietnam</div>
+        <div class="glow">XinChaoVietnam</div>
+    </div>
+</body>
+</html>

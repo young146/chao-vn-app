@@ -1,0 +1,473 @@
+<!doctype html>
+<html class="light" lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+    <title>씬짜오베트남 - 구인구직 상세</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <style>
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      body {
+        font-family: 'Noto Sans KR', sans-serif;
+        background: #F0F4F8;
+        max-width: 390px;
+        margin: 0 auto;
+        min-height: 100dvh;
+        position: relative;
+        overflow-x: hidden;
+      }
+      :root { --accent: #2196F3; --accent-dark: #1565C0; --accent-light: #E3F2FD; }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        font-size: 22px; line-height: 1;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+      .glass-bar {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border-bottom: 1px solid rgba(255,255,255,0.6);
+      }
+      .card-shadow { box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04); }
+      .card-shadow-lg { box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05); }
+      .accent-gradient { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%); }
+      .hero-gradient { background: linear-gradient(to top, rgba(21,101,192,0.85) 0%, rgba(33,150,243,0.3) 50%, transparent 100%); }
+      .swipe-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); transition: all 0.2s; }
+      .swipe-dots .dot.active { width: 18px; border-radius: 3px; background: #fff; }
+      .info-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #F0F4F8; }
+      .info-row:last-child { border-bottom: none; }
+      .info-icon { width: 36px; height: 36px; border-radius: 10px; background: #E3F2FD; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .info-icon .material-symbols-outlined { font-size: 18px; color: #2196F3; }
+      .spec-chip { display: flex; align-items: center; gap: 6px; background: #EFF6FF; border-radius: 10px; padding: 8px 12px; }
+      .spec-chip .material-symbols-outlined { font-size: 17px; color: #2196F3; }
+      .btn-kakao { background: #FEE500; color: #3C1E1E; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; font-size: 14px; transition: all 0.15s; }
+      .btn-kakao:active { transform: scale(0.97); }
+      .btn-primary { background: linear-gradient(135deg, #2196F3, #1565C0); color: white; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; font-size: 14px; transition: all 0.15s; }
+      .btn-primary:active { transform: scale(0.97); }
+      .collapse-text { overflow: hidden; max-height: 72px; transition: max-height 0.3s ease; }
+      .collapse-text.expanded { max-height: 600px; }
+      .ad-banner { border: 2px dashed #D1D5DB; border-radius: 12px; height: 80px; display: flex; align-items: center; justify-content: center; background: #F9FAFB; }
+      .employer-badge { background: linear-gradient(135deg, #2196F3, #1565C0); color: white; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px; }
+      .jobseeker-badge { background: linear-gradient(135deg, #10B981, #059669); color: white; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+      .deadline-pill { background: #FEF2F2; color: #DC2626; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid #FECACA; }
+      .benefit-tag { background: #E3F2FD; color: #1565C0; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 8px; }
+      .tab-active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24; }
+      .bottom-action { box-shadow: 0 -4px 24px rgba(0,0,0,0.10); }
+      .progress-bar { height: 4px; border-radius: 2px; background: #E3F2FD; }
+      .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #2196F3, #1565C0); }
+    </style>
+  </head>
+  <body>
+
+    <!-- Glass Top App Bar -->
+    <header class="glass-bar fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50 flex items-center justify-between px-4 h-[60px]">
+      <button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors">
+        <span class="material-symbols-outlined text-gray-800">arrow_back</span>
+      </button>
+      <span style="font-family:'Manrope',sans-serif;" class="font-extrabold text-[17px] tracking-tight text-[#1A1A2E]">구인구직 상세</span>
+      <button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors">
+        <span class="material-symbols-outlined text-gray-800">ios_share</span>
+      </button>
+    </header>
+
+    <main class="pt-[60px] pb-[140px]">
+
+      <!-- Hero Image / Company Banner -->
+      <section class="relative w-full h-[240px] bg-blue-900 overflow-hidden">
+        <img alt="회사 사무실" class="w-full h-full object-cover opacity-60" src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80" />
+        <div class="hero-gradient absolute inset-0"></div>
+
+        <!-- Floating Badges -->
+        <div class="absolute top-[72px] left-4 flex gap-2 items-center flex-wrap">
+          <span class="employer-badge">구인공고</span>
+          <span class="bg-white/25 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full">정규직</span>
+          <span class="bg-white/25 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full">경력무관</span>
+        </div>
+
+        <!-- Deadline Overlay -->
+        <div class="absolute top-[72px] right-4">
+          <div class="deadline-pill">D-10</div>
+        </div>
+
+        <!-- Company Logo -->
+        <div class="absolute bottom-0 left-0 w-full px-4 pb-4 flex items-end gap-3">
+          <div class="w-14 h-14 rounded-2xl bg-white shadow-lg flex items-center justify-center flex-shrink-0 border border-blue-100">
+            <span class="material-symbols-outlined icon-fill" style="font-size:30px;color:#2196F3;">business</span>
+          </div>
+          <div class="mb-1">
+            <p class="text-white/80 text-[11px] font-semibold">호치민 · 1군</p>
+            <p class="text-white text-[16px] font-bold leading-tight drop-shadow">씬짜오 코리아 법인</p>
+          </div>
+        </div>
+
+        <!-- Page indicator -->
+        <div class="absolute bottom-14 right-4 swipe-dots flex items-center gap-1.5">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </section>
+
+      <!-- Main Info Card -->
+      <section class="px-4 -mt-5 relative z-10">
+        <div class="card-shadow-lg bg-white rounded-2xl p-5">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 pr-3">
+              <h1 class="text-[18px] font-bold text-gray-900 leading-snug">한국어 가능 영업 매니저 (베트남어 우대)</h1>
+              <p class="text-gray-500 text-[13px] mt-1 flex items-center gap-1">
+                <span class="material-symbols-outlined" style="font-size:14px;color:#2196F3;">business</span>
+                씬짜오 코리아 법인 · B2B 세일즈팀
+              </p>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p class="text-[20px] font-extrabold leading-none" style="color:#2196F3;">$1,500~</p>
+              <p class="text-gray-400 text-[11px] mt-0.5">/ 월 급여</p>
+            </div>
+          </div>
+
+          <!-- Spec Chips Grid -->
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <div class="spec-chip">
+              <span class="material-symbols-outlined">payments</span>
+              <div>
+                <p class="text-[10px] text-gray-400">급여</p>
+                <p class="text-[12px] font-bold text-gray-800">$1,500~2,000</p>
+              </div>
+            </div>
+            <div class="spec-chip">
+              <span class="material-symbols-outlined">work_history</span>
+              <div>
+                <p class="text-[10px] text-gray-400">경력</p>
+                <p class="text-[12px] font-bold text-gray-800">경력무관</p>
+              </div>
+            </div>
+            <div class="spec-chip">
+              <span class="material-symbols-outlined">badge</span>
+              <div>
+                <p class="text-[10px] text-gray-400">고용형태</p>
+                <p class="text-[12px] font-bold text-gray-800">정규직</p>
+              </div>
+            </div>
+            <div class="spec-chip">
+              <span class="material-symbols-outlined">schedule</span>
+              <div>
+                <p class="text-[10px] text-gray-400">근무시간</p>
+                <p class="text-[12px] font-bold text-gray-800">주 5일 (탄력)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Benefits -->
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="benefit-tag">4대보험</span>
+            <span class="benefit-tag">연차 15일</span>
+            <span class="benefit-tag">식비 제공</span>
+            <span class="benefit-tag">비자 지원</span>
+            <span class="benefit-tag">성과급</span>
+          </div>
+
+          <!-- Application Progress -->
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] text-gray-500 font-medium">지원현황</span>
+              <span class="text-[11px] font-bold" style="color:#2196F3;">12명 지원 중</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 40%;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ad Banner -->
+      <section class="px-4 mt-4">
+        <div class="ad-banner">
+          <div class="flex flex-col items-center gap-1">
+            <span class="material-symbols-outlined text-gray-300" style="font-size:28px;">ad_units</span>
+            <span class="text-[11px] text-gray-400 font-medium">광고 배너 영역 (728×90)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Detail Info Card -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-2">채용 정보</h2>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">corporate_fare</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">회사명</p>
+              <p class="text-[14px] font-semibold text-gray-800">씬짜오 코리아 법인 (XinChao Korea Co., Ltd.)</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">location_city</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">근무지</p>
+              <p class="text-[14px] font-semibold text-gray-800">호치민시 1군 (Lê Duẩn 거리)</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">payments</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">급여</p>
+              <p class="text-[14px] font-semibold text-gray-800">월 $1,500~2,000 + 성과급</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">translate</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">어학</p>
+              <p class="text-[14px] font-semibold text-gray-800">한국어 필수 · 베트남어 우대</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">event</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">접수 마감</p>
+              <p class="text-[14px] font-semibold text-gray-800">
+                <span style="color:#DC2626;font-weight:700;">2026년 4월 15일</span>
+                <span class="text-[11px] text-gray-400 ml-1">(D-10)</span>
+              </p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">how_to_reg</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">채용 절차</p>
+              <p class="text-[14px] font-semibold text-gray-800">서류 → 면접 (화상) → 최종</p>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon"><span class="material-symbols-outlined">groups</span></div>
+            <div class="flex-1">
+              <p class="text-[11px] text-gray-400 font-medium">채용 인원</p>
+              <p class="text-[14px] font-semibold text-gray-800">1명</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Description Card -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-3">상세 내용</h2>
+          <div class="collapse-text" id="descText">
+            <div class="space-y-3 text-[13px] text-gray-600 leading-relaxed">
+              <div>
+                <p class="font-bold text-gray-800 text-[13px] mb-1">📌 담당 업무</p>
+                <ul class="space-y-1 text-[13px] text-gray-600">
+                  <li>· 한-베 기업 간 B2B 영업 및 파트너십 관리</li>
+                  <li>· 씬짜오베트남 플랫폼 내 광고·제휴 세일즈</li>
+                  <li>· 한국 교민 커뮤니티 네트워크 활용 마케팅</li>
+                  <li>· 월별 실적 보고 및 전략 수립 참여</li>
+                </ul>
+              </div>
+              <div>
+                <p class="font-bold text-gray-800 text-[13px] mb-1">✅ 자격 요건</p>
+                <ul class="space-y-1 text-[13px] text-gray-600">
+                  <li>· 한국어 원어민 수준 (필수)</li>
+                  <li>· 영업/마케팅 경력 우대 (신입 지원 가능)</li>
+                  <li>· 베트남 거주 중이거나 즉시 이주 가능자</li>
+                  <li>· 긍정적 마인드와 팀워크를 중요시하는 분</li>
+                </ul>
+              </div>
+              <div>
+                <p class="font-bold text-gray-800 text-[13px] mb-1">🎁 복리후생</p>
+                <ul class="space-y-1 text-[13px] text-gray-600">
+                  <li>· 취업비자(E-VISA) 전 과정 지원</li>
+                  <li>· 주거비 보조 (월 $200)</li>
+                  <li>· 점심 식대 및 교통비 지원</li>
+                  <li>· 연 2회 한국 왕복 항공권 지원</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <button onclick="toggleDesc()" id="descBtn" class="mt-3 flex items-center gap-1 text-[12px] font-semibold" style="color:#2196F3;">
+            <span id="descBtnText">더 보기</span>
+            <span class="material-symbols-outlined" id="descArrow" style="font-size:16px;transition:transform 0.3s;">expand_more</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Company Info Card -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-4">회사 소개</h2>
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0">
+              <span class="material-symbols-outlined icon-fill" style="font-size:34px;color:#2196F3;">business</span>
+            </div>
+            <div>
+              <p class="text-[15px] font-bold text-gray-900">씬짜오 코리아 법인</p>
+              <p class="text-[12px] text-gray-500">XinChao Korea Co., Ltd.</p>
+              <div class="flex items-center gap-2 mt-1.5">
+                <span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-md">IT/미디어</span>
+                <span class="bg-gray-100 text-gray-500 text-[10px] font-semibold px-2 py-0.5 rounded-md">설립 2018</span>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="text-center bg-gray-50 rounded-xl py-3">
+              <p class="text-[18px] font-extrabold" style="color:#2196F3;">45+</p>
+              <p class="text-[10px] text-gray-500 mt-0.5">임직원 수</p>
+            </div>
+            <div class="text-center bg-gray-50 rounded-xl py-3">
+              <p class="text-[18px] font-extrabold" style="color:#2196F3;">8년</p>
+              <p class="text-[10px] text-gray-500 mt-0.5">업력</p>
+            </div>
+            <div class="text-center bg-gray-50 rounded-xl py-3">
+              <p class="text-[18px] font-extrabold" style="color:#2196F3;">4.5★</p>
+              <p class="text-[10px] text-gray-500 mt-0.5">직원 평점</p>
+            </div>
+          </div>
+          <p class="text-[12px] text-gray-600 leading-relaxed">
+            씬짜오베트남은 베트남 내 한인 교민과 한국-베트남 비즈니스를 연결하는 No.1 커뮤니티 플랫폼입니다.
+            부동산, 중고거래, 구인구직, 뉴스 등 교민 생활에 필요한 모든 정보를 제공합니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- Map Teaser -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-3">근무지 위치</h2>
+          <div class="relative h-[130px] rounded-xl overflow-hidden bg-gray-100 cursor-pointer group">
+            <img alt="지도" class="w-full h-full object-cover group-active:opacity-80 transition-opacity" src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" style="filter:saturate(0.6) hue-rotate(200deg);" />
+            <div class="absolute inset-0 bg-blue-900/20"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+                <span class="material-symbols-outlined icon-fill" style="font-size:18px;color:#2196F3;">location_on</span>
+                <span class="text-[12px] font-bold text-gray-800">지도에서 보기 · 1군 Lê Duẩn</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-[12px] text-gray-500 mt-2 flex items-center gap-1">
+            <span class="material-symbols-outlined text-gray-400" style="font-size:14px;">place</span>
+            65 Lê Duẩn, Bến Nghé, Quận 1, Hồ Chí Minh
+          </p>
+        </div>
+      </section>
+
+      <!-- Contact Section -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-4">채용 담당자</h2>
+          <div class="flex items-center gap-4 mb-4">
+            <div class="relative">
+              <img alt="채용담당자" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80" />
+              <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center" style="background:#2196F3;">
+                <span class="material-symbols-outlined icon-fill text-white" style="font-size:12px;">verified</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-[15px] font-bold text-gray-900">이준호 팀장</p>
+              <p class="text-[12px] text-gray-500">씬짜오 코리아 · HR 담당</p>
+              <p class="text-[11px] text-gray-400 mt-0.5">평균 응답시간: <span class="font-semibold text-gray-600">2시간 이내</span></p>
+            </div>
+          </div>
+          <div class="flex gap-2.5">
+            <button class="btn-kakao flex-1">
+              <span class="material-symbols-outlined" style="font-size:18px;">chat_bubble</span>
+              카카오톡 문의
+            </button>
+            <button class="btn-primary flex-1">
+              <span class="material-symbols-outlined" style="font-size:18px;">call</span>
+              전화 연결
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Similar Jobs -->
+      <section class="px-4 mt-4">
+        <div class="card-shadow bg-white rounded-2xl p-5">
+          <h2 class="text-[14px] font-bold text-gray-900 mb-3">비슷한 공고</h2>
+          <div class="space-y-3">
+            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer active:bg-blue-50 transition-colors">
+              <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined icon-fill text-blue-500" style="font-size:20px;">work</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-bold text-gray-800 truncate">한국어 강사 (원어민)</p>
+                <p class="text-[11px] text-gray-500">하노이 · $1,200/월</p>
+              </div>
+              <span class="material-symbols-outlined text-gray-300" style="font-size:18px;">chevron_right</span>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer active:bg-blue-50 transition-colors">
+              <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined icon-fill text-blue-500" style="font-size:20px;">store</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-bold text-gray-800 truncate">한식당 홀/주방 직원</p>
+                <p class="text-[11px] text-gray-500">호치민 2군 · $900/월</p>
+              </div>
+              <span class="material-symbols-outlined text-gray-300" style="font-size:18px;">chevron_right</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Ad -->
+      <section class="px-4 mt-4">
+        <div class="ad-banner">
+          <div class="flex flex-col items-center gap-1">
+            <span class="material-symbols-outlined text-gray-300" style="font-size:28px;">ad_units</span>
+            <span class="text-[11px] text-gray-400 font-medium">광고 배너 영역 (320×50)</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Fixed Bottom Action Bar -->
+    <div class="bottom-action fixed bottom-[72px] left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white px-4 py-3 flex gap-3 z-40">
+      <button class="flex-1 h-12 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-[14px] transition-all active:scale-97" style="border-color:#2196F3;color:#2196F3;">
+        <span class="material-symbols-outlined" style="font-size:18px;">call</span>
+        전화 문의
+      </button>
+      <button class="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-[14px] text-white transition-all active:scale-97 accent-gradient shadow-md">
+        <span class="material-symbols-outlined" style="font-size:18px;">send</span>
+        바로 지원하기
+      </button>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-50 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex justify-around items-center h-[72px]">
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">newspaper</span>
+        <span class="text-[10px] font-semibold">뉴스</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">volunteer_activism</span>
+        <span class="text-[10px] font-semibold">당근나눔</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px]" style="color:#2196F3;">
+        <span class="material-symbols-outlined icon-fill" style="font-size:22px;">work</span>
+        <span class="text-[10px] font-bold">구인구직</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">domain</span>
+        <span class="text-[10px] font-semibold">부동산</span>
+      </button>
+      <button class="flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-w-[60px] text-gray-400">
+        <span class="material-symbols-outlined" style="font-size:22px;">menu</span>
+        <span class="text-[10px] font-semibold">메뉴</span>
+      </button>
+    </nav>
+
+    <script>
+      let descExpanded = false;
+      function toggleDesc() {
+        descExpanded = !descExpanded;
+        const el = document.getElementById('descText');
+        const btn = document.getElementById('descBtnText');
+        const arrow = document.getElementById('descArrow');
+        if (descExpanded) { el.classList.add('expanded'); btn.textContent = '접기'; arrow.style.transform = 'rotate(180deg)'; }
+        else { el.classList.remove('expanded'); btn.textContent = '더 보기'; arrow.style.transform = 'rotate(0deg)'; }
+      }
+    </script>
+  </body>
+</html>

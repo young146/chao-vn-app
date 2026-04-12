@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390,initial-scale=1">
+<title>구직자 상세 – 씬짜오베트남</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #FF7043;
+    --accent-light: #FFF3EE;
+    --accent-dark: #E64A19;
+    --blue: #2196F3;
+    --blue-light: #E3F2FD;
+    --green: #43A047;
+    --green-light: #E8F5E9;
+    --purple: #7E57C2;
+    --purple-light: #EDE7F6;
+    --bg: #F5F5F7;
+    --card: #FFFFFF;
+    --text-primary: #1A1A2E;
+    --text-secondary: #6B7280;
+    --border: #E8EAF0;
+    --radius: 16px;
+    --shadow: 0 2px 16px rgba(0,0,0,.08);
+  }
+  html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text-primary); }
+
+  /* ── App Bar ── */
+  .app-bar {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px; padding: 0 8px;
+    background: rgba(255,255,255,.88); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(0,0,0,.06);
+  }
+  .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(0,0,0,.05); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .icon-btn .material-symbols-outlined { font-size: 22px; color: var(--text-primary); }
+  .app-bar-title { font-size: 16px; font-weight: 600; }
+  .app-bar-actions { display: flex; gap: 4px; }
+
+  /* ── Login Gate ── */
+  .login-gate {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(255,255,255,.96); backdrop-filter: blur(20px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 32px;
+    text-align: center;
+  }
+  .login-gate .material-symbols-outlined { font-size: 64px; color: var(--accent); }
+  .login-gate h2 { font-size: 20px; font-weight: 800; }
+  .login-gate p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+  .btn-login { background: linear-gradient(135deg, var(--accent), #FFAB91); color: #fff; border: none; border-radius: 24px; padding: 14px 32px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .btn-kakao-login { background: #FEE500; color: #3A1D00; border: none; border-radius: 24px; padding: 14px 32px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; display: flex; align-items: center; gap: 8px; }
+
+  /* ── Hero Profile ── */
+  .hero {
+    background: linear-gradient(145deg, #FF7043, #FF8A65, #FFA270);
+    padding: 28px 20px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -40px; right: -40px;
+    width: 160px; height: 160px; border-radius: 50%;
+    background: rgba(255,255,255,.1);
+  }
+  .hero::after {
+    content: ''; position: absolute; bottom: -30px; left: -20px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,.08);
+  }
+  .profile-avatar-wrap { position: relative; }
+  .profile-avatar {
+    width: 96px; height: 96px; border-radius: 50%;
+    border: 4px solid rgba(255,255,255,.9);
+    overflow: hidden;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,.2);
+  }
+  .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-avatar .material-symbols-outlined { font-size: 52px; color: rgba(255,255,255,.9); }
+  .status-dot {
+    position: absolute; bottom: 6px; right: 6px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #69F0AE; border: 3px solid #fff;
+  }
+  .profile-name { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: .3px; }
+  .profile-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .hero-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px; border-radius: 20px;
+    background: rgba(255,255,255,.22); color: #fff;
+    font-size: 12px; font-weight: 600; backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.3);
+  }
+  .hero-chip .material-symbols-outlined { font-size: 14px; }
+  .hero-chip-new { background: rgba(105,240,174,.3); border-color: rgba(105,240,174,.5); }
+
+  /* ── Content ── */
+  .content { padding: 12px 14px 120px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── Ad Banner ── */
+  .ad-banner { border: 2px dashed #D1D5DB; border-radius: var(--radius); background: #FAFAFA; height: 60px; display: flex; align-items: center; justify-content: center; color: #9CA3AF; font-size: 12px; gap: 6px; }
+
+  /* ── Card ── */
+  .card { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+
+  /* ── Section Header ── */
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .section-header .material-symbols-outlined { font-size: 20px; color: var(--accent); }
+  .section-title { font-size: 15px; font-weight: 700; }
+
+  /* ── Language Skills ── */
+  .lang-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .lang-row:last-child { margin-bottom: 0; }
+  .lang-flag { font-size: 20px; width: 28px; text-align: center; }
+  .lang-label { font-size: 13px; color: var(--text-secondary); width: 60px; flex-shrink: 0; }
+  .lang-bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+  .lang-bar-fill { height: 100%; border-radius: 4px; }
+  .lang-bar-fill.native { background: linear-gradient(90deg, #FF7043, #FFAB91); width: 100%; }
+  .lang-bar-fill.advanced { background: linear-gradient(90deg, #FF9800, #FFB74D); width: 80%; }
+  .lang-bar-fill.intermediate { background: linear-gradient(90deg, #2196F3, #64B5F6); width: 60%; }
+  .lang-bar-fill.beginner { background: linear-gradient(90deg, #9E9E9E, #BDBDBD); width: 30%; }
+  .lang-bar-fill.none { background: var(--border); width: 5%; }
+  .lang-level { font-size: 12px; font-weight: 600; width: 36px; text-align: right; }
+
+  /* ── Job Track Tags ── */
+  .track-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .track-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+    background: var(--accent-light); color: var(--accent-dark);
+  }
+  .track-tag .material-symbols-outlined { font-size: 15px; }
+
+  /* ── Career Specs ── */
+  .career-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .career-box { background: var(--blue-light); border-radius: 12px; padding: 14px; }
+  .career-box-key { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); font-weight: 500; margin-bottom: 5px; }
+  .career-box-key .material-symbols-outlined { font-size: 15px; color: var(--blue); }
+  .career-box-val { font-size: 15px; font-weight: 700; }
+  .career-box-val-accent { color: var(--blue); }
+
+  /* ── Skills ── */
+  .skill-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .skill-tag { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--purple-light); color: var(--purple); }
+
+  /* ── Info Rows ── */
+  .info-row { display: flex; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .material-symbols-outlined { font-size: 18px; color: var(--text-secondary); width: 24px; flex-shrink: 0; margin-top: 1px; }
+  .info-label { font-size: 13px; color: var(--text-secondary); width: 80px; flex-shrink: 0; margin-left: 6px; padding-top: 1px; }
+  .info-value { font-size: 14px; font-weight: 500; flex: 1; }
+  .info-value-accent { color: var(--accent); font-weight: 600; }
+  .info-value-green { color: var(--green); font-weight: 600; }
+  .info-value-blue { color: var(--blue); font-weight: 600; }
+
+  /* ── Salary Highlight ── */
+  .salary-box {
+    background: linear-gradient(135deg, #FFF3EE, #FFE0D0);
+    border: 1.5px solid #FFCCBC; border-radius: 12px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .salary-box .material-symbols-outlined { font-size: 32px; color: var(--accent); }
+  .salary-val { font-size: 22px; font-weight: 800; color: var(--accent); }
+  .salary-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ── Resume / File Section ── */
+  .resume-box {
+    border: 2px solid var(--border); border-radius: 12px; padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    background: #FAFAFA; cursor: pointer; transition: all .2s;
+  }
+  .resume-box:hover { border-color: var(--accent); background: var(--accent-light); }
+  .resume-icon-wrap { width: 52px; height: 52px; border-radius: 12px; background: #FFCCBC; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .resume-icon-wrap .material-symbols-outlined { font-size: 28px; color: var(--accent-dark); }
+  .resume-filename { font-size: 14px; font-weight: 600; }
+  .resume-meta { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+  .resume-download { margin-left: auto; }
+  .resume-download .material-symbols-outlined { font-size: 24px; color: var(--blue); }
+
+  .resume-empty {
+    border: 2px dashed #D1D5DB; border-radius: 12px; padding: 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: #FAFAFA; color: var(--text-secondary);
+  }
+  .resume-empty .material-symbols-outlined { font-size: 36px; color: #D1D5DB; }
+  .resume-empty-text { font-size: 13px; }
+
+  /* ── Description ── */
+  .desc-text { font-size: 14px; line-height: 1.8; color: #374151; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; line-clamp: 5; }
+  .desc-text.expanded { -webkit-line-clamp: unset; line-clamp: unset; display: block; }
+  .more-btn { margin-top: 10px; padding: 0; border: none; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; }
+  .more-btn .material-symbols-outlined { font-size: 16px; }
+
+  /* ── YouTube Card ── */
+  .youtube-card { border-radius: 12px; overflow: hidden; position: relative; background: #000; aspect-ratio: 16/9; }
+  .youtube-card img { width: 100%; height: 100%; object-fit: cover; opacity: .8; }
+  .play-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.2); }
+  .play-btn .material-symbols-outlined { font-size: 56px; color: #fff; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5)); }
+  .youtube-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.8); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+  .youtube-title { font-size: 13px; font-weight: 600; margin-top: 10px; line-height: 1.4; }
+
+  /* ── Notice Box (login required) ── */
+  .notice-box {
+    background: var(--accent-light); border: 1.5px solid #FFCCBC; border-radius: 12px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .notice-box .material-symbols-outlined { font-size: 22px; color: var(--accent); flex-shrink: 0; }
+  .notice-text { font-size: 13px; color: var(--accent-dark); line-height: 1.5; }
+
+  /* ── Buttons ── */
+  .btn { height: 48px; border-radius: 24px; border: none; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+  .btn .material-symbols-outlined { font-size: 20px; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #FFAB91); color: #fff; }
+  .btn-outline { border: 2px solid var(--accent); color: var(--accent); background: transparent; height: 44px; border-radius: 22px; font-size: 14px; }
+  .btn-blue { background: linear-gradient(135deg, var(--blue), #64B5F6); color: #fff; }
+  .btn-kakao { background: #FEE500; color: #3A1D00; height: 44px; border-radius: 22px; font-size: 14px; }
+  .contact-btns { display: flex; gap: 10px; }
+
+  /* ── Bottom Bar ── */
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 390px; margin: 0 auto; background: rgba(255,255,255,.95); backdrop-filter: blur(16px); border-top: 1px solid var(--border); padding: 12px 16px 24px; display: flex; gap: 10px; z-index: 200; }
+  .btn-full { flex: 1; }
+  .btn-icon-only { width: 52px; flex: none; border-radius: 26px; }
+</style>
+</head>
+<body>
+
+<!-- ── 로그인 게이트 (비로그인 시 표시) ── -->
+<div class="login-gate" id="loginGate">
+  <span class="material-symbols-outlined">lock_person</span>
+  <h2>로그인이 필요합니다</h2>
+  <p>구직자 프로필은 회원에게만 공개됩니다.<br>로그인 후 연락처와 이력서를 확인하세요.</p>
+  <button class="btn-login" onclick="unlockForDemo()">
+    이메일로 로그인
+  </button>
+  <button class="btn-kakao-login" onclick="unlockForDemo()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#3A1D00"><path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.72 1.6 5.12 4 6.56L4.8 21l4.16-2.8c.96.2 1.96.3 3.04.3 5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/></svg>
+    카카오톡으로 로그인
+  </button>
+  <p style="font-size:11px;color:#aaa">(데모: 클릭하면 잠금 해제)</p>
+</div>
+
+<!-- App Bar -->
+<div class="app-bar">
+  <button class="icon-btn" onclick="history.back()">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </button>
+  <span class="app-bar-title">구직자 프로필</span>
+  <div class="app-bar-actions">
+    <button class="icon-btn">
+      <span class="material-symbols-outlined">share</span>
+    </button>
+  </div>
+</div>
+
+<!-- Hero Profile -->
+<div class="hero">
+  <div class="profile-avatar-wrap">
+    <div class="profile-avatar">
+      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" alt="프로필">
+    </div>
+    <div class="status-dot" title="구직 중"></div>
+  </div>
+  <div class="profile-name">Nguyen Thi Lan (구엔 티 란)</div>
+  <div class="profile-chips">
+    <span class="hero-chip hero-chip-new"><span class="material-symbols-outlined">fiber_new</span> 신규 등록</span>
+    <span class="hero-chip"><span class="material-symbols-outlined">flag</span> 베트남 국적</span>
+    <span class="hero-chip"><span class="material-symbols-outlined">location_on</span> 호치민 희망</span>
+    <span class="hero-chip"><span class="material-symbols-outlined">work</span> 경력 3년</span>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="content">
+
+  <!-- Ad Banner Top -->
+  <div class="ad-banner">
+    <span class="material-symbols-outlined" style="font-size:16px">campaign</span>
+    광고 배너 영역
+  </div>
+
+  <!-- 희망 급여 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">payments</span>
+      <span class="section-title">희망 급여</span>
+    </div>
+    <div class="salary-box">
+      <span class="material-symbols-outlined">monetization_on</span>
+      <div>
+        <div class="salary-val">$1,500 / 월</div>
+        <div class="salary-sub">협의 가능 · USD 기준</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 희망 직무 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">work</span>
+      <span class="section-title">희망 직무</span>
+    </div>
+    <div class="track-tags">
+      <span class="track-tag"><span class="material-symbols-outlined">computer</span> 사무직</span>
+      <span class="track-tag"><span class="material-symbols-outlined">translate</span> 통번역</span>
+      <span class="track-tag"><span class="material-symbols-outlined">store</span> 영업직</span>
+    </div>
+  </div>
+
+  <!-- 언어 능력 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">language</span>
+      <span class="section-title">언어 능력</span>
+    </div>
+    <div class="lang-row">
+      <span class="lang-flag">🇰🇷</span>
+      <span class="lang-label">한국어</span>
+      <div class="lang-bar-track"><div class="lang-bar-fill advanced"></div></div>
+      <span class="lang-level" style="color:#FF9800">고급</span>
+    </div>
+    <div class="lang-row">
+      <span class="lang-flag">🇻🇳</span>
+      <span class="lang-label">베트남어</span>
+      <div class="lang-bar-track"><div class="lang-bar-fill native"></div></div>
+      <span class="lang-level" style="color:#FF7043">원어민</span>
+    </div>
+    <div class="lang-row">
+      <span class="lang-flag">🇺🇸</span>
+      <span class="lang-label">영어</span>
+      <div class="lang-bar-track"><div class="lang-bar-fill intermediate"></div></div>
+      <span class="lang-level" style="color:#2196F3">중급</span>
+    </div>
+  </div>
+
+  <!-- 경력 / 학력 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">school</span>
+      <span class="section-title">경력 및 학력</span>
+    </div>
+    <div class="career-grid">
+      <div class="career-box">
+        <div class="career-box-key"><span class="material-symbols-outlined">work_history</span> 경력</div>
+        <div class="career-box-val career-box-val-accent">3년</div>
+      </div>
+      <div class="career-box">
+        <div class="career-box-key"><span class="material-symbols-outlined">school</span> 학력</div>
+        <div class="career-box-val">대학교 졸업</div>
+      </div>
+      <div class="career-box" style="grid-column:1/-1">
+        <div class="career-box-key"><span class="material-symbols-outlined">location_on</span> 희망 근무지</div>
+        <div class="career-box-val">호치민 · 하노이 우선</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 보유 기술 / 자격증 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">star</span>
+      <span class="section-title">보유 기술 · 자격증</span>
+    </div>
+    <div class="skill-tags">
+      <span class="skill-tag">MS Office</span>
+      <span class="skill-tag">SAP ERP</span>
+      <span class="skill-tag">한국어능력시험 TOPIK 4급</span>
+      <span class="skill-tag">운전면허 (베트남)</span>
+      <span class="skill-tag">포토샵 기초</span>
+    </div>
+  </div>
+
+  <!-- 비자 / 근무 자격 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">badge</span>
+      <span class="section-title">비자 및 근무 자격</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">card_membership</span>
+      <span class="info-label">비자 상태</span>
+      <span class="info-value info-value-green">취업 비자 / 워크퍼밋</span>
+    </div>
+    <div class="info-row">
+      <span class="material-symbols-outlined">flag</span>
+      <span class="info-label">국적</span>
+      <span class="info-value">베트남</span>
+    </div>
+  </div>
+
+  <!-- 연락처 (로그인 후 공개) -->
+  <div class="card" id="contactCard">
+    <div class="section-header">
+      <span class="material-symbols-outlined">contact_phone</span>
+      <span class="section-title">연락처</span>
+    </div>
+
+    <!-- 비로그인 상태 -->
+    <div id="contactLocked">
+      <div class="notice-box">
+        <span class="material-symbols-outlined">lock</span>
+        <span class="notice-text">연락처는 로그인 회원에게만 공개됩니다.</span>
+      </div>
+    </div>
+
+    <!-- 로그인 후 공개 -->
+    <div id="contactUnlocked" style="display:none">
+      <div class="info-row">
+        <span class="material-symbols-outlined">call</span>
+        <span class="info-label">전화</span>
+        <a href="tel:+84901234567" style="flex:1;font-size:14px;font-weight:600;color:var(--blue);text-decoration:none">+84-90-123-4567</a>
+      </div>
+      <div class="info-row">
+        <span class="material-symbols-outlined">mail</span>
+        <span class="info-label">이메일</span>
+        <span class="info-value info-value-blue">nguyen.lan@example.com</span>
+      </div>
+      <div style="margin-top:12px">
+        <div class="contact-btns">
+          <button class="btn btn-outline" style="flex:1">
+            <span class="material-symbols-outlined">call</span> 전화
+          </button>
+          <button class="btn btn-kakao" style="flex:1">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#3A1D00"><path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.72 1.6 5.12 4 6.56L4.8 21l4.16-2.8c.96.2 1.96.3 3.04.3 5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/></svg>
+            카카오톡
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이력서 파일 (로그인 후 공개) -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">description</span>
+      <span class="section-title">이력서 / 포트폴리오</span>
+    </div>
+
+    <!-- 비로그인 상태 -->
+    <div id="resumeLocked">
+      <div class="notice-box">
+        <span class="material-symbols-outlined">lock</span>
+        <span class="notice-text">이력서 파일은 로그인 회원에게만 제공됩니다.</span>
+      </div>
+    </div>
+
+    <!-- 로그인 후 공개 -->
+    <div id="resumeUnlocked" style="display:none;display:flex;flex-direction:column;gap:10px">
+
+      <!-- PDF 이력서 -->
+      <div class="resume-box" onclick="alert('이력서 다운로드 (데모)')">
+        <div class="resume-icon-wrap">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+        </div>
+        <div style="flex:1">
+          <div class="resume-filename">이력서_Nguyen_Thi_Lan.pdf</div>
+          <div class="resume-meta">PDF · 1.2MB · 2025.04.01 업로드</div>
+        </div>
+        <div class="resume-download">
+          <span class="material-symbols-outlined">download</span>
+        </div>
+      </div>
+
+      <!-- 포트폴리오 이미지 -->
+      <div class="resume-box" onclick="alert('포트폴리오 보기 (데모)')">
+        <div class="resume-icon-wrap" style="background:#E3F2FD">
+          <span class="material-symbols-outlined" style="color:var(--blue)">image</span>
+        </div>
+        <div style="flex:1">
+          <div class="resume-filename">포트폴리오_작업물.jpg</div>
+          <div class="resume-meta">이미지 · 820KB · 2025.04.01 업로드</div>
+        </div>
+        <div class="resume-download">
+          <span class="material-symbols-outlined">open_in_new</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 자기소개 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined">article</span>
+      <span class="section-title">자기소개</span>
+    </div>
+    <p class="desc-text" id="descText">
+      안녕하세요! 한국어와 베트남어를 모두 구사할 수 있는 베트남 현지인입니다. 한국계 기업에서 3년간 무역 사무직으로 근무한 경험이 있으며, 서류 작성, 바이어 응대, 통번역 업무를 주로 담당했습니다. TOPIK 4급 보유자이며 한국어로 비즈니스 커뮤니케이션이 가능합니다. 성실하고 책임감 있게 업무를 수행하며, 새로운 환경에서도 빠르게 적응하는 편입니다. 장기 근무를 희망하며 성장 가능한 회사를 찾고 있습니다.
+    </p>
+    <button class="more-btn" id="moreBtn" onclick="toggleDesc()">
+      더 보기 <span class="material-symbols-outlined">expand_more</span>
+    </button>
+  </div>
+
+  <!-- 자기소개 영상 -->
+  <div class="card">
+    <div class="section-header">
+      <span class="material-symbols-outlined" style="color:#FF0000">smart_display</span>
+      <span class="section-title">자기소개 영상</span>
+    </div>
+    <div class="youtube-card">
+      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80" alt="영상 썸네일">
+      <div class="play-btn">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">play_circle</span>
+      </div>
+      <div class="youtube-duration">2:15</div>
+    </div>
+    <div class="youtube-title">🎙️ [자기소개] Nguyen Thi Lan – 한국어 능통 사무직 구직자</div>
+  </div>
+
+  <!-- Ad Banner Bottom -->
+  <div class="ad-banner">
+    <span class="material-symbols-outlined" style="font-size:16px">campaign</span>
+    하단 광고 배너 영역
+  </div>
+
+</div>
+
+<!-- Bottom Action Bar -->
+<div class="bottom-bar">
+  <button class="btn btn-icon-only" style="border:2px solid var(--accent);color:var(--accent);background:transparent">
+    <span class="material-symbols-outlined">chat_bubble</span>
+  </button>
+  <button class="btn btn-blue btn-full">
+    <span class="material-symbols-outlined">send</span>
+    면접 제안하기
+  </button>
+</div>
+
+<script>
+  let isLoggedIn = false;
+
+  // 로그인 게이트 해제 (데모용)
+  function unlockForDemo() {
+    isLoggedIn = true;
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('contactLocked').style.display = 'none';
+    document.getElementById('resumeLocked').style.display = 'none';
+    document.getElementById('contactUnlocked').style.display = 'block';
+    document.getElementById('resumeUnlocked').style.display = 'flex';
+  }
+
+  // Description expand
+  let expanded = false;
+  function toggleDesc() {
+    expanded = !expanded;
+    document.getElementById('descText').classList.toggle('expanded', expanded);
+    document.getElementById('moreBtn').innerHTML = expanded
+      ? '접기 <span class="material-symbols-outlined">expand_less</span>'
+      : '더 보기 <span class="material-symbols-outlined">expand_more</span>';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../xinchao-news-final/daily-news-final"
+		},
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../../jobs-crm"
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.configuration.updateBuildConfiguration": "automatic"
+	}
+}

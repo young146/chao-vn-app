@@ -14,5 +14,6 @@
     "intelephense.diagnostics.undefinedMethods": false,
     "intelephense.diagnostics.undefinedProperties": false,
     "intelephense.diagnostics.undefinedTypes": false,
-    "intelephense.diagnostics.undefinedConstants": false
-}
+    "intelephense.diagnostics.undefinedConstants": false,
+    "php.validate.executablePath": "C:\\xampp\\php\\php.exe"
+}
