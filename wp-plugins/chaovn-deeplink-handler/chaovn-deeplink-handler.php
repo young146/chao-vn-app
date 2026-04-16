@@ -538,3 +538,169 @@ function chaovn_render_share_page($type, $id)
 // ============================================================
 register_activation_hook(__FILE__,   function () { flush_rewrite_rules(); });
 register_deactivation_hook(__FILE__, function () { flush_rewrite_rules(); });
+
+
+// ============================================================
+// 8. 앱으로 보기 버튼 & QR 모달
+//    - 숏코드: [chaovn_app_button]
+//    - 플로팅:  wp_footer 훅으로 모든 페이지에 자동 삽입
+// ============================================================
+
+/**
+ * 버튼 + 모달 HTML/CSS/JS 출력
+ * $args['qr_url']   : QR 코드에 담을 URL (기본: go/app 페이지)
+ * $args['floating'] : true 이면 fixed 포지션 플로팅 버튼
+ */
+function chaovn_app_button_html(array $args = []): string {
+    $qr_url  = esc_url($args['qr_url']  ?? 'https://chaovietnam-login.web.app/go/app');
+    $floating = !empty($args['floating']);
+    $uid     = 'cav' . substr(md5($qr_url . $floating), 0, 6); // 페이지에 여러 개 써도 충돌 없게
+
+    $qr_img = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' . rawurlencode($qr_url);
+
+    $ios_url     = CHAOVN_APP_STORE_URL;
+    $android_url = CHAOVN_PLAY_STORE_URL;
+
+    // 플로팅 버튼 래퍼 스타일
+    $wrapper_style = $floating
+        ? 'position:fixed;bottom:24px;right:24px;z-index:99990;'
+        : 'display:inline-block;';
+
+    ob_start(); ?>
+<div id="<?php echo $uid; ?>-wrap" style="<?php echo $wrapper_style; ?>">
+
+  <!-- 버튼 -->
+  <button
+    id="<?php echo $uid; ?>-btn"
+    onclick="document.getElementById('<?php echo $uid; ?>-overlay').style.display='flex';"
+    style="display:inline-flex;align-items:center;gap:10px;padding:10px 20px;
+           background:linear-gradient(135deg,#f97316 0%,#ea580c 60%,#c2410c 100%);
+           color:#fff;font-size:15px;font-weight:800;border:none;border-radius:100px;
+           cursor:pointer;box-shadow:0 8px 24px rgba(234,88,12,.45);
+           outline:4px solid rgba(249,115,22,.25);letter-spacing:-.3px;
+           transition:transform .15s,box-shadow .15s;"
+    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 32px rgba(234,88,12,.6)';"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 8px 24px rgba(234,88,12,.45)';"
+    onmousedown="this.style.transform='scale(.96)';"
+    onmouseup="this.style.transform='';"
+  >
+    <span style="display:flex;align-items:center;justify-content:center;
+                 width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 18c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm5-4H7V4h10v12z"/>
+      </svg>
+    </span>
+    앱으로 보기
+    <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12v.01M12 4h.01M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"/>
+    </svg>
+  </button>
+
+  <!-- 오버레이 + 모달 -->
+  <div id="<?php echo $uid; ?>-overlay"
+    style="display:none;position:fixed;inset:0;z-index:99999;
+           background:rgba(0,0,0,.65);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+           align-items:center;justify-content:center;padding:16px;"
+    onclick="if(event.target===this)this.style.display='none';"
+  >
+    <!-- 모달 카드: overflow:hidden + 전체 rounded — React 버전과 동일 구조 -->
+    <div style="background:#fff;border-radius:24px;width:100%;max-width:320px;
+                overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.35);
+                animation:chaovnPop .25s cubic-bezier(.34,1.56,.64,1);">
+
+      <!-- 오렌지 헤더 (하단 pb를 넉넉히 줘서 QR 카드가 자연스럽게 겹치도록) -->
+      <div style="background:linear-gradient(135deg,#f97316,#ea580c);
+                  padding:28px 20px 40px;text-align:center;position:relative;">
+        <button
+          onclick="document.getElementById('<?php echo $uid; ?>-overlay').style.display='none';"
+          style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.25);
+                 border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;
+                 color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;"
+        >✕</button>
+        <div style="display:inline-flex;align-items:center;justify-content:center;
+                    width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.2);margin-bottom:10px;">
+          <svg width="26" height="26" fill="#fff" viewBox="0 0 24 24">
+            <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 18c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm5-4H7V4h10v12z"/>
+          </svg>
+        </div>
+        <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px;">씬짜오베트남 앱</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);">QR 코드를 스캔해 앱을 설치하세요</div>
+      </div>
+
+      <!-- QR 코드 (헤더와 겹치게 — position:relative+z-index로 헤더 위에 확실히 표시) -->
+      <div style="margin-top:-28px;display:flex;justify-content:center;
+                  position:relative;z-index:1;">
+        <div style="background:#fff;border-radius:16px;padding:12px;
+                    box-shadow:0 8px 28px rgba(0,0,0,.15);border:1px solid #f1f5f9;
+                    position:relative;display:inline-block;">
+          <img src="<?php echo esc_url($qr_img); ?>"
+               width="156" height="156" alt="앱 QR코드"
+               style="display:block;border-radius:6px;">
+          <!-- 로고 중앙 오버레이 (React의 imageSettings 동일 효과) -->
+          <img src="https://vnkorlife.com/logo.png"
+               width="30" height="30" alt=""
+               style="position:absolute;top:50%;left:50%;
+                      transform:translate(-50%,-50%);
+                      border-radius:6px;
+                      box-shadow:0 1px 4px rgba(0,0,0,.2);">
+        </div>
+      </div>
+
+      <!-- 안내 + 스토어 버튼 -->
+      <div style="padding:16px 20px 20px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#334155;margin-bottom:4px;">스마트폰 카메라로 스캔하세요</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:16px;">iOS · Android 자동 감지</div>
+        <div style="display:flex;gap:8px;">
+          <a href="<?php echo esc_url($ios_url); ?>" target="_blank" rel="noopener"
+             style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+                    background:#000;color:#fff;border-radius:12px;padding:10px 8px;
+                    font-size:12px;font-weight:700;text-decoration:none;">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            App Store
+          </a>
+          <a href="<?php echo esc_url($android_url); ?>" target="_blank" rel="noopener"
+             style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+                    background:#1e293b;color:#fff;border-radius:12px;padding:10px 8px;
+                    font-size:12px;font-weight:700;text-decoration:none;">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3.18 23.76a1 1 0 01-1-1V1.24a1 1 0 011.49-.87l19.64 10.76a1 1 0 010 1.74L3.67 23.63a1 1 0 01-.49.13z"/>
+            </svg>
+            Google Play
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes chaovnPop {
+    from { opacity:0; transform:scale(.88) translateY(16px); }
+    to   { opacity:1; transform:scale(1)  translateY(0); }
+  }
+</style>
+<?php
+    return ob_get_clean();
+}
+
+// ─── 숏코드 등록 ───────────────────────────────────────────
+// 사용법:
+//   [chaovn_app_button]                               → 일반 앱 다운로드
+//   [chaovn_app_button type="danggn" id="ITEM_ID"]   → 특정 게시물 딥링크
+add_shortcode('chaovn_app_button', function ($atts) {
+    $atts = shortcode_atts(['type' => '', 'id' => ''], $atts);
+
+    $qr_url = 'https://chaovietnam-login.web.app/go/app';
+    if (!empty($atts['type']) && !empty($atts['id'])) {
+        $qr_url .= '?type=' . urlencode($atts['type']) . '&id=' . urlencode($atts['id']);
+    }
+
+    return chaovn_app_button_html(['qr_url' => $qr_url]);
+});
+
+// ─── 모든 페이지 우측 하단 플로팅 버튼 ─────────────────────
+add_action('wp_footer', function () {
+    echo chaovn_app_button_html(['floating' => true]);
+});
