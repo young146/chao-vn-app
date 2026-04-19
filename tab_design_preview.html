@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chao Vietnam — 탭바 디자인 비교</title>
+
+<!-- Pretendard (한국어 폰트) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+    background: #f4f5f7;
+    color: #222;
+    padding: 40px 20px 80px;
+    line-height: 1.5;
+  }
+  header {
+    max-width: 1400px;
+    margin: 0 auto 24px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .controls {
+    display: inline-flex;
+    background: white;
+    padding: 6px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    gap: 4px;
+  }
+  .controls button {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .controls button:hover { background: #f0f0f0; }
+  .controls button.active {
+    background: #FF6B35;
+    color: white;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 28px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .card .title-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+  .badge.rec { background: #FFE8DD; color: #FF6B35; }
+  .badge.current { background: #EEE; color: #666; }
+  .badge.exp { background: #E3F2FD; color: #1976D2; }
+
+  .card .note {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 16px;
+    width: 100%;
+    min-height: 32px;
+  }
+
+  /* 폰 목업 */
+  .phone-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .phone-width-label {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .phone {
+    border: 3px solid #2d2d2d;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transition: width 0.25s ease;
+  }
+  .phone-screen {
+    height: 420px;
+    background:
+      linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #eee;
+    position: relative;
+  }
+  .phone-notch {
+    height: 28px;
+    background: #2d2d2d;
+    margin: 0 auto;
+    width: 80px;
+    border-radius: 0 0 14px 14px;
+  }
+  .mock-content {
+    flex: 1;
+    padding: 20px;
+    color: #bbb;
+    font-size: 13px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+  }
+
+  /* 공통 탭바 */
+  .tabbar {
+    display: flex;
+    background: white;
+    border-top: 1px solid #eee;
+    height: 64px;
+    padding-bottom: 8px;
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #666;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 2px;
+    transition: color 0.15s;
+    user-select: none;
+    min-width: 0;
+  }
+  .tab .icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2px;
+    width: 22px;
+    height: 22px;
+  }
+  .tab .icon-wrap svg {
+    width: 100%;
+    height: 100%;
+  }
+  .tab .label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
+  }
+  .tab.active {
+    color: #FF6B35;
+  }
+
+  /* 변형: 텍스트만 (언더라인) */
+  .tabbar.text-only .icon-wrap { display: none; }
+  .tabbar.text-only .tab {
+    position: relative;
+    justify-content: center;
+  }
+  .tabbar.text-only .tab .label {
+    font-size: 13px;
+  }
+  .tabbar.text-only .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: #FF6B35;
+    border-radius: 1px;
+  }
+
+  /* 변형: 아이콘만 */
+  .tabbar.icons-only .label { display: none; }
+  .tabbar.icons-only .icon-wrap { width: 26px; height: 26px; margin-bottom: 0; }
+
+  /* 변형: 미니멀 (얇은 아웃라인만) */
+  .tabbar.minimal .tab { font-weight: 500; }
+  .tabbar.minimal .tab.active { font-weight: 600; }
+  .tabbar.minimal .icon-wrap { width: 20px; height: 20px; }
+
+  /* 변형: 중앙 탭 강조 (배민 스타일) */
+  .tabbar.center-cta .tab:nth-child(3) {
+    position: relative;
+  }
+  .tabbar.center-cta .tab:nth-child(3) .icon-wrap {
+    background: #FF6B35;
+    color: white !important;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    margin-bottom: 2px;
+    margin-top: -8px;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.35);
+    padding: 10px;
+  }
+
+  /* 변형: 불균등 너비 — 홈/뉴스 좁게, 나머지 넓게 */
+  .tabbar.variable-width .tab:nth-child(1),
+  .tabbar.variable-width .tab:nth-child(2) {
+    flex: 0.8;
+  }
+  .tabbar.variable-width .tab:nth-child(3),
+  .tabbar.variable-width .tab:nth-child(5),
+  .tabbar.variable-width .tab:nth-child(6) {
+    flex: 1.05;
+  }
+  .tabbar.variable-width .tab:nth-child(4) {
+    flex: 1.3;  /* 이웃사업에 가장 넓게 */
+  }
+
+  /* 구분선 스타일 변형 */
+  .tabbar.divider-dashed .tab { border-right: 1px dashed #ddd; }
+  .tabbar.divider-dashed .tab:last-child { border-right: none; }
+
+  .tabbar.divider-solid .tab {
+    position: relative;
+  }
+  .tabbar.divider-solid .tab:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 1px;
+    background: #e5e5e5;
+  }
+
+  .tabbar.divider-subtle .tab {
+    position: relative;
+  }
+  .tabbar.divider-subtle .tab:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20px;
+    bottom: 20px;
+    width: 1px;
+    background: #f0f0f0;
+  }
+
+  /* 글자 fit 경고 */
+  .warning {
+    font-size: 11px;
+    color: #D32F2F;
+    font-weight: 600;
+    margin-top: 4px;
+    text-align: center;
+  }
+  .summary {
+    font-size: 12px;
+    color: #444;
+    margin-top: 8px;
+    line-height: 1.6;
+    width: 100%;
+    padding: 10px 12px;
+    background: #f8f8f8;
+    border-radius: 8px;
+  }
+  .summary .pros { color: #2E7D32; }
+  .summary .cons { color: #C62828; }
+
+  footer {
+    max-width: 900px;
+    margin: 48px auto 0;
+    padding: 24px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  footer h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  footer ul { padding-left: 20px; }
+  footer code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Chao Vietnam — 6탭 디자인 비교</h1>
+  <p class="subtitle">실제 모바일 너비에서 어떻게 보이는지 비교해보세요. 탭을 눌러 선택 상태도 확인 가능.</p>
+  <div class="controls" id="widthControls">
+    <button data-w="375" class="active">iPhone SE / mini · 375px</button>
+    <button data-w="390">iPhone 14 · 390px</button>
+    <button data-w="412">Android / Pro Max · 412px</button>
+  </div>
+</header>
+
+<div class="grid" id="grid">
+  <!-- 카드들은 JS로 렌더링 -->
+</div>
+
+<footer>
+  <h2>📝 평가 기준</h2>
+  <ul>
+    <li><strong>Fit</strong> — 375px (가장 좁은 iPhone)에서 "이웃사업"이 잘리지 않고 들어가는가</li>
+    <li><strong>스캔 속도</strong> — 사용자가 원하는 탭을 얼마나 빨리 찾을 수 있는가 (아이콘이 도움이 됨)</li>
+    <li><strong>다국어 대응</strong> — 베트남어("Việc làm", "Bất động sản")로 바꿨을 때도 들어가는가</li>
+    <li><strong>유지보수</strong> — 현재 코드(<code>tabBarIcon</code> + <code>tabBarLabel</code>)에서 변경 범위가 얼마나 큰가</li>
+  </ul>
+  <h2 style="margin-top:16px;">💡 구분선 4종 비교 노트</h2>
+  <ul>
+    <li><strong>G (점선)</strong>: 디버그 시각화용. 실제 앱에서 쓰면 "아직 디자인 중" 느낌</li>
+    <li><strong>G1 (실선 #e5e5e5)</strong>: 각 탭이 버튼처럼 명확. 좀 전통적</li>
+    <li><strong>G2 (옅은 실선 #f0f0f0)</strong>: 구조감은 있지만 거의 무의식 수준 — <strong>추천</strong></li>
+    <li><strong>G3 (선 없음)</strong>: 가장 미니멀하나 탭 경계가 흐려짐</li>
+    <li>구현 난이도: 모두 CSS 한 줄 차이 (React Native도 <code>tabBarItemStyle</code>에 <code>borderRightWidth: 1</code> + <code>borderRightColor</code> 추가면 끝)</li>
+  </ul>
+</footer>
+
+<script>
+/* ============ 아이콘 SVG (인라인, CDN 없이 작동) ============ */
+const ICON_SVGS = {
+  'home-outline': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h4v-6h6v6h4V10"/></svg>`,
+  'home': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 12h3v8h5v-6h4v6h5v-8h3L12 3z"/></svg>`,
+  'newspaper-outline': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="15" x2="13" y2="15"/></svg>`,
+  'newspaper': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5v14h18V5H3zm14 12H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>`,
+  'gift-outline': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="0.5"/><path d="M5 12v9h14v-9"/><path d="M12 8v13"/><path d="M8 8a2.5 2.5 0 0 1 0-5c2 0 4 5 4 5s2-5 4-5a2.5 2.5 0 0 1 0 5"/></svg>`,
+  'gift': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-3.5c.3-.4.5-1 .5-1.5C17 3.1 15.9 2 14.5 2c-.9 0-1.7.4-2.2 1l-.3.4l-.3-.4C11.2 2.4 10.4 2 9.5 2C8.1 2 7 3.1 7 4.5c0 .5.2 1.1.5 1.5H4c-1.1 0-2 .9-2 2v1c0 .6.4 1 1 1h18c.6 0 1-.4 1-1V8c0-1.1-.9-2-2-2zM11 21H4c-1.1 0-2-.9-2-2v-7h9v9zm11-2c0 1.1-.9 2-2 2h-7v-9h9v7z"/></svg>`,
+  'storefront-outline': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9v1.5a2.5 2.5 0 0 0 4 0a2.5 2.5 0 0 0 4 0a2.5 2.5 0 0 0 4 0a2.5 2.5 0 0 0 4 0V9"/><path d="M5 12v9h14v-9"/><path d="M10 21v-6h4v6"/></svg>`,
+  'storefront': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.5L21 3H3L2 5.5V10c0 1.1.9 2 2 2c1 0 1.7-.5 2-1c.3.5 1 1 2 1c1 0 1.7-.5 2-1c.3.5 1 1 2 1s1.7-.5 2-1c.3.5 1 1 2 1s1.7-.5 2-1c.3.5 1 1 2 1c1.1 0 2-.9 2-2V5.5zM4 14v7h6v-5h4v5h6v-7c-.7 0-1.4-.2-2-.6c-1.2.8-2.8.8-4 0c-1.2.8-2.8.8-4 0c-.6.4-1.3.6-2 .6"/></svg>`,
+  'briefcase-outline': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="1"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  'briefcase': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 0h-4V4h4v2z"/></svg>`,
+  'business-outline': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18"/><rect x="8" y="6" width="3" height="2"/><rect x="13" y="6" width="3" height="2"/><rect x="8" y="10" width="3" height="2"/><rect x="13" y="10" width="3" height="2"/><rect x="10" y="16" width="4" height="5"/></svg>`,
+  'business': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3v18h5v-4h4v4h5V3H5zm4 12H7v-2h2v2zm0-4H7V9h2v2zm0-4H7V5h2v2zm4 4h-2V9h2v2zm0-4h-2V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2z"/></svg>`,
+};
+
+/* ============ 탭 설정 ============ */
+const TABS_CURRENT_5 = [
+  { icon: 'home-outline', iconActive: 'home', label: '홈' },
+  { icon: 'newspaper-outline', iconActive: 'newspaper', label: '뉴스' },
+  { icon: 'gift-outline', iconActive: 'gift', label: '당근/나눔' },
+  { icon: 'briefcase-outline', iconActive: 'briefcase', label: '구인구직' },
+  { icon: 'business-outline', iconActive: 'business', label: '부동산' },
+];
+
+const TABS_6_LONG = [
+  { icon: 'home-outline', iconActive: 'home', label: '홈' },
+  { icon: 'newspaper-outline', iconActive: 'newspaper', label: '뉴스' },
+  { icon: 'gift-outline', iconActive: 'gift', label: '당근/나눔' },
+  { icon: 'storefront-outline', iconActive: 'storefront', label: '이웃사업' },
+  { icon: 'briefcase-outline', iconActive: 'briefcase', label: '구인구직' },
+  { icon: 'business-outline', iconActive: 'business', label: '부동산' },
+];
+
+const TABS_6_SHORT = [
+  { icon: 'home-outline', iconActive: 'home', label: '홈' },
+  { icon: 'newspaper-outline', iconActive: 'newspaper', label: '뉴스' },
+  { icon: 'gift-outline', iconActive: 'gift', label: '당근' },
+  { icon: 'storefront-outline', iconActive: 'storefront', label: '이웃사업' },
+  { icon: 'briefcase-outline', iconActive: 'briefcase', label: '일자리' },
+  { icon: 'business-outline', iconActive: 'business', label: '부동산' },
+];
+
+/* ============ 비교할 옵션들 ============ */
+const OPTIONS = [
+  {
+    id: 'A',
+    title: '옵션 A: 현재 (5탭, 기준선)',
+    badge: { text: '현재', class: 'current' },
+    note: '현재 앱 구조. 이웃사업 탭이 없는 상태.',
+    tabs: TABS_CURRENT_5,
+    tabbarClass: '',
+    activeIndex: 1,
+    summary: '<span class="pros">✓ 공간 여유</span> / <span class="cons">✗ 이웃사업 없음 (비교용)</span>'
+  },
+  {
+    id: 'B',
+    title: '옵션 B: 6탭 + 긴 라벨',
+    badge: { text: '실험', class: 'exp' },
+    note: '당근/나눔, 구인구직 그대로. "이웃사업"까지 6개.',
+    tabs: TABS_6_LONG,
+    tabbarClass: '',
+    activeIndex: 3,
+    summary: '<span class="cons">✗ 당근/나눔, 구인구직이 4글자 — 공간 빠듯</span> / <span class="cons">✗ 375px에서 말줄임 발생</span>'
+  },
+  {
+    id: 'C',
+    title: '옵션 C: 6탭 + 짧은 라벨',
+    badge: { text: '★ 추천', class: 'rec' },
+    note: '당근 / 일자리로 줄임. 공간 문제 해결.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'minimal',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ 375px에서도 잘 들어감</span> / <span class="pros">✓ 미니멀 아이콘(얇은 outline)</span> / <span class="pros">✓ 코드 변경 최소</span>'
+  },
+  {
+    id: 'D',
+    title: '옵션 D: 텍스트만 (아이콘 제거)',
+    badge: { text: '미니멀', class: 'exp' },
+    note: '네가 제안한 방향. 언더라인으로 선택 표시.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'text-only',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ 정말 미니멀</span> / <span class="cons">✗ 스캔 속도 느림 (뇌는 아이콘 패턴을 더 빨리 인식)</span> / <span class="cons">✗ 베트남어 전환 시 라벨 길이 문제</span>'
+  },
+  {
+    id: 'E',
+    title: '옵션 E: 아이콘만 (라벨 제거)',
+    badge: { text: '실험', class: 'exp' },
+    note: '인스타그램 스타일. 공간은 여유.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'icons-only',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ 가장 미니멀, 공간 여유</span> / <span class="cons">✗ "이웃사업" 같은 신규 개념은 아이콘만으로 의미 전달 어려움</span>'
+  },
+  {
+    id: 'F',
+    title: '옵션 F: 중앙 CTA 강조',
+    badge: { text: '프로모션', class: 'exp' },
+    note: '배민의 주문 버튼처럼. 신규 탭에 주목 유도.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'center-cta',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ "이웃사업" 초기 발견성 최대</span> / <span class="cons">✗ 장기적으론 과함 — 출시 몇 개월 후 옵션 C로 내리기 권장</span>'
+  },
+  {
+    id: 'G',
+    title: '옵션 G: 불균등 너비 + 점선 구분',
+    badge: { text: '디버그용', class: 'exp' },
+    note: '점선은 너비 시각화용이라 실제 앱에 쓰긴 안 맞음. 참고용.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'minimal variable-width divider-dashed',
+    activeIndex: 3,
+    summary: '<span class="cons">✗ 점선은 "미완성 느낌" — 실제 앱에 채택하면 어색함</span>'
+  },
+  {
+    id: 'G-solid',
+    title: '옵션 G1: 불균등 너비 + 얇은 실선',
+    badge: { text: '실사용', class: 'exp' },
+    note: '차분한 회색 실선으로 각 탭을 구분. 구조감은 있지만 절제됨.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'minimal variable-width divider-solid',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ 각 탭이 버튼처럼 명확</span> / <span class="pros">✓ 너비 차이가 "의도된 디자인"처럼 보임</span> / <span class="cons">✗ 요즘 iOS/Android 표준과는 조금 다름</span>'
+  },
+  {
+    id: 'G-subtle',
+    title: '옵션 G2: 불균등 너비 + 아주 옅은 선',
+    badge: { text: '★ 타협안', class: 'rec' },
+    note: '구분선이 있긴 한데 거의 무의식적으로만 보이는 수준 (#f0f0f0).',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'minimal variable-width divider-subtle',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ 구조감 + 깔끔함 둘 다</span> / <span class="pros">✓ 너무 튀지 않음</span> — 미니멀과 명확성의 중간'
+  },
+  {
+    id: 'G-none',
+    title: '옵션 G3: 불균등 너비 + 선 없음',
+    badge: { text: '실험', class: 'exp' },
+    note: '완전히 선 없이. 가장 미니멀.',
+    tabs: TABS_6_SHORT,
+    tabbarClass: 'minimal variable-width',
+    activeIndex: 3,
+    summary: '<span class="pros">✓ 가장 현대적/미니멀</span> / <span class="cons">✗ 탭 경계가 흐려서 구조감 약함 (네가 아까 이것 보고 "경계선이 있으면 좋겠다" 반응한 이유)</span>'
+  },
+];
+
+/* ============ 렌더링 ============ */
+function renderCard(opt, width) {
+  const tabsHtml = opt.tabs.map((t, i) => {
+    const isActive = i === opt.activeIndex;
+    const iconName = isActive ? t.iconActive : t.icon;
+    const svgHtml = ICON_SVGS[iconName] || '';
+    return `
+      <div class="tab ${isActive ? 'active' : ''}" data-idx="${i}">
+        <span class="icon-wrap">${svgHtml}</span>
+        <span class="label">${t.label}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="title-row">
+        <h3>${opt.title}</h3>
+        <span class="badge ${opt.badge.class}">${opt.badge.text}</span>
+      </div>
+      <p class="note">${opt.note}</p>
+      <div class="phone-wrapper">
+        <div class="phone-width-label">${width}px 실제 너비</div>
+        <div class="phone" style="width: ${width}px;">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="mock-content">— 화면 콘텐츠 영역 —</div>
+          </div>
+          <div class="tabbar ${opt.tabbarClass}" data-opt="${opt.id}">
+            ${tabsHtml}
+          </div>
+        </div>
+      </div>
+      <div class="summary">${opt.summary}</div>
+    </div>
+  `;
+}
+
+function renderAll(width) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = OPTIONS.map(o => renderCard(o, width)).join('');
+
+  // 탭 클릭 시 active 토글
+  grid.querySelectorAll('.tabbar').forEach(bar => {
+    bar.addEventListener('click', (e) => {
+      const tab = e.target.closest('.tab');
+      if (!tab) return;
+      bar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      // 아이콘 outline ↔ filled 토글 (SVG 교체)
+      bar.querySelectorAll('.tab').forEach((t, i) => {
+        const wrap = t.querySelector('.icon-wrap');
+        if (!wrap) return;
+        const optId = bar.dataset.opt;
+        const opt = OPTIONS.find(o => o.id === optId);
+        const tabCfg = opt.tabs[i];
+        const iconName = t.classList.contains('active') ? tabCfg.iconActive : tabCfg.icon;
+        wrap.innerHTML = ICON_SVGS[iconName] || '';
+      });
+    });
+  });
+}
+
+// 너비 버튼
+document.getElementById('widthControls').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('#widthControls button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll(parseInt(btn.dataset.w));
+});
+
+// 초기 렌더
+renderAll(375);
+</script>
+
+</body>
+</html>

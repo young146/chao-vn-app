@@ -158,6 +158,26 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 🏪 NeighborBusinesses (이웃사업) 컬렉션
+    // ========================================
+    match /NeighborBusinesses/{docId} {
+      // 누구나 열람 가능 (active + approved 업소만)
+      allow read: if true;
+      // 등록/수정/삭제는 관리자만
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ========================================
+    // 📢 Announcements (공지 배너) 컬렉션
+    // ========================================
+    match /Announcements/{docId} {
+      // 누구나 열람 가능 (active 공지만 앱에서 필터링)
+      allow read: if true;
+      // 등록/수정/삭제는 관리자만
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ========================================
     // 🚫 기본 거부 (위에서 정의되지 않은 모든 문서)
     // ========================================
     match /{document=**} {

@@ -52,6 +52,12 @@ Directives are living documents. When you discover API constraints, better appro
 - **If you believe additional changes are necessary beyond what was asked, you MUST explain why and get explicit approval from the user before making those changes.**
 - When in doubt: do less, ask first.
 
+**5. ✅ Self-check after every task (no exceptions)**
+- After completing any task—small edit or large refactor—run the self-check protocol defined in `directives/AGENT_WORKFLOW.md` and report the results to the user.
+- Use the mandatory report format: 변경 요약 / 자체점검 결과 (A~F) / 사용자 확인 필요 사항 / 다음 단계 제안.
+- If a check fails, fix it and re-check before reporting. Never hide failures.
+- Skipping self-check is not allowed unless the user explicitly approves in advance.
+
 ## Self-annealing loop
 
 Errors are learning opportunities. When something breaks:

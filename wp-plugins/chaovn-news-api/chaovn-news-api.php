@@ -59,7 +59,57 @@ add_action('rest_api_init', function () {
         'callback'            => 'chaovn_rebuild_news_cache_endpoint',
         'permission_callback' => function () { return current_user_can('manage_options'); },
     ));
+
+    // 임시 디버그: 날짜별 포스트 DB 조회 현황
+    register_rest_route('chaovn/v1', '/debug-posts', array(
+        'methods'             => 'GET',
+        'callback'            => 'chaovn_debug_posts',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+function chaovn_debug_posts($request) {
+    $tz   = new DateTimeZone('Asia/Ho_Chi_Minh');
+    $now  = new DateTime('now', $tz);
+    $date = $request->get_param('date') ?: $now->format('Y-m-d');
+    $parts = explode('-', $date);
+
+    // 쿼리 1: 카테고리 31 + 날짜 필터
+    $q1 = new WP_Query(array(
+        'post_type' => 'post', 'posts_per_page' => -1,
+        'cat' => 31, 'post_status' => 'publish',
+        'no_found_rows' => true,
+        'date_query' => array(array('year'=>intval($parts[0]),'month'=>intval($parts[1]),'day'=>intval($parts[2]))),
+    ));
+    $cat31_ids = array();
+    while ($q1->have_posts()) { $q1->the_post(); $cat31_ids[] = get_the_ID(); }
+    wp_reset_postdata();
+
+    // 쿼리 2: 카테고리 없이 날짜 필터만 (모든 포스트)
+    $q2 = new WP_Query(array(
+        'post_type' => 'post', 'posts_per_page' => -1,
+        'post_status' => 'publish', 'no_found_rows' => true,
+        'date_query' => array(array('year'=>intval($parts[0]),'month'=>intval($parts[1]),'day'=>intval($parts[2]))),
+    ));
+    $all_today = array();
+    while ($q2->have_posts()) {
+        $q2->the_post();
+        $pid = get_the_ID();
+        $cats = get_the_category($pid);
+        $cat_names = array_map(function($c){ return $c->term_id . ':' . $c->name; }, $cats);
+        $all_today[] = array('id' => $pid, 'title' => get_the_title(), 'cats' => $cat_names);
+    }
+    wp_reset_postdata();
+
+    return new WP_REST_Response(array(
+        'date'             => $date,
+        'server_time_vn'   => $now->format('Y-m-d H:i:s'),
+        'cat31_count'      => count($cat31_ids),
+        'cat31_ids'        => $cat31_ids,
+        'all_today_count'  => count($all_today),
+        'all_today_posts'  => $all_today,
+    ), 200);
+}
 
 // ============================================================
 // 뉴스 터미널 API (캐시 우선)
@@ -194,12 +244,11 @@ function chaovn_on_post_published($post_id) {
     $date      = get_the_date('Y-m-d', $post_id);
     $cache_key = CHAOVN_NEWS_CACHE_PREFIX . $date;
 
-    // 기존 캐시 삭제
+    // 기존 캐시 삭제 (재생성은 API 호출 시 Lazy Loading 하도록 위임하여 Race Condition 방지)
     delete_transient($cache_key);
 
-    // 기존 스케줄 제거 후 5초 후 재생성 (항상 최신 상태 보장)
+    // WP-Cron 대기 스케줄 제거
     wp_clear_scheduled_hook('chaovn_rebuild_news_cache', array($date));
-    wp_schedule_single_event(time() + 5, 'chaovn_rebuild_news_cache', array($date));
 }
 
 function chaovn_on_post_updated($post_id, $post_after, $post_before) {

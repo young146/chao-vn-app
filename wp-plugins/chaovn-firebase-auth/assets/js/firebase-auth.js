@@ -218,6 +218,26 @@ window.addEventListener('load', function() {
         });
     }
 
+    // Google 로그인
+    if (googleBtn) {
+        googleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (loadingDiv) {
+                loadingDiv.textContent = "Google 로그인 창을 여는 중입니다...";
+                loadingDiv.style.display = 'block';
+            }
+            disableAll();
+
+            var provider = new firebase.auth.GoogleAuthProvider();
+
+            auth.signInWithPopup(provider)
+                .then(function(r) { return r.user.getIdToken(true); })
+                .then(function(t) { verifyTokenWithWP(t); })
+                .catch(function(err) { showError("Google 로그인 취소 또는 실패: " + err.message); });
+        });
+    }
+
     // Apple 로그인
     if (appleBtn) {
         appleBtn.addEventListener('click', function(e) {
