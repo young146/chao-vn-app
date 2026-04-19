@@ -52,7 +52,8 @@ const CATEGORIES = [
 
 export default function NeighborBusinessesScreen() {
   const navigation = useNavigation();
-  const { isAdmin } = useAuth();
+  const auth = useAuth() || {};
+  const userIsAdmin = typeof auth.isAdmin === 'function' ? auth.isAdmin() : !!auth.isAdmin;
 
   const [city, setCity] = useState('all');
   const [district, setDistrict] = useState('all');
@@ -273,10 +274,9 @@ export default function NeighborBusinessesScreen() {
         <Ionicons name="storefront-outline" size={64} color="#CCC" />
         <Text style={styles.emptyTitle}>우리 이웃 제품/업소</Text>
         <Text style={styles.emptyMessage}>
-          우리 이웃의 제품이나 사업 내용을 홍보하는 공간입니다.{'\n'}
-          여러분의 비즈니스를 이웃에게 소개해보세요.
+          이 공간은 관리자만 등록이 가능합니다.{'\n'}
+          등록을 원하시면 info@chaovietnam.co.kr 로 연락주세요.
         </Text>
-        <Text style={styles.comingSoon}>첫 번째 업소의 주인공이 되어보세요!</Text>
       </View>
     );
   };
@@ -304,9 +304,11 @@ export default function NeighborBusinessesScreen() {
         />
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={navigateToAdd} activeOpacity={0.8}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+      {userIsAdmin && (
+        <TouchableOpacity style={styles.fab} onPress={navigateToAdd} activeOpacity={0.8}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }

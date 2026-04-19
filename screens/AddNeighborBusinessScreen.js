@@ -620,6 +620,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 15,
     backgroundColor: "#fff",
+    color: "#000",
   },
   textArea: {
     minHeight: 120,
@@ -640,6 +641,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+    color: "#000",
   },
   contactSection: {
     marginTop: 24,
