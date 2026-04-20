@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>씬짜오 베트남 · SNS 카드 1080×1920</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{background:#0B1A14;font-family:'Noto Sans KR',sans-serif;position:relative}
+
+.bg-glow{position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 38% at 50% 10%, rgba(196,86,20,.4) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 35% at 50% 62%, rgba(196,86,20,.15) 0%, transparent 50%);}
+.bg-amber{position:absolute;bottom:0;left:0;right:0;height:820px;z-index:1;
+  background:linear-gradient(180deg,transparent 0%,rgba(196,86,20,.5) 40%,rgba(196,86,20,.88) 72%,#8C3608 100%);}
+
+.wrap{position:absolute;inset:0;z-index:10;
+  display:flex;flex-direction:column;align-items:center;
+  padding:108px 80px 96px;text-align:center;}
+
+/* 상단 브랜드 */
+.topbrand{display:flex;align-items:center;gap:48px;flex-shrink:0;align-self:flex-start;}
+.logo{width:180px;height:180px;border-radius:36px;overflow:hidden;flex-shrink:0;
+  box-shadow:0 8px 40px rgba(0,0,0,.55);}
+.logo img{width:100%;height:100%;object-fit:cover}
+.brandinfo{display:flex;flex-direction:column;gap:18px;text-align:left;}
+.brandname{font-family:'Noto Serif KR',serif;font-weight:700;font-size:72px;color:#F5DEB3;letter-spacing:.02em;}
+.brandsub{font-family:'IBM Plex Mono',monospace;font-size:32px;color:rgba(245,222,179,.50);letter-spacing:.12em;}
+
+/* 중단 콘텐츠 */
+.content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:60px 0 50px;}
+
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:14px;
+  color:#C45614;letter-spacing:.3em;text-transform:uppercase;
+  border:1px solid rgba(196,86,20,.45);padding:14px 36px;margin-bottom:72px;}
+
+.headline{font-family:'Noto Serif KR',serif;font-weight:900;
+  font-size:104px;color:#F5DEB3;line-height:1.18;letter-spacing:-.02em;
+  margin-bottom:60px;width:100%;}
+
+.hrule{width:80px;height:4px;
+  background:linear-gradient(90deg,rgba(196,86,20,.3),#C45614,rgba(196,86,20,.3));
+  border-radius:2px;margin-bottom:64px;}
+
+.body{font-family:'Noto Sans KR',sans-serif;font-weight:400;
+  font-size:56px;color:rgba(245,222,179,.82);
+  line-height:1.78;letter-spacing:-.01em;width:100%;}
+
+/* 하단 CTA */
+.cta{flex-shrink:0;width:100%;}
+
+.cta-btn{
+  display:block;width:100%;
+  font-family:'Noto Sans KR',sans-serif;font-weight:900;
+  font-size:52px;line-height:1.4;letter-spacing:.01em;
+  color:#1A0800;text-align:center;
+  padding:54px 60px;border-radius:6px;margin-bottom:24px;
+  position:relative;overflow:hidden;
+  background:linear-gradient(115deg,#FAF0BC 0%,#ECC94B 30%,#D4831A 65%,#A84010 100%);
+  box-shadow:0 16px 72px rgba(196,86,20,.7),
+             0 2px 0 rgba(255,255,255,.28) inset,
+             0 -3px 0 rgba(0,0,0,.22) inset;}
+.cta-btn::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(-50deg,
+    rgba(255,255,255,.06) 0px,rgba(255,255,255,.06) 1px,
+    transparent 1px,transparent 7px);pointer-events:none;}
+.cta-sub{font-family:'IBM Plex Mono',monospace;font-size:26px;
+  color:rgba(139,56,8,.72);letter-spacing:.08em;margin-top:6px;}
+
+.stores{display:flex;gap:20px;width:100%;}
+.store{flex:1;font-family:'IBM Plex Mono',monospace;font-size:24px;
+  color:rgba(245,222,179,.65);letter-spacing:.07em;
+  border:1px solid rgba(245,222,179,.2);padding:30px 20px;
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  background:rgba(0,0,0,.2);}
+.dot{width:9px;height:9px;border-radius:50%;background:#C45614;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="bg-amber"></div>
+<div class="wrap">
+
+  <div class="topbrand">
+    <div class="logo"><img src="data:image/png;base64,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" alt="로고"></div>
+    <div class="brandinfo">
+      <div class="brandname">씬짜오 베트남</div>
+      <div class="brandsub">SINCE 2000</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="badge">Korean Community · Vietnam</div>
+    <div class="headline">낯선 베트남에서<br>만난 반가운<br>한국의 감성</div>
+    <div class="hrule"></div>
+    <div class="body">
+      가장 먼저 다가와<br>
+      가장 깊게 새긴<br>
+      한국의 흔적.<br>
+      이제 온·오프라인<br>
+      모두에서 찾아보세요.
+    </div>
+  </div>
+
+  <div class="cta">
+    <a class="cta-btn" href="https://apps.apple.com/app/id6754750793" target="_blank" style="text-decoration:none;">
+      베트남 생활의 필수 앱<br>지금 바로 다운로드 →
+      <div class="cta-sub">App Store · Google Play</div>
+    </a>
+    <div class="stores">
+      <a class="store" href="https://apps.apple.com/app/id6754750793" target="_blank" style="text-decoration:none;"><span class="dot"></span>App Store</a>
+      <a class="store" href="https://play.google.com/store/apps/details?id=com.yourname.chaovnapp" target="_blank" style="text-decoration:none;"><span class="dot"></span>Google Play</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
