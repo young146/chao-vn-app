@@ -108,7 +108,15 @@ service cloud.firestore {
     // ========================================
     match /comments/{commentId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.articleId == resource.data.articleId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if request.auth != null
+        && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // ========================================
