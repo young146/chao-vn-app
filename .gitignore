@@ -43,6 +43,8 @@ yarn-error.*
 
 # local editor/work artifacts
 .cursor/
+.claude/
+.firebase/logs/
 diff.txt
 diff2.txt
 diff3.txt
