@@ -7,7 +7,7 @@ const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
 
 /**
  * 딥링크 URL 생성
- * @param {string} type - 'danggn' | 'job' | 'realestate'
+ * @param {string} type - 'danggn' | 'job' | 'realestate' | 'neighbor'
  * @param {string} id - 아이템 ID
  * @param {object} item - 아이템 데이터
  * @returns {object} { deepLink, webLink, shareMessage }
@@ -42,9 +42,57 @@ const generateShareMessage = (type, item, webLink) => {
       return buildJobText(item, webLink);
     case 'realestate':
       return buildRealEstateText(item, webLink);
+    case 'neighbor':
+      return buildNeighborText(item, webLink);
     default:
-      return item.title || '';
+      return item.title || item.name || '';
   }
+};
+
+/**
+ * 이웃사업 공유 텍스트
+ */
+const buildNeighborText = (item, webLink) => {
+  const CAT_LABELS = {
+    food: '음식점', service: '서비스', shopping: '쇼핑', lodging: '숙박',
+    beauty: '미용', health: '병원/약국', education: '교육', other: '기타',
+  };
+  const name = item.name || item.title || '';
+  const catKey = item.category || '';
+  const cat = CAT_LABELS[catKey] || catKey;
+  const city = item.city || '';
+  const district = item.district || '';
+  const addr = item.address || '';
+  const desc = item.description || '';
+  const phone = item.contacts?.phone || '';
+  const kakaoId = item.contacts?.kakaoId || '';
+  const zalo = item.contacts?.zalo || '';
+  const website = item.contacts?.website || '';
+
+  const loc = [city, district].filter(Boolean).join(' ');
+
+  const lines = ['🏪 씬짜오 이웃사업', '━━━━━━━━━━━━━━━━━━━━'];
+  if (name) lines.push('🏬 업소명: ' + name);
+  if (cat) lines.push('🏷️ 카테고리: ' + cat);
+  if (loc) lines.push('📍 지역: ' + loc);
+  if (addr) lines.push('📮 주소: ' + addr);
+  if (desc) {
+    const shortDesc = desc.length > 200 ? desc.substring(0, 200) + '...' : desc;
+    lines.push('');
+    lines.push('📝 소개:');
+    lines.push(shortDesc);
+  }
+  if (phone || kakaoId || zalo || website) {
+    lines.push('');
+    lines.push('📞 연락처:');
+    if (phone) lines.push('   전화: ' + phone);
+    if (kakaoId) lines.push('   카카오톡: ' + kakaoId);
+    if (zalo) lines.push('   Zalo: ' + zalo);
+    if (website) lines.push('   웹사이트: ' + website);
+  }
+  if (webLink) { lines.push(''); lines.push('🔗 상세 페이지:'); lines.push(webLink); }
+
+  return lines.join('\n');
 };
 
 /**

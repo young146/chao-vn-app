@@ -771,6 +771,12 @@ export default function App() {
                         '부동산 상세': 'realestate/:id',
                       },
                     },
+                    '이웃사업': {
+                      initialRouteName: '이웃사업 메인',
+                      screens: {
+                        '이웃사업 상세': 'neighbor/:id',
+                      },
+                    },
                   },
                 },
               },
@@ -801,9 +807,9 @@ export default function App() {
               }
 
               // 🏷️ 탭전용 경로: /tab/danggn 또는 /danggn (ID없음) → 탭 메인
-              const tabOnlyMatch = cleanPath.match(/^(?:tab\/)?(danggn|job|realestate)$/);
+              const tabOnlyMatch = cleanPath.match(/^(?:tab\/)?(danggn|job|realestate|neighbor)$/);
               if (tabOnlyMatch) {
-                const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산' }[tabOnlyMatch[1]];
+                const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산', neighbor: '이웃사업' }[tabOnlyMatch[1]];
                 console.log(`🏷️ 탭전용 딥링크: ${tabName} 탭 메인`);
                 return {
                   routes: [{
@@ -813,7 +819,7 @@ export default function App() {
                 };
               }
 
-              const match = cleanPath.match(/^(danggn|job|realestate)\/([^?/]+)/);
+              const match = cleanPath.match(/^(danggn|job|realestate|neighbor)\/([^?/]+)/);
               if (!match) {
                 console.log('❌ 경로 파싱 실패:', cleanPath);
                 return undefined;
@@ -826,6 +832,7 @@ export default function App() {
                 danggn: { tab: '당근/나눔', main: '당근/나눔 메인', screen: '당근/나눔 상세' },
                 job: { tab: '구인구직', main: '구인구직 메인', screen: '구인구직 상세' },
                 realestate: { tab: '부동산', main: '부동산 메인', screen: '부동산 상세' },
+                neighbor: { tab: '이웃사업', main: '이웃사업 메인', screen: '이웃사업 상세' },
               };
               const target = screenMap[type];
               if (!target) return undefined;

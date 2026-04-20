@@ -23,7 +23,7 @@ import {
   fetchBusinessById,
   createBusiness,
   updateBusiness,
-  uploadBusinessImages,
+  uploadBusinessMediaList,
 } from '../services/neighborBusinessService';
 import {
   CITIES,
@@ -51,6 +51,7 @@ const CATEGORIES = [
 ];
 
 const MAX_IMAGES = 10;
+const MAX_VIDEO_SECONDS = 60;
 
 export default function AddNeighborBusinessScreen() {
   const navigation = useNavigation();
@@ -80,10 +81,12 @@ export default function AddNeighborBusinessScreen() {
   const [holidayNote, setHolidayNote] = useState('');
   const [tagsText, setTagsText] = useState('');
 
-  const [images, setImages] = useState([]); // uri array (local or https)
+  const [images, setImages] = useState([]); // uri array (local or https) — photos and/or videos
+  const [mediaTypes, setMediaTypes] = useState([]); // parallel to images: 'image' | 'video'
   const [thumbnailIndex, setThumbnailIndex] = useState(0);
 
   const [externalLink, setExternalLink] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
 
   const [priority, setPriority] = useState('10');
   const [startDate, setStartDate] = useState('');
@@ -125,8 +128,14 @@ export default function AddNeighborBusinessScreen() {
         setHolidayNote(b.holidayNote || '');
         setTagsText((b.tags || []).join(', '));
         setImages(b.images || []);
+        // legacy docs without mediaTypes → treat all as images
+        const loadedTypes = Array.isArray(b.mediaTypes) && b.mediaTypes.length === (b.images || []).length
+          ? b.mediaTypes
+          : (b.images || []).map(() => 'image');
+        setMediaTypes(loadedTypes);
         setThumbnailIndex(b.thumbnailIndex || 0);
         setExternalLink(b.externalLink || '');
+        setYoutubeUrl(b.youtubeUrl || '');
         setPriority(String(b.priority ?? 10));
         setStartDate(b.startDate || '');
         setEndDate(b.endDate || '');
@@ -156,6 +165,12 @@ export default function AddNeighborBusinessScreen() {
     return true;
   };
 
+  const appendMedia = (items) => {
+    // items: [{ uri, type }]
+    setImages((prev) => [...prev, ...items.map((m) => m.uri)].slice(0, MAX_IMAGES));
+    setMediaTypes((prev) => [...prev, ...items.map((m) => m.type)].slice(0, MAX_IMAGES));
+  };
+
   const takePhoto = async () => {
     if (!(await requestCameraPermission())) return;
     const result = await ImagePicker.launchCameraAsync({
@@ -165,38 +180,56 @@ export default function AddNeighborBusinessScreen() {
       quality: 0.8,
     });
     if (!result.canceled) {
-      setImages((prev) => [...prev, result.assets[0].uri].slice(0, MAX_IMAGES));
+      appendMedia([{ uri: result.assets[0].uri, type: 'image' }]);
+    }
+  };
+
+  const recordVideo = async () => {
+    if (!(await requestCameraPermission())) return;
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['videos'],
+      videoMaxDuration: MAX_VIDEO_SECONDS,
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      appendMedia([{ uri: result.assets[0].uri, type: 'video' }]);
     }
   };
 
   const pickFromGallery = async () => {
     if (!(await requestGalleryPermission())) return;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: true,
       quality: 0.8,
+      videoMaxDuration: MAX_VIDEO_SECONDS,
       selectionLimit: MAX_IMAGES - images.length,
     });
     if (!result.canceled) {
-      const uris = result.assets.map((a) => a.uri);
-      setImages((prev) => [...prev, ...uris].slice(0, MAX_IMAGES));
+      const items = result.assets.map((a) => ({
+        uri: a.uri,
+        type: a.type === 'video' ? 'video' : 'image',
+      }));
+      appendMedia(items);
     }
   };
 
   const addImage = () => {
     if (images.length >= MAX_IMAGES) {
-      Alert.alert('안내', `이미지는 최대 ${MAX_IMAGES}장까지 등록할 수 있습니다.`);
+      Alert.alert('안내', `미디어는 최대 ${MAX_IMAGES}개까지 등록할 수 있습니다.`);
       return;
     }
-    Alert.alert('사진 추가', '추가 방법을 선택하세요', [
-      { text: '📷 카메라', onPress: takePhoto },
-      { text: '🖼️ 갤러리', onPress: pickFromGallery },
+    Alert.alert('미디어 추가', '추가 방법을 선택하세요', [
+      { text: '📷 사진 촬영', onPress: takePhoto },
+      { text: '🎥 비디오 촬영', onPress: recordVideo },
+      { text: '🖼️ 갤러리 (사진/비디오)', onPress: pickFromGallery },
       { text: '취소', style: 'cancel' },
     ]);
   };
 
   const removeImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+    setMediaTypes((prev) => prev.filter((_, i) => i !== index));
     if (thumbnailIndex >= index) {
       setThumbnailIndex((t) => Math.max(0, t - (index === t ? 0 : 1)));
     }
@@ -215,7 +248,7 @@ export default function AddNeighborBusinessScreen() {
         !zalo.trim() && !email.trim() && !website.trim()) {
       return '연락처를 하나 이상 입력하세요.';
     }
-    if (images.length === 0) return '이미지를 1장 이상 등록하세요.';
+    if (images.length === 0) return '사진 또는 비디오를 1개 이상 등록하세요.';
     return null;
   };
 
@@ -227,9 +260,14 @@ export default function AddNeighborBusinessScreen() {
     }
     setSaving(true);
     try {
-      // 이미지 업로드 (이미 https URL은 uploadBusinessImage 내부에서 건너뜀)
+      // 미디어 업로드 (이미 https URL은 내부에서 건너뜀)
       const tempId = editId || `new_${Date.now()}`;
-      const uploadedUrls = await uploadBusinessImages(images, tempId);
+      const mediaItems = images.map((uri, i) => ({
+        uri,
+        type: mediaTypes[i] || 'image',
+      }));
+      const { urls: uploadedUrls, types: uploadedTypes } =
+        await uploadBusinessMediaList(mediaItems, tempId);
 
       const payload = {
         name: name.trim(),
@@ -253,8 +291,10 @@ export default function AddNeighborBusinessScreen() {
           .filter(Boolean)
           .slice(0, 10),
         images: uploadedUrls,
+        mediaTypes: uploadedTypes,
         thumbnailIndex: Math.min(thumbnailIndex, uploadedUrls.length - 1),
         externalLink: externalLink.trim() || null,
+        youtubeUrl: youtubeUrl.trim() || null,
         active,
         priority: parseInt(priority, 10) || 10,
         startDate: startDate || null,
@@ -299,10 +339,13 @@ export default function AddNeighborBusinessScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 이미지 섹션 */}
+        {/* 미디어 섹션 (사진/비디오) */}
         <View style={styles.imageSection}>
           <Text style={styles.imageSectionTitle}>
-            사진 등록 ({images.length}/{MAX_IMAGES}) *
+            사진/비디오 등록 ({images.length}/{MAX_IMAGES}) *
+          </Text>
+          <Text style={styles.helperText}>
+            💡 비디오는 최대 {MAX_VIDEO_SECONDS}초까지 등록됩니다. 대표 미리보기는 사진만 지정할 수 있습니다.
           </Text>
           <ScrollView
             horizontal
@@ -315,39 +358,54 @@ export default function AddNeighborBusinessScreen() {
                 onPress={addImage}
               >
                 <Ionicons name="camera" size={40} color="#999" />
-                <Text style={styles.addImageText}>사진 추가</Text>
+                <Text style={styles.addImageText}>추가</Text>
               </TouchableOpacity>
             )}
 
-            {images.map((uri, i) => (
-              <View key={i} style={styles.imageWrapper}>
-                <Image
-                  source={{ uri }}
-                  style={styles.imagePreview}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeImage(i)}
-                >
-                  <Ionicons name="close-circle" size={24} color="#fff" />
-                </TouchableOpacity>
-                {i === thumbnailIndex && (
-                  <View style={styles.mainBadge}>
-                    <Text style={styles.mainBadgeText}>대표</Text>
-                  </View>
-                )}
-                {i !== thumbnailIndex && (
+            {images.map((uri, i) => {
+              const isVideo = mediaTypes[i] === 'video';
+              return (
+                <View key={i} style={styles.imageWrapper}>
+                  {isVideo ? (
+                    <View style={[styles.imagePreview, styles.videoPlaceholder]}>
+                      <Ionicons name="videocam" size={28} color="#fff" />
+                      <Text style={styles.videoPlaceholderLabel}>VIDEO</Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri }}
+                      style={styles.imagePreview}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  )}
+                  {isVideo && (
+                    <View style={styles.videoOverlay} pointerEvents="none">
+                      <Ionicons name="play-circle" size={32} color="#fff" />
+                    </View>
+                  )}
                   <TouchableOpacity
-                    style={styles.thumbSetBtn}
-                    onPress={() => setThumbnailIndex(i)}
+                    style={styles.removeButton}
+                    onPress={() => removeImage(i)}
                   >
-                    <Text style={styles.thumbSetText}>대표 설정</Text>
+                    <Ionicons name="close-circle" size={24} color="#fff" />
                   </TouchableOpacity>
-                )}
-              </View>
-            ))}
+                  {i === thumbnailIndex && !isVideo && (
+                    <View style={styles.mainBadge}>
+                      <Text style={styles.mainBadgeText}>대표</Text>
+                    </View>
+                  )}
+                  {i !== thumbnailIndex && !isVideo && (
+                    <TouchableOpacity
+                      style={styles.thumbSetBtn}
+                      onPress={() => setThumbnailIndex(i)}
+                    >
+                      <Text style={styles.thumbSetText}>대표 설정</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -519,6 +577,20 @@ export default function AddNeighborBusinessScreen() {
           placeholderTextColor="rgba(0, 0, 0, 0.38)"
           value={externalLink}
           onChangeText={setExternalLink}
+          autoCapitalize="none"
+          keyboardType="url"
+        />
+
+        <Text style={styles.label}>
+          <Ionicons name="logo-youtube" size={14} color="#FF0000" /> 소개 영상 (YouTube)
+        </Text>
+        <Text style={styles.helperText}>유튜브 영상 링크를 입력하세요</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="https://youtu.be/xxxxx 또는 youtube.com/watch?v=xxxxx"
+          placeholderTextColor="rgba(0, 0, 0, 0.38)"
+          value={youtubeUrl}
+          onChangeText={setYoutubeUrl}
           autoCapitalize="none"
           keyboardType="url"
         />
@@ -742,6 +814,29 @@ const styles = StyleSheet.create({
   thumbSetText: {
     color: "#fff",
     fontSize: 10,
+  },
+  videoOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderRadius: 8,
+  },
+  videoPlaceholder: {
+    backgroundColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoPlaceholderLabel: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 2,
+    letterSpacing: 1,
   },
 
   saveBtn: {

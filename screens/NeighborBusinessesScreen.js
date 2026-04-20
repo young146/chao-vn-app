@@ -50,6 +50,21 @@ const CATEGORIES = [
   { key: 'other', label: '기타' },
 ];
 
+// 썸네일 URL 선택: thumbnailIndex가 비디오면 첫 이미지로 폴백
+function pickThumbnail(b) {
+  const imgs = b?.images || [];
+  if (!imgs.length) return { uri: null, hasVideo: false };
+  const types = b?.mediaTypes || [];
+  const ti = b?.thumbnailIndex ?? 0;
+  let uri = imgs[ti];
+  if (types[ti] === 'video') {
+    const firstImageIdx = types.findIndex((t) => t !== 'video');
+    uri = firstImageIdx >= 0 ? imgs[firstImageIdx] : null;
+  }
+  const hasVideo = types.some((t) => t === 'video');
+  return { uri, hasVideo };
+}
+
 export default function NeighborBusinessesScreen() {
   const navigation = useNavigation();
   const auth = useAuth() || {};
@@ -188,39 +203,49 @@ export default function NeighborBusinessesScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.recentScrollContent}
         >
-          {recent.map((b) => (
-            <TouchableOpacity
-              key={b.id}
-              onPress={() => navigateToDetail(b.id)}
-              style={styles.recentCard}
-              activeOpacity={0.8}
-            >
-              {b.images?.[b.thumbnailIndex || 0] ? (
-                <Image
-                  source={{ uri: b.images[b.thumbnailIndex || 0] }}
-                  style={styles.recentThumb}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={[styles.recentThumb, styles.recentThumbEmpty]}>
-                  <Ionicons name="storefront-outline" size={20} color="#CCC" />
+          {recent.map((b) => {
+            const { uri: thumbUri, hasVideo } = pickThumbnail(b);
+            return (
+              <TouchableOpacity
+                key={b.id}
+                onPress={() => navigateToDetail(b.id)}
+                style={styles.recentCard}
+                activeOpacity={0.8}
+              >
+                <View>
+                  {thumbUri ? (
+                    <Image
+                      source={{ uri: thumbUri }}
+                      style={styles.recentThumb}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.recentThumb, styles.recentThumbEmpty]}>
+                      <Ionicons name={hasVideo ? 'videocam' : 'storefront-outline'} size={20} color="#CCC" />
+                    </View>
+                  )}
+                  {hasVideo && (
+                    <View style={styles.videoBadge}>
+                      <Ionicons name="play" size={10} color="#fff" />
+                    </View>
+                  )}
                 </View>
-              )}
-              <Text style={styles.recentName} numberOfLines={1}>
-                {b.name}
-              </Text>
-              <Text style={styles.recentMeta} numberOfLines={1}>
-                {translateCity(b.city || '')} · {b.district || ''}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={styles.recentName} numberOfLines={1}>
+                  {b.name}
+                </Text>
+                <Text style={styles.recentMeta} numberOfLines={1}>
+                  {translateCity(b.city || '')} · {b.district || ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
     );
   };
 
   const renderBusinessCard = ({ item: b }) => {
-    const thumb = b.images?.[b.thumbnailIndex || 0];
+    const { uri: thumb, hasVideo } = pickThumbnail(b);
     const catLabel = CATEGORIES.find((c) => c.key === b.category)?.label || '';
     return (
       <TouchableOpacity
@@ -228,13 +253,20 @@ export default function NeighborBusinessesScreen() {
         style={styles.card}
         activeOpacity={0.85}
       >
-        {thumb ? (
-          <Image source={{ uri: thumb }} style={styles.cardThumb} contentFit="cover" />
-        ) : (
-          <View style={[styles.cardThumb, styles.cardThumbEmpty]}>
-            <Ionicons name="storefront-outline" size={32} color="#CCC" />
-          </View>
-        )}
+        <View>
+          {thumb ? (
+            <Image source={{ uri: thumb }} style={styles.cardThumb} contentFit="cover" />
+          ) : (
+            <View style={[styles.cardThumb, styles.cardThumbEmpty]}>
+              <Ionicons name={hasVideo ? 'videocam' : 'storefront-outline'} size={32} color="#CCC" />
+            </View>
+          )}
+          {hasVideo && (
+            <View style={styles.videoBadge}>
+              <Ionicons name="play" size={10} color="#fff" />
+            </View>
+          )}
+        </View>
         <View style={styles.cardBody}>
           <View style={styles.cardTitleRow}>
             <Text style={styles.cardName} numberOfLines={1}>
@@ -413,6 +445,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   cardThumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoBadge: {
+    position: 'absolute',
+    right: 6,
+    top: 6,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -201,6 +201,50 @@ export async function uploadBusinessImages(uris, businessId) {
 }
 
 /**
+ * 비디오 1개 업로드 (이미 https URL이면 그대로 반환)
+ * 비디오는 리사이즈 없이 원본 업로드 (picker quality 옵션에서 이미 압축됨)
+ *
+ * @param {string} uri
+ * @param {string} businessId
+ * @param {number} index
+ * @returns {Promise<string>}
+ */
+export async function uploadBusinessVideo(uri, businessId, index) {
+  if (!uri) throw new Error('uri required');
+  if (uri.startsWith('https://')) return uri;
+
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const filename = `${STORAGE_BASE}/${businessId}/${Date.now()}_${index}.mp4`;
+  const storageRef = ref(storage, filename);
+  await uploadBytes(storageRef, blob, { contentType: 'video/mp4' });
+  const url = await getDownloadURL(storageRef);
+  return url;
+}
+
+/**
+ * 미디어(사진+비디오) 혼합 순차 업로드
+ *
+ * @param {Array<{uri: string, type: 'image'|'video'}>} items
+ * @param {string} businessId
+ * @returns {Promise<{urls: string[], types: Array<'image'|'video'>}>}
+ */
+export async function uploadBusinessMediaList(items, businessId) {
+  const urls = [];
+  const types = [];
+  for (let i = 0; i < items.length; i++) {
+    const { uri, type } = items[i];
+    const url = type === 'video'
+      ? await uploadBusinessVideo(uri, businessId, i)
+      : await uploadBusinessImage(uri, businessId, i);
+    urls.push(url);
+    types.push(type === 'video' ? 'video' : 'image');
+  }
+  return { urls, types };
+}
+
+/**
  * 이미지 삭제 (URL로부터 Storage path 추출해서 삭제)
  * 실패 시 조용히 무시 (이미 삭제됐거나 등)
  */
@@ -248,9 +292,11 @@ export async function createBusiness(data, userId = 'admin') {
     holidayNote: data.holidayNote || '',
 
     images: data.images || [],
+    mediaTypes: data.mediaTypes || [],
     thumbnailIndex: data.thumbnailIndex || 0,
 
     externalLink: data.externalLink || null,
+    youtubeUrl: data.youtubeUrl || null,
 
     active: data.active !== false,
     priority: data.priority ?? 10,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,12 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
-  Share,
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import {
   fetchBusinessById,
@@ -26,9 +26,34 @@ import {
 } from '../services/neighborBusinessService';
 import { translateCity } from '../utils/vietnamLocations';
 import LocationMap from '../components/LocationMap';
+import YouTubeCard from '../components/YouTubeCard';
+import { shareItem } from '../utils/deepLinkUtils';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMG_HEIGHT = Math.round(SCREEN_W * 0.75);
+
+// 캐로셀 아이템 (사진 또는 비디오)
+function MediaCarouselItem({ uri, isVideo, width, height }) {
+  if (!isVideo) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width, height }}
+        contentFit="cover"
+      />
+    );
+  }
+  return (
+    <Video
+      source={{ uri }}
+      style={{ width, height, backgroundColor: '#000' }}
+      useNativeControls
+      resizeMode={ResizeMode.CONTAIN}
+      shouldPlay={false}
+      isLooping={false}
+    />
+  );
+}
 
 const CATEGORY_LABELS = {
   food: '음식점',
@@ -74,9 +99,12 @@ export default function NeighborBusinessDetailScreen() {
     if (b) incrementViews(id);
   }, [id]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // 화면에 포커스될 때마다 재조회 (편집 후 돌아왔을 때 최신 데이터 반영)
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const trackAndOpen = useCallback(
     async (type, url, fallbackMsg) => {
@@ -134,10 +162,11 @@ export default function NeighborBusinessDetailScreen() {
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `${data.name}\n${data.description || ''}\n\n(Chao Vietnam 앱에서 보기)`,
-      });
-    } catch {}
+      // 공유 URL: chaovietnam.co.kr/app/share/neighbor/{id} — WordPress 랜딩이 앱/웹 분기 처리
+      await shareItem('neighbor', id, data, 'more');
+    } catch (e) {
+      console.warn('share failed', e);
+    }
   };
 
   const handleEdit = () => {
@@ -209,13 +238,17 @@ export default function NeighborBusinessDetailScreen() {
                 const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
                 setCurrentImageIndex(idx);
               }}
-              renderItem={({ item }) => (
-                <Image
-                  source={{ uri: item }}
-                  style={{ width: SCREEN_W, height: IMG_HEIGHT }}
-                  contentFit="cover"
-                />
-              )}
+              renderItem={({ item, index }) => {
+                const isVideo = (data.mediaTypes || [])[index] === 'video';
+                return (
+                  <MediaCarouselItem
+                    uri={item}
+                    isVideo={isVideo}
+                    width={SCREEN_W}
+                    height={IMG_HEIGHT}
+                  />
+                );
+              }}
             />
             {data.images.length > 1 && (
               <View style={styles.pageIndicator}>
@@ -261,6 +294,14 @@ export default function NeighborBusinessDetailScreen() {
               <Text style={styles.sectionTitle}>소개</Text>
               <Text style={styles.description}>{data.description}</Text>
             </>
+          ) : null}
+
+          {/* YouTube 소개 영상 */}
+          {data.youtubeUrl ? (
+            <YouTubeCard
+              youtubeUrl={data.youtubeUrl}
+              label="📹 소개 영상"
+            />
           ) : null}
 
           {/* 태그 */}
