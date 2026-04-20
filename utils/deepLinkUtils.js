@@ -4,6 +4,42 @@
 
 const APP_SCHEME = 'chaovietnam://';
 const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
+const CACHE_IMAGE_ENDPOINT = 'https://chaovietnam.co.kr/wp-json/chaovn/v1/share/cache-image';
+
+/**
+ * 공유 전에 썸네일 URL을 WP 플러그인 캐시에 업로드
+ * → 공유 랜딩 페이지가 해당 URL을 og:image로 사용 (카카오톡 미리보기 이미지)
+ * 실패해도 공유 자체는 진행 (이미지만 로고로 폴백)
+ */
+const precacheShareImage = async (type, id, imageUrl) => {
+  if (!imageUrl || !imageUrl.startsWith('http')) return;
+  try {
+    await fetch(CACHE_IMAGE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, item_id: id, image_url: imageUrl }),
+    });
+  } catch (e) {
+    console.warn('[precacheShareImage] failed', e?.message);
+  }
+};
+
+/**
+ * 아이템에서 대표 썸네일 URL 추출 (비디오 피하고 이미지 우선)
+ */
+const extractThumbnail = (item) => {
+  if (!item) return null;
+  const imgs = item.images || [];
+  if (!imgs.length) return null;
+  const types = item.mediaTypes || [];
+  const ti = item.thumbnailIndex ?? 0;
+  // 지정 썸네일이 비디오면 첫 이미지로 폴백
+  if (types[ti] === 'video') {
+    const firstImg = types.findIndex((t) => t !== 'video');
+    return firstImg >= 0 ? imgs[firstImg] : null;
+  }
+  return imgs[ti] || imgs[0] || null;
+};
 
 /**
  * 딥링크 URL 생성
@@ -206,18 +242,30 @@ const buildRealEstateText = (item, webLink) => {
  */
 export const shareItem = async (type, id, item, platform = 'more') => {
   const { webLink, shareMessage } = await generateDeepLink(type, id, item);
-  
+
+  // OG 이미지용 썸네일 미리 캐싱 (카카오톡 등 미리보기에서 제품 사진 표시)
+  // 카카오가 링크를 크롤할 때 og:image가 있어야 하므로 반드시 await (2초 타임아웃)
+  const thumb = extractThumbnail(item);
+  if (thumb) {
+    try {
+      await Promise.race([
+        precacheShareImage(type, id, thumb),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
+    } catch {}
+  }
+
   const { shareToSNS } = require('../services/shareService');
-  
+
   try {
-    const title = item.title || 'ChaoVietnam';
+    const title = item.title || item.name || 'ChaoVietnam';
     const result = await shareToSNS(
       platform,
       title,
       shareMessage,
       webLink
     );
-    
+
     return result;
   } catch (error) {
     console.error('공유 실패:', error);

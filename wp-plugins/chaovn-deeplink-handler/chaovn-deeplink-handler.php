@@ -72,6 +72,10 @@ function chaovn_cache_image($request)
     $image_id = substr(md5($image_url), 0, 12);
     set_transient('chaovn_img_' . $image_id, $image_url, 24 * HOUR_IN_SECONDS);
 
+    // OG 이미지 조회용: type+item_id 키로도 저장 (공유 랜딩이 이걸 읽어서 og:image 설정)
+    $item_key = 'chaovn_itemimg_' . sanitize_key($type) . '_' . sanitize_key($item_id);
+    set_transient($item_key, $image_url, 7 * 24 * HOUR_IN_SECONDS);
+
     return [
         'success'   => true,
         'image_id'  => $image_id,
@@ -432,6 +436,10 @@ function chaovn_render_share_page($type, $id)
     $appstore_url = CHAOVN_APP_STORE_URL;
     $page_url     = get_site_url() . '/app/share/' . $type . '/' . $id;
     $web_url      = $web_url_map[$type] ?? 'https://chaovietnam.co.kr';
+
+    // OG 이미지: 모바일 앱이 공유 전에 cache-image 엔드포인트로 미리 저장한 URL 조회
+    $item_key = 'chaovn_itemimg_' . sanitize_key($type) . '_' . sanitize_key($id);
+    $og_image = get_transient($item_key);
     ?>
     <!DOCTYPE html>
     <html lang="ko">
@@ -444,6 +452,13 @@ function chaovn_render_share_page($type, $id)
         <meta property="og:title"       content="<?php echo esc_attr($title); ?> — 씬짜오베트남">
         <meta property="og:description" content="<?php echo esc_attr($description); ?>">
         <meta property="og:site_name"   content="씬짜오베트남">
+        <?php if ($og_image): ?>
+        <meta property="og:image"        content="<?php echo esc_url($og_image); ?>">
+        <meta property="og:image:width"  content="1200">
+        <meta property="og:image:height" content="630">
+        <meta name="twitter:card"        content="summary_large_image">
+        <meta name="twitter:image"       content="<?php echo esc_url($og_image); ?>">
+        <?php endif; ?>
         <style>
             * { margin:0; padding:0; box-sizing:border-box; }
             body {
