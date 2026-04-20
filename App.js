@@ -222,6 +222,9 @@ import MyItemsScreen from "./screens/MyItemsScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
 import XinChaoDanggnScreen from "./screens/XinChaoDanggnScreen";
+import NeighborBusinessesScreen from "./screens/NeighborBusinessesScreen";
+import NeighborBusinessDetailScreen from "./screens/NeighborBusinessDetailScreen";
+import AddNeighborBusinessScreen from "./screens/AddNeighborBusinessScreen";
 import AddItemScreen from "./screens/AddItemScreen";
 import ItemDetailScreen from "./screens/ItemDetailScreen";
 import JobsScreen from "./screens/JobsScreen";
@@ -1370,6 +1373,62 @@ function MenuStack() {
 }
 
 
+function NeighborBusinessesStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="이웃사업 메인"
+        component={NeighborBusinessesScreen}
+        options={({ navigation }) => ({
+          title: "",
+          headerLeft: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("이웃사업 메인")}
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  이웃사업
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ),
+          headerStyle: { backgroundColor: "#7C3AED", height: 70 },
+          headerTintColor: "#fff",
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
+              <LanguageSwitcher />
+              <UserAvatarButton navigation={navigation} />
+            </View>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="이웃사업 상세"
+        component={NeighborBusinessDetailScreen}
+        options={{
+          title: "상세 보기",
+          headerStyle: { backgroundColor: "#7C3AED" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="이웃사업 등록"
+        component={AddNeighborBusinessScreen}
+        options={({ route }) => ({
+          title: route.params?.editId ? "수정" : "등록",
+          headerStyle: { backgroundColor: "#7C3AED" },
+          headerTintColor: "#fff",
+        })}
+      />
+    </Stack.Navigator>
+  );
+}
+
+
 function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
@@ -1390,6 +1449,7 @@ function BottomTabNavigator() {
     "홈": t('tabs.home'),
     "뉴스": t('tabs.news'),
     "당근/나눔": t('tabs.danggn'),
+    "이웃사업": t('tabs.neighborBusinesses'),
     "구인구직": t('tabs.jobs'),
     "부동산": t('tabs.realEstate'),
   };
@@ -1398,36 +1458,57 @@ function BottomTabNavigator() {
     <View style={{ flex: 1 }}>
       <Tab.Navigator
         initialRouteName="뉴스"
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          lazy: false,
-          tabBarLabel: tabLabels[route.name] || route.name,
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
-            if (route.name === "홈") iconName = focused ? "home" : "home-outline";
-            else if (route.name === "뉴스")
-              iconName = focused ? "newspaper" : "newspaper-outline";
-            else if (route.name === "구인구직")
-              iconName = focused ? "briefcase" : "briefcase-outline";
-            else if (route.name === "부동산")
-              iconName = focused ? "business" : "business-outline";
-            else if (route.name === "당근/나눔")
-              iconName = focused ? "gift" : "gift-outline";
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: "#FF6B35",
-          tabBarInactiveTintColor: "#555",
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: "700",
-            marginBottom: 2,
-          },
-          // 🔥 시스템 영역(제스처 바) 위로 탭바 올리기
-          tabBarStyle: {
-            paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
-            height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
-          },
-        })}
+        screenOptions={({ route }) => {
+          // G1 디자인: 라벨 글자수에 비례한 탭 너비 (SYSTEM_OVERVIEW.md §6 참조)
+          const tabFlex = {
+            "홈": 0.8,
+            "뉴스": 0.8,
+            "당근/나눔": 1.05,
+            "이웃사업": 1.3,
+            "구인구직": 1.05,
+            "부동산": 1.05,
+          }[route.name] ?? 1;
+          // 마지막 탭(부동산)은 오른쪽 구분선 제거
+          const isLastTab = route.name === "부동산";
+
+          return {
+            headerShown: false,
+            lazy: false,
+            tabBarLabel: tabLabels[route.name] || route.name,
+            tabBarIcon: ({ focused, color }) => {
+              let iconName;
+              if (route.name === "홈") iconName = focused ? "home" : "home-outline";
+              else if (route.name === "뉴스")
+                iconName = focused ? "newspaper" : "newspaper-outline";
+              else if (route.name === "당근/나눔")
+                iconName = focused ? "gift" : "gift-outline";
+              else if (route.name === "이웃사업")
+                iconName = focused ? "storefront" : "storefront-outline";
+              else if (route.name === "구인구직")
+                iconName = focused ? "briefcase" : "briefcase-outline";
+              else if (route.name === "부동산")
+                iconName = focused ? "business" : "business-outline";
+              return <Ionicons name={iconName} size={20} color={color} />;
+            },
+            tabBarActiveTintColor: route.name === '이웃사업' ? '#7C3AED' : "#FF6B35",
+            tabBarInactiveTintColor: "#666",
+            tabBarLabelStyle: {
+              fontSize: 11,
+              fontWeight: "500",
+              marginBottom: 2,
+            },
+            tabBarItemStyle: {
+              flex: tabFlex,
+              borderRightWidth: isLastTab ? 0 : 1,
+              borderRightColor: "#e5e5e5",
+            },
+            // 🔥 시스템 영역(제스처 바) 위로 탭바 올리기
+            tabBarStyle: {
+              paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+              height: 56 + (insets.bottom > 0 ? insets.bottom : 8),
+            },
+          };
+        }}
       >
         <Tab.Screen
           name="홈"
@@ -1464,6 +1545,17 @@ function BottomTabNavigator() {
             tabPress: (e) => {
               navigation.navigate("당근/나눔", {
                 screen: "당근/나눔 메인",
+              });
+            },
+          })}
+        />
+        <Tab.Screen
+          name="이웃사업"
+          component={NeighborBusinessesStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("이웃사업", {
+                screen: "이웃사업 메인",
               });
             },
           })}

@@ -223,6 +223,19 @@ export default function AdminScreen({ navigation }) {
         <Text style={styles.subtitle}>{user?.email}</Text>
       </View>
 
+      {/* 빠른 작업 */}
+      <View style={styles.quickActionsRow}>
+        <TouchableOpacity
+          style={styles.quickActionBtn}
+          onPress={() => navigation.navigate('이웃사업', { screen: '이웃사업 메인' })}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="storefront" size={20} color="#FF6B35" />
+          <Text style={styles.quickActionText}>이웃사업 관리</Text>
+          <Ionicons name="chevron-forward" size={16} color="#999" />
+        </TouchableOpacity>
+      </View>
+
       {/* 통계 */}
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
@@ -435,5 +448,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
     marginTop: 16,
+  },
+  quickActionsRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  quickActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF5F0",
+    borderWidth: 1,
+    borderColor: "#FFE0D0",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  quickActionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+    marginLeft: 10,
   },
 });

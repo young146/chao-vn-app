@@ -22,6 +22,7 @@ import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd } from '..
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 import SectionNewsModal from '../components/SectionNewsModal';
+import AnnouncementBanner from '../components/AnnouncementBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -573,6 +574,9 @@ export default function MagazineScreen({ navigation, route }) {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
+            {/* 📢 공지 배너 (Firestore Announcements에서 조회) */}
+            <AnnouncementBanner targetScreen="News" />
+
             {/* 홈 배너: 스크롤과 함께 움직임 */}
             {type === 'home' && (
               <HomeBanner style={{ marginBottom: 8 }} />

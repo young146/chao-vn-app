@@ -60,6 +60,81 @@ function chaovn_firebase_auth_enqueue_scripts()
             'nonce' => wp_create_nonce('wp_rest'),
             'redirect' => home_url(),
         ));
+
+        // ★ Google 로그인 핸들러 - 서버 캐시 우회를 위해 인라인으로 직접 출력
+        $rest_url_inline = rest_url('chaovn-auth/v1/verify');
+        $nonce_inline    = wp_create_nonce('wp_rest');
+        $redirect_inline = home_url();
+        $inline_google_js = "
+(function() {
+    var _restUrl   = " . json_encode($rest_url_inline) . ";
+    var _nonce     = " . json_encode($nonce_inline) . ";
+    var _redirect  = " . json_encode($redirect_inline) . ";
+
+    function waitFor(selector, cb) {
+        var el = document.getElementById(selector);
+        if (el) { cb(el); return; }
+        document.addEventListener('DOMContentLoaded', function() {
+            var el2 = document.getElementById(selector);
+            if (el2) cb(el2);
+        });
+    }
+
+    waitFor('chaovn-google-login-btn', function(googleBtn) {
+        // 중복 바인딩 방지
+        if (googleBtn.dataset.googleBound) return;
+        googleBtn.dataset.googleBound = '1';
+
+        googleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var errDiv     = document.getElementById('chaovn-auth-error');
+            var loadingDiv = document.getElementById('chaovn-auth-loading');
+            if (errDiv)     { errDiv.style.display = 'none'; }
+            if (loadingDiv) { loadingDiv.textContent = 'Google 로그인 창을 여는 중입니다...'; loadingDiv.style.display = 'block'; }
+            googleBtn.disabled = true;
+
+            var provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            firebase.auth().signInWithPopup(provider)
+                .then(function(result) { return result.user.getIdToken(false); })
+                .then(function(idToken) {
+                    if (loadingDiv) loadingDiv.textContent = '워드프레스와 안전하게 로그인 동기화 중입니다...';
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', _restUrl, true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.setRequestHeader('X-WP-Nonce', _nonce);
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                var resp = JSON.parse(xhr.responseText);
+                                if (resp.success) {
+                                    if (loadingDiv) loadingDiv.textContent = '로그인 완료! 이동합니다...';
+                                    window.location.href = _redirect;
+                                } else {
+                                    if (errDiv) { errDiv.textContent = '서버 연동 오류: ' + resp.message; errDiv.style.display = 'block'; }
+                                    if (loadingDiv) loadingDiv.style.display = 'none';
+                                    googleBtn.disabled = false;
+                                }
+                            } else {
+                                if (errDiv) { errDiv.textContent = '로그인 스크립트 연동 오류.'; errDiv.style.display = 'block'; }
+                                if (loadingDiv) loadingDiv.style.display = 'none';
+                                googleBtn.disabled = false;
+                            }
+                        }
+                    };
+                    xhr.send('token=' + encodeURIComponent(idToken));
+                })
+                .catch(function(err) {
+                    if (errDiv) { errDiv.textContent = 'Google 로그인 취소 또는 실패: ' + err.message; errDiv.style.display = 'block'; }
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    googleBtn.disabled = false;
+                });
+        });
+    });
+})();
+";
+        wp_add_inline_script('firebase-auth-compat', $inline_google_js);
     }
 }
 

@@ -2,8 +2,9 @@
   "tabs": {
     "home": "홈",
     "news": "뉴스",
-    "danggn": "당근/나눔",
-    "jobs": "구인구직",
+    "danggn": "당근",
+    "neighborBusinesses": "이웃사업",
+    "jobs": "일자리",
     "realEstate": "부동산"
   },
   "headers": {
