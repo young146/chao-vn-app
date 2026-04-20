@@ -2,6 +2,20 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // 관리자 이메일 체크 함수
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'info@chaovietnam.co.kr' ||
+        request.auth.token.email == 'younghan146@gmail.com'
+      );
+    }
+
+    // ✅ 이웃사업 이미지 (관리자만 업로드, 누구나 열람)
+    match /neighbor_businesses/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ✅ 앱에서 업로드하는 이미지 (기존)
     match /items/{allPaths=**} {
       allow read: if true;
