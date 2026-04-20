@@ -27,6 +27,10 @@
     ],
     "rewrites": [
       {
+        "source": "/go/app",
+        "destination": "/go/app/index.html"
+      },
+      {
         "source": "/tab/danggn",
         "destination": "/tab/danggn/index.html"
       },

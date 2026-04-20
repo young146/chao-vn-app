@@ -670,6 +670,19 @@ function chaovn_app_button_html(array $args = []): string {
             Google Play
           </a>
         </div>
+        <!-- 모바일 사용자용 직접 다운로드 링크 대안 -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;">
+          <div style="font-size:11px;color:#64748b;margin-bottom:8px;">📱 모바일에서 QR을 스캔하기 어렵다면?</div>
+          <script>
+            (function(){
+              var ua = navigator.userAgent || '';
+              var isIOS = /iPhone|iPad|iPod/i.test(ua);
+              var directUrl = isIOS ? '<?php echo esc_js($ios_url); ?>' : '<?php echo esc_js($android_url); ?>';
+              var linkText = isIOS ? '직접 App Store에서 다운로드 →' : '직접 Google Play에서 다운로드 →';
+              document.write('<a href="' + directUrl + '" target="_blank" rel="noopener" style="display:inline-block;font-size:12px;color:#f97316;font-weight:700;text-decoration:underline;cursor:pointer;">' + linkText + '</a>');
+            })();
+          </script>
+        </div>
       </div>
     </div>
   </div>
