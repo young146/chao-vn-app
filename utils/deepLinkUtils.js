@@ -50,16 +50,16 @@ const extractThumbnail = (item) => {
  */
 export const generateDeepLink = async (type, id, item) => {
   const deepLink = `${APP_SCHEME}${type}/${id}`;
-  
+
   // 클린 URL — 카카오톡 미리보기 카드가 예쁘게 생성되도록 깔끔한 원래 주소로 원복
   // 구직자(candidates)는 Jobs 컬렉션이 아닌 candidates 컬렉션에 저장됨 → col 파라미터로 전달
   const sourceCollection = item?.sourceCollection;
   const webLink = sourceCollection === 'candidates'
     ? `${WEB_BASE_URL}${type}/${id}?col=candidates`
     : `${WEB_BASE_URL}${type}/${id}`;
-  
+
   const shareMessage = generateShareMessage(type, item, webLink);
-  
+
   return {
     deepLink,
     webLink,
@@ -107,7 +107,9 @@ const buildNeighborText = (item, webLink) => {
 
   const loc = [city, district].filter(Boolean).join(' ');
 
+  // 상세 페이지 URL을 먼저 넣어야 카카오톡이 이 URL로 카드 생성 (다른 URL이 앞에 오면 밀림)
   const lines = ['🏪 씬짜오 이웃사업', '━━━━━━━━━━━━━━━━━━━━'];
+  if (webLink) lines.push(webLink);
   if (name) lines.push('🏬 업소명: ' + name);
   if (cat) lines.push('🏷️ 카테고리: ' + cat);
   if (loc) lines.push('📍 지역: ' + loc);
@@ -126,7 +128,6 @@ const buildNeighborText = (item, webLink) => {
     if (zalo) lines.push('   Zalo: ' + zalo);
     if (website) lines.push('   웹사이트: ' + website);
   }
-  if (webLink) { lines.push(''); lines.push('🔗 상세 페이지:'); lines.push(webLink); }
 
   return lines.join('\n');
 };

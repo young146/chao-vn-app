@@ -1,2 +1,2 @@
 RewriteEngine On
-RewriteRule ^(danggn|job|realestate)/(.+)$ index.php [L]
+RewriteRule ^(danggn|job|realestate|neighbor)/(.+)$ index.php [L]

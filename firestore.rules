@@ -151,6 +151,14 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 📢 ads (광고 배너) 컬렉션
+    // ========================================
+    match /ads/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ========================================
     // 🏢 Agents (부동산 중개인) 컬렉션
     // ========================================
     match /Agents/{agentId} {
