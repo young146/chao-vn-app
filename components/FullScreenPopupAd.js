@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Modal, Dimensions, Image, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, limit, updateDoc, doc, increment } from 'firebase/firestore';
+import { getFilteredAds, trackFirebaseAdImpression, trackFirebaseAdClick } from '../services/FirebaseAdService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -16,28 +15,20 @@ export default function FullScreenPopupAd() {
 
   const fetchActivePopupAd = async () => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const q = query(
-        collection(db, 'app_ads'),
-        where('position', '==', 'popup'),
-        where('isActive', '==', true),
-        where('startDate', '<=', today),
-        where('endDate', '>=', today),
-        limit(1)
-      );
-
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const adData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+      // 'popup' 위치의 광고를 가져오며, 'home' 페이지용으로 타겟팅된 광고를 검색
+      const adList = await getFilteredAds('popup', 'home');
+      
+      if (adList && adList.length > 0) {
+        // 우선순위에 따른 랜덤 선택 가능하지만, 여기서는 첫 번째 광고를 사용하거나 
+        // 별도의 랜덤 로직을 적용할 수 있습니다. 이미 getFilteredAds가 우선순위 정렬을 해줍니다.
+        const adData = adList[0];
         setAd(adData);
         
         // 10초 지연 후 표시
         setTimeout(() => {
           setVisible(true);
           // 노출 성공 시 impressions 증가
-          updateDoc(doc(db, 'app_ads', adData.id), {
-            impressions: increment(1)
-          }).catch(err => console.log('Impression update failed', err));
+          trackFirebaseAdImpression(adData.id);
         }, 10000);
       }
     } catch (error) {
@@ -52,9 +43,7 @@ export default function FullScreenPopupAd() {
   const handlePress = async () => {
     if (ad?.linkUrl) {
       // 클릭수 증가
-      updateDoc(doc(db, 'app_ads', ad.id), {
-        clicks: increment(1)
-      }).catch(err => console.log('Click update failed', err));
+      trackFirebaseAdClick(ad.id);
 
       Linking.openURL(ad.linkUrl).catch(err => console.error('Failed to open link:', err));
       setVisible(false);
