@@ -275,6 +275,10 @@
             background: #6A1B9A;
         }
 
+        .cat-neighbor {
+            background: #7C3AED;
+        }
+
         /* 아이템 정보 */
         .item-header {
             padding: 8px 16px 16px;
@@ -997,13 +1001,19 @@
                 return;
             }
             // fallback: type/id 기반으로 vnkorlife.com URL 직접 생성
-            var webPathMap = { danggn: 'market', job: 'jobs', realestate: 'realestate' };
+            var webPathMap = { danggn: 'market', job: 'jobs', realestate: 'realestate', neighbor: 'neighborbusiness' };
             var webPath = webPathMap[type] || 'market';
             location.href = 'https://www.vnkorlife.com/' + webPath + '/' + (id || '');
         };
 
         // ── 갤러리 ─────────────────────── ────────────
         function categoryInfo(data) {
+            // 이웃사업: type이 'neighbor'거나 NeighborBusinesses 스키마(approvalStatus 필드)
+            if (type === 'neighbor' || data.approvalStatus !== undefined) {
+                var nbLabels = { food: '음식점', service: '서비스', shopping: '쇼핑', lodging: '숙박', beauty: '미용', health: '병원/약국', education: '교육', other: '기타' };
+                var nbCat = nbLabels[data.category] || '업소';
+                return { label: '🏪 이웃사업 · ' + nbCat, cls: 'cat-neighbor' };
+            }
             if (data.category === 'realestate') return { label: '🏠 부동산', cls: 'cat-realestate' };
             // 웹폼: category='jobs', jobType='구인'/'구직' / 앱폼: jobMode='hire'/'seek'
             if (data.category === 'jobs' || data.jobType === '구인' || data.jobMode === 'hire')
@@ -1208,12 +1218,24 @@
         initViewerTouch();
 
         function renderItem(data) {
+            // 이웃사업(NeighborBusinesses)은 연락처가 contacts.{phone,kakaoId,email,...} 중첩 구조 → 평탄화
+            if (data.contacts && typeof data.contacts === 'object') {
+                data.phone = data.phone || data.contacts.phone || '';
+                data.kakao = data.kakao || data.contacts.kakaoId || '';
+                data.email = data.email || data.contacts.email || '';
+                data.zalo  = data.zalo  || data.contacts.zalo  || '';
+                data.website = data.website || data.contacts.website || '';
+            }
             var cat = categoryInfo(data);
             var images = data.images || data.imageUrls || [];
+            // 이웃사업: 비디오 URL은 갤러리에서 제외 (HTML img로는 재생 불가)
+            if (type === 'neighbor' && Array.isArray(data.mediaTypes)) {
+                images = images.filter(function (_, i) { return data.mediaTypes[i] !== 'video'; });
+            }
             var ts = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null;
             var dateStr = ts ? ts.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
-            document.title = (data.title || data.itemName || data.propName || data.jobTitle || '상품 정보') + ' | 씬짜오';
+            document.title = (data.title || data.itemName || data.propName || data.jobTitle || data.name || '상품 정보') + ' | 씬짜오';
             if (images[0]) {
                 document.getElementById('og-image').content = images[0];
                 document.getElementById('og-title').content = document.title;
@@ -1222,7 +1244,8 @@
             }
 
             // 웹폼 필드: title, industry, employmentType / 앱폼 필드: jobTitle, jobMode, dealType 등
-            var titleText = data.title || data.itemName || data.propName || data.jobTitle || '상품 정보';
+            // 이웃사업: name 필드
+            var titleText = data.title || data.itemName || data.propName || data.jobTitle || data.name || '상품 정보';
             // 타입별 가격 필드 매핑 (구인구직은 가격 불필요)
             var priceText = '';
             if (type === 'realestate') {

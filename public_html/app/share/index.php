@@ -1,7 +1,7 @@
 <?php
 // URL에서 type과 id 추출
 $uri = $_SERVER['REQUEST_URI'];
-preg_match('#/app/share/(danggn|job|realestate)/([^/\?\#]+)#', $uri, $matches);
+preg_match('#/app/share/(danggn|job|realestate|neighbor)/([^/\?\#]+)#', $uri, $matches);
 
 $type = $matches[1] ?? 'danggn';
 $id   = $matches[2] ?? '';
@@ -11,6 +11,7 @@ $typeInfo = [
     'danggn'     => ['label' => '당근마켓/나눔', 'icon' => '🛍️', 'color' => '#FF6B35', 'collection' => 'XinChaoDanggn'],
     'job'        => ['label' => '구인구직',      'icon' => '💼', 'color' => '#2196F3', 'collection' => 'Jobs'],
     'realestate' => ['label' => '부동산',        'icon' => '🏠', 'color' => '#E91E63', 'collection' => 'RealEstate'],
+    'neighbor'   => ['label' => '이웃사업',      'icon' => '🏪', 'color' => '#7C3AED', 'collection' => 'NeighborBusinesses'],
 ];
 $data = $typeInfo[$type];
 
@@ -37,7 +38,9 @@ if (!$itemTitle && $id) {
         $firebaseData = json_decode($response, true);
         if (isset($firebaseData['fields'])) {
             $f = $firebaseData['fields'];
-            $itemTitle = $itemTitle ?: ($f['title']['stringValue'] ?? '');
+            // 이웃사업은 name 필드, 나머지는 title 필드
+            $itemTitle = $itemTitle
+                ?: ($f['title']['stringValue'] ?? $f['name']['stringValue'] ?? '');
             if (!$itemImage) {
                 $itemImage = $f['images']['arrayValue']['values'][0]['stringValue']
                     ?? $f['imageUrls']['arrayValue']['values'][0]['stringValue'] ?? '';
@@ -83,6 +86,7 @@ $defaultImages = [
     'danggn'     => 'https://chaovietnam.co.kr/assets/danggn-default.jpg',
     'job'        => 'https://chaovietnam.co.kr/assets/job-default.jpg',
     'realestate' => 'https://chaovietnam.co.kr/assets/realestate-default.jpg',
+    'neighbor'   => 'https://chaovietnam.co.kr/assets/neighbor-default.jpg',
 ];
 $image   = $itemImage ?: $defaultImages[$type];
 $pageUrl = 'https://chaovietnam.co.kr/app/share/' . $type . '/' . $id;
@@ -92,6 +96,7 @@ $colMap = [
     'job'        => 'Jobs',
     'danggn'     => 'XinChaoDanggn',
     'realestate' => 'RealEstate',
+    'neighbor'   => 'NeighborBusinesses',
 ];
 $col = $colOverride ?: ($colMap[$type] ?? 'form_items');
 
@@ -100,6 +105,7 @@ $webPathMap = [
     'danggn'     => 'market',
     'job'        => 'jobs',
     'realestate' => 'realestate',
+    'neighbor'   => 'neighborbusiness',
 ];
 $webPath = $webPathMap[$type] ?? 'market';
 
