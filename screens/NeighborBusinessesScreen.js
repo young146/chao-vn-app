@@ -13,11 +13,12 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import AdBanner from '../components/AdBanner';
 import {
   fetchActiveBusinesses,
-  fetchRecentBusinesses,
 } from '../services/neighborBusinessService';
 import {
   CITIES,
@@ -77,7 +78,6 @@ export default function NeighborBusinessesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [businesses, setBusinesses] = useState([]);
-  const [recent, setRecent] = useState([]);
 
   const hasActiveFilter = city !== 'all' || district !== 'all' || category !== 'all';
 
@@ -86,31 +86,54 @@ export default function NeighborBusinessesScreen() {
     return getDistrictsByCity(city);
   }, [city]);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      // 1. 프리페치된(캐시된) 데이터 확인 및 즉시 표시
+      if (!isRefresh && businesses.length === 0) {
+        try {
+          const cachedData = await AsyncStorage.getItem('prefetched_neighbor_businesses');
+          if (cachedData) {
+            const parsedData = JSON.parse(cachedData);
+            if (parsedData.businesses) {
+              setBusinesses(parsedData.businesses);
+              console.log('⚡ [Cache] 프리페치된 이웃사업 데이터를 즉시 표시합니다.');
+            } else {
+              setLoading(true);
+            }
+          } else {
+            setLoading(true);
+          }
+        } catch (e) {
+          console.error('캐시 로드 실패:', e);
+          setLoading(true);
+        }
+      }
+
       const filters = {
         city: city === 'all' ? undefined : city,
         district: district === 'all' ? undefined : district,
         category: category === 'all' ? undefined : category,
       };
-      const [list, recentList] = await Promise.all([
-        fetchActiveBusinesses(filters),
-        hasActiveFilter ? Promise.resolve([]) : fetchRecentBusinesses(7, 5),
-      ]);
+      
+      const list = await fetchActiveBusinesses(filters);
       setBusinesses(list);
-      setRecent(recentList);
+
+      // 필터가 없을 때만 전체 캐시를 업데이트하여 다음 진입 시 즉시 렌더링
+      if (!hasActiveFilter) {
+        AsyncStorage.setItem('prefetched_neighbor_businesses', JSON.stringify({ businesses: list }))
+          .catch(e => console.error('캐시 저장 실패:', e));
+      }
     } catch (err) {
       console.warn('[NeighborBusinessesScreen] load error:', err?.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [city, district, category, hasActiveFilter]);
+  }, [city, district, category, hasActiveFilter, businesses.length]);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      loadData(false);
     }, [loadData])
   );
 
@@ -190,59 +213,7 @@ export default function NeighborBusinessesScreen() {
     </View>
   );
 
-  const renderRecentStrip = () => {
-    if (recent.length === 0) return null;
-    return (
-      <View style={styles.recentStrip}>
-        <View style={styles.recentHeader}>
-          <Ionicons name="sparkles" size={14} color="#E65100" />
-          <Text style={styles.recentTitle}>최근 등록</Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.recentScrollContent}
-        >
-          {recent.map((b) => {
-            const { uri: thumbUri, hasVideo } = pickThumbnail(b);
-            return (
-              <TouchableOpacity
-                key={b.id}
-                onPress={() => navigateToDetail(b.id)}
-                style={styles.recentCard}
-                activeOpacity={0.8}
-              >
-                <View>
-                  {thumbUri ? (
-                    <Image
-                      source={{ uri: thumbUri }}
-                      style={styles.recentThumb}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[styles.recentThumb, styles.recentThumbEmpty]}>
-                      <Ionicons name={hasVideo ? 'videocam' : 'storefront-outline'} size={20} color="#CCC" />
-                    </View>
-                  )}
-                  {hasVideo && (
-                    <View style={styles.videoBadge}>
-                      <Ionicons name="play" size={10} color="#fff" />
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.recentName} numberOfLines={1}>
-                  {b.name}
-                </Text>
-                <Text style={styles.recentMeta} numberOfLines={1}>
-                  {translateCity(b.city || '')} · {b.district || ''}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-    );
-  };
+
 
   const renderBusinessCard = ({ item: b }) => {
     const { uri: thumb, hasVideo } = pickThumbnail(b);
@@ -325,7 +296,7 @@ export default function NeighborBusinessesScreen() {
           data={businesses}
           keyExtractor={(item) => item.id}
           renderItem={renderBusinessCard}
-          ListHeaderComponent={renderRecentStrip}
+          ListHeaderComponent={() => <AdBanner screen="neighbor" style={{ marginTop: 8 }} />}
           ListEmptyComponent={renderEmptyState}
           contentContainerStyle={
             businesses.length === 0 ? styles.listEmpty : styles.listContent
@@ -375,52 +346,7 @@ const styles = StyleSheet.create({
   },
   picker: { height: 44, opacity: 0.01 },
 
-  recentStrip: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#F3EEFF',
-  },
-  recentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  recentTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7C3AED',
-    marginLeft: 4,
-  },
-  recentScrollContent: {
-    paddingHorizontal: 12,
-  },
-  recentCard: {
-    width: 90,
-    marginRight: 10,
-  },
-  recentThumb: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  recentThumbEmpty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recentName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 4,
-  },
-  recentMeta: {
-    fontSize: 10,
-    color: '#888',
-    marginTop: 1,
-  },
+
 
   listContent: {
     paddingVertical: 8,
