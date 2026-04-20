@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 import SectionNewsModal from '../components/SectionNewsModal';
 import AnnouncementBanner from '../components/AnnouncementBanner';
+import NeighborBusinessPopup from '../components/NeighborBusinessPopup';
 
 const { width } = Dimensions.get('window');
 
@@ -344,6 +345,8 @@ export default function MagazineScreen({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPopup, setShowPopup] = useState(false); // 🎯 팝업 상태
   const popupShownRef = useRef(false); // 세션 중 한 번만 표시
+  const [showAnnouncement, setShowAnnouncement] = useState(false); // 이웃사업 공지 팝업
+  const announcementShownRef = useRef(false); // 세션 중 한 번만 표시
 
   // 날짜 선택 관련 state
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -476,6 +479,16 @@ export default function MagazineScreen({ navigation, route }) {
       popupShownRef.current = true;
       // 약간의 딜레이 후 팝업 표시 (화면 로드 후)
       const timer = setTimeout(() => setShowPopup(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [type, loading]);
+
+  // 🎯 이웃사업 안내 팝업 표시 (홈 또는 뉴스 탭, 세션 중 한 번만)
+  useEffect(() => {
+    if ((type === 'home' || type === 'news') && !announcementShownRef.current && !loading) {
+      announcementShownRef.current = true;
+      // 광고 팝업보다 조금 늦게 뜨게 하거나, 팝업 광고가 없는 경우를 위한 딜레이 설정
+      const timer = setTimeout(() => setShowAnnouncement(true), 800);
       return () => clearTimeout(timer);
     }
   }, [type, loading]);
@@ -804,6 +817,12 @@ export default function MagazineScreen({ navigation, route }) {
           autoCloseSeconds={10}
         />
       )}
+
+      {/* 🎯 이웃사업 안내 팝업 */}
+      <NeighborBusinessPopup
+        visible={showAnnouncement}
+        onClose={() => setShowAnnouncement(false)}
+      />
 
       {/* 🗂️ 뉴스 항목별 기사 보기 모달 */}
       {selectedSection && (
