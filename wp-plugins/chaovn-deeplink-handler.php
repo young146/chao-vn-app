@@ -21,7 +21,7 @@ define('CHAOVN_ANDROID_SHA256',     'A1:3F:CC:62:D0:78:8C:24:DF:5D:CF:74:95:A3:6
 define('CHAOVN_IOS_BUNDLE_ID',      'com.yourname.chaovnapp');
 define('CHAOVN_IOS_TEAM_ID',        '9NAKBDVGPP');
 define('CHAOVN_PLAY_STORE_URL',     'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp');
-define('CHAOVN_APP_STORE_URL',      'https://apps.apple.com/app/id123456789'); // ← 실제 App Store ID 로 교체
+define('CHAOVN_APP_STORE_URL',      'https://apps.apple.com/app/id6754750793');
 define('CHAOVN_APP_SCHEME',         'chaovietnam://');
 define('CHAOVN_NEWS_TERMINAL_SLUG', 'daily-news-terminal');
 
@@ -72,6 +72,7 @@ add_action('init', function () {
     add_rewrite_rule('^app/share/danggn/([0-9a-zA-Z_-]+)/?$',     'index.php?chaovn_share=1&chaovn_type=danggn&chaovn_id=$matches[1]',     'top');
     add_rewrite_rule('^app/share/job/([0-9a-zA-Z_-]+)/?$',        'index.php?chaovn_share=1&chaovn_type=job&chaovn_id=$matches[1]',        'top');
     add_rewrite_rule('^app/share/realestate/([0-9a-zA-Z_-]+)/?$', 'index.php?chaovn_share=1&chaovn_type=realestate&chaovn_id=$matches[1]', 'top');
+    add_rewrite_rule('^app/share/neighbor/([0-9a-zA-Z_-]+)/?$',   'index.php?chaovn_share=1&chaovn_type=neighbor&chaovn_id=$matches[1]',   'top');
     add_rewrite_rule('^app/share/img/([0-9a-zA-Z_-]+)/?$',        'index.php?chaovn_img_proxy=1&chaovn_img_id=$matches[1]',                'top');
 });
 
@@ -110,6 +111,10 @@ function chaovn_cache_image($request)
 
     $image_id = substr(md5($image_url), 0, 12);
     set_transient('chaovn_img_' . $image_id, $image_url, 24 * HOUR_IN_SECONDS);
+
+    // OG 이미지 조회용: type+item_id 키로도 저장 (공유 랜딩이 이걸 읽어서 og:image 설정)
+    $item_key = 'chaovn_itemimg_' . sanitize_key($type) . '_' . sanitize_key($item_id);
+    set_transient($item_key, $image_url, 7 * 24 * HOUR_IN_SECONDS);
 
     return [
         'success'   => true,
@@ -449,6 +454,12 @@ function chaovn_render_share_page($type, $id)
         'danggn'     => ['title' => '당근마켓/나눔', 'icon' => '🛍️', 'color' => '#FF6B35'],
         'job'        => ['title' => '구인구직',       'icon' => '💼', 'color' => '#2196F3'],
         'realestate' => ['title' => '부동산',         'icon' => '🏠', 'color' => '#E91E63'],
+        'neighbor'   => ['title' => '이웃사업',       'icon' => '🏪', 'color' => '#7C3AED'],
+    ];
+
+    // 타입별 web 상세 URL (vnkorlife.com Next.js) — 없으면 기본 홈
+    $web_url_map = [
+        'neighbor' => 'https://vnkorlife.com/neighborbusiness/' . $id,
     ];
 
     $info         = $type_info[$type] ?? $type_info['danggn'];
@@ -460,6 +471,11 @@ function chaovn_render_share_page($type, $id)
     $play_url     = CHAOVN_PLAY_STORE_URL;
     $appstore_url = CHAOVN_APP_STORE_URL;
     $page_url     = get_site_url() . '/app/share/' . $type . '/' . $id;
+    $web_url      = $web_url_map[$type] ?? 'https://chaovietnam.co.kr';
+
+    // OG 이미지: 모바일 앱이 공유 전에 cache-image 엔드포인트로 미리 저장한 URL 조회
+    $item_key = 'chaovn_itemimg_' . sanitize_key($type) . '_' . sanitize_key($id);
+    $og_image = get_transient($item_key);
     ?>
     <!DOCTYPE html>
     <html lang="ko">
@@ -472,6 +488,13 @@ function chaovn_render_share_page($type, $id)
         <meta property="og:title"       content="<?php echo esc_attr($title); ?> — 씬짜오베트남">
         <meta property="og:description" content="<?php echo esc_attr($description); ?>">
         <meta property="og:site_name"   content="씬짜오베트남">
+        <?php if ($og_image): ?>
+        <meta property="og:image"        content="<?php echo esc_url($og_image); ?>">
+        <meta property="og:image:width"  content="1200">
+        <meta property="og:image:height" content="630">
+        <meta name="twitter:card"        content="summary_large_image">
+        <meta name="twitter:image"       content="<?php echo esc_url($og_image); ?>">
+        <?php endif; ?>
         <style>
             * { margin:0; padding:0; box-sizing:border-box; }
             body {
@@ -527,7 +550,7 @@ function chaovn_render_share_page($type, $id)
             <div id="install-section">
                 <p style="color:#999;font-size:13px;margin-bottom:16px;">앱이 설치되어 있지 않나요?</p>
                 <a class="install-btn" id="install-btn" href="#">📲 앱 설치하기</a>
-                <a class="web-btn" href="https://chaovietnam.co.kr">웹사이트로 이동</a>
+                <a class="web-btn" href="<?php echo esc_url($web_url); ?>">웹으로 보기</a>
             </div>
         </div>
         <script>
