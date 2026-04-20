@@ -568,7 +568,7 @@ export default function ItemDetailScreen({ route, navigation }) {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* 상단 광고 */}
-        <DetailAdBanner position="top" screen="danggn" />
+        <DetailAdBanner position="head" screen="danggn-detail" />
 
         {/* 이미지 갤러리 — 히어로 스타일 */}
         <View style={styles.imageContainer}>
@@ -732,6 +732,9 @@ export default function ItemDetailScreen({ route, navigation }) {
               </TranslatedText>
             </View>
           </View>
+
+          {/* 중간 광고 (지도 바로 위) */}
+          <DetailAdBanner position="middle" screen="danggn" />
 
           {/* 🗺️ 거래 위치 지도 */}
           {(item.city || item.district) && (
@@ -911,8 +914,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* 중간 광고 */}
-        <DetailAdBanner position="middle" screen="danggn" />
+        {/* 중간 광고 이동됨 */}
 
         {/* 같은 지역 상품 5개 */}
         {similarItems.length > 0 && (

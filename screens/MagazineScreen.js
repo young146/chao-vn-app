@@ -575,7 +575,7 @@ export default function MagazineScreen({ navigation, route }) {
             <MagazineCard item={item} onPress={handlePostPress} type={type} />
             {/* 뉴스/게시판: 3개 기사마다 광고 삽입 */}
             {(type === 'news' || type === 'board') && (index + 1) % 3 === 0 && (
-              <InlineAdBanner screen="news" />
+              <InlineAdBanner screen="magazine" />
             )}
           </View>
         )}
@@ -596,7 +596,7 @@ export default function MagazineScreen({ navigation, route }) {
             )}
             {/* 뉴스/기타 탭 헤더 광고 */}
             {type !== 'home' && (
-              <AdBanner screen="news" style={{ marginBottom: 8 }} />
+              <AdBanner screen="magazine" style={{ marginBottom: 8 }} />
             )}
 
             {type === 'news' && (

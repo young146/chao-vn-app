@@ -407,7 +407,7 @@ export default function JobsScreen({ navigation }) {
       />
       {/* 2개마다 광고 삽입 */}
       {(index + 1) % 2 === 0 && (
-        <InlineAdBanner screen="job" />
+        <InlineAdBanner screen="jobs" />
       )}
     </View>
   ), [handleJobPress, t]);
@@ -425,7 +425,7 @@ export default function JobsScreen({ navigation }) {
   const renderListHeader = () => (
     <View>
       {/* 광고 배너 */}
-      <AdBanner screen="job" style={{ marginTop: 8 }} />
+      <AdBanner screen="jobs" style={{ marginTop: 8 }} />
 
       {/* 로그인 유도 배너 */}
       {!user && (

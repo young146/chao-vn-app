@@ -150,6 +150,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getHomeDataCached, hasHomeDataCache } from "./services/wordpressApi";
 import notificationService from "./services/NotificationService";
 import { initializeFirebase } from "./firebase/config";
+import FullScreenPopupAd from "./components/FullScreenPopupAd";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -325,9 +326,7 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showLanguageSelect, setShowLanguageSelect] = useState(false);
-  const [showStartupPopup, setShowStartupPopup] = useState(false);
   const updatesCheckedRef = useRef(false);
-  const popupShownRef = useRef(false);
   const deepLinkHandledRef = useRef(false); // 중복 처리 방지
 
   // 🔗 딥링크 수동 핸들러 (링킹 prop 실패 시 안전망)
@@ -673,17 +672,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [isReady]); // isReady가 true가 된 후에만 실행
 
-  // 🎯 앱 시작 5초 후 전면 팝업 광고 표시
-  useEffect(() => {
-    if (!isReady || showLanguageSelect || popupShownRef.current) return;
 
-    const timer = setTimeout(() => {
-      popupShownRef.current = true;
-      setShowStartupPopup(true);
-    }, 5000); // 5초 후 팝업 표시
-
-    return () => clearTimeout(timer);
-  }, [isReady, showLanguageSelect]);
 
   // ✅ iOS 크래시 수정: Firebase 초기화 완료 전에는 AuthProvider를 렌더링하지 않음
   // AuthProvider 내부의 onAuthStateChanged가 null auth를 참조하면 크래시 발생
@@ -868,13 +857,8 @@ export default function App() {
           <RootNavigator />
         </NavigationContainer>
 
-        {/* 🎯 앱 시작 5초 후 전면 팝업 광고 (10초 후 자동 닫힘) */}
-        <PopupAd
-          visible={showStartupPopup}
-          onClose={() => setShowStartupPopup(false)}
-          screen="startup"
-          autoCloseSeconds={10}
-        />
+        {/* 🎯 전면 팝업 광고 (10초 지연 로직 내장) */}
+        <FullScreenPopupAd />
 
       </SafeAreaProvider>
     </AuthProvider>

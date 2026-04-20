@@ -699,6 +699,9 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           )}
         </View>
 
+        {/* 중간 광고 (지도 바로 위) */}
+        <DetailAdBanner position="inner" screen="realestate-detail" />
+
         {/* 🗺️ 위치 지도 */}
         {(item.city || item.district) && (
           <View style={styles.infoCard}>
@@ -804,8 +807,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 중간 광고 — 매물 정보 하단 */}
-        <DetailAdBanner position="middle" screen="realestate" />
+        {/* 중간 광고 이동됨 */}
 
         {/* 유사 매물 5개 */}
         {similarItems.length > 0 && (
