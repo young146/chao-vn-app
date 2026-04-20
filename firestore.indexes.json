@@ -1,6 +1,32 @@
 {
   "indexes": [
     {
+      "collectionGroup": "Announcements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "targetScreens", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "active", "order": "ASCENDING" },
+        { "fieldPath": "endDate", "order": "ASCENDING" },
+        { "fieldPath": "priority", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookmarks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "savedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "articleId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "NeighborBusinesses",
       "queryScope": "COLLECTION",
       "fields": [
