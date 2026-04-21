@@ -590,84 +590,50 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ✅ 첫 화면이 완전히 렌더링된 후 Updates 체크
-  // "content appeared" 이벤트 이후에 실행하여 ErrorRecovery 크래시 방지
+  // ✅ 완전 자동 OTA 업데이트: 새 버전 감지 시 자동 다운로드 → 자동 재시작
   useEffect(() => {
-    if (!isReady) return; // 아직 준비 안됨
+    if (!isReady) return;
 
-    // 첫 화면 렌더링 완료 대기 (content appeared 이벤트 이후)
     const timer = setTimeout(async () => {
       if (!updatesCheckedRef.current && !__DEV__ && Updates.isEnabled) {
         updatesCheckedRef.current = true;
 
-        // OTA 직후 재시작인 경우 업데이트 체크 스킵 (루프 방지)
+        // OTA 직후 재시작인 경우 체크 스킵 (무한루프 방지)
         const skipCheck = await AsyncStorage.getItem('OTA_SKIP_CHECK').catch(() => null);
         if (skipCheck) {
           await AsyncStorage.removeItem('OTA_SKIP_CHECK').catch(() => {});
-          console.log('⏩ OTA_SKIP_CHECK 감지 - 이번 세션 업데이트 체크 스킵');
           return;
         }
 
         try {
-          console.log("📦 첫 화면 렌더링 완료, 업데이트 체크 시작...");
-
-          // 타임아웃과 함께 안전하게 체크
           const update = await Promise.race([
             Updates.checkForUpdateAsync(),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Updates check timeout')), 10000)
-            )
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
           ]);
 
-          if (update && update.isAvailable) {
-            console.log("📦 새 업데이트 발견, 다운로드 중...");
+          if (update?.isAvailable) {
+            console.log("📦 새 업데이트 감지 - 자동 다운로드 시작...");
+
             await Promise.race([
               Updates.fetchUpdateAsync(),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Updates fetch timeout')), 15000)
-              )
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 20000))
             ]);
-            console.log("✅ 업데이트 다운로드 완료");
 
-            // 🔔 업데이트 완료 팝업 표시 (지금 적용이 기본 선택)
-            Alert.alert(
-              "🎉 새로운 업데이트",
-              "새로운 기능이 추가되었습니다!\n지금 업데이트를 적용하시겠습니까?",
-              [
-                {
-                  text: "나중에",
-                  style: "cancel",
-                  onPress: () => console.log("업데이트 나중에 적용")
-                },
-                {
-                  text: "지금 적용",
-                  style: "default",
-                  isPreferred: true,
-                  onPress: async () => {
-                    try {
-                      // OTA_JUST_APPLIED: 캐시 삭제, OTA_SKIP_CHECK: 재시작 후 업데이트 체크 스킵 (루프 방지)
-                      await AsyncStorage.multiSet([
-                        ['OTA_JUST_APPLIED', '1'],
-                        ['OTA_SKIP_CHECK', '1'],
-                      ]);
-                      await Updates.reloadAsync();
-                    } catch (e) {
-                      console.log("업데이트 적용 실패:", e);
-                    }
-                  }
-                }
-              ],
-              { cancelable: false } // 뒤로가기나 바깥 터치로 닫기 방지
-            );
-          } else {
-            console.log("✅ 최신 버전입니다");
+            console.log("✅ 다운로드 완료 - 자동 재시작...");
+
+            // 루프 방지 플래그 저장 후 즉시 재시작
+            await AsyncStorage.multiSet([
+              ['OTA_JUST_APPLIED', '1'],
+              ['OTA_SKIP_CHECK', '1'],
+            ]).catch(() => {});
+
+            await Updates.reloadAsync();
           }
-        } catch (updateError) {
-          console.log("⚠️ 업데이트 체크 실패 (앱은 정상 작동):", updateError?.message || updateError);
-          // 업데이트 실패해도 앱은 정상 작동
+        } catch (e) {
+          console.log("⚠️ 업데이트 체크 실패 (앱 정상 작동):", e?.message);
         }
       }
-    }, 3000); // 첫 화면 렌더링 후 3초 대기 (content appeared 이벤트 확실히 발생 후)
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [isReady]); // isReady가 true가 된 후에만 실행
