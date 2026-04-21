@@ -159,6 +159,15 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 🚀 app_ads (앱 자체광고 관리) 컬렉션
+    // daily-news-final admin에서 관리, 앱에서 읽기
+    // ========================================
+    match /app_ads/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ========================================
     // 🏢 Agents (부동산 중개인) 컬렉션
     // ========================================
     match /Agents/{agentId} {
