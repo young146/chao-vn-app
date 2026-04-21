@@ -599,9 +599,6 @@ export default function JobDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* 중간 광고 (지도 바로 위) */}
-        <DetailAdBanner position="inner" screen="jobs-detail" />
-
         {/* 🗺️ 근무지 지도 */}
         {(job.city || job.district) && (
           <View style={styles.infoCard}>
@@ -681,7 +678,8 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 중간 광고 이동됨 */}
+        {/* 중간 광고 */}
+        <DetailAdBanner position="middle" screen="job" />
 
         {/* 최근 구인 5개 */}
         {similarJobs.length > 0 && (

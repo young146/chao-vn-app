@@ -355,7 +355,7 @@ export default function RealEstateScreen({ navigation }) {
   const renderListHeader = () => (
     <View>
       {/* 광고 배너 */}
-      <AdBanner screen="realestate" position="head" style={{ marginTop: 8 }} />
+      <AdBanner screen="realestate" style={{ marginTop: 8 }} />
 
       {/* 로그인 유도 배너 */}
       {!user && (
