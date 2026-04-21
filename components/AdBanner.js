@@ -343,6 +343,10 @@ export function DetailAdBanner({ position = 'head', screen = 'home', style, inte
   return <AdaptiveAdBanner screen={screen} position={position} style={style} intervalMs={intervalMs} />;
 }
 
+export function FixedBottomBanner({ screen = 'home', style, intervalMs = 5000 }) {
+  return <AdaptiveAdBanner screen={screen} position="bottom" style={style} intervalMs={intervalMs} />;
+}
+
 /**
  * 팝업 광고 (별도 관리 필요할 수 있으나 현재는 inner 또는 head 중 선택 지원 가능하게 하거나, 필요시 Admin에 popup 추가)
  * 일단 position="popup"으로 유지 (Admin에서도 필요 시 추가 예정)
