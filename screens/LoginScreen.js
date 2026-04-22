@@ -29,7 +29,7 @@ export default function LoginScreen({ navigation }) {
   const [appleLoading, setAppleLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, googleLogin, appleLogin, kakaoLogin, findPassword } = useAuth();
+  const { login, googleLogin, appleLogin, kakaoLogin, findPassword, setVisitorMode } = useAuth();
 
   // Google Sign-In 초기화 (Android + iOS 둘 다 활성화)
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function LoginScreen({ navigation }) {
         const result = await appleLogin(credential.identityToken, rawNonce);
         if (result.success) {
           Alert.alert(t('loginSuccess'), t('welcome'), [
-            { text: t('common:confirm'), onPress: () => navigation.goBack() },
+            { text: t('common:confirm'), onPress: () => { if (navigation.canGoBack()) navigation.goBack(); } },
           ]);
         } else {
           if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
@@ -129,7 +129,7 @@ export default function LoginScreen({ navigation }) {
         
         if (result.success) {
           Alert.alert(t('loginSuccess'), t('welcome'), [
-            { text: t('common:confirm'), onPress: () => navigation.goBack() },
+            { text: t('common:confirm'), onPress: () => { if (navigation.canGoBack()) navigation.goBack(); } },
           ]);
         } else {
           if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
@@ -173,7 +173,7 @@ export default function LoginScreen({ navigation }) {
       
       if (result.success) {
         Alert.alert(t('loginSuccess'), t('welcome'), [
-          { text: t('common:confirm'), onPress: () => navigation.goBack() },
+          { text: t('common:confirm'), onPress: () => { if (navigation.canGoBack()) navigation.goBack(); } },
         ]);
       } else {
         const msg = result.error || "카카오 로그인에 실패했습니다.";
@@ -224,7 +224,7 @@ export default function LoginScreen({ navigation }) {
       Alert.alert(t('loginSuccess'), t('welcome'), [
         {
           text: t('common:confirm'),
-          onPress: () => navigation.goBack(),
+          onPress: () => { if (navigation.canGoBack()) navigation.goBack(); },
         },
       ]);
     }
@@ -351,6 +351,14 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.signupLink}>{t('common:signup')}</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.visitorButton}
+            onPress={() => setVisitorMode(true)}
+            activeOpacity={0.6}
+          >
+            <Text style={styles.visitorText}>방문자로 보기</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -385,4 +393,6 @@ const styles = StyleSheet.create({
   googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000", borderRadius: 8, paddingVertical: 14, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
   googleButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "600", color: "#fff" },
   appleButton: { width: '100%', height: 50, marginBottom: 16 },
+  visitorButton: { alignItems: "center", marginTop: 28, paddingVertical: 8 },
+  visitorText: { fontSize: 12, color: "#bbb", textDecorationLine: "underline" },
 });

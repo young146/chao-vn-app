@@ -137,16 +137,14 @@ function chaovn_get_news_terminal($request) {
 
         // ── 캐시 확인 ──────────────────────────────────────
         $cache_key  = CHAOVN_NEWS_CACHE_PREFIX . $target_date;
-        $cached     = get_transient($cache_key);
         $is_today   = ($target_date === $now->format('Y-m-d'));
 
-        if ($cached !== false) {
-            // 오늘 날짜인데 캐시된 결과가 비어있으면 → 재확인 (뉴스가 추가됐을 수 있음)
-            $cached_empty = (isset($cached['totalCount']) && intval($cached['totalCount']) === 0);
-            if ($is_today && $cached_empty) {
-                // 빈 캐시 무시, DB에서 다시 조회
-                delete_transient($cache_key);
-            } else {
+        // 오늘 날짜는 항상 DB에서 새로 조회 (발행 중간에 캐시되는 문제 방지)
+        // 앱 클라이언트의 5분 캐시가 성능을 담당
+        // 과거 날짜만 서버 캐시 사용
+        if (!$is_today) {
+            $cached = get_transient($cache_key);
+            if ($cached !== false) {
                 $cached['_cache'] = 'hit';
                 return new WP_REST_Response($cached, 200);
             }
@@ -208,18 +206,16 @@ function chaovn_get_news_terminal($request) {
             '_cache'       => 'miss',
         );
 
-        // ── 캐시 저장 ──────────────────────────────────────
+        // ── 캐시 저장 (과거 날짜만) ──────────────────────────
         $total = count($result['top_news']) + count($result['regular']);
-        if ($is_today && $total === 0) {
-            // 오늘인데 뉴스가 없으면 짧은 TTL (60초) — 곧 발행될 수 있으므로
-            $ttl = 60;
-        } else {
-            // 뉴스가 있거나 과거 날짜면 자정까지 캐시
+        if (!$is_today && $total > 0) {
+            // 과거 날짜 뉴스만 자정까지 캐시 (변경될 일 없으므로)
             $midnight = new DateTime('tomorrow midnight', $tz);
             $ttl      = $midnight->getTimestamp() - time();
             if ($ttl < 60) $ttl = DAY_IN_SECONDS; // 안전장치
+            set_transient($cache_key, $response_data, $ttl);
         }
-        set_transient($cache_key, $response_data, $ttl);
+        // 오늘 날짜는 캐시 저장 안 함 → 발행 중 캐시 고착 문제 방지
         // ────────────────────────────────────────────────────
 
         return new WP_REST_Response($response_data, 200);

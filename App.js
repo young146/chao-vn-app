@@ -1564,13 +1564,19 @@ function BottomTabNavigator() {
 }
 
 function RootNavigator() {
+  const { user, isVisitor } = useAuth();
+
   return (
     <Stack.Navigator screenOptions={{ presentation: "modal" }}>
-      <Stack.Screen
-        name="MainApp"
-        component={BottomTabNavigator}
-        options={{ headerShown: false }}
-      />
+      {/* 로그인된 사용자 또는 방문자 모드: MainApp이 첫 화면 */}
+      {(user || isVisitor) && (
+        <Stack.Screen
+          name="MainApp"
+          component={BottomTabNavigator}
+          options={{ headerShown: false }}
+        />
+      )}
+      {/* 비로그인 시 로그인이 첫 화면 / 로그인된 경우에도 스택에 포함 (navigate 호환) */}
       <Stack.Screen
         name="로그인"
         component={LoginScreen}

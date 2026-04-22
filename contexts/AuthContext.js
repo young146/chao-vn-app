@@ -23,6 +23,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileComplete, setNeedsProfileComplete] = useState(false);
+  const [isVisitor, setIsVisitor] = useState(false);
+
+  const setVisitorMode = (value) => setIsVisitor(value);
 
   useEffect(() => {
     let unsubscribe = null;
@@ -163,6 +166,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await signOut(auth);
       await AsyncStorage.removeItem("@user_id");
+      setIsVisitor(false);
       return { success: true };
     } catch (error) {
       return { success: false, error: "로그아웃에 실패했습니다." };
@@ -389,7 +393,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, isAdmin, signup, login, logout, findId, findPassword, googleLogin, appleLogin, kakaoLogin, needsProfileComplete, setNeedsProfileComplete }}
+      value={{ user, loading, isAdmin, signup, login, logout, findId, findPassword, googleLogin, appleLogin, kakaoLogin, needsProfileComplete, setNeedsProfileComplete, isVisitor, setVisitorMode }}
     >
       {children}
     </AuthContext.Provider>
