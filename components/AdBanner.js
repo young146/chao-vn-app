@@ -679,10 +679,6 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style, interv
   );
 }
 
-export function FixedBottomBanner({ screen = 'home', style, intervalMs = 5000 }) {
-  return <AdaptiveAdBanner screen={screen} position="bottom" style={style} intervalMs={intervalMs} />;
-}
-
 /**
  * 전면 팝업 광고 컴포넌트
  * @param {boolean} visible - 팝업 표시 여부
