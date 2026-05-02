@@ -11,6 +11,8 @@ try {
 }
 import axios from "axios";
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 // ============================================
 // 🎯 ChaoVN 광고 시스템 v2.0
 // ACF + CPT 기반 단순화된 슬롯 시스템
