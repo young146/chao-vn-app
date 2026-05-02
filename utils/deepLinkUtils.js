@@ -3,8 +3,16 @@
  */
 
 const APP_SCHEME = 'chaovietnam://';
-const WEB_BASE_URL = 'https://chaovietnam.co.kr/app/share/';
+const WEB_BASE_URL = 'https://www.vnkorlife.com/';
 const CACHE_IMAGE_ENDPOINT = 'https://chaovietnam.co.kr/wp-json/chaovn/v1/share/cache-image';
+
+// 앱 type → vnkorlife.com URL path 매핑
+const TYPE_TO_PATH = {
+  danggn: 'market',
+  job: 'jobs',
+  realestate: 'realestate',
+  neighbor: 'neighborbusiness',
+};
 
 /**
  * 공유 전에 썸네일 URL을 WP 플러그인 캐시에 업로드
@@ -54,9 +62,10 @@ export const generateDeepLink = async (type, id, item) => {
   // 클린 URL — 카카오톡 미리보기 카드가 예쁘게 생성되도록 깔끔한 원래 주소로 원복
   // 구직자(candidates)는 Jobs 컬렉션이 아닌 candidates 컬렉션에 저장됨 → col 파라미터로 전달
   const sourceCollection = item?.sourceCollection;
+  const path = TYPE_TO_PATH[type] || type;
   const webLink = sourceCollection === 'candidates'
-    ? `${WEB_BASE_URL}${type}/${id}?col=candidates`
-    : `${WEB_BASE_URL}${type}/${id}`;
+    ? `${WEB_BASE_URL}${path}/${id}?col=candidates`
+    : `${WEB_BASE_URL}${path}/${id}`;
 
   const shareMessage = generateShareMessage(type, item, webLink);
 

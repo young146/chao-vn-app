@@ -25,7 +25,9 @@
       "associatedDomains": [
         "applinks:chaovietnam.co.kr",
         "applinks:www.chaovietnam.co.kr",
-        "applinks:chaovietnam-login.web.app"
+        "applinks:chaovietnam-login.web.app",
+        "applinks:vnkorlife.com",
+        "applinks:www.vnkorlife.com"
       ],
       "config": {
         "googleMapsApiKey": "AIzaSyByutRuUo-JnpedBT2qnhV-Nzf1S9qbcAU"
@@ -132,6 +134,46 @@
               "scheme": "https",
               "host": "chaovietnam-login.web.app",
               "pathPrefix": "/tab/"
+            },
+            {
+              "scheme": "https",
+              "host": "vnkorlife.com",
+              "pathPrefix": "/market"
+            },
+            {
+              "scheme": "https",
+              "host": "vnkorlife.com",
+              "pathPrefix": "/jobs"
+            },
+            {
+              "scheme": "https",
+              "host": "vnkorlife.com",
+              "pathPrefix": "/realestate"
+            },
+            {
+              "scheme": "https",
+              "host": "vnkorlife.com",
+              "pathPrefix": "/neighborbusiness"
+            },
+            {
+              "scheme": "https",
+              "host": "www.vnkorlife.com",
+              "pathPrefix": "/market"
+            },
+            {
+              "scheme": "https",
+              "host": "www.vnkorlife.com",
+              "pathPrefix": "/jobs"
+            },
+            {
+              "scheme": "https",
+              "host": "www.vnkorlife.com",
+              "pathPrefix": "/realestate"
+            },
+            {
+              "scheme": "https",
+              "host": "www.vnkorlife.com",
+              "pathPrefix": "/neighborbusiness"
             }
           ],
           "category": [
