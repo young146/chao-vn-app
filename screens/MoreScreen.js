@@ -95,40 +95,11 @@ export default function MoreScreen({ navigation }) {
           ]
         );
       } else {
-        // OTA 없음: 현재 runtimeVersion 확인
-        const currentRuntimeVersion = Updates.runtimeVersion; // 설치된 바이너리 버전
-        const latestVersion = Constants.expoConfig?.version || '2.2.6';
-
-        if (currentRuntimeVersion && currentRuntimeVersion !== latestVersion) {
-          // 구버전 바이너리 → 앱스토어 업데이트 필요
-          const storeUrl = Platform.OS === 'ios'
-            ? 'https://apps.apple.com/app/id6754750793'
-            : 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
-
-          setUpdateInfo({
-            isAvailable: false,
-            message: `앱스토어에서 최신 버전(${latestVersion})으로 업데이트가 필요합니다.`,
-          });
-          Alert.alert(
-            '앱 업데이트 필요',
-            `현재 버전: ${currentRuntimeVersion}\n최신 버전: ${latestVersion}\n\n앱스토어에서 최신 버전으로 업데이트해 주세요.`,
-            [
-              { text: '나중에', style: 'cancel' },
-              {
-                text: Platform.OS === 'ios' ? 'App Store 바로가기' : 'Google Play 바로가기',
-                onPress: () => Linking.openURL(storeUrl).catch(() =>
-                  Alert.alert('오류', '스토어를 열 수 없습니다. 직접 검색해주세요.')
-                ),
-              },
-            ]
-          );
-        } else {
-          setUpdateInfo({
-            isAvailable: false,
-            message: t('latestVersion'),
-          });
-          Alert.alert(t('newUpdateTitle'), t('latestVersion'));
-        }
+        setUpdateInfo({
+          isAvailable: false,
+          message: t('latestVersion'),
+        });
+        Alert.alert(t('newUpdateTitle'), t('latestVersion'));
       }
     } catch (error) {
       console.error("업데이트 확인 실패:", error);
