@@ -23,17 +23,7 @@ export const shareToSNS = async (platform, title, message, url) => {
                 } catch (e) {
                     console.log('Kakao check error', e);
                 }
-                if (Platform.OS === 'ios') {
-                    // iOS KakaoTalk share extension: URL이 message 안에 섞이면 링크 카드만 보이고 텍스트가 숨겨짐.
-                    // URL을 message에서 제거하고 url 속성으로 분리 전달 → 텍스트(안내 박스) + 링크 카드 모두 표시.
-                    const textOnly = message
-                        .replace(url, '')
-                        .replace(/\n🔗[^\n]*/g, '')
-                        .trimEnd();
-                    await Share.share({ message: textOnly, url });
-                } else {
-                    await Share.share({ message });
-                }
+                await Share.share({ message });
                 break;
 
             case 'facebook':
