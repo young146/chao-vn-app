@@ -140,8 +140,7 @@ body{margin:0;background:#fff;display:flex;align-items:center;justify-content:ce
 <body>
 <div class="spinner"></div>
 <script>
-var viewUrl = 'https://chaovietnam-login.web.app/view/?type=<?php echo urlencode($type); ?>&id=<?php echo urlencode($id); ?>&col=<?php echo urlencode($col); ?>&web=<?php echo urlencode($vnkorlifeUrl); ?>';
-window.location.replace(viewUrl);
+window.location.replace('<?php echo $vnkorlifeUrl; ?>');
 </script>
 </body>
 </html>
