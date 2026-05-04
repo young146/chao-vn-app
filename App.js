@@ -239,37 +239,32 @@ import AddAgentScreen from "./screens/AddAgentScreen";
 import AdminScreen from "./screens/AdminScreen";
 import LanguageSelectScreen from "./screens/LanguageSelectScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
-import AdInquiryModal from "./components/AdInquiryModal";
 import SplashAnimation from "./components/SplashAnimation";
 
 // ============================================
 // 📢 광고문의 헤더 버튼 (모든 탭에서 공유)
 // ============================================
 function AdInquiryHeaderButton({ color = "#fff" }) {
-  const [showModal, setShowModal] = React.useState(false);
   return (
-    <>
-      <TouchableOpacity
-        onPress={() => setShowModal(true)}
-        style={{
-          marginRight: 8,
-          paddingHorizontal: 10,
-          paddingVertical: 5,
-          backgroundColor: "rgba(255,255,255,0.22)",
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.5)",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        activeOpacity={0.75}
-      >
-        <Text style={{ color, fontSize: 12, fontWeight: "700", letterSpacing: 0.2 }}>
-          📢 광고문의
-        </Text>
-      </TouchableOpacity>
-      <AdInquiryModal visible={showModal} onClose={() => setShowModal(false)} />
-    </>
+    <TouchableOpacity
+      onPress={() => Linking.openURL("https://chaovietnam.co.kr/ads_request/")}
+      style={{
+        marginRight: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        backgroundColor: "rgba(255,255,255,0.22)",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.5)",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+      activeOpacity={0.75}
+    >
+      <Text style={{ color, fontSize: 12, fontWeight: "700", letterSpacing: 0.2 }}>
+        📢 광고문의
+      </Text>
+    </TouchableOpacity>
   );
 }
 
