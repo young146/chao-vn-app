@@ -16,7 +16,7 @@ import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import AdBanner from '../components/AdBanner';
+import AdBanner, { FIXED_BOTTOM_HEIGHT } from '../components/AdBanner';
 import {
   fetchActiveBusinesses,
 } from '../services/neighborBusinessService';
@@ -349,7 +349,8 @@ const styles = StyleSheet.create({
 
 
   listContent: {
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: FIXED_BOTTOM_HEIGHT + 8,
   },
   listEmpty: {
     flexGrow: 1,
