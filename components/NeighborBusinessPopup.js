@@ -73,17 +73,16 @@ export default function NeighborBusinessPopup({ visible, onClose }) {
     }
   };
 
-  const handleHideToday = async () => {
-    try {
-      const today = new Date().toDateString();
-      await AsyncStorage.setItem(HIDE_POPUP_KEY, today);
-      handleClose();
-    } catch (e) {
+  const handleHideToday = () => {
+    const today = new Date().toDateString();
+    handleClose();
+    AsyncStorage.setItem(HIDE_POPUP_KEY, today).catch((e) => {
       console.log('Error saving popup state', e);
-    }
+    });
   };
 
   const handleClose = () => {
+    if (!isVisible) return;
     setIsVisible(false);
     if (onClose) onClose();
   };
@@ -101,6 +100,8 @@ export default function NeighborBusinessPopup({ visible, onClose }) {
       transparent={true}
       animationType="fade"
       onRequestClose={handleClose}
+      statusBarTranslucent={true}
+      hardwareAccelerated={true}
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
