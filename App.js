@@ -9,32 +9,6 @@ import Constants from "expo-constants";
 
 
 
-// AdMob SDK 초기화 (Android에서만 사용)
-let mobileAds = null;
-if (Platform.OS === 'android') {
-  try {
-    mobileAds = require('react-native-google-mobile-ads').default;
-  } catch (e) {
-    console.log("⚠️ AdMob SDK 로드 실패:", e.message);
-  }
-}
-
-const initializeAdMob = async () => {
-  if (Platform.OS !== 'android' || !mobileAds) {
-    console.log("ℹ️ AdMob 초기화 스킵 (Android 아님 또는 SDK 없음)");
-    return false;
-  }
-
-  try {
-    const adapterStatuses = await mobileAds().initialize();
-    console.log("✅ AdMob SDK 초기화 완료:", adapterStatuses);
-    return true;
-  } catch (e) {
-    console.log("❌ AdMob SDK 초기화 실패:", e.message);
-    return false;
-  }
-};
-
 // Firebase Remote Config deprecated 경고 무시 (기능은 정상 작동)
 LogBox.ignoreLogs([
   "This method is deprecated",
@@ -147,7 +121,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getHomeDataCached, hasHomeDataCache } from "./services/wordpressApi";
+import { hasHomeDataCache } from "./services/wordpressApi";
 import notificationService from "./services/NotificationService";
 import { initializeFirebase } from "./firebase/config";
 
@@ -486,27 +460,12 @@ export default function App() {
             const remainingTime = Math.max(0, 5000 - elapsedTime);
             setTimeout(() => setIsReady(true), remainingTime);
 
-            // 백그라운드에서 모든 초기화 + 데이터 갱신 (사용자는 안 기다림)
+            // 백그라운드에서 로그인 필수 항목만 초기화 (사용자는 안 기다림)
+            // 홈 데이터 사전 로딩, AdMob, 광고 동의 등은 로그인 후 각 화면 마운트 시점으로 미룸
             Promise.allSettled([
-              // Firebase 초기화
               waitForFirebase(2000),
               initializeFirebase(),
               !__DEV__ && initializeAppCheck(),
-              // AdMob SDK 초기화 (Android)
-              initializeAdMob(),
-              // 데이터 갱신
-              getHomeDataCached(true),
-              // 광고 동의 (백그라운드)
-              Platform.OS === "android" && (async () => {
-                try {
-                  const { requestAdConsent } = require("./services/AdConsentService");
-                  const result = await requestAdConsent();
-                  if (result.canShowAds) {
-                    const { preloadInterstitialAd } = require("./services/InterstitialAdService");
-                    preloadInterstitialAd();
-                  }
-                } catch (e) { }
-              })(),
             ]).then(() => console.log('✅ 백그라운드 초기화 완료'));
 
             console.log(`⏱️ 즉시 진입: ${Date.now() - startTime}ms`);
@@ -529,20 +488,11 @@ export default function App() {
         // 모든 초기화를 병렬로 + 최대 5.0초 타임아웃
         const MAX_INIT_TIME = 5000; // 최대 5.0초
 
+        // 로그인 필수 항목만 초기화 — 나머지는 로그인 후로 미룸
         const allInitPromise = Promise.allSettled([
           waitForFirebase(1500),
           initializeFirebase(),
           !__DEV__ && initializeAppCheck(),
-          // AdMob SDK 초기화 (Android)
-          initializeAdMob(),
-          getHomeDataCached(),
-          // 광고 동의 (Android)
-          Platform.OS === "android" && (async () => {
-            try {
-              const { requestAdConsent } = require("./services/AdConsentService");
-              await requestAdConsent();
-            } catch (e) { }
-          })(),
         ]);
 
         const timeoutPromise = new Promise(resolve =>
@@ -1034,6 +984,7 @@ function JobsStack() {
           title: t('common:chat'),
           headerStyle: { backgroundColor: "#2196F3" },
           headerTintColor: "#fff",
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Stack.Navigator>
@@ -1108,6 +1059,7 @@ function RealEstateStack() {
           title: t('common:chat'),
           headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Stack.Navigator>
@@ -1164,6 +1116,7 @@ function DanggnStack() {
           title: t('danggn:itemDetail'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Stack.Screen
@@ -1191,6 +1144,7 @@ function DanggnStack() {
           title: t('common:chat'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Stack.Navigator>
@@ -1204,12 +1158,21 @@ function MenuStack() {
       <Stack.Screen
         name="메뉴메인"
         component={MoreScreen}
-        options={{
+        options={({ navigation }) => ({
           title: t('menu:title'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("홈")}
+              style={{ marginLeft: 12, padding: 4 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="arrow-back" size={26} color="#fff" />
+            </TouchableOpacity>
+          ),
           headerRight: () => <LanguageSwitcher />,
-        }}
+        })}
       />
       <Stack.Screen
         name="My Page"
@@ -1236,6 +1199,7 @@ function MenuStack() {
           title: t('common:chat'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Stack.Screen
@@ -1290,6 +1254,7 @@ function MenuStack() {
           title: t('navigation:headers.itemDetail'),
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Stack.Screen
@@ -1550,6 +1515,15 @@ function BottomTabNavigator() {
             },
           })}
         />
+        {/* 숨김 탭 - 햄버거/아바타 버튼으로만 진입. 진입 시에도 하단 탭바 유지 */}
+        <Tab.Screen
+          name="메뉴"
+          component={MenuStack}
+          options={{
+            tabBarButton: () => null,
+            tabBarItemStyle: { display: 'none' },
+          }}
+        />
       </Tab.Navigator>
 
       {/* 📢 고정 하단 배너 - 탭바 바로 위에 위치 (상세 페이지에서는 숨김) */}
@@ -1590,12 +1564,6 @@ function RootNavigator() {
       <Stack.Screen
         name="비밀번호찾기"
         component={FindPasswordScreen}
-        options={{ headerShown: false }}
-      />
-      {/* 메뉴 화면들 - 어디서든 접근 가능 */}
-      <Stack.Screen
-        name="메뉴"
-        component={MenuStack}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
@@ -1649,7 +1617,10 @@ const ProfileCompletionPrompt = () => {
                 style: "default",
                 onPress: () => {
                   setNeedsProfileComplete(false);
-                  navigation.navigate("메뉴", { screen: "프로필" });
+                  navigation.navigate("MainApp", {
+                    screen: "메뉴",
+                    params: { screen: "프로필" },
+                  });
                 },
               },
             ]

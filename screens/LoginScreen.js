@@ -9,8 +9,10 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -30,6 +32,7 @@ export default function LoginScreen({ navigation }) {
   const [kakaoLoading, setKakaoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login, googleLogin, appleLogin, kakaoLogin, findPassword, setVisitorMode } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Google Sign-In 초기화 (Android + iOS 둘 다 활성화)
   useEffect(() => {
@@ -63,9 +66,7 @@ export default function LoginScreen({ navigation }) {
       if (credential.identityToken) {
         const result = await appleLogin(credential.identityToken, rawNonce);
         if (result.success) {
-          Alert.alert(t('loginSuccess'), t('welcome'), [
-            { text: t('common:confirm'), onPress: () => { if (navigation.canGoBack()) navigation.goBack(); } },
-          ]);
+          navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
         } else {
           if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
             Alert.alert(
@@ -110,14 +111,14 @@ export default function LoginScreen({ navigation }) {
       const startTime = Date.now();
       
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      
-      // 🔄 매번 계정 선택 화면을 보여주기 위해 signOut 호출 (빠름)
+
+      // 매번 계정 선택 화면을 보여주기 위해 signOut 호출
       try {
         await GoogleSignin.signOut();
       } catch (e) {
         // signOut 실패해도 무시
       }
-      
+
       const userInfo = await GoogleSignin.signIn();
       console.log(`⏱️ 구글 계정 선택 완료: ${Date.now() - startTime}ms`);
       
@@ -128,9 +129,7 @@ export default function LoginScreen({ navigation }) {
         console.log(`⏱️ 전체 로그인 완료: ${Date.now() - startTime}ms`);
         
         if (result.success) {
-          Alert.alert(t('loginSuccess'), t('welcome'), [
-            { text: t('common:confirm'), onPress: () => { if (navigation.canGoBack()) navigation.goBack(); } },
-          ]);
+          navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
         } else {
           if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
             Alert.alert(
@@ -172,9 +171,7 @@ export default function LoginScreen({ navigation }) {
       const result = await kakaoLogin();
       
       if (result.success) {
-        Alert.alert(t('loginSuccess'), t('welcome'), [
-          { text: t('common:confirm'), onPress: () => { if (navigation.canGoBack()) navigation.goBack(); } },
-        ]);
+        navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
       } else {
         const msg = result.error || "카카오 로그인에 실패했습니다.";
         Alert.alert(t('kakaoLoginFailed') || "카카오 로그인 실패", msg);
@@ -221,12 +218,7 @@ export default function LoginScreen({ navigation }) {
         Alert.alert(t('loginFailed'), result.error);
       }
     } else {
-      Alert.alert(t('loginSuccess'), t('welcome'), [
-        {
-          text: t('common:confirm'),
-          onPress: () => { if (navigation.canGoBack()) navigation.goBack(); },
-        },
-      ]);
+      navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
     }
   };
 
@@ -235,12 +227,16 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: insets.bottom + 60, paddingTop: insets.top + 16 }]}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="newspaper" size={40} color="#FF6B35" />
+          <View style={styles.logoRow}>
+            <Image
+              source={require('../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.logoText}>{t('appName')}</Text>
           </View>
-          <Text style={styles.logoText}>{t('appName')}</Text>
           <Text style={styles.subtitle}>{t('welcomeMessage')}</Text>
         </View>
 
@@ -354,10 +350,16 @@ export default function LoginScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.visitorButton}
-            onPress={() => setVisitorMode(true)}
-            activeOpacity={0.6}
+            onPress={() => {
+              setVisitorMode(true);
+              setTimeout(() => {
+                navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+              }, 0);
+            }}
+            activeOpacity={0.7}
           >
-            <Text style={styles.visitorText}>방문자로 보기</Text>
+            <Ionicons name="home-outline" size={18} color="#FF6B35" style={{ marginRight: 6 }} />
+            <Text style={styles.visitorText}>로그인 없이 둘러보기</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -368,9 +370,10 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   content: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
-  logoContainer: { alignItems: "center", marginBottom: 48 },
-  logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#FFF0EB", justifyContent: "center", alignItems: "center", marginBottom: 16 },
-  logoText: { fontSize: 28, fontWeight: "bold", color: "#333", marginBottom: 8 },
+  logoContainer: { alignItems: "center", marginBottom: 32 },
+  logoRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  logoImage: { width: 40, height: 40, marginRight: 10, borderRadius: 8 },
+  logoText: { fontSize: 26, fontWeight: "bold", color: "#333" },
   subtitle: { fontSize: 14, color: "#999" },
   formContainer: { width: "100%" },
   inputGroup: { flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", borderRadius: 8, paddingHorizontal: 12, marginBottom: 16, borderWidth: 1, borderColor: "#e0e0e0" },
@@ -393,6 +396,20 @@ const styles = StyleSheet.create({
   googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#000", borderRadius: 8, paddingVertical: 14, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
   googleButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "600", color: "#fff" },
   appleButton: { width: '100%', height: 50, marginBottom: 16 },
-  visitorButton: { alignItems: "center", marginTop: 28, paddingVertical: 8 },
-  visitorText: { fontSize: 12, color: "#bbb", textDecorationLine: "underline" },
+  visitorButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: "#FF6B35",
+    borderRadius: 8,
+  },
+  visitorText: {
+    fontSize: 15,
+    color: "#FF6B35",
+    fontWeight: "600",
+  },
 });

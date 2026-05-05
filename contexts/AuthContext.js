@@ -23,7 +23,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileComplete, setNeedsProfileComplete] = useState(false);
-  const [isVisitor, setIsVisitor] = useState(false);
+  // 기본은 방문자 모드 — 앱 열면 메인 화면이 먼저 보이고, 로그인은 필요할 때만
+  const [isVisitor, setIsVisitor] = useState(true);
 
   const setVisitorMode = (value) => setIsVisitor(value);
 
@@ -44,34 +45,38 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Firebase Auth 상태 변화 감지
-      unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
-        if (currentUser) {
-          await AsyncStorage.setItem("@user_id", currentUser.uid);
+        setLoading(false);
 
-                // 📝 프로필 완성 여부 체크 (race condition 방지: 최대 3초 재시도)
-          try {
-            let userDoc = await getDoc(doc(db, "users", currentUser.uid));
-            // 신규 소셜 로그인 시 Firestore 문서 생성 전에 onAuthStateChanged가 먼저 실행될 수 있어 재시도
-            if (!userDoc.exists()) {
-              await new Promise(res => setTimeout(res, 800));
-              userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (currentUser) {
+          // 즉시 메인 화면 진입을 위해 비동기 작업은 fire-and-forget으로 처리
+          AsyncStorage.setItem("@user_id", currentUser.uid).catch(() => {});
+
+          // 📝 프로필 완성 여부 체크 (백그라운드, 화면 전환 막지 않음)
+          (async () => {
+            try {
+              let userDoc = await getDoc(doc(db, "users", currentUser.uid));
+              // 신규 소셜 로그인: 짧은 재시도 3회 (총 최대 600ms)
+              for (let i = 0; i < 3 && !userDoc.exists(); i++) {
+                await new Promise(res => setTimeout(res, 200));
+                userDoc = await getDoc(doc(db, "users", currentUser.uid));
+              }
+              if (userDoc.exists()) {
+                const data = userDoc.data();
+                const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
+                setNeedsProfileComplete(isIncomplete);
+              } else {
+                setNeedsProfileComplete(true);
+              }
+            } catch (e) {
+              console.log("프로필 체크 실패:", e);
             }
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
-              setNeedsProfileComplete(isIncomplete);
-            } else {
-              setNeedsProfileComplete(true);
-            }
-          } catch (e) {
-            console.log("프로필 체크 실패:", e);
-          }
+          })();
         } else {
-          await AsyncStorage.removeItem("@user_id");
+          AsyncStorage.removeItem("@user_id").catch(() => {});
           setNeedsProfileComplete(false);
         }
-        setLoading(false);
       });
     };
 
@@ -161,12 +166,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 로그아웃
+  // 로그아웃 — 방문자 모드 유지하여 메인 화면에 머물게 함 (LoginScreen으로 떨어지지 않음)
   const logout = async () => {
     try {
       await signOut(auth);
       await AsyncStorage.removeItem("@user_id");
-      setIsVisitor(false);
+      setIsVisitor(true);
       return { success: true };
     } catch (error) {
       return { success: false, error: "로그아웃에 실패했습니다." };
@@ -225,24 +230,25 @@ export const AuthProvider = ({ children }) => {
 
       const userDoc = await getDoc(doc(db, "users", googleUser.uid));
       if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", googleUser.uid), {
-          uid: googleUser.uid,
-          email: googleUser.email,
-          name: googleUser.displayName || googleUser.email?.split("@")[0] || "",
-          displayName: googleUser.displayName || googleUser.email?.split("@")[0] || "",
-          profileImage: googleUser.photoURL || null,
-          profileCompleted: false,
-          createdAt: serverTimestamp(),
-        });
-
-        await setDoc(doc(db, "notificationSettings", googleUser.uid), {
-          userId: googleUser.uid,
-          nearbyItems: false,
-          favorites: true,
-          reviews: true,
-          chat: true,
-          adminAlerts: true,
-        });
+        await Promise.all([
+          setDoc(doc(db, "users", googleUser.uid), {
+            uid: googleUser.uid,
+            email: googleUser.email,
+            name: googleUser.displayName || googleUser.email?.split("@")[0] || "",
+            displayName: googleUser.displayName || googleUser.email?.split("@")[0] || "",
+            profileImage: googleUser.photoURL || null,
+            profileCompleted: false,
+            createdAt: serverTimestamp(),
+          }),
+          setDoc(doc(db, "notificationSettings", googleUser.uid), {
+            userId: googleUser.uid,
+            nearbyItems: false,
+            favorites: true,
+            reviews: true,
+            chat: true,
+            adminAlerts: true,
+          }),
+        ]);
       }
 
       return { success: true, user: googleUser };

@@ -297,15 +297,21 @@ class NotificationService {
               const isBuyer = chatRoomData.buyerId === currentUserId;
               const otherUserName = isBuyer ? chatRoomData.sellerName : chatRoomData.buyerName;
               
-              // 채팅방으로 이동
-              navigationRef.navigate("ChatRoom", {
-                chatRoomId: data.roomId,
-                itemId: chatRoomData.itemId,
-                itemTitle: chatRoomData.itemTitle,
-                itemImage: chatRoomData.itemImage,
-                otherUserId: otherUserId,
-                otherUserName: otherUserName,
-                sellerId: chatRoomData.sellerId,
+              // 채팅방으로 이동 (MainApp > 메뉴(hidden tab) > ChatRoom)
+              navigationRef.navigate("MainApp", {
+                screen: "메뉴",
+                params: {
+                  screen: "ChatRoom",
+                  params: {
+                    chatRoomId: data.roomId,
+                    itemId: chatRoomData.itemId,
+                    itemTitle: chatRoomData.itemTitle,
+                    itemImage: chatRoomData.itemImage,
+                    otherUserId: otherUserId,
+                    otherUserName: otherUserName,
+                    sellerId: chatRoomData.sellerId,
+                  },
+                },
               });
             }
           } else {
