@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
 
   listContent: {
     paddingTop: 8,
-    paddingBottom: FIXED_BOTTOM_HEIGHT + 30,
+    paddingBottom: FIXED_BOTTOM_HEIGHT + 50,
   },
   listEmpty: {
     flexGrow: 1,
