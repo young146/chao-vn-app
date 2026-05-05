@@ -58,6 +58,23 @@ Directives are living documents. When you discover API constraints, better appro
 - If a check fails, fix it and re-check before reporting. Never hide failures.
 - Skipping self-check is not allowed unless the user explicitly approves in advance.
 
+**6. 🔍 Always explain root cause + fix in plain language**
+사용자가 비전문가일 수 있다는 전제로, 모든 버그 수정·문제 해결 작업을 보고할 때 다음 형식을 따른다:
+
+- **원인(Root Cause)**: 왜 그 문제가 발생했는지 — 단순히 "X가 잘못됐음"이 아니라 *왜 그게 잘못된 동작을 일으키는지* 메커니즘을 설명. 예: "AsyncStorage I/O가 100~500ms 걸리는데 그 동안 UI 스레드가 막혀서 멈춘 것처럼 보임"
+- **수정(Fix)**: 그 원인을 해결하기 위해 *구체적으로 무엇을 바꿨는지* 코드 스니펫과 함께 제시. "→" 화살표로 결과(어떻게 동작이 바뀌는지) 명시
+- **요약 표**: 원인이 2개 이상이면 마지막에 `증상 | 원인 | 해결` 표로 한눈에 정리
+
+WHY:
+- 사용자가 단순히 "수정 완료"를 원하는 게 아니라 *시스템이 왜 그렇게 동작하는지* 이해하길 원함
+- 같은 부류의 문제가 다음에 또 생길 때 사용자가 스스로 진단할 수 있게 됨
+- "수정했습니다"만으로는 신뢰가 쌓이지 않음 — 메커니즘 설명이 검증 가능성을 줌
+
+How to apply:
+- 단순 typo 수정, 색상 변경 등 기계적 작업에는 적용 안 해도 됨
+- 버그 수정, 동작 이상 해결, 플랫폼별 차이 해결 등 *원인 분석이 필요한 작업*에는 항상 적용
+- 기술 용어가 불가피할 때는 비유나 짧은 풀이를 함께 제시 (예: "Modal이 상태바 아래에서 시작 = 화면 위쪽 좌표가 어긋난 채 그려짐")
+
 ## Self-annealing loop
 
 Errors are learning opportunities. When something breaks:
