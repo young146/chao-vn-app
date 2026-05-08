@@ -16,7 +16,7 @@ import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import AdBanner, { FIXED_BOTTOM_HEIGHT } from '../components/AdBanner';
+import AdBanner, { InlineAdBanner, FIXED_BOTTOM_HEIGHT } from '../components/AdBanner';
 import {
   fetchActiveBusinesses,
 } from '../services/neighborBusinessService';
@@ -215,10 +215,11 @@ export default function NeighborBusinessesScreen() {
 
 
 
-  const renderBusinessCard = ({ item: b }) => {
+  const renderBusinessCard = ({ item: b, index }) => {
     const { uri: thumb, hasVideo } = pickThumbnail(b);
     const catLabel = CATEGORIES.find((c) => c.key === b.category)?.label || '';
     return (
+      <View>
       <TouchableOpacity
         onPress={() => navigateToDetail(b.id)}
         style={styles.card}
@@ -259,6 +260,11 @@ export default function NeighborBusinessesScreen() {
           ) : null}
         </View>
       </TouchableOpacity>
+      {/* 3개마다 광고 삽입 */}
+      {(index + 1) % 3 === 0 && (
+        <InlineAdBanner screen="neighbor" />
+      )}
+      </View>
     );
   };
 
@@ -459,7 +465,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 105,
+    bottom: 200,
     width: 64,
     height: 64,
     borderRadius: 32,

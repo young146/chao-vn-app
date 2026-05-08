@@ -98,7 +98,7 @@ export default function ReviewScreen({ route, navigation }) {
     >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>

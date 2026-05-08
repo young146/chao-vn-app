@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 120, // FixedBottomBanner(~96px) + 여유 공간
+    paddingBottom: 160, // FixedBottomBanner(~125px) + 여유 공간
   },
   title: {
     fontSize: 24,

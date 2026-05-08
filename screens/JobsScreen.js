@@ -405,8 +405,8 @@ export default function JobsScreen({ navigation }) {
         index={index}
         t={t}
       />
-      {/* 2개마다 광고 삽입 */}
-      {(index + 1) % 2 === 0 && (
+      {/* 3개마다 광고 삽입 */}
+      {(index + 1) % 3 === 0 && (
         <InlineAdBanner screen="job" />
       )}
     </View>

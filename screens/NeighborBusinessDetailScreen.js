@@ -224,7 +224,7 @@ export default function NeighborBusinessDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
         {/* 이미지 슬라이더 */}
         {data.images?.length > 0 ? (
           <View>

@@ -335,8 +335,8 @@ export default function RealEstateScreen({ navigation }) {
         t={t}
         language={i18n.language}
       />
-      {/* 2개마다 광고 삽입 */}
-      {(index + 1) % 2 === 0 && (
+      {/* 3개마다 광고 삽입 */}
+      {(index + 1) % 3 === 0 && (
         <InlineAdBanner screen="realestate" />
       )}
     </View>

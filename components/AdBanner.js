@@ -787,7 +787,7 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
 // ============================================
 
 // 화면 콘텐츠가 배너 뒤에 가려지지 않도록 패딩에 사용할 높이 값
-export const FIXED_BOTTOM_HEIGHT = 62; // 하단 고정 배너 높이 (750:250 비율, 평균 62px)
+export const FIXED_BOTTOM_HEIGHT = 125; // 하단 고정 배너 높이 (750:250 비율, 평균 125px)
 
 /**
  * 고정 하단 배너 (750x250 비율) - 앱 전쭔 화면 항상 표시
@@ -800,8 +800,8 @@ export function FixedBottomBanner({ screen = 'all', intervalMs = 5000 }) {
 
   // 탭바 높이: 56px(탭바 기본) + safe area bottom (0이면 8px 패딩)
   const tabBarHeight = 56 + (insets.bottom > 0 ? insets.bottom : 8);
-  // 750:200 비율로 정확한 높이 계산
-  const bannerHeight = Math.round(Dimensions.get('window').width * 200 / 750);
+  // 750:250 비율로 정확한 높이 계산
+  const bannerHeight = Math.round(Dimensions.get('window').width * 250 / 750);
 
   useEffect(() => {
     const loadAd = async () => {
@@ -922,7 +922,6 @@ const styles = StyleSheet.create({
   homeBanner: {
     width: "100%",
     aspectRatio: 750 / 300,
-    maxHeight: 200,
     backgroundColor: "#f5f5f5",
     marginVertical: 8,
     overflow: "hidden",
@@ -936,7 +935,6 @@ const styles = StyleSheet.create({
   headerBanner: {
     width: "100%",
     aspectRatio: 750 / 300,
-    maxHeight: 180,
     backgroundColor: "#f5f5f5",
     marginVertical: 8,
     overflow: "hidden",
@@ -946,11 +944,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  // 인라인 광고: 750x200 비율 (3.75:1)
+  // 인라인 광고: 750x250 비율 (3:1)
   inlineAd: {
     width: "100%",
-    aspectRatio: 750 / 200,
-    maxHeight: 150,
+    aspectRatio: 750 / 250,
     backgroundColor: "#fff",
     marginVertical: 12,
     overflow: "hidden",
@@ -960,11 +957,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  // 홈 섹션 사이: 750x150 비율 (5:1)
+  // 홈 섹션 사이: 750x250 비율 (3:1)
   sectionAd: {
     width: "100%",
-    aspectRatio: 750 / 150,
-    maxHeight: 100,
+    aspectRatio: 750 / 250,
     backgroundColor: "#fff",
     marginVertical: 12,
     overflow: "hidden",
