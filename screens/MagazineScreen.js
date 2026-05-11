@@ -826,7 +826,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   listContent: {
-    padding: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   searchHeaderContainer: {
     paddingHorizontal: 16,
@@ -912,6 +913,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
+    marginHorizontal: 16,
     borderWidth: 1,
     borderColor: '#ffe0b2',
   },
@@ -948,6 +950,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    marginHorizontal: 16,
     paddingHorizontal: 4,
   },
   dateButton: {
@@ -1029,6 +1032,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: 24,
     marginBottom: 12,
+    marginHorizontal: 16,
     borderLeftWidth: 4,
     borderLeftColor: '#FF6B35',
     paddingLeft: 10,
@@ -1050,6 +1054,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginTop: 12,
+    marginHorizontal: 16,
   },
   gridCard: {
     width: '48%',
@@ -1106,6 +1111,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 16,
+    marginHorizontal: 16,
     overflow: 'hidden',
     elevation: 3,
     shadowColor: '#000',

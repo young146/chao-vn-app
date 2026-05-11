@@ -9,21 +9,25 @@ try {
 } catch (e) {
   console.log('⚠️ expo-video 네이티브 모듈 없음 - 영상 광고 비활성화');
 }
-import axios from "axios";
+import {
+  fetchAppAdsConfig,
+  trackAppAdClick,
+} from "../services/FirebaseAdService";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // ============================================
-// 🎯 ChaoVN 광고 시스템 v2.0
-// ACF + CPT 기반 단순화된 슬롯 시스템
+// 🎯 ChaoVN 광고 시스템 v3.0
+// Firestore "app_ads" 기반 (daily-news-final 어드민에서 관리)
+// 데이터 fetch만 services/FirebaseAdService로 위임하고
+// 컴포넌트/슬롯/스타일은 기존 구조 그대로 유지합니다.
 // ============================================
 
 
 // ============================================
 // 설정
 // ============================================
-const API_BASE_URL = "https://chaovietnam.co.kr/wp-json/chaovn/v2";
-const CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시
+const CACHE_DURATION = 10 * 60 * 1000; // 10분 캐시 (FirebaseAdService 내부 5분 캐시와 별개)
 
 
 // 광고 슬롯 정의 (WordPress와 동일)
@@ -269,68 +273,32 @@ const AdMedia = ({ ad, style, thumbnailKey = null }) => {
 // ============================================
 
 /**
- * 광고 데이터 가져오기 (캐시 적용)
+ * 광고 데이터 가져오기 (Firestore "app_ads")
  * @param {string} screen - 화면 타입 (all, home, news, job, realestate, danggn)
  */
 const fetchAdConfig = async (screen = 'all') => {
   const now = Date.now();
 
-  // 캐시가 유효하고 같은 screen이면 캐시 반환
+  // 컴포넌트 단위 캐시 (FirebaseAdService 내부 캐시와 이중 안전망)
   if (cachedAds && (now - lastFetchTime) < CACHE_DURATION && currentScreen === screen) {
     return cachedAds;
   }
 
-  try {
-    console.log(`📢 광고 API 호출: screen=${screen}`);
-    const response = await axios.get(`${API_BASE_URL}/ads`, {
-      params: { screen },
-      timeout: 8000,
-    });
-
-    if (response.data?.success && response.data?.data) {
-      cachedAds = response.data.data;
-      lastFetchTime = now;
-      currentScreen = screen;
-
-      // 광고 수 로깅
-      const counts = Object.entries(cachedAds)
-        .map(([slot, ads]) => `${slot}:${ads.length}`)
-        .join(', ');
-      console.log(`✅ 광고 로드 완료: ${counts}`);
-
-      return cachedAds;
-    }
-  } catch (error) {
-    console.log('❌ 광고 API 실패:', error.message);
-  }
-
-  // 실패 시 빈 슬롯 반환
-  return {
-    home_banner: [],
-    home_inline: [],
-    header: [],
-    inline: [],
-    detail_top: [],
-    detail_bottom: [],
-    popup: [],
-    fixed_top: [],
-    fixed_bottom: [],
-  };
+  const config = await fetchAppAdsConfig(screen);
+  cachedAds = config;
+  lastFetchTime = now;
+  currentScreen = screen;
+  return cachedAds;
 };
 
 /**
- * 광고 클릭 추적
- * @param {object} ad - 광고 객체
+ * 광고 클릭 추적 (Firestore clicks 카운터 +1)
  */
 const trackAdClick = async (ad) => {
-  if (!ad?.id) return;
-
-  try {
-    await axios.post(`${API_BASE_URL}/ads/${ad.id}/click`);
-    console.log(`📊 광고 클릭 추적: ${ad.id}`);
-  } catch (error) {
-    console.log('클릭 추적 실패:', error.message);
-  }
+  if (!ad) return;
+  const campaignId = ad._campaignId || ad.id;
+  if (!campaignId) return;
+  trackAppAdClick(campaignId);
 };
 
 /**
@@ -354,19 +322,21 @@ const handleAdPress = async (ad) => {
 
 /**
  * 우선순위 기반 랜덤 선택
- * 우선순위가 높은 광고가 선택될 확률이 높음
+ * priority가 *낮을수록* 선호출 (예: 1 > 10 > 99).
+ * daily-news-final 어드민 UI("낮을수록 선호출")와 의미 통일.
+ * 가중치 = 1 / priority. priority=1이 priority=10보다 10배 자주 노출됨.
  * @param {array} ads - 광고 배열
  */
 const getRandomAdByPriority = (ads) => {
   if (!ads || ads.length === 0) return null;
   if (ads.length === 1) return ads[0];
 
-  // 우선순위 가중치로 랜덤 선택
-  const totalWeight = ads.reduce((sum, ad) => sum + (ad.priority || 10), 0);
+  const weightOf = (ad) => 1 / Math.max(1, Number(ad.priority) || 10);
+  const totalWeight = ads.reduce((sum, ad) => sum + weightOf(ad), 0);
   let random = Math.random() * totalWeight;
 
   for (const ad of ads) {
-    random -= (ad.priority || 10);
+    random -= weightOf(ad);
     if (random <= 0) return ad;
   }
 
@@ -497,7 +467,7 @@ export function HomeBanner({ style, intervalMs = 5000 }) {
       const ads = await fetchAdConfig('home');
       const homeBannerAds = (ads?.home_banner || []).filter(a => a?.imageUrl || a?.videoUrl);
       // 우선순위 정렬
-      homeBannerAds.sort((a, b) => (b.priority || 10) - (a.priority || 10));
+      homeBannerAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(homeBannerAds);
       setIsLoading(false);
     };
@@ -527,7 +497,7 @@ export function HomeSectionAd({ style, intervalMs = 5000 }) {
     const loadAd = async () => {
       const ads = await fetchAdConfig('home');
       const homeInlineAds = (ads?.home_inline || []).filter(a => a?.imageUrl || a?.videoUrl);
-      homeInlineAds.sort((a, b) => (b.priority || 10) - (a.priority || 10));
+      homeInlineAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(homeInlineAds);
     };
     loadAd();
@@ -561,7 +531,7 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
       setIsLoading(true);
       const ads = await fetchAdConfig(screen);
       const headerAds = (ads?.header || []).filter(a => a?.imageUrl || a?.videoUrl);
-      headerAds.sort((a, b) => (b.priority || 10) - (a.priority || 10));
+      headerAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(headerAds);
       setIsLoading(false);
     };
@@ -624,7 +594,7 @@ export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, inter
       }
 
       // 우선순위 높은 순 정렬
-      filtered.sort((a, b) => (b.priority || 10) - (a.priority || 10));
+      filtered.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(filtered);
       setIsLoading(false);
     };
@@ -666,7 +636,7 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style, interv
     const loadAd = async () => {
       const ads = await fetchAdConfig(screen);
       const detailAds = (ads?.[slot] || []).filter(a => a?.imageUrl || a?.videoUrl);
-      detailAds.sort((a, b) => (b.priority || 10) - (a.priority || 10));
+      detailAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(detailAds);
       setLoaded(true);
     };
@@ -819,7 +789,7 @@ export function FixedBottomBanner({ screen = 'all', intervalMs = 5000 }) {
     const loadAd = async () => {
       const ads = await fetchAdConfig(screen);
       const bottomAds = (ads?.fixed_bottom || []).filter(a => a?.imageUrl || a?.videoUrl);
-      bottomAds.sort((a, b) => (b.priority || 10) - (a.priority || 10));
+      bottomAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(bottomAds);
     };
     loadAd();
