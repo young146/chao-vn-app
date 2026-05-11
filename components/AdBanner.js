@@ -146,7 +146,7 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
         {thumbnailUrl
-          ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
           : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
         }
         <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
@@ -163,7 +163,7 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
       <VideoView
         player={player}
         style={{ width: '100%', height: '100%' }}
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
       />
 
@@ -244,7 +244,7 @@ const AdMedia = ({ ad, style, thumbnailKey = null }) => {
       <Image
         source={{ uri: imageUrl }}
         style={style}
-        resizeMode="cover"
+        resizeMode="contain"
       />
     );
   }
