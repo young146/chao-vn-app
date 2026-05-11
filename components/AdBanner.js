@@ -145,10 +145,14 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   if (__DEV__) {
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
-        {thumbnailUrl
-          ? <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-          : <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
-        }
+        {thumbnailUrl ? (
+          <>
+            <Image source={{ uri: thumbnailUrl }} style={{ position: 'absolute', width: '100%', height: '100%' }} resizeMode="cover" blurRadius={20} />
+            <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+          </>
+        ) : (
+          <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
+        )}
         <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
           <Text style={{ color: '#fff', fontSize: 10 }}>DEV</Text>
         </View>
@@ -241,11 +245,19 @@ const AdMedia = ({ ad, style, thumbnailKey = null }) => {
 
   if (imageUrl) {
     return (
-      <Image
-        source={{ uri: imageUrl }}
-        style={style}
-        resizeMode="contain"
-      />
+      <View style={[style, { overflow: 'hidden' }]}>
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ position: 'absolute', width: '100%', height: '100%' }}
+          resizeMode="cover"
+          blurRadius={20}
+        />
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="contain"
+        />
+      </View>
     );
   }
 
