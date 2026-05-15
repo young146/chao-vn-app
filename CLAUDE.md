@@ -100,6 +100,36 @@ Errors are learning opportunities. When something breaks:
 
 **Key principle:** Local files are only for processing. Deliverables live in cloud services (Google Sheets, Slides, etc.) where the user can access them. Everything in `.tmp/` can be deleted and regenerated.
 
+## Deployment Rules (MANDATORY)
+
+### 앱 배포 워크플로우 (chao-vn-app)
+
+이 프로젝트는 출시된 앱이다. 코드 수정 후 반드시 아래 순서를 따른다:
+
+**Step 1 — Git push (코드 저장)**
+```bash
+git push origin main
+```
+
+**Step 2 — OTA 업데이트 (앱 사용자에게 전달)**
+```bash
+eas update --channel production --message "변경 내용 설명"
+```
+
+**⛔ 절대 금지:**
+- `eas update --branch main` — 앱스토어 사용자에게 전달되지 않음
+- `eas update --channel main` — 동일한 이유로 금지
+- channel을 생략한 `eas update` — 기본값이 main이 될 수 있음
+
+**왜 `production` 채널인가:**
+- `eas.json`에 `"channel": "production"` 으로 빌드된 앱바이너리만 앱스토어에 출시됨
+- 앱은 자신이 빌드될 때 지정된 채널의 업데이트만 수신함
+- `main` EAS 브랜치로 보낸 업데이트는 개발용 빌드에만 전달되고, 실제 사용자에게는 도달하지 않음
+
+**WordPress 플러그인 배포:**
+- `wp-plugins/` 하위 파일은 git push 후 FTP로 직접 서버에 업로드 (사용자가 직접 처리)
+- 대상 경로: 서버 `wp-content/plugins/chaovn-firebase-auth/`
+
 ## Summary
 
 You sit between human intent (directives) and deterministic execution (Node.js scripts). Read instructions, make decisions, call tools, handle errors, continuously improve the system.
