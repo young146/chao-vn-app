@@ -218,25 +218,8 @@ window.addEventListener('load', function() {
         });
     }
 
-    // Google 로그인
-    if (googleBtn) {
-        googleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            if (errorDiv) errorDiv.style.display = 'none';
-            if (loadingDiv) {
-                loadingDiv.textContent = "Google 로그인 창을 여는 중입니다...";
-                loadingDiv.style.display = 'block';
-            }
-            disableAll();
-
-            var provider = new firebase.auth.GoogleAuthProvider();
-
-            auth.signInWithPopup(provider)
-                .then(function(r) { return r.user.getIdToken(true); })
-                .then(function(t) { verifyTokenWithWP(t); })
-                .catch(function(err) { showError("Google 로그인 취소 또는 실패: " + err.message); });
-        });
-    }
+    // Google 로그인은 PHP 인라인 핸들러(chaovn-firebase-auth.php)에서 단독 처리.
+    // 여기서 중복 등록하면 signInWithPopup()이 두 번 호출돼 auth/cancelled-popup-request 에러 발생.
 
     // Apple 로그인
     if (appleBtn) {

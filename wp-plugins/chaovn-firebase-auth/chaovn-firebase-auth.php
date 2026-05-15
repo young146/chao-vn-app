@@ -91,45 +91,64 @@ function chaovn_firebase_auth_enqueue_scripts()
             var errDiv     = document.getElementById('chaovn-auth-error');
             var loadingDiv = document.getElementById('chaovn-auth-loading');
             if (errDiv)     { errDiv.style.display = 'none'; }
-            if (loadingDiv) { loadingDiv.textContent = 'Google 로그인 창을 여는 중입니다...'; loadingDiv.style.display = 'block'; }
             googleBtn.disabled = true;
 
-            var provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            firebase.auth().signInWithPopup(provider)
-                .then(function(result) { return result.user.getIdToken(false); })
-                .then(function(idToken) {
-                    if (loadingDiv) loadingDiv.textContent = '워드프레스와 안전하게 로그인 동기화 중입니다...';
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('POST', _restUrl, true);
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                    xhr.setRequestHeader('X-WP-Nonce', _nonce);
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status === 200) {
-                                var resp = JSON.parse(xhr.responseText);
-                                if (resp.success) {
-                                    if (loadingDiv) loadingDiv.textContent = '로그인 완료! 이동합니다...';
-                                    window.location.href = _redirect;
-                                } else {
-                                    if (errDiv) { errDiv.textContent = '서버 연동 오류: ' + resp.message; errDiv.style.display = 'block'; }
-                                    if (loadingDiv) loadingDiv.style.display = 'none';
-                                    googleBtn.disabled = false;
-                                }
+            function syncWithWP(idToken) {
+                if (loadingDiv) { loadingDiv.textContent = '워드프레스와 안전하게 로그인 동기화 중입니다...'; loadingDiv.style.display = 'block'; }
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', _restUrl, true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.setRequestHeader('X-WP-Nonce', _nonce);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            var resp = JSON.parse(xhr.responseText);
+                            if (resp.success) {
+                                if (loadingDiv) loadingDiv.textContent = '로그인 완료! 이동합니다...';
+                                window.location.href = _redirect;
                             } else {
-                                if (errDiv) { errDiv.textContent = '로그인 스크립트 연동 오류.'; errDiv.style.display = 'block'; }
+                                if (errDiv) { errDiv.textContent = '서버 연동 오류: ' + resp.message; errDiv.style.display = 'block'; }
                                 if (loadingDiv) loadingDiv.style.display = 'none';
                                 googleBtn.disabled = false;
                             }
+                        } else {
+                            if (errDiv) { errDiv.textContent = '로그인 스크립트 연동 오류.'; errDiv.style.display = 'block'; }
+                            if (loadingDiv) loadingDiv.style.display = 'none';
+                            googleBtn.disabled = false;
                         }
-                    };
-                    xhr.send('token=' + encodeURIComponent(idToken));
-                })
-                .catch(function(err) {
-                    if (errDiv) { errDiv.textContent = 'Google 로그인 취소 또는 실패: ' + err.message; errDiv.style.display = 'block'; }
-                    if (loadingDiv) loadingDiv.style.display = 'none';
-                    googleBtn.disabled = false;
-                });
+                    }
+                };
+                xhr.send('token=' + encodeURIComponent(idToken));
+            }
+
+            // Firebase 세션이 살아있으면 팝업 없이 기존 토큰으로 WP 재동기화
+            var currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+                if (loadingDiv) { loadingDiv.textContent = '기존 Google 계정으로 로그인 중...'; loadingDiv.style.display = 'block'; }
+                currentUser.getIdToken(true)
+                    .then(function(idToken) { syncWithWP(idToken); })
+                    .catch(function() {
+                        // 토큰 갱신 실패 시 팝업으로 재인증
+                        doPopup();
+                    });
+                return;
+            }
+
+            doPopup();
+
+            function doPopup() {
+                if (loadingDiv) { loadingDiv.textContent = 'Google 로그인 창을 여는 중입니다...'; loadingDiv.style.display = 'block'; }
+                var provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                firebase.auth().signInWithPopup(provider)
+                    .then(function(result) { return result.user.getIdToken(false); })
+                    .then(function(idToken) { syncWithWP(idToken); })
+                    .catch(function(err) {
+                        if (errDiv) { errDiv.textContent = 'Google 로그인 취소 또는 실패: ' + err.message; errDiv.style.display = 'block'; }
+                        if (loadingDiv) loadingDiv.style.display = 'none';
+                        googleBtn.disabled = false;
+                    });
+            }
         });
     });
 })();
