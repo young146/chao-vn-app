@@ -328,6 +328,14 @@ export default function AddCandidateScreen({ navigation, route }) {
       Alert.alert("⚠️", L.nameRequired);
       return false;
     }
+    if (!phone.trim()) {
+      Alert.alert("⚠️", "전화번호를 입력해주세요. / Vui lòng nhập số điện thoại. / Please enter phone number.");
+      return false;
+    }
+    if (!email.trim() || !email.includes("@")) {
+      Alert.alert("⚠️", "이메일을 정확히 입력해주세요. / Vui lòng nhập email. / Please enter a valid email.");
+      return false;
+    }
     return true;
   };
 

@@ -243,11 +243,8 @@ export default function AddNeighborBusinessScreen() {
       return '설명을 10자 이상 입력하세요.';
     }
     if (!city) return '도시를 선택하세요.';
-    // 연락 수단 하나는 있어야 의미가 있음
-    if (!phone.trim() && !kakaoId.trim() && !kakaoOpenChat.trim() &&
-        !zalo.trim() && !email.trim() && !website.trim()) {
-      return '연락처를 하나 이상 입력하세요.';
-    }
+    if (!phone.trim()) return '전화번호를 입력해주세요.';
+    if (!email.trim() || !email.includes('@')) return '이메일을 정확히 입력해주세요.';
     if (images.length === 0) return '사진 또는 비디오를 1개 이상 등록하세요.';
     return null;
   };

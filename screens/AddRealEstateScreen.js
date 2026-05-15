@@ -62,6 +62,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
   const [selectedCity, setSelectedCity] = useState("호치민");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
   const [availableDate, setAvailableDate] = useState("");
   const [status, setStatus] = useState("거래가능");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -107,6 +108,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
       setSelectedCity(editItem.city || "호치민");
       setSelectedDistrict(editItem.district || "");
       setContact(editItem.contact || "");
+      setEmail(editItem.email || "");
       setAvailableDate(editItem.availableDate || "");
       setStatus(editItem.status || "거래가능");
 
@@ -323,6 +325,14 @@ export default function AddRealEstateScreen({ navigation, route }) {
       Alert.alert(t('common:notice'), t('form.photoRequired'));
       return false;
     }
+    if (!contact.trim()) {
+      Alert.alert(t('common:notice'), '전화번호를 입력해주세요. / Vui lòng nhập số điện thoại. / Please enter phone number.');
+      return false;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      Alert.alert(t('common:notice'), '이메일을 정확히 입력해주세요. / Vui lòng nhập email. / Please enter a valid email.');
+      return false;
+    }
     return true;
   };
 
@@ -354,6 +364,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         city: selectedCity,
         district: selectedDistrict.trim(),
         contact: contact.trim(),
+        email: email.trim(),
         availableDate: availableDate.trim(),
         images: uploadedImages,
         status,
@@ -643,7 +654,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
         {/* 연락처 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Ionicons name="call-outline" size={16} /> {t('form.contactLabel')}
+            <Ionicons name="call-outline" size={16} /> {t('form.contactLabel')} *
           </Text>
           <TextInput
             style={styles.textInput}
@@ -651,6 +662,18 @@ export default function AddRealEstateScreen({ navigation, route }) {
             placeholderTextColor="#999"
             value={contact}
             onChangeText={setContact}
+          />
+          <Text style={[styles.sectionTitle, { marginTop: 12 }]}>
+            <Ionicons name="mail-outline" size={16} /> 이메일 *
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="example@email.com"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
           <Text style={styles.helperText}>
             * {t('common:chatOnlyContact', '비공개를 원하시면 채팅으로만 연락받을 수 있습니다')}

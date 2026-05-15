@@ -506,11 +506,13 @@
         <div class="card">
             <div class="card-title">📞 연락처</div>
             <div style="background:#fff3e0;border-left:4px solid #FF6B35;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#bf360c;line-height:1.7;">
-                ⚠️ <strong>연락처를 반드시 하나 이상 입력해주세요.</strong><br>
-                전화번호, 카카오톡 ID 중 하나는 있어야 구매자가 연락할 수 있습니다.
+                ⚠️ <strong>전화번호와 이메일은 필수 입력입니다.</strong><br>
+                구매자가 연락할 수 있는 수단을 정확히 입력해 주세요.
             </div>
-            <div class="field"><label>전화번호 / Zalo</label><input type="tel" id="contact-phone"
+            <div class="field"><label>전화번호 / Zalo <span class="req">*</span></label><input type="tel" id="contact-phone"
                     placeholder="예) 090-123-4567" oninput="updatePreview()"></div>
+            <div class="field"><label>이메일 <span class="req">*</span></label><input type="email" id="contact-email"
+                    placeholder="예) example@email.com" oninput="updatePreview()" autocapitalize="none"></div>
             <div class="field"><label>카카오톡 ID</label><input type="text" id="contact-kakao" placeholder="예) xinchao2025" oninput="updatePreview()">
             </div>
         </div>
@@ -740,9 +742,13 @@
             if (!price) { showToast('❗ 가격을 입력해주세요'); return; }
 
             const phone = document.getElementById('contact-phone').value.trim();
-            const kakao = document.getElementById('contact-kakao').value.trim();
-            if (!phone && !kakao) {
-                showToast('❗ 전화번호 또는 카카오톡 ID를 입력해주세요');
+            const email = document.getElementById('contact-email').value.trim();
+            if (!phone) {
+                showToast('❗ 전화번호를 입력해주세요');
+                return;
+            }
+            if (!email || !email.includes('@')) {
+                showToast('❗ 이메일을 정확히 입력해주세요');
                 return;
             }
 
@@ -759,6 +765,7 @@
                     const description = document.getElementById('item-desc').value.trim();
                     const condition = document.getElementById('item-condition').value;
                     const phone = document.getElementById('contact-phone').value.trim();
+                    const email = document.getElementById('contact-email').value.trim();
                     const kakao = document.getElementById('contact-kakao').value.trim();
 
                     // 1. 이미지 먼저 업로드 (URL 확보 후 batch에 포함)
@@ -787,8 +794,8 @@
                         title: name, itemName: name, price, condition, description,
                         city, district, apartment: apt,
                         location: [city, district, apt].filter(Boolean).join(' '),
-                        phone, kakao,
-                        contact: { phone, kakaoId: kakao, other: '' },
+                        phone, email, kakao,
+                        contact: { phone, email, kakaoId: kakao, other: '' },
                         imageUrls, images: imageUrls,
                         category: '중고거래',
                         status: '판매중', source: 'web',

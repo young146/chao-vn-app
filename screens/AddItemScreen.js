@@ -66,6 +66,7 @@ export default function AddItemScreen({ navigation, route }) {
   const [condition, setCondition] = useState("");
 
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [kakaoId, setKakaoId] = useState("");
   const [otherContact, setOtherContact] = useState("");
 
@@ -89,6 +90,7 @@ export default function AddItemScreen({ navigation, route }) {
 
       if (editItem.contact) {
         setPhone(editItem.contact.phone || "");
+        setEmail(editItem.contact.email || "");
         setKakaoId(editItem.contact.kakaoId || "");
         setOtherContact(editItem.contact.other || "");
       }
@@ -411,8 +413,12 @@ export default function AddItemScreen({ navigation, route }) {
       return;
     }
 
-    if (!phone && !kakaoId && !otherContact) {
-      Alert.alert(t('common:notice'), t('common:contactRequired', '연락처를 최소 하나 이상 입력해주세요!'));
+    if (!phone.trim()) {
+      Alert.alert(t('common:notice'), '전화번호를 입력해주세요. / Vui lòng nhập số điện thoại. / Please enter phone number.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      Alert.alert(t('common:notice'), '이메일을 정확히 입력해주세요. / Vui lòng nhập email. / Please enter a valid email.');
       return;
     }
 
@@ -457,6 +463,7 @@ export default function AddItemScreen({ navigation, route }) {
         condition,
         contact: {
           phone: phone || "",
+          email: email || "",
           kakaoId: kakaoId || "",
           other: otherContact || "",
         },
@@ -756,7 +763,7 @@ export default function AddItemScreen({ navigation, route }) {
             📞 {t('form.contactLabel')} *
           </Text>
 
-          <Text style={styles.label}>{t('form.phonePlaceholder')}</Text>
+          <Text style={styles.label}>전화번호 *</Text>
           <TextInput
             style={styles.input}
             placeholder="010-1234-5678 / +84-123-456-789"
@@ -764,6 +771,17 @@ export default function AddItemScreen({ navigation, route }) {
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
+          />
+
+          <Text style={styles.label}>이메일 *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="example@email.com"
+            placeholderTextColor="rgba(0, 0, 0, 0.38)"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
 
           <Text style={styles.label}>{t('form.kakaoPlaceholder')}</Text>

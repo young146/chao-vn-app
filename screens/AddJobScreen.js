@@ -250,6 +250,7 @@ export default function AddJobScreen({ navigation, route }) {
 
   // 연락처 / 마감
   const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
   const [deadline, setDeadline] = useState("");
   const [status, setStatus] = useState("모집중");
 
@@ -273,6 +274,7 @@ export default function AddJobScreen({ navigation, route }) {
       setSalaryMin(String(editJob.salaryMinUsdPerMonth || ""));
       setSalaryMax(String(editJob.salaryMaxUsdPerMonth || ""));
       setContact(editJob.contact || "");
+      setEmail(editJob.email || "");
       setDeadline(editJob.deadline || "");
       setStatus(editJob.status || "모집중");
       if (editJob.images?.length > 0) setImages(editJob.images);
@@ -342,6 +344,7 @@ export default function AddJobScreen({ navigation, route }) {
     if (description.trim().length < 20) { Alert.alert("⚠️", L.descTooShort); return false; }
     if (!selectedCity) { Alert.alert("⚠️", L.cityRequired); return false; }
     if (!contact.trim()) { Alert.alert("⚠️", L.contactRequired); return false; }
+    if (!email.trim() || !email.includes("@")) { Alert.alert("⚠️", "이메일을 정확히 입력해주세요. / Vui lòng nhập email. / Please enter a valid email."); return false; }
     return true;
   };
 
@@ -369,6 +372,7 @@ export default function AddJobScreen({ navigation, route }) {
         salaryMinUsdPerMonth: parseFloat(salaryMin) || null,
         salaryMaxUsdPerMonth: parseFloat(salaryMax) || null,
         contact: contact.trim(),
+        email: email.trim(),
         deadline: deadline.trim(),
         images: uploadedImages,
         youtubeUrl: youtubeUrl.trim() || null,
@@ -466,6 +470,8 @@ export default function AddJobScreen({ navigation, route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}><Ionicons name="call-outline" size={15} /> {L.contactLabel}</Text>
           <TextInput style={styles.textInput} value={contact} onChangeText={setContact} placeholder={L.contactPlaceholder} placeholderTextColor="#aaa" />
+          <Text style={[styles.sectionTitle, { marginTop: 12 }]}><Ionicons name="mail-outline" size={15} /> 이메일 *</Text>
+          <TextInput style={styles.textInput} value={email} onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor="#aaa" keyboardType="email-address" autoCapitalize="none" />
           <Text style={[styles.sectionTitle, { marginTop: 12 }]}><Ionicons name="calendar-outline" size={15} /> {L.deadlineLabel}</Text>
           <TextInput style={[styles.textInput, { width: 200 }]} value={deadline} onChangeText={setDeadline} placeholder={L.deadlinePlaceholder} placeholderTextColor="#aaa" />
         </View>

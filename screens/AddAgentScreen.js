@@ -67,6 +67,7 @@ export default function AddAgentScreen({ navigation, route }) {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [kakaoId, setKakaoId] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [experienceYears, setExperienceYears] = useState("");
@@ -90,6 +91,7 @@ export default function AddAgentScreen({ navigation, route }) {
       setName(editAgent.name || "");
       setCompany(editAgent.company || "");
       setPhone(editAgent.phone || "");
+      setEmail(editAgent.email || "");
       setKakaoId(editAgent.kakaoId || "");
       setLicenseNumber(editAgent.licenseNumber || "");
       setExperienceYears(String(editAgent.experienceYears || ""));
@@ -166,6 +168,7 @@ export default function AddAgentScreen({ navigation, route }) {
   const validate = () => {
     if (!name.trim()) { Alert.alert("⚠️", "이름을 입력해주세요."); return false; }
     if (!phone.trim()) { Alert.alert("⚠️", "전화번호를 입력해주세요."); return false; }
+    if (!email.trim() || !email.includes("@")) { Alert.alert("⚠️", "이메일을 정확히 입력해주세요."); return false; }
     if (!city) { Alert.alert("⚠️", "도시를 선택해주세요."); return false; }
     if (!district.trim()) { Alert.alert("⚠️", "구/군을 입력해주세요."); return false; }
     if (!addressDetail.trim()) { Alert.alert("⚠️", "상세 주소를 입력해주세요."); return false; }
@@ -183,6 +186,7 @@ export default function AddAgentScreen({ navigation, route }) {
         name: name.trim(),
         company: company.trim(),
         phone: phone.trim(),
+        email: email.trim(),
         kakaoId: kakaoId.trim(),
         licenseNumber: licenseNumber.trim(),
         experienceYears: parseInt(experienceYears) || 0,
@@ -460,6 +464,19 @@ export default function AddAgentScreen({ navigation, route }) {
             placeholder="+84-90-0000-0000"
             placeholderTextColor="#aaa"
             keyboardType="phone-pad"
+          />
+
+          <Text style={[styles.sectionTitle, { marginTop: 14 }]}>
+            <Ionicons name="mail" size={16} /> 이메일 *
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="example@email.com"
+            placeholderTextColor="#aaa"
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
 
           <Text style={[styles.sectionTitle, { marginTop: 14 }]}>
