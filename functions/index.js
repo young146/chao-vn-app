@@ -519,3 +519,87 @@ exports.onCandidateWritten = onDocumentWritten(
     }
   }
 );
+
+// ============================================================
+// 📘 publishToFacebookPage - 씬짜오베트남 페이지 자동 게시
+// daily-news-final 앱에서 카드 생성 직후 호출
+// ============================================================
+exports.publishToFacebookPage = onRequest(
+  {
+    cors: false,
+    invoker: "public",
+    secrets: ["FB_PAGE_ACCESS_TOKEN", "FB_PAGE_ID", "PUBLISH_API_KEY"],
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).json({ ok: false, error: "POST only" });
+    }
+
+    const auth = req.get("Authorization") || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    if (token !== process.env.PUBLISH_API_KEY) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
+    const { imageUrl, caption, link } = req.body || {};
+    if (!imageUrl || !caption) {
+      return res.status(400).json({ ok: false, error: "imageUrl and caption are required" });
+    }
+
+    const pageId = (process.env.FB_PAGE_ID || "").trim();
+    const pageToken = (process.env.FB_PAGE_ACCESS_TOKEN || "").trim();
+
+    const message = link ? `${caption}\n\n${link}` : caption;
+
+    const fbUrl = `https://graph.facebook.com/v25.0/${pageId}/photos`;
+    const params = new URLSearchParams({
+      url: imageUrl,
+      caption: message,
+      access_token: pageToken,
+    });
+
+    try {
+      const fbRes = await fetch(fbUrl, { method: "POST", body: params });
+      const fbData = await fbRes.json();
+
+      if (!fbRes.ok || fbData.error) {
+        console.error("❌ [FBPublish] Graph API 에러:", fbData);
+        await db.collection("broadcastLogs").add({
+          channel: "facebook",
+          ok: false,
+          imageUrl, caption, link: link || null,
+          error: fbData.error || fbData,
+          at: new Date(),
+        });
+        return res.status(502).json({ ok: false, error: fbData.error || fbData });
+      }
+
+      console.log(`✅ [FBPublish] 게시 성공: post_id=${fbData.post_id}, photo_id=${fbData.id}`);
+      await db.collection("broadcastLogs").add({
+        channel: "facebook",
+        ok: true,
+        imageUrl, caption, link: link || null,
+        postId: fbData.post_id || null,
+        photoId: fbData.id || null,
+        at: new Date(),
+      });
+
+      return res.json({
+        ok: true,
+        postId: fbData.post_id,
+        photoId: fbData.id,
+        permalink: fbData.post_id ? `https://www.facebook.com/${fbData.post_id}` : null,
+      });
+    } catch (err) {
+      console.error("❌ [FBPublish] 호출 실패:", err);
+      await db.collection("broadcastLogs").add({
+        channel: "facebook",
+        ok: false,
+        imageUrl, caption, link: link || null,
+        error: String(err.message || err),
+        at: new Date(),
+      });
+      return res.status(500).json({ ok: false, error: String(err.message || err) });
+    }
+  }
+);
