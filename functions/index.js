@@ -311,25 +311,27 @@ exports.onNewItemCreated = onDocumentCreated(
 
     console.log("🛍️ 새 물품 등록 알림:", item.title, "도시:", item.city);
 
+    // 주변 유저 알림 (주변 유저 없어도 관리자 알림은 반드시 전송)
     try {
       const tokens = await getUserTokensByCity(item.city, item.userId, "nearbyItems");
-      if (tokens.length === 0) { console.log("📭 알림 대상 없음"); return; }
-
-      const priceText = item.price > 0 ? `${Number(item.price).toLocaleString()}₫` : "무료나눔";
-      const locationText = [item.city, item.district, item.apartment].filter(Boolean).join(" ");
-
-      await sendMulticastFCM(tokens, {
-        title: `🛍️ 새 물품: ${item.title}`,
-        body: `${priceText} · ${locationText}`,
-        data: { screen: "당근/나눔 상세", itemId, type: "new_item" },
-        imageUrl: (item.images && item.images[0]) ? item.images[0] : null,
-      });
-      console.log(`✅ ${tokens.length}명에게 물품 알림 전송 완료`);
+      if (tokens.length > 0) {
+        const priceText = item.price > 0 ? `${Number(item.price).toLocaleString()}₫` : "무료나눔";
+        const locationText = [item.city, item.district, item.apartment].filter(Boolean).join(" ");
+        await sendMulticastFCM(tokens, {
+          title: `🛍️ 새 물품: ${item.title}`,
+          body: `${priceText} · ${locationText}`,
+          data: { screen: "당근/나눔 상세", itemId, type: "new_item" },
+          imageUrl: (item.images && item.images[0]) ? item.images[0] : null,
+        });
+        console.log(`✅ ${tokens.length}명에게 물품 알림 전송 완료`);
+      } else {
+        console.log("📭 주변 알림 대상 없음");
+      }
     } catch (error) {
       console.error("❌ 물품 알림 실패:", error);
     }
 
-    // 관리자 알림
+    // 관리자 알림 (항상 전송)
     await sendAdminPush(
       `🥕 당근/나눔 새 등록`,
       item.title || "새 물품",
@@ -351,24 +353,26 @@ exports.onNewJobCreated = onDocumentCreated(
 
     console.log("💼 새 구인구직 등록 알림:", job.title, "도시:", job.city);
 
+    // 주변 유저 알림
     try {
       const tokens = await getUserTokensByCity(job.city, job.userId, "jobs");
-      if (tokens.length === 0) { console.log("📭 알림 대상 없음"); return; }
-
-      const typeLabel = job.jobType === "구인" ? "구인" : "구직";
-
-      await sendMulticastFCM(tokens, {
-        title: `💼 새 ${typeLabel}: ${job.title}`,
-        body: `${job.industry} · ${job.salary || "급여 협의"} · ${job.city}`,
-        data: { screen: "Jobs", jobId, type: "new_job" },
-        imageUrl: (job.images && job.images[0]) ? job.images[0] : null,
-      });
-      console.log(`✅ ${tokens.length}명에게 구인구직 알림 전송 완료`);
+      if (tokens.length > 0) {
+        const typeLabel = job.jobType === "구인" ? "구인" : "구직";
+        await sendMulticastFCM(tokens, {
+          title: `💼 새 ${typeLabel}: ${job.title}`,
+          body: `${job.industry} · ${job.salary || "급여 협의"} · ${job.city}`,
+          data: { screen: "Jobs", jobId, type: "new_job" },
+          imageUrl: (job.images && job.images[0]) ? job.images[0] : null,
+        });
+        console.log(`✅ ${tokens.length}명에게 구인구직 알림 전송 완료`);
+      } else {
+        console.log("📭 주변 알림 대상 없음");
+      }
     } catch (error) {
       console.error("❌ 구인구직 알림 실패:", error);
     }
 
-    // 관리자 알림
+    // 관리자 알림 (항상 전송)
     await sendAdminPush(
       `💼 구인구직 새 등록`,
       job.title || "새 공고",
@@ -390,24 +394,26 @@ exports.onNewRealEstateCreated = onDocumentCreated(
 
     console.log("🏠 새 부동산 등록 알림:", item.title, "도시:", item.city);
 
+    // 주변 유저 알림
     try {
       const tokens = await getUserTokensByCity(item.city, item.userId, "realEstate");
-      if (tokens.length === 0) { console.log("📭 알림 대상 없음"); return; }
-
-      const locationText = [item.city, item.district, item.apartment].filter(Boolean).join(" ");
-
-      await sendMulticastFCM(tokens, {
-        title: `🏠 새 부동산: ${item.title}`,
-        body: `${item.dealType || ""} · ${item.price || "가격 협의"} · ${locationText}`,
-        data: { screen: "부동산", itemId, type: "new_realestate" },
-        imageUrl: (item.images && item.images[0]) ? item.images[0] : null,
-      });
-      console.log(`✅ ${tokens.length}명에게 부동산 알림 전송 완료`);
+      if (tokens.length > 0) {
+        const locationText = [item.city, item.district, item.apartment].filter(Boolean).join(" ");
+        await sendMulticastFCM(tokens, {
+          title: `🏠 새 부동산: ${item.title}`,
+          body: `${item.dealType || ""} · ${item.price || "가격 협의"} · ${locationText}`,
+          data: { screen: "부동산", itemId, type: "new_realestate" },
+          imageUrl: (item.images && item.images[0]) ? item.images[0] : null,
+        });
+        console.log(`✅ ${tokens.length}명에게 부동산 알림 전송 완료`);
+      } else {
+        console.log("📭 주변 알림 대상 없음");
+      }
     } catch (error) {
       console.error("❌ 부동산 알림 실패:", error);
     }
 
-    // 관리자 알림
+    // 관리자 알림 (항상 전송)
     await sendAdminPush(
       `🏠 부동산 새 등록`,
       item.title || "새 매물",

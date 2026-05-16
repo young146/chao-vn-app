@@ -108,15 +108,27 @@ export default function NotificationsScreen({ navigation }) {
       if (notification.itemId) {
         const type = notification.type;
 
+        const serializeTimestamps = (data) => {
+          const result = { ...data };
+          for (const key of Object.keys(result)) {
+            if (result[key]?.toDate) {
+              result[key] = result[key].toDate().toISOString();
+            }
+          }
+          return result;
+        };
+
         if (type === "new_item_job") {
           const snap = await getDocs(query(collection(db, "Jobs"), where("__name__", "==", notification.itemId)));
           if (!snap.empty) {
-            navigation.navigate("구인구직 상세", { job: { id: snap.docs[0].id, ...snap.docs[0].data() } });
+            const d = serializeTimestamps(snap.docs[0].data());
+            navigation.navigate("구인구직 상세", { job: { id: snap.docs[0].id, ...d } });
           }
         } else if (type === "new_item_realestate") {
           const snap = await getDocs(query(collection(db, "RealEstate"), where("__name__", "==", notification.itemId)));
           if (!snap.empty) {
-            navigation.navigate("부동산 상세", { item: { id: snap.docs[0].id, ...snap.docs[0].data() } });
+            const d = serializeTimestamps(snap.docs[0].data());
+            navigation.navigate("부동산 상세", { item: { id: snap.docs[0].id, ...d } });
           }
         } else {
           // 당근/나눔 (new_item_danggn 또는 기존 new_item)
