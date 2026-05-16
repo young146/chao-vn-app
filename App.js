@@ -120,6 +120,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
+import RNRestart from "react-native-restart";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { hasHomeDataCache } from "./services/wordpressApi";
 import notificationService from "./services/NotificationService";
@@ -573,7 +574,8 @@ export default function App() {
               ['OTA_SKIP_CHECK', '1'],
             ]).catch(() => {});
 
-            await Updates.reloadAsync();
+            // 프로세스 완전 재시작 (iOS/Android 동일) - 껐다 켜기와 동일하여 OTA 후 멈춤 방지
+            RNRestart.Restart();
           }
         } catch (e) {
           console.log("⚠️ 업데이트 체크 실패 (앱 정상 작동):", e?.message);
