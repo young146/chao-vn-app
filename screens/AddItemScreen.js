@@ -632,10 +632,6 @@ export default function AddItemScreen({ navigation, route }) {
             style={styles.picker}
           >
             <Picker.Item label={t('categories.free')} value="무료나눔" />
-            <Picker.Item label={`🔍 ${t('categories.hiring')}`} value="구인" />
-            <Picker.Item label={`💼 ${t('categories.seeking')}`} value="구직" />
-            <Picker.Item label={`🏠 ${t('categories.rentProperty')}`} value="부동산 임대" />
-            <Picker.Item label={`🏡 ${t('categories.sellProperty')}`} value="부동산 판매" />
             <Picker.Item label={t('categories.electronics')} value="전자제품" />
             <Picker.Item label={t('categories.furniture')} value="가구/인테리어" />
             <Picker.Item label={t('categories.clothing')} value="의류/잡화" />

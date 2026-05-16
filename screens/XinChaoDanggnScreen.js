@@ -116,10 +116,6 @@ export default function XinChaoDanggnScreen({ navigation }) {
   const categoryKeys = [
     { key: 'all', value: '전체' },
     { key: 'free', value: '무료나눔' },
-    { key: 'hiring', value: '구인' },
-    { key: 'seeking', value: '구직' },
-    { key: 'rentProperty', value: '부동산 임대' },
-    { key: 'sellProperty', value: '부동산 판매' },
     { key: 'electronics', value: '전자제품' },
     { key: 'furniture', value: '가구/인테리어' },
     { key: 'clothing', value: '의류/잡화' },
