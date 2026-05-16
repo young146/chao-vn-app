@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
   useColorScheme,
+  Switch,
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
@@ -43,6 +44,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { shareItem } from "../utils/deepLinkUtils";
+import { notifyAdmins } from "../utils/adminNotify";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
@@ -62,6 +65,7 @@ export default function AddItemScreen({ navigation, route }) {
   const [selectedApartment, setSelectedApartment] = useState("");
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [kakaoShare, setKakaoShare] = useState(true);
   const [status, setStatus] = useState("판매중");
   const [condition, setCondition] = useState("");
 
@@ -277,49 +281,6 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
-  // 관리자에게 알림 생성하는 함수
-  const notifyAdminsNewItem = async (
-    itemId,
-    itemTitle,
-    itemImage,
-    itemPrice
-  ) => {
-    try {
-      console.log("📢 관리자에게 신규 물품 알림 생성 중...");
-
-      const adminEmails = ["info@chaovietnam.co.kr", "younghan146@gmail.com"];
-
-      for (const adminEmail of adminEmails) {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", adminEmail));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          const adminUserId = snapshot.docs[0].id;
-
-          await addDoc(collection(db, "notifications"), {
-            userId: adminUserId,
-            type: "new_item",
-            itemId: itemId,
-            itemTitle: itemTitle,
-            itemImage: itemImage || "",
-            itemPrice: itemPrice,
-            sellerEmail: user.email,
-            message: `새 물품이 등록되었습니다: ${itemTitle}`,
-            read: false,
-            createdAt: serverTimestamp(),
-          });
-
-          console.log(`✅ ${adminEmail}에게 알림 생성 완료`);
-        } else {
-          console.log(`⚠️ ${adminEmail} 계정을 찾을 수 없음`);
-        }
-      }
-    } catch (error) {
-      console.error("❌ 관리자 알림 생성 실패:", error);
-    }
-  };
-
   // 🆕 주변 사용자에게 알림 생성하는 함수
   const notifyNearbyUsers = async (
     itemId,
@@ -532,13 +493,14 @@ export default function AddItemScreen({ navigation, route }) {
           status: "판매중",
         });
 
-        // 관리자에게 알림
-        await notifyAdminsNewItem(
-          docRef.id,
-          title,
-          uploadedImageUrls[0] || "",
-          price
-        );
+        await notifyAdmins({
+          type: "new_item_danggn",
+          itemId: docRef.id,
+          itemTitle: title,
+          itemImage: uploadedImageUrls[0] || "",
+          itemPrice: price,
+          sellerEmail: user.email,
+        });
 
         // 🆕 주변 사용자에게 알림
         await notifyNearbyUsers(
@@ -567,8 +529,11 @@ export default function AddItemScreen({ navigation, route }) {
         Alert.alert(t('form.success'), t('form.itemRegistered'), [
           {
             text: "확인",
-            onPress: () => {
+            onPress: async () => {
               navigation.navigate("당근/나눔 상세", { item: resultItem });
+              if (kakaoShare) {
+                await shareItem('danggn', docRef.id, resultItem, 'kakao');
+              }
             },
           },
         ]);
@@ -820,6 +785,21 @@ export default function AddItemScreen({ navigation, route }) {
           </Picker>
         </View>
 
+        {!isEditMode && (
+          <View style={styles.kakaoShareRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kakaoShareTitle}>카카오톡 오픈채팅 공유</Text>
+              <Text style={styles.kakaoShareDesc}>카카오톡에서 씬짜오 당근/나눔 오픈채팅방을 선택하면 바로 공유돼요.</Text>
+            </View>
+            <Switch
+              value={kakaoShare}
+              onValueChange={setKakaoShare}
+              trackColor={{ false: '#ccc', true: '#FEE500' }}
+              thumbColor={kakaoShare ? '#3C1E1E' : '#f4f3f4'}
+            />
+          </View>
+        )}
+
         <TouchableOpacity
           style={[styles.button, uploading && styles.buttonDisabled]}
           onPress={handleSubmit}
@@ -979,6 +959,26 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: "#ccc",
+  },
+  kakaoShareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFDE7",
+    borderWidth: 1,
+    borderColor: "#FEE500",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  kakaoShareTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 2,
+  },
+  kakaoShareDesc: {
+    fontSize: 12,
+    color: "#888",
   },
   buttonText: {
     color: "#fff",

@@ -105,34 +105,32 @@ export default function NotificationsScreen({ navigation }) {
         );
       }
 
-      // 당근/나눔 상세 화면으로 이동
       if (notification.itemId) {
-        // 당근/나눔 정보 가져오기
-        const itemsRef = collection(db, "XinChaoDanggn");
-        const q = query(itemsRef, where("__name__", "==", notification.itemId));
-        const snapshot = await getDocs(q);
+        const type = notification.type;
 
-        if (!snapshot.empty) {
-          const itemDoc = snapshot.docs[0];
-          const itemData = itemDoc.data();
-
-          const item = {
-            id: itemDoc.id,
-            title: itemData.title,
-            price: itemData.price,
-            category: itemData.category,
-            description: itemData.description,
-            images: itemData.images,
-            sellerId: itemData.sellerId,
-            status: itemData.status,
-            city: itemData.city,
-            district: itemData.district,
-            apartment: itemData.apartment,
-            // createdAt을 문자열로 변환하여 navigation params에 전달
-            createdAt: itemData.createdAt?.toDate?.()?.toISOString() || itemData.createdAt,
-          };
-
-          navigation.navigate("당근/나눔 상세", { item });
+        if (type === "new_item_job") {
+          const snap = await getDocs(query(collection(db, "Jobs"), where("__name__", "==", notification.itemId)));
+          if (!snap.empty) {
+            navigation.navigate("구인구직 상세", { job: { id: snap.docs[0].id, ...snap.docs[0].data() } });
+          }
+        } else if (type === "new_item_realestate") {
+          const snap = await getDocs(query(collection(db, "RealEstate"), where("__name__", "==", notification.itemId)));
+          if (!snap.empty) {
+            navigation.navigate("부동산 상세", { item: { id: snap.docs[0].id, ...snap.docs[0].data() } });
+          }
+        } else {
+          // 당근/나눔 (new_item_danggn 또는 기존 new_item)
+          const snap = await getDocs(query(collection(db, "XinChaoDanggn"), where("__name__", "==", notification.itemId)));
+          if (!snap.empty) {
+            const d = snap.docs[0].data();
+            navigation.navigate("당근/나눔 상세", {
+              item: {
+                id: snap.docs[0].id,
+                ...d,
+                createdAt: d.createdAt?.toDate?.()?.toISOString() || d.createdAt,
+              },
+            });
+          }
         }
       }
     } catch (error) {
@@ -155,7 +153,12 @@ export default function NotificationsScreen({ navigation }) {
       case "chat":
         return { name: "chatbubble-ellipses", color: "#4CAF50" };
       case "new_item":
-        return { name: "add-circle", color: "#2196F3" };
+      case "new_item_danggn":
+        return { name: "add-circle", color: "#FF6B35" };
+      case "new_item_job":
+        return { name: "briefcase", color: "#1976D2" };
+      case "new_item_realestate":
+        return { name: "home", color: "#E91E63" };
       case "item_rejected":
         return { name: "close-circle", color: "#dc3545" };
       default:
@@ -200,6 +203,9 @@ export default function NotificationsScreen({ navigation }) {
               {item.type === "favorite" && <Text>❤️ {t('newFavorite')}</Text>}
               {item.type === "chat" && <Text>💬 {t('newMessage')}</Text>}
               {item.type === "new_item" && <Text>📦 {t('newItemRegistered')}</Text>}
+              {item.type === "new_item_danggn" && <Text>🥕 당근/나눔 새 등록</Text>}
+              {item.type === "new_item_job" && <Text>💼 구인구직 새 등록</Text>}
+              {item.type === "new_item_realestate" && <Text>🏠 부동산 새 등록</Text>}
               {item.type === "item_rejected" && <Text>🚫 {t('itemRejected')}</Text>}
             </Text>
             {/* ✅ 메시지 (numberOfLines 제거!) */}
@@ -222,10 +228,10 @@ export default function NotificationsScreen({ navigation }) {
             )}
 
             {/* 물품 제목 표시 */}
-            {(item.type === "new_item" || item.type === "item_rejected") &&
+            {(item.type === "new_item" || item.type === "new_item_danggn" || item.type === "new_item_job" || item.type === "new_item_realestate" || item.type === "item_rejected") &&
               item.itemTitle && (
                 <TranslatedText style={styles.itemTitle} numberOfLines={1}>
-                  📦 {item.itemTitle}
+                  {item.itemTitle}
                 </TranslatedText>
               )}
 

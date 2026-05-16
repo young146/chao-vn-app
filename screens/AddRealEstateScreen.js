@@ -12,8 +12,11 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { Image } from "expo-image";
+import { shareItem } from "../utils/deepLinkUtils";
+import { notifyAdmins } from "../utils/adminNotify";
 import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
@@ -49,6 +52,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
   const [description, setDescription] = useState("");
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [kakaoShare, setKakaoShare] = useState(true);
 
   // 부동산 전용 필드
   const [dealType, setDealType] = useState("임대"); // 임대/매매
@@ -411,7 +415,7 @@ export default function AddRealEstateScreen({ navigation, route }) {
       } else {
         // 새 등록
         console.log("💾 부동산 등록 중...");
-        await addDoc(collection(db, "RealEstate"), {
+        const docRef = await addDoc(collection(db, "RealEstate"), {
           ...itemData,
           userId: user.uid,
           userEmail: user.email,
@@ -421,11 +425,25 @@ export default function AddRealEstateScreen({ navigation, route }) {
         // 캐시 무효화
         await AsyncStorage.removeItem("cached_realestate");
 
+        const resultItem = { id: docRef.id, ...itemData, userId: user.uid, userEmail: user.email };
+
+        await notifyAdmins({
+          type: "new_item_realestate",
+          itemId: docRef.id,
+          itemTitle: itemData.title,
+          itemImage: itemData.images?.[0] || "",
+          itemPrice: itemData.price || itemData.deposit || "",
+          sellerEmail: user.email,
+        });
+
         Alert.alert(t('form.success'), t('form.propertyRegistered'), [
           {
             text: "확인",
-            onPress: () => {
+            onPress: async () => {
               navigation.dispatch(StackActions.pop(1));
+              if (kakaoShare) {
+                await shareItem('realestate', docRef.id, resultItem, 'kakao');
+              }
             },
           },
         ]);
@@ -844,6 +862,21 @@ export default function AddRealEstateScreen({ navigation, route }) {
           />
         </View>
 
+        {!isEditMode && (
+          <View style={styles.kakaoShareRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kakaoShareTitle}>카카오톡 오픈채팅 공유</Text>
+              <Text style={styles.kakaoShareDesc}>카카오톡에서 씬짜오 부동산 오픈채팅방을 선택하면 바로 공유돼요.</Text>
+            </View>
+            <Switch
+              value={kakaoShare}
+              onValueChange={setKakaoShare}
+              trackColor={{ false: '#ccc', true: '#FEE500' }}
+              thumbColor={kakaoShare ? '#3C1E1E' : '#f4f3f4'}
+            />
+          </View>
+        )}
+
         {/* 등록 버튼 */}
         <TouchableOpacity
           style={[styles.submitButton, uploading && styles.submitButtonDisabled]}
@@ -1095,5 +1128,25 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "bold",
     color: "#fff",
+  },
+  kakaoShareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFDE7",
+    borderWidth: 1,
+    borderColor: "#FEE500",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  kakaoShareTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 2,
+  },
+  kakaoShareDesc: {
+    fontSize: 12,
+    color: "#888",
   },
 });

@@ -18,10 +18,13 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import { shareItem } from "../utils/deepLinkUtils";
+import { notifyAdmins } from "../utils/adminNotify";
 import {
   collection,
   addDoc,
@@ -258,6 +261,7 @@ export default function AddJobScreen({ navigation, route }) {
   const [images, setImages] = useState([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [kakaoShare, setKakaoShare] = useState(true);
 
   // 수정 모드 데이터 로드
   useEffect(() => {
@@ -382,9 +386,25 @@ export default function AddJobScreen({ navigation, route }) {
         await updateDoc(doc(db, "Jobs", editJob.id), { ...jobData, updatedAt: serverTimestamp() });
         Alert.alert(L.success, L.updated, [{ text: "OK", onPress: () => navigation.goBack() }]);
       } else {
-        await addDoc(collection(db, "Jobs"), { ...jobData, userId: user.uid, userEmail: user.email, createdAt: serverTimestamp() });
+        const docRef = await addDoc(collection(db, "Jobs"), { ...jobData, userId: user.uid, userEmail: user.email, createdAt: serverTimestamp() });
         await AsyncStorage.removeItem("cached_jobs");
-        Alert.alert(L.success, L.registered, [{ text: "OK", onPress: () => navigation.dispatch(StackActions.pop(1)) }]);
+        const resultItem = { id: docRef.id, ...jobData, userId: user.uid, userEmail: user.email };
+        await notifyAdmins({
+          type: "new_item_job",
+          itemId: docRef.id,
+          itemTitle: jobData.title,
+          itemImage: jobData.images?.[0] || "",
+          sellerEmail: user.email,
+        });
+        Alert.alert(L.success, L.registered, [{
+          text: "OK",
+          onPress: async () => {
+            navigation.dispatch(StackActions.pop(1));
+            if (kakaoShare) {
+              await shareItem('job', docRef.id, resultItem, 'kakao');
+            }
+          },
+        }]);
       }
     } catch (err) {
       console.error("구인 등록 실패:", err);
@@ -522,6 +542,21 @@ export default function AddJobScreen({ navigation, route }) {
           />
         </View>
 
+        {!isEditMode && (
+          <View style={styles.kakaoShareRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kakaoShareTitle}>카카오톡 오픈채팅 공유</Text>
+              <Text style={styles.kakaoShareDesc}>카카오톡에서 씬짜오 구인구직 오픈채팅방을 선택하면 바로 공유돼요.</Text>
+            </View>
+            <Switch
+              value={kakaoShare}
+              onValueChange={setKakaoShare}
+              trackColor={{ false: '#ccc', true: '#FEE500' }}
+              thumbColor={kakaoShare ? '#3C1E1E' : '#f4f3f4'}
+            />
+          </View>
+        )}
+
         {/* 제출 버튼 */}
         <TouchableOpacity style={[styles.submitButton, uploading && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={uploading}>
           {uploading ? <ActivityIndicator color="#fff" /> : (
@@ -584,4 +619,24 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { backgroundColor: "#E0E0E0" },
   submitButtonText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  kakaoShareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFDE7",
+    borderWidth: 1,
+    borderColor: "#FEE500",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  kakaoShareTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 2,
+  },
+  kakaoShareDesc: {
+    fontSize: 12,
+    color: "#888",
+  },
 });
