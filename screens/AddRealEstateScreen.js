@@ -14,7 +14,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
-import { notifyAdmins } from "../utils/adminNotify";
 import { Picker } from "@react-native-picker/picker";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
@@ -424,14 +423,6 @@ export default function AddRealEstateScreen({ navigation, route }) {
 
         const resultItem = { id: docRef.id, ...itemData, userId: user.uid, userEmail: user.email };
 
-        await notifyAdmins({
-          type: "new_item_realestate",
-          itemId: docRef.id,
-          itemTitle: itemData.title,
-          itemImage: itemData.images?.[0] || "",
-          itemPrice: itemData.price || itemData.deposit || "",
-          sellerEmail: user.email,
-        });
 
         Alert.alert(t('form.success'), t('form.propertyRegistered'), [
           {

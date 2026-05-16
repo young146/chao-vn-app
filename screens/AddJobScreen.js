@@ -22,7 +22,6 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import { notifyAdmins } from "../utils/adminNotify";
 import {
   collection,
   addDoc,
@@ -386,13 +385,6 @@ export default function AddJobScreen({ navigation, route }) {
         const docRef = await addDoc(collection(db, "Jobs"), { ...jobData, userId: user.uid, userEmail: user.email, createdAt: serverTimestamp() });
         await AsyncStorage.removeItem("cached_jobs");
         const resultItem = { id: docRef.id, ...jobData, userId: user.uid, userEmail: user.email };
-        await notifyAdmins({
-          type: "new_item_job",
-          itemId: docRef.id,
-          itemTitle: jobData.title,
-          itemImage: jobData.images?.[0] || "",
-          sellerEmail: user.email,
-        });
         Alert.alert(L.success, L.registered, [{
           text: "OK",
           onPress: () => navigation.dispatch(StackActions.pop(1)),

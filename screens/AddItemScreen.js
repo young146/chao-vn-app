@@ -43,7 +43,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { notifyAdmins } from "../utils/adminNotify";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
@@ -490,14 +489,6 @@ export default function AddItemScreen({ navigation, route }) {
           status: "판매중",
         });
 
-        await notifyAdmins({
-          type: "new_item_danggn",
-          itemId: docRef.id,
-          itemTitle: title,
-          itemImage: uploadedImageUrls[0] || "",
-          itemPrice: price,
-          sellerEmail: user.email,
-        });
 
         // 🆕 주변 사용자에게 알림
         await notifyNearbyUsers(

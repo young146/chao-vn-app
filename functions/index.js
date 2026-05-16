@@ -2,7 +2,7 @@ const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { Expo } = require("expo-server-sdk");
 
@@ -335,7 +335,8 @@ exports.onNewItemCreated = onDocumentCreated(
     await sendAdminPush(
       `🥕 당근/나눔 새 등록`,
       item.title || "새 물품",
-      { type: "new_item_danggn", itemId }
+      { type: "new_item_danggn", itemId },
+      { itemTitle: item.title || "", itemImage: (item.images && item.images[0]) || "" }
     );
   }
 );
@@ -376,7 +377,8 @@ exports.onNewJobCreated = onDocumentCreated(
     await sendAdminPush(
       `💼 구인구직 새 등록`,
       job.title || "새 공고",
-      { type: "new_item_job", itemId: jobId }
+      { type: "new_item_job", itemId: jobId },
+      { itemTitle: job.title || "", itemImage: (job.images && job.images[0]) || "" }
     );
   }
 );
@@ -417,7 +419,8 @@ exports.onNewRealEstateCreated = onDocumentCreated(
     await sendAdminPush(
       `🏠 부동산 새 등록`,
       item.title || "새 매물",
-      { type: "new_item_realestate", itemId }
+      { type: "new_item_realestate", itemId },
+      { itemTitle: item.title || "", itemImage: (item.images && item.images[0]) || "" }
     );
   }
 );
@@ -427,7 +430,7 @@ exports.onNewRealEstateCreated = onDocumentCreated(
 // ============================================================
 const ADMIN_EMAILS = ["younghan146@gmail.com", "info@chaovietnam.co.kr"];
 
-async function sendAdminPush(title, body, data = {}) {
+async function sendAdminPush(title, body, data = {}, extra = {}) {
   try {
     const fcmTokens = [];
     const expoTokens = [];
@@ -435,11 +438,25 @@ async function sendAdminPush(title, body, data = {}) {
     for (const email of ADMIN_EMAILS) {
       const snap = await db.collection("users").where("email", "==", email).get();
       if (snap.empty) { console.log(`⚠️ 관리자 계정 없음: ${email}`); continue; }
+      const adminUid = snap.docs[0].id;
       const u = snap.docs[0].data();
       const fcm = Array.isArray(u.fcmTokens) ? u.fcmTokens : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
-      const expo = Array.isArray(u.expoPushTokens) ? u.expoPushTokens : [u.expoPushToken].filter(Boolean);
+      const expoPush = Array.isArray(u.expoPushTokens) ? u.expoPushTokens : [u.expoPushToken].filter(Boolean);
       fcmTokens.push(...fcm);
-      expoTokens.push(...expo);
+      expoTokens.push(...expoPush);
+
+      // 알림 화면용 Firestore 레코드 생성
+      await db.collection("notifications").add({
+        userId: adminUid,
+        type: data.type || "admin_notification",
+        itemId: data.itemId || "",
+        itemTitle: extra.itemTitle || "",
+        itemImage: extra.itemImage || "",
+        message: body,
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      console.log(`📝 알림 레코드 생성: ${email} (${adminUid})`);
     }
 
     console.log(`📬 관리자 토큰: FCM ${fcmTokens.length}개, Expo ${expoTokens.length}개`);
