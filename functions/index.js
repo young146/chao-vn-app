@@ -85,6 +85,51 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// 🔧 임시 진단 함수: 관리자 유저 문서 + 알림 레코드 상태 확인
+exports.debugAdminNotifs = onRequest({ cors: true }, async (req, res) => {
+  try {
+    const result = { users: [], notifications: [] };
+
+    for (const email of ["younghan146@gmail.com", "info@chaovietnam.co.kr"]) {
+      const snap = await db.collection("users").where("email", "==", email).get();
+      for (const doc of snap.docs) {
+        const u = doc.data();
+        result.users.push({
+          email,
+          docId: doc.id,
+          fields: {
+            email: u.email,
+            displayName: u.displayName,
+            fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + "..." : null,
+            expoPushToken: u.expoPushToken ? u.expoPushToken.substring(0, 20) + "..." : null,
+            platform: u.platform,
+            pushTokenUpdatedAt: u.pushTokenUpdatedAt?.toDate?.()?.toISOString() || null,
+          },
+        });
+
+        // 이 doc ID로 생성된 알림 검색
+        const notifs = await db.collection("notifications").where("userId", "==", doc.id).limit(20).get();
+        for (const n of notifs.docs) {
+          const nd = n.data();
+          result.notifications.push({
+            id: n.id,
+            userId: nd.userId,
+            type: nd.type,
+            message: nd.message,
+            itemTitle: nd.itemTitle,
+            read: nd.read,
+            createdAt: nd.createdAt?.toDate?.()?.toISOString() || null,
+          });
+        }
+      }
+    }
+
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message, stack: e.stack });
+  }
+});
+
 exports.sendChatNotification = onDocumentCreated(
   "chatRooms/{roomId}/messages/{messageId}",
   async (event) => {
@@ -438,36 +483,44 @@ async function sendAdminPush(title, body, data = {}, extra = {}) {
     for (const email of ADMIN_EMAILS) {
       const snap = await db.collection("users").where("email", "==", email).get();
       if (snap.empty) { console.log(`⚠️ 관리자 계정 없음: ${email}`); continue; }
-      const adminUid = snap.docs[0].id;
-      const u = snap.docs[0].data();
-      const fcm = Array.isArray(u.fcmTokens) ? u.fcmTokens : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
-      const expoPush = Array.isArray(u.expoPushTokens) ? u.expoPushTokens : [u.expoPushToken].filter(Boolean);
-      fcmTokens.push(...fcm);
-      expoTokens.push(...expoPush);
 
-      // 알림 화면용 Firestore 레코드 생성
-      await db.collection("notifications").add({
-        userId: adminUid,
-        type: data.type || "admin_notification",
-        itemId: data.itemId || "",
-        itemTitle: extra.itemTitle || "",
-        itemImage: extra.itemImage || "",
-        message: body,
-        read: false,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      console.log(`📝 알림 레코드 생성: ${email} (${adminUid})`);
+      // 한 이메일에 여러 user 문서가 존재할 수 있음 (Google/이메일/Apple 등 다른 로그인 방식 → 다른 UID)
+      // → 모든 문서에 알림 레코드 생성 + 모든 토큰으로 푸시 발송 (현재 어느 UID로 로그인했든 알림이 도달하도록)
+      for (const adminDoc of snap.docs) {
+        const adminUid = adminDoc.id;
+        const u = adminDoc.data();
+        const fcm = Array.isArray(u.fcmTokens) ? u.fcmTokens : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
+        const expoPush = Array.isArray(u.expoPushTokens) ? u.expoPushTokens : [u.expoPushToken].filter(Boolean);
+        fcmTokens.push(...fcm);
+        expoTokens.push(...expoPush);
+
+        // 알림 화면용 Firestore 레코드 생성
+        await db.collection("notifications").add({
+          userId: adminUid,
+          type: data.type || "admin_notification",
+          itemId: data.itemId || "",
+          itemTitle: extra.itemTitle || "",
+          itemImage: extra.itemImage || "",
+          message: body,
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        console.log(`📝 알림 레코드 생성: ${email} (${adminUid})`);
+      }
     }
 
-    console.log(`📬 관리자 토큰: FCM ${fcmTokens.length}개, Expo ${expoTokens.length}개`);
+    // 토큰 중복 제거
+    const uniqueFcm = [...new Set(fcmTokens)];
+    const uniqueExpo = [...new Set(expoTokens)].filter(t => Expo.isExpoPushToken(t));
 
-    if (fcmTokens.length > 0) {
-      await sendMulticastFCM(fcmTokens, { title, body, data });
+    console.log(`📬 관리자 토큰: FCM ${uniqueFcm.length}개, Expo ${uniqueExpo.length}개`);
+
+    if (uniqueFcm.length > 0) {
+      await sendMulticastFCM(uniqueFcm, { title, body, data });
     }
 
-    const validExpo = expoTokens.filter(t => Expo.isExpoPushToken(t));
-    if (validExpo.length > 0) {
-      await expo.sendPushNotificationsAsync(validExpo.map(t => ({
+    if (uniqueExpo.length > 0) {
+      await expo.sendPushNotificationsAsync(uniqueExpo.map(t => ({
         to: t, sound: "default", title, body, data, channelId: "default", priority: "high",
       })));
     }
