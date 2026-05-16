@@ -18,12 +18,10 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Switch,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import { shareItem } from "../utils/deepLinkUtils";
 import { notifyAdmins } from "../utils/adminNotify";
 import {
   collection,
@@ -261,7 +259,6 @@ export default function AddJobScreen({ navigation, route }) {
   const [images, setImages] = useState([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [kakaoShare, setKakaoShare] = useState(true);
 
   // 수정 모드 데이터 로드
   useEffect(() => {
@@ -398,12 +395,7 @@ export default function AddJobScreen({ navigation, route }) {
         });
         Alert.alert(L.success, L.registered, [{
           text: "OK",
-          onPress: async () => {
-            navigation.dispatch(StackActions.pop(1));
-            if (kakaoShare) {
-              await shareItem('job', docRef.id, resultItem, 'kakao');
-            }
-          },
+          onPress: () => navigation.dispatch(StackActions.pop(1)),
         }]);
       }
     } catch (err) {
@@ -542,21 +534,6 @@ export default function AddJobScreen({ navigation, route }) {
           />
         </View>
 
-        {!isEditMode && (
-          <View style={styles.kakaoShareRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.kakaoShareTitle}>카카오톡 오픈채팅 공유</Text>
-              <Text style={styles.kakaoShareDesc}>카카오톡에서 씬짜오 구인구직 오픈채팅방을 선택하면 바로 공유돼요.</Text>
-            </View>
-            <Switch
-              value={kakaoShare}
-              onValueChange={setKakaoShare}
-              trackColor={{ false: '#ccc', true: '#FEE500' }}
-              thumbColor={kakaoShare ? '#3C1E1E' : '#f4f3f4'}
-            />
-          </View>
-        )}
-
         {/* 제출 버튼 */}
         <TouchableOpacity style={[styles.submitButton, uploading && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={uploading}>
           {uploading ? <ActivityIndicator color="#fff" /> : (
@@ -619,24 +596,4 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { backgroundColor: "#E0E0E0" },
   submitButtonText: { color: "#fff", fontSize: 17, fontWeight: "700" },
-  kakaoShareRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFDE7",
-    borderWidth: 1,
-    borderColor: "#FEE500",
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-  },
-  kakaoShareTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 2,
-  },
-  kakaoShareDesc: {
-    fontSize: 12,
-    color: "#888",
-  },
 });

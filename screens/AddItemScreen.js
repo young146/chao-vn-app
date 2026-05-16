@@ -12,7 +12,6 @@ import {
   Alert,
   ActivityIndicator,
   useColorScheme,
-  Switch,
 } from "react-native";
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
@@ -44,7 +43,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { shareItem } from "../utils/deepLinkUtils";
 import { notifyAdmins } from "../utils/adminNotify";
 
 export default function AddItemScreen({ navigation, route }) {
@@ -65,7 +63,6 @@ export default function AddItemScreen({ navigation, route }) {
   const [selectedApartment, setSelectedApartment] = useState("");
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [kakaoShare, setKakaoShare] = useState(true);
   const [status, setStatus] = useState("판매중");
   const [condition, setCondition] = useState("");
 
@@ -529,11 +526,8 @@ export default function AddItemScreen({ navigation, route }) {
         Alert.alert(t('form.success'), t('form.itemRegistered'), [
           {
             text: "확인",
-            onPress: async () => {
+            onPress: () => {
               navigation.navigate("당근/나눔 상세", { item: resultItem });
-              if (kakaoShare) {
-                await shareItem('danggn', docRef.id, resultItem, 'kakao');
-              }
             },
           },
         ]);
@@ -785,21 +779,6 @@ export default function AddItemScreen({ navigation, route }) {
           </Picker>
         </View>
 
-        {!isEditMode && (
-          <View style={styles.kakaoShareRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.kakaoShareTitle}>카카오톡 오픈채팅 공유</Text>
-              <Text style={styles.kakaoShareDesc}>카카오톡에서 씬짜오 당근/나눔 오픈채팅방을 선택하면 바로 공유돼요.</Text>
-            </View>
-            <Switch
-              value={kakaoShare}
-              onValueChange={setKakaoShare}
-              trackColor={{ false: '#ccc', true: '#FEE500' }}
-              thumbColor={kakaoShare ? '#3C1E1E' : '#f4f3f4'}
-            />
-          </View>
-        )}
-
         <TouchableOpacity
           style={[styles.button, uploading && styles.buttonDisabled]}
           onPress={handleSubmit}
@@ -959,26 +938,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: "#ccc",
-  },
-  kakaoShareRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFDE7",
-    borderWidth: 1,
-    borderColor: "#FEE500",
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-  },
-  kakaoShareTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 2,
-  },
-  kakaoShareDesc: {
-    fontSize: 12,
-    color: "#888",
   },
   buttonText: {
     color: "#fff",
