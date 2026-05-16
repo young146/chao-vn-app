@@ -120,7 +120,6 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
-import RNRestart from "react-native-restart";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { hasHomeDataCache } from "./services/wordpressApi";
 import notificationService from "./services/NotificationService";
