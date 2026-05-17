@@ -89,4 +89,4 @@
 
 - `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` — 최상위 원칙
 - `directives/SYSTEM_OVERVIEW.md` — 시스템 전체 지도
-- `directives/HANDOVER_NOTES.md` — 과거 변경 이력
+- `directives/작업 이어가기.md` — 진행 중인 작업 + 다음 후보

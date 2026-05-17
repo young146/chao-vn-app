@@ -34,8 +34,8 @@
 - `Jobs` — 구인 게시글
 - `candidates` — 구직자 프로필
 - `RealEstate` — 부동산
-- `NeighborBusinesses` — 우리 이웃 제품/업소 (신규, 관련: `NEIGHBOR_BUSINESSES_PLAN.md`)
-- `Announcements` — 공지 배너 시스템 (신규, 관련: `ANNOUNCEMENTS_PLAN.md`)
+- `NeighborBusinesses` — 우리 이웃 제품/업소
+- `Announcements` — 공지 배너 시스템
 
 ### Firebase Storage
 - 사용자 UGC 이미지 (중고 사진, 프로필, 이웃업소 이미지)
@@ -198,6 +198,4 @@
 ## 11. 관련 문서
 
 - `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` — AI 협업 원칙
-- `directives/NEIGHBOR_BUSINESSES_PLAN.md` — 우리 이웃 제품/업소 기능 설계
-- `directives/ANNOUNCEMENTS_PLAN.md` — 공지 배너 시스템 설계
-- `directives/HANDOVER_NOTES.md` — 과거 변경 이력
+- `directives/작업 이어가기.md` — 진행 중인 작업 + 다음 후보
