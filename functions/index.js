@@ -85,50 +85,7 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// 🔧 임시 진단 함수: 관리자 유저 문서 + 알림 레코드 상태 확인
-exports.debugAdminNotifs = onRequest({ cors: true }, async (req, res) => {
-  try {
-    const result = { users: [], notifications: [] };
-
-    for (const email of ["younghan146@gmail.com", "info@chaovietnam.co.kr"]) {
-      const snap = await db.collection("users").where("email", "==", email).get();
-      for (const doc of snap.docs) {
-        const u = doc.data();
-        result.users.push({
-          email,
-          docId: doc.id,
-          fields: {
-            email: u.email,
-            displayName: u.displayName,
-            fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + "..." : null,
-            expoPushToken: u.expoPushToken ? u.expoPushToken.substring(0, 20) + "..." : null,
-            platform: u.platform,
-            pushTokenUpdatedAt: u.pushTokenUpdatedAt?.toDate?.()?.toISOString() || null,
-          },
-        });
-
-        // 이 doc ID로 생성된 알림 검색
-        const notifs = await db.collection("notifications").where("userId", "==", doc.id).limit(20).get();
-        for (const n of notifs.docs) {
-          const nd = n.data();
-          result.notifications.push({
-            id: n.id,
-            userId: nd.userId,
-            type: nd.type,
-            message: nd.message,
-            itemTitle: nd.itemTitle,
-            read: nd.read,
-            createdAt: nd.createdAt?.toDate?.()?.toISOString() || null,
-          });
-        }
-      }
-    }
-
-    res.json(result);
-  } catch (e) {
-    res.status(500).json({ error: e.message, stack: e.stack });
-  }
-});
+/* 임시 함수 (2026-05-17) consolidateDuplicateUsers, migrateAdminNotifs, debugAdminNotifs 는 실행 후 보안상 제거함 */
 
 exports.sendChatNotification = onDocumentCreated(
   "chatRooms/{roomId}/messages/{messageId}",
