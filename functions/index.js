@@ -85,8 +85,6 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/* 임시 함수 (2026-05-17) consolidateDuplicateUsers, migrateAdminNotifs, debugAdminNotifs 는 실행 후 보안상 제거함 */
-
 exports.sendChatNotification = onDocumentCreated(
   "chatRooms/{roomId}/messages/{messageId}",
   async (event) => {
