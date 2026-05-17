@@ -5,6 +5,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { Expo } = require("expo-server-sdk");
+const sharp = require("sharp");
 
 initializeApp();
 setGlobalOptions({ region: "asia-northeast3" });
@@ -612,11 +613,57 @@ exports.onCandidateWritten = onDocumentWritten(
 // ============================================================
 // 📘 publishToFacebookPage - 씬짜오베트남 페이지 자동 게시
 // daily-news-final 앱에서 카드 생성 직후 호출
+//
+// 동작:
+//  1) 뉴스 카드를 1080x1080 정사각형으로 변환 후 메인 게시 (multipart)
+//  2) 각 광고 카드는 게시물에 댓글로 등록 (attachment_url로 사진 첨부 + 메시지에 광고주 링크)
+//  → 광고 클릭은 댓글의 링크를 통해 작동
+//
+// 입력 body:
+// {
+//   news:   { imageUrl, caption, link? }
+//   promos: [ { imageUrl, message, linkUrl? }, ... ]
+// }
+// 하위호환: { imageUrl, caption, link } 단일 형식도 지원 (광고 없는 단순 게시)
 // ============================================================
+
+async function downloadImage(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Image download failed (${url}): HTTP ${r.status}`);
+  return Buffer.from(await r.arrayBuffer());
+}
+
+async function toSquare(buffer, size = 1080) {
+  return sharp(buffer)
+    .resize({ width: size, height: size, fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+}
+
+async function uploadPhotoMultipart(pageId, pageToken, buffer, caption) {
+  const form = new FormData();
+  form.append("caption", caption);
+  form.append("access_token", pageToken);
+  form.append("source", new Blob([buffer], { type: "image/jpeg" }), "card.jpg");
+  const r = await fetch(`https://graph.facebook.com/v25.0/${pageId}/photos`, { method: "POST", body: form });
+  return await r.json();
+}
+
+async function uploadPhotoUnpublished(pageId, pageToken, buffer) {
+  const form = new FormData();
+  form.append("published", "false");
+  form.append("access_token", pageToken);
+  form.append("source", new Blob([buffer], { type: "image/jpeg" }), "card.jpg");
+  const r = await fetch(`https://graph.facebook.com/v25.0/${pageId}/photos`, { method: "POST", body: form });
+  return await r.json();
+}
+
 exports.publishToFacebookPage = onRequest(
   {
     cors: false,
     invoker: "public",
+    memory: "512MiB",
+    timeoutSeconds: 120,
     secrets: ["FB_PAGE_ACCESS_TOKEN", "FB_PAGE_ID", "PUBLISH_API_KEY"],
   },
   async (req, res) => {
@@ -630,64 +677,82 @@ exports.publishToFacebookPage = onRequest(
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
-    const { imageUrl, caption, link } = req.body || {};
-    if (!imageUrl || !caption) {
-      return res.status(400).json({ ok: false, error: "imageUrl and caption are required" });
+    // 입력 정규화 — news + promos
+    const body = req.body || {};
+    const news = body.news
+      || (body.imageUrl ? { imageUrl: body.imageUrl, caption: body.caption || "", link: body.link } : null);
+    const promos = Array.isArray(body.promos) ? body.promos.filter(p => p && p.imageUrl) : [];
+
+    if (!news || !news.imageUrl || !news.caption) {
+      return res.status(400).json({ ok: false, error: "news.imageUrl and news.caption are required" });
     }
 
     const pageId = (process.env.FB_PAGE_ID || "").trim();
     const pageToken = (process.env.FB_PAGE_ACCESS_TOKEN || "").trim();
+    const logBase = { channel: "facebook", news, promos };
 
-    const message = link ? `${caption}\n\n${link}` : caption;
-
-    const fbUrl = `https://graph.facebook.com/v25.0/${pageId}/photos`;
-    const params = new URLSearchParams({
-      url: imageUrl,
-      caption: message,
-      access_token: pageToken,
-    });
+    // 캡션 합성: 뉴스 + 광고 링크 텍스트
+    const lines = [news.caption];
+    if (news.link) lines.push("", news.link);
+    if (promos.length > 0) {
+      lines.push("", "━━━━━━━━━━", "📌 오늘의 광고");
+      for (const p of promos) {
+        const title = (p.title || "").toString().trim();
+        const url = (p.linkUrl || "").toString().trim();
+        if (title && url) lines.push(`• ${title} → ${url}`);
+        else if (title) lines.push(`• ${title}`);
+        else if (url) lines.push(`• ${url}`);
+      }
+    }
+    const message = lines.join("\n");
 
     try {
-      const fbRes = await fetch(fbUrl, { method: "POST", body: params });
-      const fbData = await fbRes.json();
-
-      if (!fbRes.ok || fbData.error) {
-        console.error("❌ [FBPublish] Graph API 에러:", fbData);
-        await db.collection("broadcastLogs").add({
-          channel: "facebook",
-          ok: false,
-          imageUrl, caption, link: link || null,
-          error: fbData.error || fbData,
-          at: new Date(),
-        });
-        return res.status(502).json({ ok: false, error: fbData.error || fbData });
+      // 1. 모든 이미지(뉴스 + 광고) 다운로드 → 1:1 변환 → published=false 업로드
+      const allImages = [news.imageUrl, ...promos.map(p => p.imageUrl)];
+      const photoIds = [];
+      for (const url of allImages) {
+        const buf = await downloadImage(url);
+        const sq = await toSquare(buf, 1080);
+        const up = await uploadPhotoUnpublished(pageId, pageToken, sq);
+        if (up.error) {
+          console.error("❌ [FBPublish] 사진 업로드 실패:", url, up.error);
+          await db.collection("broadcastLogs").add({ ...logBase, ok: false, stage: "photo_upload", failedUrl: url, error: up.error, at: new Date() });
+          return res.status(502).json({ ok: false, error: up.error });
+        }
+        photoIds.push(up.id);
       }
 
-      console.log(`✅ [FBPublish] 게시 성공: post_id=${fbData.post_id}, photo_id=${fbData.id}`);
+      // 2. /feed 로 묶어서 앨범 게시
+      const feedParams = new URLSearchParams({
+        message,
+        attached_media: JSON.stringify(photoIds.map(id => ({ media_fbid: id }))),
+        access_token: pageToken,
+      });
+      const feedRes = await fetch(`https://graph.facebook.com/v25.0/${pageId}/feed`, { method: "POST", body: feedParams });
+      const feedData = await feedRes.json();
+      if (!feedRes.ok || feedData.error) {
+        console.error("❌ [FBPublish] /feed 에러:", feedData);
+        await db.collection("broadcastLogs").add({ ...logBase, ok: false, stage: "feed", uploadedPhotoIds: photoIds, error: feedData.error || feedData, at: new Date() });
+        return res.status(502).json({ ok: false, error: feedData.error || feedData });
+      }
+
+      const postId = feedData.id;
+      console.log(`✅ [FBPublish] 앨범 게시 성공: post_id=${postId}, photos=${photoIds.length}`);
+
       await db.collection("broadcastLogs").add({
-        channel: "facebook",
-        ok: true,
-        imageUrl, caption, link: link || null,
-        postId: fbData.post_id || null,
-        photoId: fbData.id || null,
-        at: new Date(),
+        ...logBase, ok: true, mode: "album",
+        postId, photoIds, at: new Date(),
       });
 
       return res.json({
         ok: true,
-        postId: fbData.post_id,
-        photoId: fbData.id,
-        permalink: fbData.post_id ? `https://www.facebook.com/${fbData.post_id}` : null,
+        postId,
+        photoIds,
+        permalink: `https://www.facebook.com/${postId}`,
       });
     } catch (err) {
       console.error("❌ [FBPublish] 호출 실패:", err);
-      await db.collection("broadcastLogs").add({
-        channel: "facebook",
-        ok: false,
-        imageUrl, caption, link: link || null,
-        error: String(err.message || err),
-        at: new Date(),
-      });
+      await db.collection("broadcastLogs").add({ ...logBase, ok: false, error: String(err.message || err), at: new Date() });
       return res.status(500).json({ ok: false, error: String(err.message || err) });
     }
   }
