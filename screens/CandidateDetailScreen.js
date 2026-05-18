@@ -98,7 +98,7 @@ export default function CandidateDetailScreen({ route, navigation }) {
       headerRight: () => (
         <View style={{ flexDirection: "row", gap: 12, marginRight: 8, alignItems: "center" }}>
           <TouchableOpacity onPress={() => handleShare('more')} style={{ marginRight: canManage ? 4 : 8 }}>
-            <Ionicons name="share-outline" size={24} color="#fff" />
+            <Ionicons name="share-social-outline" size={24} color="#fff" />
           </TouchableOpacity>
           {canManage && (
             <TouchableOpacity
@@ -676,7 +676,7 @@ export default function CandidateDetailScreen({ route, navigation }) {
               style={[styles.shareButton, { backgroundColor: '#FF7043' }]}
               onPress={() => handleShare('more')}
             >
-              <Ionicons name="share-outline" size={24} color="#fff" />
+              <Ionicons name="share-social-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>

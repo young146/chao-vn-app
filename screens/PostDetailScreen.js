@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -24,7 +24,7 @@ import TranslatedText from '../components/TranslatedText';
 import { translateText } from '../services/TranslationService';
 import { PopupAd } from '../components/AdBanner';
 
-export default function PostDetailScreen({ route }) {
+export default function PostDetailScreen({ route, navigation }) {
   const { t, i18n } = useTranslation('menu');
   const { post } = route.params;
   const { width } = useWindowDimensions();
@@ -96,6 +96,18 @@ export default function PostDetailScreen({ route }) {
       console.log('공유 실패:', error);
     }
   };
+
+  // 📤 헤더 우측 공유 버튼 (다른 상세 화면들과 일관성 유지)
+  useLayoutEffect(() => {
+    if (!navigation) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => handleShare('more')} style={{ marginRight: 16 }}>
+          <Ionicons name="share-social-outline" size={24} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, shareUrl, shareTitle]);
 
   // 날짜 변환 (KBoard는 RSS 날짜 형식이므로 처리 필요)
   let dateStr = t('postDetail.noDateInfo');
@@ -302,7 +314,7 @@ export default function PostDetailScreen({ route }) {
               style={[styles.shareButton, { backgroundColor: '#FF6B35' }]}
               onPress={() => handleShare('more')}
             >
-              <Ionicons name="share-outline" size={24} color="#fff" />
+              <Ionicons name="share-social-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>

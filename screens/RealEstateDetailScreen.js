@@ -267,7 +267,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
-            <Ionicons name="share-outline" size={24} color="#333" />
+            <Ionicons name="share-social-outline" size={24} color="#fff" />
           </TouchableOpacity>
           {canDelete && (
             <TouchableOpacity onPress={() => {

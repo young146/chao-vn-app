@@ -975,7 +975,7 @@ export default function ItemDetailScreen({ route, navigation }) {
               style={[styles.shareButton, { backgroundColor: '#FF6B35' }]}
               onPress={() => handleShare('more')}
             >
-              <Ionicons name="share-outline" size={24} color="#fff" />
+              <Ionicons name="share-social-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>

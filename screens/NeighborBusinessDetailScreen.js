@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -175,6 +175,7 @@ export default function NeighborBusinessDetailScreen() {
   };
 
   const handleShare = async () => {
+    if (!data) return; // 로딩 중에는 헤더 버튼 무시 (다른 상세화면들과 동일한 가드 패턴)
     try {
       // 공유 URL: chaovietnam.co.kr/app/share/neighbor/{id} — WordPress 랜딩이 앱/웹 분기 처리
       await shareItem('neighbor', id, data, 'more');
@@ -182,6 +183,17 @@ export default function NeighborBusinessDetailScreen() {
       console.warn('share failed', e);
     }
   };
+
+  // 📤 헤더 우측 공유 버튼 (다른 상세 화면들과 일관성 유지)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
+          <Ionicons name="share-social-outline" size={24} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, data, id]);
 
   const handleEdit = () => {
     navigation.navigate('이웃사업 등록', { editId: id });
@@ -473,11 +485,6 @@ export default function NeighborBusinessDetailScreen() {
           <View style={{ height: 16 }} />
         </View>
       </ScrollView>
-
-      {/* 공유 버튼 (fixed) */}
-      <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.8}>
-        <Ionicons name="share-social-outline" size={22} color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -644,20 +651,4 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  shareBtn: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#333',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
 });
