@@ -358,7 +358,13 @@ export default function MagazineScreen({ navigation, route }) {
   const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
     try {
       if (pageNum === 1) {
-        if (!isRefresh) setLoading(true);
+        if (!isRefresh) {
+          // 이미 데이터가 있으면 스피너 생략 — 탭 재진입 시 깜빡임 방지
+          const hasExistingData =
+            (type === 'home' && !query && homeSections.length > 0) ||
+            (type === 'news' && !query && newsSections.length > 0);
+          if (!hasExistingData) setLoading(true);
+        }
         // 홈 화면이고 검색어가 없을 때만 슬라이더 및 섹션 데이터 가져옴
         if (type === 'home' && !query) {
           const homeData = await getHomeDataCached(isRefresh);

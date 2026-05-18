@@ -6,7 +6,8 @@ const BOARD_BASE_URL = "https://vnkorlife.com/wp-json/wp/v2";
 
 // 캐시 설정
 const CACHE_KEY = "HOME_DATA_CACHE";
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
+const HOME_CACHE_EXPIRY = 6 * 60 * 60 * 1000; // 6시간 (격주 발행, OTA 업데이트 시 자동 삭제)
+const NEWS_CACHE_EXPIRY = 2 * 60 * 60 * 1000; // 2시간 (하루 1-2회 업데이트)
 
 const api = axios.create({
   timeout: 5000, // 5초 - 느린 네트워크에서 빠른 캐시 폴백
@@ -221,7 +222,7 @@ export const getHomeDataCached = async (forceRefresh = false) => {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
-        const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
+        const isExpired = Date.now() - timestamp > HOME_CACHE_EXPIRY;
 
         if (!isExpired) {
           console.log("📦 캐시 사용 (유효)");
@@ -343,7 +344,7 @@ export const getNewsSectionsCached = async (
       const cached = await AsyncStorage.getItem(cacheKey);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
-        const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
+        const isExpired = Date.now() - timestamp > NEWS_CACHE_EXPIRY;
         if (!isExpired) {
           console.log("📦 뉴스 캐시 사용");
           return data;
