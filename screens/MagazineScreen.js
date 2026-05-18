@@ -646,7 +646,7 @@ export default function MagazineScreen({ navigation, route }) {
                     <View style={styles.homeSection}>
                       <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>{section.name}</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('홈', { screen: '홈메인', params: { categoryId: section.id, type: 'category' } })}>
+                        <TouchableOpacity onPress={() => navigation.navigate('카테고리목록', { categoryId: section.id, type: 'category', sectionName: section.name })}>
                           <Text style={styles.seeMore}>{t('seeMore')} {'>'}</Text>
                         </TouchableOpacity>
                       </View>

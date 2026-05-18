@@ -842,6 +842,16 @@ function HomeStack() {
         })}
       />
       <Stack.Screen
+        name="카테고리목록"
+        component={MagazineScreen}
+        options={({ route }) => ({
+          title: route.params?.sectionName || "",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+          headerBackTitleVisible: false,
+        })}
+      />
+      <Stack.Screen
         name="PostDetail"
         component={PostDetailScreen}
         options={{
