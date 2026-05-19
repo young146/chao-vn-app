@@ -380,6 +380,7 @@ export default function AddJobScreen({ navigation, route }) {
 
       if (isEditMode) {
         await updateDoc(doc(db, "Jobs", editJob.id), { ...jobData, updatedAt: serverTimestamp() });
+        await AsyncStorage.removeItem("cached_jobs");
         Alert.alert(L.success, L.updated, [{ text: "OK", onPress: () => navigation.goBack() }]);
       } else {
         const docRef = await addDoc(collection(db, "Jobs"), { ...jobData, userId: user.uid, userEmail: user.email, createdAt: serverTimestamp() });

@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -121,6 +122,21 @@ export default function JobDetailScreen({ route, navigation }) {
       setLoadingJob(false);
     }
   }, [initialJob, deepLinkId]);
+
+  // 수정 후 포커스 복귀 시 Firestore에서 최신 데이터 재조회
+  useFocusEffect(
+    useCallback(() => {
+      const jobId = initialJob?.id || deepLinkId;
+      if (!jobId) return;
+      const collection_ = initialJob?.sourceCollection === 'candidates' ? 'candidates' : 'Jobs';
+      getDoc(doc(db, collection_, jobId)).then((snap) => {
+        if (snap.exists()) {
+          setJob({ id: snap.id, ...snap.data() });
+          setCurrentStatus(snap.data().status || "모집중");
+        }
+      }).catch(() => {});
+    }, [initialJob?.id, deepLinkId])
+  );
 
   // 최근 구인 5개 조회 (orderBy 없이 JS 정렬로 복합 인덱스 회피)
   useEffect(() => {
@@ -594,6 +610,22 @@ export default function JobDetailScreen({ route, navigation }) {
               </View>
               <TouchableOpacity onPress={handleCall}>
                 <Text style={[styles.infoValue, styles.linkText]}>{job.contact}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 이메일 */}
+          {job.email && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons name="mail-outline" size={18} color="#E91E63" />
+                <Text style={styles.labelText}>이메일</Text>
+              </View>
+              <TouchableOpacity onPress={() => {
+                const { Linking } = require('react-native');
+                Linking.openURL(`mailto:${job.email}`);
+              }}>
+                <Text style={[styles.infoValue, styles.linkText]}>{job.email}</Text>
               </TouchableOpacity>
             </View>
           )}

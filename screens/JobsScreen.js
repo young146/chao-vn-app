@@ -112,6 +112,11 @@ const JobCard = memo(({ item, onPress, index, t }) => {
           )}
         </View>
 
+        {/* 회사명 */}
+        {item.companyName ? (
+          <TranslatedText style={styles.jobCompany} numberOfLines={1}>{item.companyName}</TranslatedText>
+        ) : null}
+
         {/* 제목 */}
         <TranslatedText style={styles.jobTitle} numberOfLines={2}>{item.title}</TranslatedText>
 
@@ -700,6 +705,12 @@ const styles = StyleSheet.create({
   industryText: {
     fontSize: 11,
     color: "#666",
+  },
+  jobCompany: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1976D2",
+    marginBottom: 3,
   },
   jobTitle: {
     fontSize: 16,
