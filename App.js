@@ -124,6 +124,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { hasHomeDataCache } from "./services/wordpressApi";
 import notificationService from "./services/NotificationService";
 import { initializeFirebase } from "./firebase/config";
+import { logScreenView } from "./lib/analytics";
+
+// 🔍 [측정 인프라] 활성 라우트명 추출 — 중첩 navigator도 끝까지 따라감
+const getActiveRouteName = (state) => {
+  if (!state || typeof state.index !== 'number') return undefined;
+  const route = state.routes[state.index];
+  if (route?.state) return getActiveRouteName(route.state);
+  return route?.name;
+};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -298,6 +307,7 @@ export default function App() {
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
   const deepLinkHandledRef = useRef(false); // 중복 처리 방지
+  const routeNameRef = useRef(null); // 🔍 [측정 인프라] 직전 화면 이름 추적
 
   // 🔗 딥링크 수동 핸들러 (링킹 prop 실패 시 안전망)
   const handleDeepLinkUrl = useCallback((url) => {
@@ -636,6 +646,23 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer
           ref={navigationRef}
+          // 🔍 [측정 인프라] 자동 화면 추적 — 모든 화면 진입을 GA4 screen_view 이벤트로 기록
+          onReady={() => {
+            const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute() : null;
+            routeNameRef.current = currentRoute?.name;
+            if (currentRoute?.name) {
+              logScreenView(currentRoute.name);
+            }
+          }}
+          onStateChange={() => {
+            if (!navigationRef.isReady()) return;
+            const previousRouteName = routeNameRef.current;
+            const currentRouteName = navigationRef.getCurrentRoute()?.name;
+            if (currentRouteName && previousRouteName !== currentRouteName) {
+              routeNameRef.current = currentRouteName;
+              logScreenView(currentRouteName);
+            }
+          }}
           linking={{
             prefixes: [
               Linking.createURL('/'),

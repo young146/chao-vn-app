@@ -38,6 +38,7 @@ import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import LocationMap from "../components/LocationMap";
 import YouTubeCard from "../components/YouTubeCard";
+import { logJobView } from "../lib/analytics";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -50,6 +51,12 @@ export default function JobDetailScreen({ route, navigation }) {
   const [loadingJob, setLoadingJob] = useState(!initialJob);
   const [jobNotFound, setJobNotFound] = useState(false);
   const [similarJobs, setSimilarJobs] = useState([]);
+
+  // 🔍 [측정 인프라] job 로드 후 한 번만 발생 — id 단위로 dedup
+  useEffect(() => {
+    if (!job?.id) return;
+    logJobView(job.id, job.title, job.company);
+  }, [job?.id]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(initialJob?.status || "모집중");

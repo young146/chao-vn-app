@@ -23,11 +23,28 @@ import CommentsSection from '../components/commentsSection';
 import TranslatedText from '../components/TranslatedText';
 import { translateText } from '../services/TranslationService';
 import { PopupAd } from '../components/AdBanner';
+import { logMagazineOpen, logNewsRead, logShareClicked } from '../lib/analytics';
+
+// 뉴스 카테고리 ID (chaovietnam.co.kr WordPress 기준)
+const NEWS_CATEGORY_ID = 31;
 
 export default function PostDetailScreen({ route, navigation }) {
   const { t, i18n } = useTranslation('menu');
   const { post } = route.params;
   const { width } = useWindowDimensions();
+
+  // 🔍 [측정 인프라] 진입 시 한 번만 이벤트 발생 (post.id 변경 시 재발생)
+  useEffect(() => {
+    if (!post?.id) return;
+    const title = post.title?.rendered?.replace(/<[^>]+>/g, '') ?? '';
+    const categories = Array.isArray(post.categories) ? post.categories : [];
+    const isNews = categories.includes(NEWS_CATEGORY_ID);
+    if (isNews) {
+      logNewsRead(post.id, title, 'app');
+    } else {
+      logMagazineOpen(post.id, title);
+    }
+  }, [post?.id]);
 
   const [translatedContent, setTranslatedContent] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
@@ -45,6 +62,8 @@ export default function PostDetailScreen({ route, navigation }) {
 
   // 📤 SNS별 공유 처리
   const handleShare = async (platform) => {
+    // 🔍 [측정 인프라] 어느 콘텐츠가 어디로 공유되는지 추적
+    logShareClicked(`post:${platform}`, post?.id);
     try {
       switch (platform) {
         case 'kakao':

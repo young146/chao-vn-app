@@ -41,6 +41,7 @@ import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../util
 import LocationMap from "../components/LocationMap";
 import YouTubeCard from "../components/YouTubeCard";
 import AgentCard from "../components/AgentCard";
+import { logRealEstateView } from "../lib/analytics";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -56,6 +57,12 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   const [agentLoading, setAgentLoading] = useState(false);
   const [similarItems, setSimilarItems] = useState([]);
   const [agentItems, setAgentItems] = useState([]);
+
+  // 🔍 [측정 인프라] item 로드 후 한 번만 발생 — id 단위로 dedup
+  useEffect(() => {
+    if (!item?.id) return;
+    logRealEstateView(item.id, item.city || item.district || item.location);
+  }, [item?.id]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(routeItem?.status || "거래가능");

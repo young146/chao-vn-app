@@ -104,6 +104,12 @@ export const AuthProvider = ({ children }) => {
       );
       const newUser = userCredential.user;
 
+      // 🔍 [측정 인프라] 이메일 회원가입 완료 이벤트
+      try {
+        const { logSignupComplete } = require('../lib/analytics');
+        logSignupComplete('email');
+      } catch (_) { /* analytics 실패는 회원가입 흐름에 영향 없음 */ }
+
       // 2. users 컬렉션에 프로필 저장
       const profileCompleted = !!(profileData.city && profileData.district);
 
