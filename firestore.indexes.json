@@ -74,6 +74,15 @@
         { "fieldPath": "approvalStatus", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "apartment", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

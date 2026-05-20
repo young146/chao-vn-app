@@ -32,17 +32,12 @@ import {
   updateDoc,
   doc,
   serverTimestamp,
-  getDocs,
-  query,
-  where,
-  getDoc,
 } from "firebase/firestore";
 import { db, storage } from "../firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
@@ -222,142 +217,8 @@ export default function AddItemScreen({ navigation, route }) {
     }
   };
 
-  const notifyPriceChange = async (itemId, oldPrice, newPrice) => {
-    try {
-      console.log("💰 가격 변동 감지:", oldPrice, "→", newPrice);
-
-      const favoritesRef = collection(db, "favorites");
-      const q = query(favoritesRef, where("itemId", "==", itemId));
-      const snapshot = await getDocs(q);
-
-      console.log(`💝 찜한 사람 ${snapshot.size}명 발견`);
-
-      if (snapshot.empty) {
-        console.log("찜한 사람 없음");
-        return;
-      }
-
-      let notificationCount = 0;
-
-      for (const favoriteDoc of snapshot.docs) {
-        const favorite = favoriteDoc.data();
-        const userId = favorite.userId;
-
-        const settingsData = await AsyncStorage.getItem("notificationSettings");
-        let settings = { priceChange: true };
-
-        if (settingsData) {
-          settings = JSON.parse(settingsData);
-        }
-
-        if (settings.priceChange !== false) {
-          await addDoc(collection(db, "notifications"), {
-            userId: userId,
-            type: "priceChange",
-            itemId: itemId,
-            itemTitle: title,
-            itemImage: images[0] || null,
-            oldPrice: oldPrice,
-            newPrice: newPrice,
-            discount: oldPrice - newPrice,
-            message: `찜한 물품 "${title}"의 가격이 ${(
-              oldPrice - newPrice
-            ).toLocaleString()}₫ 할인되었습니다!`,
-            read: false,
-            createdAt: serverTimestamp(),
-          });
-
-          notificationCount++;
-        }
-      }
-
-      console.log(`✅ ${notificationCount}명에게 알림 생성 완료`);
-    } catch (error) {
-      console.error("가격 변동 알림 생성 실패:", error);
-    }
-  };
-
-  // 🆕 주변 사용자에게 알림 생성하는 함수
-  const notifyNearbyUsers = async (
-    itemId,
-    itemTitle,
-    itemImage,
-    itemPrice,
-    itemCity,
-    itemDistrict,
-    itemApartment
-  ) => {
-    try {
-      console.log("🏘️ 주변 사용자에게 알림 생성 중...");
-      console.log(`📍 위치: ${itemCity} ${itemDistrict} ${itemApartment}`);
-
-      // 1️⃣ 같은 주소를 가진 사용자 찾기
-      const usersRef = collection(db, "users");
-      const q = query(
-        usersRef,
-        where("city", "==", itemCity),
-        where("district", "==", itemDistrict),
-        where("apartment", "==", itemApartment)
-      );
-      const usersSnapshot = await getDocs(q);
-
-      console.log(`👥 같은 주소 사용자 ${usersSnapshot.size}명 발견`);
-
-      if (usersSnapshot.empty) {
-        console.log("⚠️ 같은 주소의 사용자 없음");
-        return;
-      }
-
-      let notificationCount = 0;
-
-      // 2️⃣ 각 사용자의 알림 설정 확인
-      for (const userDoc of usersSnapshot.docs) {
-        const userData = userDoc.data();
-        const nearbyUserId = userDoc.id;
-
-        // 본인은 제외
-        if (nearbyUserId === user.uid) {
-          console.log("⏭️ 본인은 제외");
-          continue;
-        }
-
-        // 3️⃣ notificationSettings 확인
-        const settingsRef = doc(db, "notificationSettings", nearbyUserId);
-        const settingsSnap = await getDoc(settingsRef);
-
-        if (settingsSnap.exists()) {
-          const settings = settingsSnap.data();
-
-          // nearbyItems가 true인 경우만 알림 생성
-          if (settings.nearbyItems === true) {
-            await addDoc(collection(db, "notifications"), {
-              userId: nearbyUserId,
-              type: "nearby_item",
-              itemId: itemId,
-              itemTitle: itemTitle,
-              itemImage: itemImage || "",
-              itemPrice: itemPrice,
-              itemLocation: `${itemCity} ${itemDistrict} ${itemApartment}`,
-              message: `내 주변에 새 상품이 등록되었습니다: ${itemTitle}`,
-              read: false,
-              createdAt: serverTimestamp(),
-            });
-
-            notificationCount++;
-            console.log(`✅ ${userData.email}에게 알림 생성`);
-          } else {
-            console.log(`⏭️ ${userData.email} - 주변 상품 알림 OFF`);
-          }
-        } else {
-          console.log(`⚠️ ${userData.email} - 알림 설정 없음 (스킵)`);
-        }
-      }
-
-      console.log(`✅ 총 ${notificationCount}명에게 주변 상품 알림 생성 완료`);
-    } catch (error) {
-      console.error("❌ 주변 사용자 알림 생성 실패:", error);
-    }
-  };
+  // 가격 변동 알림 + 주변 사용자 알림은 Cloud Functions
+  // (onItemPriceChanged / onNewItemCreated) 에서 admin SDK로 처리
 
   // 가격 입력 핸들러
   const handlePriceChange = (text) => {
@@ -445,10 +306,7 @@ export default function AddItemScreen({ navigation, route }) {
           status: newStatus,
         });
 
-        if (newPrice !== oldPrice) {
-          console.log("💸 가격 변경 감지! 알림 생성 시작...");
-          await notifyPriceChange(editItem.id, oldPrice, newPrice);
-        }
+        // 가격 변경 시 알림은 Cloud Function(onItemPriceChanged)에서 자동 처리
 
         resultItem = {
           ...editItem,
@@ -490,16 +348,8 @@ export default function AddItemScreen({ navigation, route }) {
         });
 
 
-        // 🆕 주변 사용자에게 알림
-        await notifyNearbyUsers(
-          docRef.id,
-          title,
-          uploadedImageUrls[0] || "",
-          price,
-          selectedCity,
-          selectedDistrict,
-          selectedApartment
-        );
+        // 같은 건물 in-app 알림 + 같은 도시 FCM 푸시는
+        // Cloud Function(onNewItemCreated)에서 자동 처리
 
         resultItem = {
           id: docRef.id,

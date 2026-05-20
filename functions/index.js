@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
@@ -332,6 +332,18 @@ exports.onNewItemCreated = onDocumentCreated(
       console.error("❌ 물품 알림 실패:", error);
     }
 
+    // 같은 건물(city+district+apartment) 유저 in-app 알림 레코드 생성
+    await createNearbyItemNotifications({
+      itemId,
+      itemTitle: item.title || "",
+      itemImage: (item.images && item.images[0]) || "",
+      itemPrice: item.price || "",
+      city: item.city,
+      district: item.district,
+      apartment: item.apartment,
+      excludeUserId: item.userId,
+    });
+
     // 관리자 알림 (항상 전송)
     await sendAdminPush(
       `🥕 당근/나눔 새 등록`,
@@ -341,6 +353,127 @@ exports.onNewItemCreated = onDocumentCreated(
     );
   }
 );
+
+// ============================================================
+// 💰 당근/나눔 가격 인하 → 찜한 유저에 in-app 알림 생성
+// ============================================================
+exports.onItemPriceChanged = onDocumentUpdated(
+  "XinChaoDanggn/{itemId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const itemId = event.params.itemId;
+
+    const oldPrice = Number(before.price) || 0;
+    const newPrice = Number(after.price) || 0;
+
+    // 가격 인하만 알림 (인상/무효 변경은 무시)
+    if (oldPrice <= 0 || newPrice <= 0 || newPrice >= oldPrice) return;
+
+    const discount = oldPrice - newPrice;
+    console.log(`💰 가격 인하 감지 (${itemId}): ${oldPrice} → ${newPrice} (-${discount})`);
+
+    try {
+      const favSnap = await db.collection("favorites").where("itemId", "==", itemId).get();
+      if (favSnap.empty) {
+        console.log("📭 찜한 사용자 없음");
+        return;
+      }
+
+      const tasks = favSnap.docs.map(async (favDoc) => {
+        const uid = favDoc.data().userId;
+        if (!uid || uid === after.userId) return; // 본인 제외
+
+        // priceChange 설정 확인 (명시적으로 false인 경우만 제외)
+        try {
+          const settingsDoc = await db.collection("notificationSettings").doc(uid).get();
+          if (settingsDoc.exists && settingsDoc.data().priceChange === false) return;
+        } catch (e) { /* 설정 없으면 기본 허용 */ }
+
+        await db.collection("notifications").add({
+          userId: uid,
+          type: "priceChange",
+          itemId,
+          itemTitle: after.title || "",
+          itemImage: (after.images && after.images[0]) || "",
+          oldPrice,
+          newPrice,
+          discount,
+          message: `찜한 물품 "${after.title}"의 가격이 ${discount.toLocaleString()}₫ 할인되었습니다!`,
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      });
+
+      const results = await Promise.allSettled(tasks);
+      const success = results.filter(r => r.status === "fulfilled").length;
+      console.log(`✅ 가격 인하 알림 ${success}/${favSnap.size}건 생성`);
+    } catch (e) {
+      console.error("❌ 가격 인하 알림 실패:", e.message);
+    }
+  }
+);
+
+// ============================================================
+// 🏘️ 공통 유틸: 같은 건물(city+district+apartment) 유저 in-app 알림 생성
+// ============================================================
+async function createNearbyItemNotifications({
+  itemId, itemTitle, itemImage, itemPrice,
+  city, district, apartment, excludeUserId,
+}) {
+  if (!city || !district || !apartment) {
+    console.log("📭 위치 정보 부족 — 같은 건물 in-app 알림 건너뜀");
+    return 0;
+  }
+
+  try {
+    const usersSnap = await db.collection("users")
+      .where("city", "==", city)
+      .where("district", "==", district)
+      .where("apartment", "==", apartment)
+      .get();
+
+    if (usersSnap.empty) {
+      console.log("📭 같은 건물 사용자 없음");
+      return 0;
+    }
+
+    const location = [city, district, apartment].filter(Boolean).join(" ");
+    let count = 0;
+
+    const tasks = usersSnap.docs.map(async (userDoc) => {
+      const uid = userDoc.id;
+      if (uid === excludeUserId) return;
+
+      // notificationSettings 확인 (명시적으로 false인 경우만 제외)
+      try {
+        const settingsDoc = await db.collection("notificationSettings").doc(uid).get();
+        if (settingsDoc.exists && settingsDoc.data().nearbyItems === false) return;
+      } catch (e) { /* 설정 없으면 기본 허용 */ }
+
+      await db.collection("notifications").add({
+        userId: uid,
+        type: "nearby_item",
+        itemId,
+        itemTitle,
+        itemImage,
+        itemPrice,
+        itemLocation: location,
+        message: `내 주변에 새 상품이 등록되었습니다: ${itemTitle}`,
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      count++;
+    });
+
+    await Promise.allSettled(tasks);
+    console.log(`✅ 같은 건물 유저 ${count}명에게 in-app 알림 생성`);
+    return count;
+  } catch (e) {
+    console.error("❌ 같은 건물 in-app 알림 실패:", e.message);
+    return 0;
+  }
+}
 
 // ============================================================
 // 💼 새 구인구직 등록 → FCM 푸시 (같은 도시 유저)

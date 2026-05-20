@@ -71,6 +71,7 @@ export default function NotificationSettingScreen() {
             review: fs.reviews !== undefined ? fs.reviews : prev.review,
             jobs: fs.jobs !== undefined ? fs.jobs : prev.jobs,
             realEstate: fs.realEstate !== undefined ? fs.realEstate : prev.realEstate,
+            priceChange: fs.priceChange !== undefined ? fs.priceChange : prev.priceChange,
           }));
         }
       }
@@ -105,6 +106,7 @@ export default function NotificationSettingScreen() {
             reviews: newSettings.review,
             jobs: newSettings.jobs,
             realEstate: newSettings.realEstate,
+            priceChange: newSettings.priceChange,
           },
           { merge: true }
         );
