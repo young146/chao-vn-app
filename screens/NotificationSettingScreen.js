@@ -12,13 +12,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useNavigation } from "@react-navigation/native";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 
 export default function NotificationSettingScreen() {
   const { t } = useTranslation('menu');
   const { user } = useAuth();
+  const navigation = useNavigation();
+  const requireAuth = useRequireAuth(navigation);
 
   // 알림음 옵션
   const NOTIFICATION_SOUNDS = [
@@ -117,6 +121,10 @@ export default function NotificationSettingScreen() {
   };
 
   const toggleSetting = (key) => {
+    // 깔때기 단계 2 보강: 비회원이 알림 ON 시도 시 silent fail 대신 가입 유도
+    // (saveSettings 안에서 user 없으면 Firestore 저장 X 였던 문제 해결)
+    if (!requireAuth('알림 받기')) return;
+
     const newSettings = { ...settings, [key]: !settings[key] };
     setSettings(newSettings);
     saveSettings(newSettings);

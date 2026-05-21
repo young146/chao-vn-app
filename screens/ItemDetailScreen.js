@@ -37,6 +37,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
@@ -47,6 +48,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function ItemDetailScreen({ route, navigation }) {
   const { item: initialItem, id: deepLinkId } = route.params || {};
   const { user, isAdmin } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t, i18n } = useTranslation(['danggn', 'common']);
 
   const [item, setItem] = useState(initialItem || null);
@@ -200,7 +202,9 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   // ✅ useCallback/useLayoutEffect을 early return 위에 배치 (Rules of Hooks 준수)
   const handleChat = useCallback(() => {
-    if (!user || !item) return;
+    if (!item) return;
+    // 깔때기 단계 2 보강: 비회원이 채팅 시도 시 silent return 대신 가입 유도
+    if (!requireAuth('판매자와 채팅')) return;
     navigation.navigate("ChatRoom", {
       chatRoomId: null,
       itemId: item.id,
@@ -210,7 +214,7 @@ export default function ItemDetailScreen({ route, navigation }) {
       otherUserName: item.userEmail ? item.userEmail.split("@")[0] : t('detail.seller'),
       sellerId: item.userId,
     });
-  }, [user, item, images, navigation, t]);
+  }, [item, images, navigation, t, requireAuth]);
 
   // 📤 SNS 공유 핸들러
   const handleShare = useCallback(async (platform = 'more') => {
