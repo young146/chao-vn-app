@@ -88,6 +88,30 @@ EAS Build 를 *지금* 실행할지 결정할 때 자문할 것:
 
 ---
 
+## 🚨 2026-05-21 현재 — 빌드 추진 권장
+
+**상황 점검**:
+- 어제(5/20) analytics 네이티브 추가 + 빌드 미룸 — 이유: "더 큰 native 변경 모아서"
+- 오늘(5/21) 작업 7~8 사이클 진행 — 모두 OTA 가능 (JS 만)
+- **더 모일 native 변경 없음** = 빌드 미룬 원래 의도 해소
+
+**빌드 안 할 시 손실**:
+- 메인 깔때기 단계 2 보강 효과 *앱 내 측정 0건* (analytics 없으니)
+- welcome_screen_shown · signup_complete · 화면별 screen_view · job_view · realestate_view · news_read · share_clicked 등 핵심 이벤트 *전부 미수집*
+- 1주 후 데이터 보고 보강 결정하려는데 *반쪽 데이터*
+
+**권장**: 이번 주 안 EAS Build + 스토어 제출. 다음 빌드 사이클로 진입.
+
+```bash
+cd c:/chao-vn-app/chao-vn-app
+eas build --platform all --profile production
+# 빌드 완료 후
+eas submit --platform ios
+eas submit --platform android
+```
+
+---
+
 ## 🪵 빌드 이력
 
 - `2026-05-04` — iOS build 72 / v2.4.1 (`b9671162`). 마지막 운영 빌드.
