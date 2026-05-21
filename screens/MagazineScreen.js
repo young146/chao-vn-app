@@ -384,16 +384,21 @@ export default function MagazineScreen({ navigation, route }) {
 
           let newsData = await getNewsSectionsCached(isRefresh, targetDate);
 
-          // 오늘 뉴스가 없으면 어제 뉴스 표시
+          // 오늘 뉴스가 없으면 다음날 뉴스가 올라올 때까지 직전 날짜로 fallback
+          // (최대 7일 뒤까지 시도 — 라벨은 "오늘의 뉴스" 그대로 유지)
           if (newsData.newsSections.length === 0 && !isFilteredByDate) {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            newsData = await getNewsSectionsCached(isRefresh, yesterday);
-            setSelectedDate(yesterday);
-            setShowingYesterdayNews(true);
-          } else {
-            setShowingYesterdayNews(false);
+            for (let i = 1; i <= 7; i++) {
+              const past = new Date();
+              past.setDate(past.getDate() - i);
+              const pastData = await getNewsSectionsCached(isRefresh, past);
+              if (pastData.newsSections.length > 0) {
+                newsData = pastData;
+                break;
+              }
+            }
           }
+          // 자동 fallback인 경우에도 selectedDate는 오늘 유지 → 라벨은 "오늘의 뉴스"
+          setShowingYesterdayNews(false);
 
           setNewsSections(newsData.newsSections || []);
           setHasMore(false); // 섹션 뷰에서는 무한 스크롤 없음

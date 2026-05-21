@@ -233,12 +233,21 @@ export default function AddItemScreen({ navigation, route }) {
       return;
     }
 
-    if (!phone.trim()) {
-      Alert.alert(t('common:notice'), '전화번호를 입력해주세요. / Vui lòng nhập số điện thoại. / Please enter phone number.');
+    // 당근/나눔: 연락처 4종(전화/이메일/카톡/기타SNS) 중 하나만 있어도 등록 가능
+    const hasAnyContact =
+      phone.trim() || email.trim() || kakaoId.trim() || otherContact.trim();
+    if (!hasAnyContact) {
+      Alert.alert(
+        t('common:notice'),
+        '연락처를 하나 이상 입력해주세요 (전화/이메일/카카오톡/SNS 중 택1).\n'
+        + 'Vui lòng nhập ít nhất 1 phương thức liên lạc.\n'
+        + 'Please enter at least one contact (phone, email, KakaoTalk, or SNS).'
+      );
       return;
     }
-    if (!email.trim() || !email.includes('@')) {
-      Alert.alert(t('common:notice'), '이메일을 정확히 입력해주세요. / Vui lòng nhập email. / Please enter a valid email.');
+    // 이메일을 입력한 경우에만 형식 검증
+    if (email.trim() && !email.includes('@')) {
+      Alert.alert(t('common:notice'), '이메일을 정확히 입력해주세요. / Vui lòng nhập email hợp lệ. / Please enter a valid email.');
       return;
     }
 
@@ -556,10 +565,13 @@ export default function AddItemScreen({ navigation, route }) {
 
         <View style={styles.contactSection}>
           <Text style={styles.sectionTitle}>
-            📞 {t('form.contactLabel')} *
+            📞 {t('form.contactLabel')}
+          </Text>
+          <Text style={styles.helperText}>
+            ※ 전화·이메일·카카오톡·SNS 중 1개 이상만 입력하면 등록할 수 있어요
           </Text>
 
-          <Text style={styles.label}>전화번호 *</Text>
+          <Text style={styles.label}>전화번호</Text>
           <TextInput
             style={styles.input}
             placeholder="010-1234-5678 / +84-123-456-789"
@@ -569,7 +581,7 @@ export default function AddItemScreen({ navigation, route }) {
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>이메일 *</Text>
+          <Text style={styles.label}>이메일</Text>
           <TextInput
             style={styles.input}
             placeholder="example@email.com"
