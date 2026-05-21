@@ -214,7 +214,12 @@ export default function ProfileScreen({ navigation }) {
   const uploadImage = async (uri) => {
     try {
       setUploading(true);
-      if (!user || !user.uid) throw new Error("로그인되지 않았습니다.");
+      // 깔때기 단계 2 보강 C 3차: throw Error → 안전 return (호출자가 가드해야 정상이지만 방어막)
+      if (!user || !user.uid) {
+        setUploading(false);
+        console.warn('[ProfileScreen.uploadImage] user 없음 — 호출자에서 useRequireAuth 가드 필요');
+        return null;
+      }
 
       // ✅ iOS에서 fetch+blob 실패 → XMLHttpRequest로 blob 생성
       const blob = await new Promise((resolve, reject) => {

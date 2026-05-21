@@ -28,6 +28,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import YouTubeCard from "../components/YouTubeCard";
@@ -51,6 +52,7 @@ function getLangMeta(level) {
 export default function CandidateDetailScreen({ route, navigation }) {
   const { candidate: initialCandidate, id: deepLinkId } = route.params || {};
   const { user, isAdmin } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t } = useTranslation(["jobs", "common"]);
 
   const [candidate, setCandidate] = useState(initialCandidate || null);
@@ -696,13 +698,8 @@ export default function CandidateDetailScreen({ route, navigation }) {
           <TouchableOpacity
             style={[styles.chatButton, (!phone || !isLoggedIn) && { flex: 1 }]}
             onPress={() => {
-              if (!user) {
-                Alert.alert("안내", "채팅하려면 로그인이 필요합니다.", [
-                  { text: "확인" },
-                  { text: "로그인", onPress: () => navigation.navigate("로그인") },
-                ]);
-                return;
-              }
+              // 깔때기 단계 2 보강 C 3차: inline Alert → useRequireAuth 통일
+              if (!requireAuth('구직자와 채팅')) return;
               navigation.navigate("ChatRoom", {
                 chatRoomId: null,
                 itemId: candidate.id,

@@ -35,6 +35,7 @@ import {
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
@@ -48,6 +49,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function RealEstateDetailScreen({ route, navigation }) {
   const { item: routeItem, id: deepLinkId } = route.params || {};
   const { user, isAdmin } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t, i18n } = useTranslation(['realEstate', 'common']);
 
   const [item, setItem] = useState(routeItem || null);
@@ -230,7 +232,9 @@ export default function RealEstateDetailScreen({ route, navigation }) {
 
   // 채팅하기
   const handleChat = useCallback(() => {
-    if (!user || !item) return;
+    if (!item) return;
+    // 깔때기 단계 2 보강 C 3차: silent return → 가입 유도
+    if (!requireAuth('중개인과 채팅')) return;
     if (isMyItem) {
       Alert.alert(t('common:notice'), t('detail.ownPost'));
       return;
