@@ -130,6 +130,46 @@ eas update --channel production --message "변경 내용 설명"
 - `wp-plugins/` 하위 파일은 git push 후 FTP로 직접 서버에 업로드 (사용자가 직접 처리)
 - 대상 경로: 서버 `wp-content/plugins/chaovn-firebase-auth/`
 
+### 🔧 빌드(EAS Build) vs 업데이트(OTA) — 어떤 변경에 어떤 게 필요한가
+
+이 결정은 *매번 정확*해야 한다. 잘못 판단하면 운영 앱 crash 또는 사용자가 변경 못 받음.
+
+**OTA(`eas update --channel production`) 로 충분한 변경 = JS/리소스만:**
+- 화면 텍스트·번역 변경 (`screens/`, `i18n/`)
+- validation 로직, UI 흐름, navigation 분기
+- 이미지 교체, 색상, 스타일
+- `lib/` 의 순수 JS 헬퍼 (네이티브 모듈 의존 없음)
+- WordPress 플러그인, Firebase Hosting, Cloud Function — 앱과 무관 (별개 배포)
+
+**EAS Build + 스토어 제출 필수 변경 = 네이티브 영향:**
+- `package.json` 에 *네이티브 모듈* 추가 (대부분 `react-native-*`, `@react-native-firebase/*`, `expo-*` 중 native 의존)
+- `app.json` 의 `plugins`, `ios.infoPlist`, `android.permissions`, `intentFilters`, `scheme`, `associatedDomains` 변경
+- `ios/`, `android/` 폴더의 native 코드 변경
+- `runtimeVersion` 변경 (이건 *의도적 OTA 차단*용)
+
+**모호한 경우 — 다음을 따른다:**
+1. 새 패키지 추가 시 → `node_modules/<pkg>/ios/` 또는 `android/` 디렉토리가 있는지 확인. 있으면 *네이티브*. 빌드 필요.
+2. *지금 빌드 안 하고 OTA만 보내고 싶다면*: 해당 변경을 [[OTA-safe defensive load]] 패턴으로 감싼다. `lib/analytics.js` 가 모범 예시.
+3. 매 네이티브 변경 시 `PROGRESS_BUILD_PENDING.md` 갱신. 다음 빌드 시점 결정에 사용.
+
+**OTA-safe defensive load 패턴 (재사용 가능):**
+네이티브 모듈을 추가했지만 *당장* 빌드 못 할 때 — JS 가 모듈 부재를 *우아하게 처리*하도록 한다:
+```js
+let mod = null;
+try { mod = require('<native-package>').default; } catch (_) {}
+// 이후 모든 함수에서 if (!mod) return; 가드
+```
+빌드 후에도 코드 변경 없이 자동으로 동작 시작. **이 패턴은 *유지하는 게 안전*. 빌드되었다고 제거하지 말 것.**
+
+**OTA 발송 전 자가 점검:**
+1. `PROGRESS_BUILD_PENDING.md` 의 미빌드 항목들이 *모두 defensive load 되어있는가*? → 안 되어 있으면 OTA 전에 먼저 박는다.
+2. 마지막 빌드 commit (`eas build:list` 로 확인) 이후 *순수 JS 변경만* 묶어서 보내는가? → 그래야 안전.
+3. `runtimeVersion` 이 마지막 빌드와 일치하는가? → 다르면 OTA 안 통한다 (의도적이라면 OK).
+
+**관련 문서:**
+- [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) — 미빌드 네이티브 변경 추적표
+- [PROGRESS_MARKETING_FUNNEL.md](../../daily-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기 진행
+
 ## Summary
 
 You sit between human intent (directives) and deterministic execution (Node.js scripts). Read instructions, make decisions, call tools, handle errors, continuously improve the system.
