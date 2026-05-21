@@ -59,7 +59,12 @@ export function useRequireAuth(navigation) {
         {
           text: t('common:signup', '가입하기'),
           style: 'default',
-          onPress: () => navigation?.navigate?.('로그인'),
+          onPress: () => {
+            // navigation 이 undefined 인 사용처도 안전하게 (defensive)
+            if (navigation && typeof navigation.navigate === 'function') {
+              navigation.navigate('로그인');
+            }
+          },
         },
       ],
     );

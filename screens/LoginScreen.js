@@ -79,7 +79,7 @@ export default function LoginScreen({ navigation }) {
               t('appleLoginFailed'),
               `${result.error}\n\n[비밀번호 재설정]을 진행하시겠습니까?`,
               [
-                { text: t('common:cancel') || '취소', style: 'cancel' },
+                { text: t('common:cancel', '취소'), style: 'cancel' },
                 {
                   text: '재설정 메일 보내기',
                   onPress: async () => {
@@ -148,7 +148,7 @@ export default function LoginScreen({ navigation }) {
               t('googleLoginFailed'),
               `${result.error}\n\n[비밀번호 재설정]을 진행하시겠습니까?`,
               [
-                { text: t('common:cancel') || '취소', style: 'cancel' },
+                { text: t('common:cancel', '취소'), style: 'cancel' },
                 {
                   text: '재설정 메일 보내기',
                   onPress: async () => {
@@ -218,7 +218,7 @@ export default function LoginScreen({ navigation }) {
           t('loginFailed'),
           `${result.error}\n\n비밀번호가 기억나지 않으시나요?`,
           [
-            { text: t('common:cancel') || '취소', style: 'cancel' },
+            { text: t('common:cancel', '취소'), style: 'cancel' },
             {
               text: '비밀번호 재설정',
               onPress: async () => {

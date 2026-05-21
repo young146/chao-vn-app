@@ -18,11 +18,13 @@ import { db, storage } from "../firebase/config";
 import { auth } from "../firebase/config";
 import { deleteUser } from "firebase/auth";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import ProfileView from "../components/profile/ProfileView";
 import ProfileEditForm from "../components/profile/ProfileEditForm";
 
 export default function ProfileScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t } = useTranslation(["menu", "common"]);
   const scrollViewRef = useRef(null);
 
@@ -187,6 +189,9 @@ export default function ProfileScreen({ navigation }) {
 
   const pickImage = async () => {
     try {
+      // 깔때기 단계 2 보강 C: 비회원이 프로필 사진 시도 시 가입 유도 (호출자 가드)
+      if (!requireAuth('프로필 사진 변경')) return;
+
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 

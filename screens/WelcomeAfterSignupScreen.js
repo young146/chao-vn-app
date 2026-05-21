@@ -36,7 +36,10 @@ export default function WelcomeAfterSignupScreen({ route, navigation }) {
   const [counts, setCounts] = useState({ jobs: null, realEstate: null, items: null });
 
   useEffect(() => {
-    logEvent('welcome_screen_shown', { source: route?.params?.source || 'signup' });
+    // logEvent 자체는 analytics.js defensive load 로 안전하지만, 한 번 더 try/catch 로 환영 화면 부팅 보호
+    try {
+      logEvent('welcome_screen_shown', { source: route?.params?.source || 'signup' });
+    } catch (_) { /* 측정 실패는 환영 흐름에 영향 없음 */ }
 
     // Firestore 24h 카운트 — getCountFromServer 는 빠르고 비용도 적음
     (async () => {
@@ -64,7 +67,7 @@ export default function WelcomeAfterSignupScreen({ route, navigation }) {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      logEvent('welcome_push_enabled', { result: finalStatus });
+      try { logEvent('welcome_push_enabled', { result: finalStatus }); } catch (_) {}
     } catch (e) {
       // 권한 요청 실패해도 흐름 막지 않음
     }
@@ -72,7 +75,7 @@ export default function WelcomeAfterSignupScreen({ route, navigation }) {
   };
 
   const handleStart = () => {
-    logEvent('welcome_get_started_clicked');
+    try { logEvent('welcome_get_started_clicked'); } catch (_) {}
     goToMain();
   };
 
