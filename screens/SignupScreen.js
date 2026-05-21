@@ -85,16 +85,13 @@ export default function SignupScreen({ navigation }) {
     setLoading(false);
 
     if (result.success) {
-      const message = result.profileCompleted
-        ? t('profileCompleteMessage')
-        : t('profileLaterMessage');
-
-      Alert.alert("🎉 " + t('signupSuccess'), message, [
-        {
-          text: t('common:confirm'),
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      // 깔때기 단계 2 보강 A v2: 가입 성공 즉시 전용 환영 화면으로 이동
+      // 옛 Alert + goBack 경로 제거 — aha moment 보장.
+      // App.js 의 ProfileCompletionPrompt (A v1) 는 *재로그인* 시점에만 동작 (가입 직후는 환영 화면이 선점)
+      navigation.replace('환영', {
+        displayName: nick,
+        source: 'signup_email',
+      });
     } else {
       Alert.alert(t('signupFailed'), result.error);
     }

@@ -187,6 +187,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { PopupAd, FixedBottomBanner } from "./components/AdBanner";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
+import WelcomeAfterSignupScreen from "./screens/WelcomeAfterSignupScreen";
 import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
 import MagazineScreen from "./screens/MagazineScreen";
@@ -1593,6 +1594,11 @@ function RootNavigator() {
         name="회원가입"
         component={SignupScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="환영"
+        component={WelcomeAfterSignupScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen
         name="아이디찾기"
