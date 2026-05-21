@@ -1639,19 +1639,19 @@ const ProfileCompletionPrompt = () => {
         promptShownRef.current = true;
         await AsyncStorage.setItem("@profile_prompt_last", new Date().toISOString());
 
-        // 로그인 성공 Alert(~3초) + 알림 권한 팝업(5초 후) 이후에 표시 (8초 딜레이)
-        // 다른 팝업과 겹치지 않도록 충분한 간격 확보
+        // 가입 후 aha moment: "왜 앱인가" 즉시 가치 노출 (잔소리 X, 보상 O)
+        // 8초 → 3초로 단축. 알림 권한 팝업(5초)보다 *먼저* 떠서 환영 흐름 선점.
         setTimeout(() => {
           Alert.alert(
-            "📝 프로필을 작성해주세요",
-            "프로필을 완성하면 내 주변 물품, 지역 정보 등 맞춤 서비스를 받을 수 있습니다.",
+            "🎉 씬짜오 베트남에 오신 걸 환영합니다",
+            "내 지역의 새 채용 · 부동산 · 중고거래를 가장 먼저 받아보려면 *알림*과 *지역 설정*이 필요합니다.\n\n지금 1분만 투자하시면 매일 맞춤 정보가 도착합니다.",
             [
               {
-                text: "나중에",
+                text: "둘러보기 먼저",
                 style: "cancel",
               },
               {
-                text: "지금 작성",
+                text: "1분 설정 →",
                 style: "default",
                 onPress: () => {
                   setNeedsProfileComplete(false);
@@ -1663,7 +1663,7 @@ const ProfileCompletionPrompt = () => {
               },
             ]
           );
-        }, 8000);
+        }, 3000);
       } catch (e) {
         console.log("프로필 프롬프트 체크 실패:", e);
       }

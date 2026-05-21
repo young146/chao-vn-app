@@ -32,8 +32,7 @@ export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState(""); // 실명
-  const [displayName, setDisplayName] = useState("");
+  const [name, setName] = useState(""); // 단일 닉네임 (실명은 프로필 완성 단계에서 별도 수집)
 
   // 주소 정보 (선택사항)
   const [selectedCity, setSelectedCity] = useState("");
@@ -52,7 +51,9 @@ export default function SignupScreen({ navigation }) {
       : [];
 
   const handleSignup = async () => {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim() || !name.trim()) {
+    // 가입 진입 마찰 최소화: 이메일·비밀번호만 필수. 이름/닉네임은 비어있어도 OK
+    // (실명은 추후 프로필 완성 단계에서 인센티브와 함께 수집)
+    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert(t('common:loginRequired'), t('allFieldsRequired'));
       return;
     }
@@ -70,9 +71,11 @@ export default function SignupScreen({ navigation }) {
     setLoading(true);
 
     // 프로필 데이터 준비
+    // name 입력란이 단일화됨 → 닉네임 의미로 사용. 둘 다 같은 값 저장 (다른 화면 호환성)
+    const nick = name.trim() || email.split("@")[0];
     const profileData = {
-      name: name.trim(),
-      displayName: displayName.trim() || email.split("@")[0],
+      name: nick,
+      displayName: nick,
       city: selectedCity || null,
       district: selectedDistrict || null,
       apartment: selectedApartment || null,
@@ -134,7 +137,7 @@ export default function SignupScreen({ navigation }) {
               />
             </View>
 
-            {/* 이름 (실명) */}
+            {/* 닉네임 (단일 입력란 — 실명은 추후 프로필 완성에서 받음) */}
             <View style={styles.inputGroup}>
               <Ionicons
                 name="person-outline"
@@ -144,28 +147,10 @@ export default function SignupScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder={t('name')}
+                placeholder={`${t('nickname')} (${t('common:optional', '선택')})`}
                 placeholderTextColor="rgba(0, 0, 0, 0.38)"
                 value={name}
                 onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            {/* 닉네임 (선택) */}
-            <View style={styles.inputGroup}>
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color="#999"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={t('nickname')}
-                placeholderTextColor="rgba(0, 0, 0, 0.38)"
-                value={displayName}
-                onChangeText={setDisplayName}
                 autoCapitalize="words"
               />
             </View>
