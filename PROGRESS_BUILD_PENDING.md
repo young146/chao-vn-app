@@ -22,33 +22,37 @@
 
 ## 🚢 마지막 운영 빌드 (스토어 배포본 기준)
 
-| 항목 | 값 |
-|---|---|
-| **EAS Build ID** | `95127445-e488-4e6d-ac7f-ea2de2854568` |
-| **빌드일** | 2026-05-04 |
-| **Platform / Profile** | iOS / production |
-| **Build number / Version** | 72 / 2.4.1 |
-| **Runtime Version** | 2.4.0 |
-| **빌드된 commit** | `b9671162` ("bump version 2.4.0 to 2.4.1 for iOS resubmission") |
-| **Android 최근 빌드** | TODO — `eas build:list --platform android` 로 별도 확인 |
+| 항목 | iOS | Android |
+|---|---|---|
+| **EAS Build ID** | `d7c6858d-ba29-40d8-91f3-1015ce18a217` | `3d3d8442-63f1-4e56-9f52-cc153f61d84f` |
+| **빌드일** | 2026-05-21 | 2026-05-21 |
+| **Profile** | production | production |
+| **Build number / versionCode** | 73 | 106 |
+| **Version** | 2.4.2 | 2.4.2 |
+| **Runtime Version** | 2.4.2 | 2.4.2 |
+| **Commit** | `3cb729e` (version bump 2.4.1 → 2.4.2) | 동일 |
+| **현재 상태** | 🟡 스토어 심사 중 | 🟡 스토어 심사 중 |
+
+이전 운영 빌드 (5/4): iOS build 72 / 2.4.1 / rv 2.4.0. 심사 통과 후 자동 교체.
 
 확인 명령:
 ```bash
 cd c:/chao-vn-app/chao-vn-app
 eas build:list --status finished --limit 5
+eas submit:list --limit 3
 ```
 
 ---
 
 ## 🔧 미빌드 네이티브 변경
 
-> 마지막 운영 빌드(`b9671162`) 이후 *네이티브 모듈/설정* 에 영향을 주는 변경들.
-> OTA 로는 전달되지 않으므로 **다음 EAS Build + 스토어 제출** 까지 운영 앱에서 동작하지 않는다.
+> 마지막 운영 빌드 이후 *네이티브 모듈/설정* 에 영향을 주는 변경들.
 
-| 커밋 | 날짜 | 변경 | 영향 | Priority | 방어 상태 |
+**현재**: 모든 미빌드 네이티브 변경이 5/21 빌드(2.4.2)에 포함되어 *스토어 심사 통과 시 운영 반영 예정*. 새 누적 항목 없음.
+
+| 커밋 | 날짜 | 변경 | 영향 | Priority | 상태 |
 |---|---|---|---|---|---|
-| `5714bdc` | 2026-05-20 | `@react-native-firebase/analytics@21.14.0` 추가 — 앱 내 화면/이벤트 측정 | 빌드 전까지 운영 앱에서 측정 데이터 0건 | 🟡 medium (측정 며칠 미뤄도 손해 적음) | ✅ `lib/analytics.js` 에 OTA-safe defensive load 박힘. 빌드 안 돼도 crash X |
-| `5714bdc` | 2026-05-20 | `app.json` Android versionCode 104→105 수동 변경 | 다음 빌드 때 EAS autoIncrement 가 처리 — 별 문제 없음 | 🟢 info | n/a |
+| ~~`5714bdc`~~ | ~~2026-05-20~~ | ~~`@react-native-firebase/analytics@21.14.0` 추가~~ | ~~앱 내 측정 데이터 흐름~~ | ~~🟡 medium~~ | ✅ 5/21 빌드 포함. 심사 통과 후 활성 |
 
 ---
 
@@ -88,34 +92,21 @@ EAS Build 를 *지금* 실행할지 결정할 때 자문할 것:
 
 ---
 
-## 🚨 2026-05-21 현재 — 빌드 추진 권장
+## ✅ 2026-05-21 — 빌드 + Submit 완료
 
-**상황 점검**:
-- 어제(5/20) analytics 네이티브 추가 + 빌드 미룸 — 이유: "더 큰 native 변경 모아서"
-- 오늘(5/21) 작업 7~8 사이클 진행 — 모두 OTA 가능 (JS 만)
-- **더 모일 native 변경 없음** = 빌드 미룬 원래 의도 해소
+iOS build 73 + Android versionCode 106 모두 EAS Build 완료(17분). `--auto-submit` 으로 App Store Connect + Google Play Console 업로드까지 처리. 스토어 심사 대기 중 (iOS ~1~3일, Android ~수 시간~1일).
 
-**빌드 안 할 시 손실**:
-- 메인 깔때기 단계 2 보강 효과 *앱 내 측정 0건* (analytics 없으니)
-- welcome_screen_shown · signup_complete · 화면별 screen_view · job_view · realestate_view · news_read · share_clicked 등 핵심 이벤트 *전부 미수집*
-- 1주 후 데이터 보고 보강 결정하려는데 *반쪽 데이터*
-
-**권장**: 이번 주 안 EAS Build + 스토어 제출. 다음 빌드 사이클로 진입.
-
-```bash
-cd c:/chao-vn-app/chao-vn-app
-eas build --platform all --profile production
-# 빌드 완료 후
-eas submit --platform ios
-eas submit --platform android
-```
+**다음 액션**:
+- 심사 통과 알림 수신 → 사용자 자동 업데이트 시작
+- Firebase Analytics 데이터 흐름 확인 (Firebase Console → Analytics → Events)
+- 1주 후 GA4 + Firebase Analytics 통합 데이터로 깔때기 단계 2·3 효과 진단
 
 ---
 
 ## 🪵 빌드 이력
 
-- `2026-05-04` — iOS build 72 / v2.4.1 (`b9671162`). 마지막 운영 빌드.
-- *그 이후로 빌드 없음 (2026-05-21 기준)*.
+- `2026-05-21` — iOS build 73 / Android versionCode 106 / v2.4.2 / rv 2.4.2 (`3cb729e`). analytics 측정 모듈 + 가입 흐름 보강 8 사이클 + 작업 C 5차 통일 통합. **스토어 심사 중**. 통과 후 자동 출시.
+- `2026-05-04` — iOS build 72 / v2.4.1 / rv 2.4.0 (`b9671162`). 이전 운영 빌드. 5/21 빌드 통과 시 자동 교체.
 
 ---
 
