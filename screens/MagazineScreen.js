@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 import SectionNewsModal from '../components/SectionNewsModal';
 import AnnouncementBanner from '../components/AnnouncementBanner';
+import VisitorValueCard from '../components/VisitorValueCard';
 
 const { width } = Dimensions.get('window');
 
@@ -582,6 +583,12 @@ export default function MagazineScreen({ navigation, route }) {
           <View>
             {/* 📢 공지 배너 (Firestore Announcements에서 조회) */}
             <AnnouncementBanner targetScreen="News" />
+
+            {/* 🎯 비회원 가치 카드 — 뉴스 탭 비회원에게만 노출 (액션 14)
+                이메일·환영화면과 동일 데이터(Firestore 24h count). 3채널 인지 일관성. */}
+            {type === 'news' && !searchQuery && (
+              <VisitorValueCard navigation={navigation} />
+            )}
 
             {/* 홈 배너: 스크롤과 함께 움직임 */}
             {type === 'home' && (
