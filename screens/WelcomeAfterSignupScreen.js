@@ -21,18 +21,39 @@
 // 4. *큰 CTA 1개* + 작은 옵션 — 결정 부담 최소화.
 // 5. 닫기/X 없음 — 사용자가 *반드시* 메인 진입 흐름을 거치게.
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import { collection, query, where, getCountFromServer, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { logEvent } from '../lib/analytics';
 
 export default function WelcomeAfterSignupScreen({ route, navigation }) {
   const displayName = route?.params?.displayName || '회원';
 
-  // 화면 노출 측정 (defensive analytics 안전)
+  // 최근 24시간 신규 콘텐츠 카운트 (v3) — fail-safe, 실패 시 일반 안내 표시
+  const [counts, setCounts] = useState({ jobs: null, realEstate: null, items: null });
+
   useEffect(() => {
     logEvent('welcome_screen_shown', { source: route?.params?.source || 'signup' });
+
+    // Firestore 24h 카운트 — getCountFromServer 는 빠르고 비용도 적음
+    (async () => {
+      try {
+        const since = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+        const [jobsCount, realEstateCount, itemsCount] = await Promise.all([
+          getCountFromServer(query(collection(db, 'Jobs'), where('createdAt', '>', since))).catch(() => null),
+          getCountFromServer(query(collection(db, 'RealEstate'), where('createdAt', '>', since))).catch(() => null),
+          getCountFromServer(query(collection(db, 'XinChaoDanggn'), where('createdAt', '>', since))).catch(() => null),
+        ]);
+        setCounts({
+          jobs: jobsCount ? jobsCount.data().count : null,
+          realEstate: realEstateCount ? realEstateCount.data().count : null,
+          items: itemsCount ? itemsCount.data().count : null,
+        });
+      } catch (_) { /* fail-safe — 안내 화면은 그대로 */ }
+    })();
   }, []);
 
   const handleEnablePushAndStart = async () => {
@@ -86,19 +107,25 @@ export default function WelcomeAfterSignupScreen({ route, navigation }) {
           icon="briefcase-outline"
           color="#0369a1"
           title="💼 채용 정보"
-          desc="베트남 진출 한국기업 채용. 내 지역·업종 매칭 알림"
+          desc={counts.jobs != null && counts.jobs > 0
+            ? `🆕 오늘 새 채용 ${counts.jobs}건. 베트남 진출 한국기업 매칭 알림`
+            : "베트남 진출 한국기업 채용. 내 지역·업종 매칭 알림"}
         />
         <CategoryCard
           icon="home-outline"
           color="#15803d"
           title="🏠 부동산 매물"
-          desc="아파트·주택 신규 등록 알림. 가격 변동 추적"
+          desc={counts.realEstate != null && counts.realEstate > 0
+            ? `🆕 오늘 새 매물 ${counts.realEstate}건. 아파트·주택 신규 + 가격 변동 알림`
+            : "아파트·주택 신규 등록 알림. 가격 변동 추적"}
         />
         <CategoryCard
           icon="cart-outline"
           color="#c2410c"
           title="🛒 중고거래·나눔"
-          desc="이웃이 올린 물품·서비스. 위치 기반 매칭"
+          desc={counts.items != null && counts.items > 0
+            ? `🆕 오늘 새 물품 ${counts.items}건. 이웃이 올린 위치 기반 매칭`
+            : "이웃이 올린 물품·서비스. 위치 기반 매칭"}
         />
 
         {/* 푸시 알림 안내 */}
