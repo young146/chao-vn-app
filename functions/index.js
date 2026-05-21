@@ -791,13 +791,43 @@ async function uploadPhotoUnpublished(pageId, pageToken, buffer) {
   return await r.json();
 }
 
+// ============================================================
+// publishToFacebookPage — Multi-Page v2 (2026-05-21 재구성)
+// ============================================================
+//
+// 변경 사항 vs 옛 버전:
+//   - 옛: FB_PAGE_ID + FB_PAGE_ACCESS_TOKEN (단일 페이지, 만료성 토큰)
+//   - 신: FB_SYSTEM_USER_TOKEN (영구 시스템 사용자 토큰 1개) → /me/accounts 로
+//        4개 (또는 N개) 페이지 + 페이지별 Page Access Token 을 동적으로 발견
+//
+// 영구 토큰 발급 경로 (Meta Business Manager):
+//   1. business.facebook.com → 비즈니스 설정 → 사용자 → 시스템 사용자
+//   2. "dailynews-bot" (또는 이름) 시스템 사용자 추가
+//   3. 4 페이지 모두 "전체 액세스 (Admin)" 권한 부여
+//   4. 토큰 생성 — 기간 "기한 없음" 선택
+//   5. 발급된 토큰을 Firebase Secret FB_SYSTEM_USER_TOKEN 에 등록
+//
+// Secret 등록 명령:
+//   firebase functions:secrets:set FB_SYSTEM_USER_TOKEN --project chaovietnam-login
+//
+// 게시 흐름:
+//   1. 인증 (Bearer PUBLISH_API_KEY)
+//   2. 시스템 사용자 토큰으로 /me/accounts 호출 → 4 페이지 + 토큰 동적 발견
+//   3. 뉴스 + 광고 이미지 한 번만 다운로드 + 1:1 변환 (재사용으로 효율)
+//   4. 각 페이지에 published=false 업로드 → /feed 앨범 게시
+//   5. broadcastLogs 에 페이지별 결과 기록
+//
+// 응답 호환성:
+//   - 옛: { ok, postId, permalink }
+//   - 신: { ok, postId, permalink, pageResults: [...] } — pageResults 추가, 호환 유지
+
 exports.publishToFacebookPage = onRequest(
   {
     cors: false,
     invoker: "public",
     memory: "512MiB",
-    timeoutSeconds: 120,
-    secrets: ["FB_PAGE_ACCESS_TOKEN", "FB_PAGE_ID", "PUBLISH_API_KEY"],
+    timeoutSeconds: 300, // 4 페이지 × ~30초 마진
+    secrets: ["FB_SYSTEM_USER_TOKEN", "PUBLISH_API_KEY"],
   },
   async (req, res) => {
     if (req.method !== "POST") {
@@ -805,12 +835,12 @@ exports.publishToFacebookPage = onRequest(
     }
 
     const auth = req.get("Authorization") || "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-    if (token !== process.env.PUBLISH_API_KEY) {
+    const incomingToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    if (incomingToken !== process.env.PUBLISH_API_KEY) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
-    // 입력 정규화 — news + promos
+    // 입력 정규화
     const body = req.body || {};
     const news = body.news
       || (body.imageUrl ? { imageUrl: body.imageUrl, caption: body.caption || "", link: body.link } : null);
@@ -820,11 +850,14 @@ exports.publishToFacebookPage = onRequest(
       return res.status(400).json({ ok: false, error: "news.imageUrl and news.caption are required" });
     }
 
-    const pageId = (process.env.FB_PAGE_ID || "").trim();
-    const pageToken = (process.env.FB_PAGE_ACCESS_TOKEN || "").trim();
+    const systemToken = (process.env.FB_SYSTEM_USER_TOKEN || "").trim();
+    if (!systemToken) {
+      return res.status(500).json({ ok: false, error: "FB_SYSTEM_USER_TOKEN not configured" });
+    }
+
     const logBase = { channel: "facebook", news, promos };
 
-    // 캡션 합성: 뉴스 + 광고 링크 텍스트
+    // 캡션 합성 (모든 페이지 동일)
     const lines = [news.caption];
     if (news.link) lines.push("", news.link);
     if (promos.length > 0) {
@@ -840,52 +873,123 @@ exports.publishToFacebookPage = onRequest(
     const message = lines.join("\n");
 
     try {
-      // 1. 모든 이미지(뉴스 + 광고) 다운로드 → 1:1 변환 → published=false 업로드
-      const allImages = [news.imageUrl, ...promos.map(p => p.imageUrl)];
-      const photoIds = [];
-      for (const url of allImages) {
-        const buf = await downloadImage(url);
-        const sq = await toSquare(buf, 1080);
-        const up = await uploadPhotoUnpublished(pageId, pageToken, sq);
-        if (up.error) {
-          console.error("❌ [FBPublish] 사진 업로드 실패:", url, up.error);
-          await db.collection("broadcastLogs").add({ ...logBase, ok: false, stage: "photo_upload", failedUrl: url, error: up.error, at: new Date() });
-          return res.status(502).json({ ok: false, error: up.error });
+      // ── 1. 시스템 사용자 토큰으로 페이지 목록 + 페이지별 토큰 발견
+      const accountsRes = await fetch(
+        `https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token&access_token=${encodeURIComponent(systemToken)}`
+      );
+      const accountsData = await accountsRes.json();
+      if (!accountsRes.ok || accountsData.error) {
+        console.error("❌ [FBPublish v2] /me/accounts 실패:", accountsData.error);
+        await db.collection("broadcastLogs").add({
+          ...logBase, ok: false, mode: "multi-page-album-v2", stage: "me_accounts",
+          error: accountsData.error || accountsData, at: new Date(),
+        });
+        return res.status(502).json({ ok: false, error: accountsData.error || accountsData });
+      }
+      const pages = Array.isArray(accountsData.data) ? accountsData.data : [];
+      if (pages.length === 0) {
+        await db.collection("broadcastLogs").add({
+          ...logBase, ok: false, mode: "multi-page-album-v2", stage: "me_accounts",
+          error: { message: "시스템 사용자가 접근 가능한 페이지가 없습니다" }, at: new Date(),
+        });
+        return res.status(502).json({ ok: false, error: "no_accessible_pages" });
+      }
+      console.log(`[FBPublish v2] 접근 가능 페이지 ${pages.length}개: ${pages.map(p => p.name).join(", ")}`);
+
+      // ── 2. 모든 이미지 한 번만 다운로드 + 1:1 변환 (페이지마다 재사용)
+      const newsBuf = await toSquare(await downloadImage(news.imageUrl), 1080);
+      const promoBufs = [];
+      for (const p of promos) {
+        try {
+          promoBufs.push({
+            buf: await toSquare(await downloadImage(p.imageUrl), 1080),
+            meta: p,
+          });
+        } catch (e) {
+          console.warn(`[FBPublish v2] 광고 이미지 다운로드 실패 (skip): ${p.imageUrl}`, e.message);
         }
-        photoIds.push(up.id);
       }
 
-      // 2. /feed 로 묶어서 앨범 게시
-      const feedParams = new URLSearchParams({
-        message,
-        attached_media: JSON.stringify(photoIds.map(id => ({ media_fbid: id }))),
-        access_token: pageToken,
-      });
-      const feedRes = await fetch(`https://graph.facebook.com/v25.0/${pageId}/feed`, { method: "POST", body: feedParams });
-      const feedData = await feedRes.json();
-      if (!feedRes.ok || feedData.error) {
-        console.error("❌ [FBPublish] /feed 에러:", feedData);
-        await db.collection("broadcastLogs").add({ ...logBase, ok: false, stage: "feed", uploadedPhotoIds: photoIds, error: feedData.error || feedData, at: new Date() });
-        return res.status(502).json({ ok: false, error: feedData.error || feedData });
+      // ── 3. 각 페이지에 동일 콘텐츠 게시
+      const pageResults = [];
+      for (const page of pages) {
+        try {
+          const pageToken = page.access_token;
+          if (!pageToken) throw new Error("page access_token missing");
+
+          // 3-1. 뉴스 + 광고 이미지 published=false 업로드
+          const photoIds = [];
+          const newsUp = await uploadPhotoUnpublished(page.id, pageToken, newsBuf);
+          if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
+          photoIds.push(newsUp.id);
+
+          for (const { buf } of promoBufs) {
+            const up = await uploadPhotoUnpublished(page.id, pageToken, buf);
+            if (up.error) {
+              // 광고 이미지 1개 실패해도 뉴스는 게시 계속
+              console.warn(`[FBPublish v2] ${page.name} 광고 업로드 실패 (skip 1건): ${JSON.stringify(up.error)}`);
+              continue;
+            }
+            photoIds.push(up.id);
+          }
+
+          // 3-2. /feed 앨범 게시
+          const feedParams = new URLSearchParams({
+            message,
+            attached_media: JSON.stringify(photoIds.map(id => ({ media_fbid: id }))),
+            access_token: pageToken,
+          });
+          const feedRes = await fetch(
+            `https://graph.facebook.com/v25.0/${page.id}/feed`,
+            { method: "POST", body: feedParams }
+          );
+          const feedData = await feedRes.json();
+          if (!feedRes.ok || feedData.error) {
+            throw new Error(`feed: ${JSON.stringify(feedData.error || feedData)}`);
+          }
+
+          const postId = feedData.id;
+          pageResults.push({
+            pageId: page.id, name: page.name, ok: true,
+            postId, photoIds, permalink: `https://www.facebook.com/${postId}`,
+          });
+          console.log(`✅ [FBPublish v2] ${page.name} 게시 성공: ${postId}`);
+        } catch (err) {
+          pageResults.push({
+            pageId: page.id, name: page.name, ok: false,
+            error: String(err.message || err),
+          });
+          console.error(`❌ [FBPublish v2] ${page.name} 게시 실패: ${err.message}`);
+        }
       }
 
-      const postId = feedData.id;
-      console.log(`✅ [FBPublish] 앨범 게시 성공: post_id=${postId}, photos=${photoIds.length}`);
+      // ── 4. 결과 로그 + 응답
+      const anyOk = pageResults.some(r => r.ok);
+      const allOk = pageResults.every(r => r.ok);
+      const firstSuccess = pageResults.find(r => r.ok);
 
       await db.collection("broadcastLogs").add({
-        ...logBase, ok: true, mode: "album",
-        postId, photoIds, at: new Date(),
+        ...logBase,
+        ok: allOk,
+        mode: "multi-page-album-v2",
+        pageResults,
+        successCount: pageResults.filter(r => r.ok).length,
+        failureCount: pageResults.filter(r => !r.ok).length,
+        at: new Date(),
       });
 
       return res.json({
-        ok: true,
-        postId,
-        photoIds,
-        permalink: `https://www.facebook.com/${postId}`,
+        ok: anyOk, // 하나라도 성공하면 ok (호환성)
+        postId: firstSuccess?.postId || null,
+        permalink: firstSuccess?.permalink || null,
+        pageResults, // 신규 — 페이지별 결과 추적용
       });
     } catch (err) {
-      console.error("❌ [FBPublish] 호출 실패:", err);
-      await db.collection("broadcastLogs").add({ ...logBase, ok: false, error: String(err.message || err), at: new Date() });
+      console.error("❌ [FBPublish v2] 호출 실패:", err);
+      await db.collection("broadcastLogs").add({
+        ...logBase, ok: false, mode: "multi-page-album-v2",
+        error: String(err.message || err), at: new Date(),
+      });
       return res.status(500).json({ ok: false, error: String(err.message || err) });
     }
   }
