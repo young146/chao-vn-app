@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES, changeLanguage } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { FIXED_BOTTOM_HEIGHT } from "../components/AdBanner";
 import * as Updates from "expo-updates";
 import Constants from "expo-constants";
@@ -25,6 +26,7 @@ import { db } from "../firebase/config";
 
 export default function MoreScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t, i18n } = useTranslation('menu');
   const [isAdmin, setIsAdmin] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
@@ -157,16 +159,8 @@ export default function MoreScreen({ navigation }) {
   ];
 
   const handleMenuPress = (item) => {
-    if (item.requiresAuth && !user) {
-      Alert.alert(t('loginRequired'), t('loginRequiredMessage'), [
-        { text: t('common:cancel'), style: "cancel" },
-        {
-          text: t('common:login'),
-          onPress: () => navigation.navigate("로그인"),
-        },
-      ]);
-      return;
-    }
+    // 깔때기 단계 2 보강 C 5차: inline Alert → useRequireAuth 통일
+    if (item.requiresAuth && !requireAuth(item.label || '이 메뉴')) return;
     navigation.navigate(item.screen);
   };
 

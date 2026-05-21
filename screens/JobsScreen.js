@@ -19,6 +19,7 @@ import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { getColors } from "../utils/colors";
 import { db } from "../firebase/config";
 import {
@@ -150,6 +151,7 @@ const JobCard = memo(({ item, onPress, index, t }) => {
 
 export default function JobsScreen({ navigation }) {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t, i18n } = useTranslation('jobs');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
@@ -365,19 +367,10 @@ export default function JobsScreen({ navigation }) {
   }, [jobs, selectedJobType, selectedIndustry, selectedCity]);
 
   const handleAddJob = useCallback(() => {
-    if (!user) {
-      Alert.alert(
-        t('common:loginRequired') + " 🔒",
-        t('loginMessage'),
-        [
-          { text: t('common:later'), style: "cancel" },
-          { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
-        ]
-      );
-    } else {
-      setShowLangPicker(true);
-    }
-  }, [user, navigation, t]);
+    // 깔때기 단계 2 보강 C 5차: inline Alert → useRequireAuth 통일
+    if (!requireAuth('구인구직 등록')) return;
+    setShowLangPicker(true);
+  }, [navigation, requireAuth]);
 
   const handleLangTypeSelect = useCallback((sourceLanguage, type) => {
     setShowLangPicker(false);

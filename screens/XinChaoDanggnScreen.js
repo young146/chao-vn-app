@@ -18,6 +18,7 @@ import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { db } from "../firebase/config";
 import {
   collection,
@@ -94,6 +95,7 @@ const ItemCard = memo(({ item, onPress, formatPrice, getStatusColor, index }) =>
 
 export default function XinChaoDanggnScreen({ navigation }) {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t, i18n } = useTranslation('danggn');
 
 
@@ -326,19 +328,10 @@ export default function XinChaoDanggnScreen({ navigation }) {
   }, []);
 
   const handleAddItem = useCallback(() => {
-    if (!user) {
-      Alert.alert(
-        t('common:loginRequired') + " 🔒",
-        t('loginMessage'),
-        [
-          { text: t('common:later'), style: "cancel" },
-          { text: t('common:login'), onPress: () => navigation.navigate("로그인") },
-        ]
-      );
-    } else {
-      navigation.navigate("당근/나눔 등록");
-    }
-  }, [user, navigation, t]);
+    // 깔때기 단계 2 보강 C 5차: inline Alert → useRequireAuth 통일
+    if (!requireAuth('당근·나눔 등록')) return;
+    navigation.navigate("당근/나눔 등록");
+  }, [navigation, requireAuth]);
 
   const handleProfilePrompt = useCallback(() => {
     Alert.alert(
