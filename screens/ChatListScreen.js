@@ -189,10 +189,18 @@ export default function ChatListScreen({ navigation }) {
   };
 
   if (!user) {
+    // 깔때기 단계 2 보강: 기존 silent 비회원 안내에 가입/로그인 버튼 추가
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
         <Text style={styles.emptyText}>{t('loginRequired')}</Text>
+        <TouchableOpacity
+          style={{ marginTop: 16, backgroundColor: '#f97316', paddingVertical: 12, paddingHorizontal: 28, borderRadius: 10 }}
+          onPress={() => navigation.navigate('로그인')}
+          activeOpacity={0.85}
+        >
+          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>가입/로그인 →</Text>
+        </TouchableOpacity>
       </View>
     );
   }
