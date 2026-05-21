@@ -235,7 +235,8 @@ export const AuthProvider = ({ children }) => {
       const googleUser = userCredential.user;
 
       const userDoc = await getDoc(doc(db, "users", googleUser.uid));
-      if (!userDoc.exists()) {
+      const isNewSignup = !userDoc.exists();
+      if (isNewSignup) {
         await Promise.all([
           setDoc(doc(db, "users", googleUser.uid), {
             uid: googleUser.uid,
@@ -257,7 +258,8 @@ export const AuthProvider = ({ children }) => {
         ]);
       }
 
-      return { success: true, user: googleUser };
+      // 깔때기 단계 2 보강 A v2: 신규 소셜 가입자도 환영 화면 경유 (LoginScreen 에서 분기)
+      return { success: true, user: googleUser, isNewSignup };
     } catch (error) {
       console.error("구글 로그인 오류:", error);
       let message = "구글 로그인에 실패했습니다.";
@@ -281,7 +283,8 @@ export const AuthProvider = ({ children }) => {
       const appleUser = userCredential.user;
 
       const userDoc = await getDoc(doc(db, "users", appleUser.uid));
-      if (!userDoc.exists()) {
+      const isNewSignup = !userDoc.exists();
+      if (isNewSignup) {
         await setDoc(doc(db, "users", appleUser.uid), {
           uid: appleUser.uid,
           email: appleUser.email || null,
@@ -302,7 +305,7 @@ export const AuthProvider = ({ children }) => {
         });
       }
 
-      return { success: true, user: appleUser };
+      return { success: true, user: appleUser, isNewSignup };
     } catch (error) {
       console.error("애플 로그인 오류:", error);
       let message = "애플 로그인에 실패했습니다.";
@@ -390,7 +393,7 @@ export const AuthProvider = ({ children }) => {
         }, { merge: true });
       }
 
-      return { success: true, user };
+      return { success: true, user, isNewSignup: isNewUser };
 
     } catch (error) {
       console.error("❌ 카카오 로그인 오류:", error);

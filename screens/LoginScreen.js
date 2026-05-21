@@ -66,7 +66,13 @@ export default function LoginScreen({ navigation }) {
       if (credential.identityToken) {
         const result = await appleLogin(credential.identityToken, rawNonce);
         if (result.success) {
-          navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+          // 깔때기 단계 2 보강 A v2: 신규 가입자는 환영 화면 경유
+          if (result.isNewSignup) {
+            const nick = result.user?.displayName || result.user?.email?.split('@')[0] || '회원';
+            navigation.replace('환영', { displayName: nick, source: 'signup_apple' });
+          } else {
+            navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+          }
         } else {
           if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
             Alert.alert(
@@ -129,7 +135,13 @@ export default function LoginScreen({ navigation }) {
         console.log(`⏱️ 전체 로그인 완료: ${Date.now() - startTime}ms`);
         
         if (result.success) {
-          navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+          // 깔때기 단계 2 보강 A v2: 신규 가입자는 환영 화면 경유
+          if (result.isNewSignup) {
+            const nick = result.user?.displayName || result.user?.email?.split('@')[0] || '회원';
+            navigation.replace('환영', { displayName: nick, source: 'signup_google' });
+          } else {
+            navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+          }
         } else {
           if (result.code === 'auth/account-exists-with-different-credential' && result.email) {
             Alert.alert(
@@ -171,7 +183,13 @@ export default function LoginScreen({ navigation }) {
       const result = await kakaoLogin();
       
       if (result.success) {
-        navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+        // 깔때기 단계 2 보강 A v2: 신규 가입자는 환영 화면 경유
+        if (result.isNewSignup) {
+          const nick = result.user?.displayName || '회원';
+          navigation.replace('환영', { displayName: nick, source: 'signup_kakao' });
+        } else {
+          navigation.reset({ index: 0, routes: [{ name: 'MainApp' }] });
+        }
       } else {
         const msg = result.error || "카카오 로그인에 실패했습니다.";
         Alert.alert(t('kakaoLoginFailed') || "카카오 로그인 실패", msg);
