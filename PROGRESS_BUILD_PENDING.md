@@ -31,7 +31,7 @@
 | **Version** | 2.4.2 | 2.4.2 |
 | **Runtime Version** | 2.4.2 | 2.4.2 |
 | **Commit** | `3cb729e` (version bump 2.4.1 → 2.4.2) | 동일 |
-| **현재 상태** | 🟡 스토어 심사 중 | 🟡 스토어 심사 중 |
+| **현재 상태** | 🟡 스토어 심사 중 (~1~3일) | 🟢 **출시 완료 — 사용자 자동 업데이트 시작** (2026-05-21) |
 
 이전 운영 빌드 (5/4): iOS build 72 / 2.4.1 / rv 2.4.0. 심사 통과 후 자동 교체.
 
@@ -92,14 +92,21 @@ EAS Build 를 *지금* 실행할지 결정할 때 자문할 것:
 
 ---
 
-## ✅ 2026-05-21 — 빌드 + Submit 완료
+## ✅ 2026-05-21 — 빌드 + Submit + Android 출시 완료
 
-iOS build 73 + Android versionCode 106 모두 EAS Build 완료(17분). `--auto-submit` 으로 App Store Connect + Google Play Console 업로드까지 처리. 스토어 심사 대기 중 (iOS ~1~3일, Android ~수 시간~1일).
+iOS build 73 + Android versionCode 106 모두 EAS Build 완료(17분). `--auto-submit` 으로 스토어 업로드 처리.
 
-**다음 액션**:
-- 심사 통과 알림 수신 → 사용자 자동 업데이트 시작
-- Firebase Analytics 데이터 흐름 확인 (Firebase Console → Analytics → Events)
-- 1주 후 GA4 + Firebase Analytics 통합 데이터로 깔때기 단계 2·3 효과 진단
+- **Android**: 🟢 **출시 완료** — 사용자 자동 업데이트 시작. Firebase Analytics 데이터 흐름 개시 예정.
+- **iOS**: 🟡 심사 대기 (~1~3일).
+
+추가 OTA 발송:
+- `d16b0ae3-...` (5/21) — 액션 14 v1 (비회원 뉴스 탭 가치 카드) + 이메일 3채널 동기화. runtime 2.4.2 빌드만 수신.
+
+**다음 액션 (Android 출시 직후)**:
+- Firebase Console → Analytics → Realtime 에서 *지금* 이벤트 흐름 확인 가능
+- 주요 이벤트: `screen_view`, `welcome_screen_shown` (신규 가입 시), `visitor_value_card_shown`, `job_view`, `realestate_view`, `news_read`, `share_clicked`
+- iOS 심사 통과 후 양쪽 데이터 통합 분석
+- 1주 후 GA4 + Firebase Analytics 데이터로 깔때기 단계 2·3 효과 진단
 
 ---
 
