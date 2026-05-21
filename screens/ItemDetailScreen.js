@@ -480,13 +480,8 @@ export default function ItemDetailScreen({ route, navigation }) {
   };
   // ✅ 찜하기 핸들러 (알림 추가!)
   const handleFavorite = async () => {
-    if (!user) {
-      Alert.alert(t('common:notice'), t('detail.loginRequired'), [
-        { text: t('common:confirm') },
-        { text: t('detail.goToLogin'), onPress: () => navigation.navigate("로그인") },
-      ]);
-      return;
-    }
+    // 깔때기 단계 2 보강: 비회원 분기 useRequireAuth hook 으로 통일 (작업 C)
+    if (!requireAuth('찜하기')) return;
 
     try {
       if (isFavorited) {

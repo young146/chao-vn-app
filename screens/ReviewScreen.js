@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { getColors } from "../utils/colors";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -26,6 +27,7 @@ export default function ReviewScreen({ route, navigation }) {
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
   const { user } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -36,10 +38,8 @@ export default function ReviewScreen({ route, navigation }) {
       return;
     }
 
-    if (!user) {
-      Alert.alert(t('notice'), t('review.loginRequired'));
-      return;
-    }
+    // 깔때기 단계 2 보강: 비회원 분기 useRequireAuth hook 으로 통일 (작업 C)
+    if (!requireAuth('리뷰 작성')) return;
 
     setSubmitting(true);
 

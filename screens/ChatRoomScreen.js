@@ -41,6 +41,8 @@ import {
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import TranslatedText from "../components/TranslatedText";
+import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 
 // 알림 핸들러 설정 (앱 시작 시 한 번만)
 Notifications.setNotificationHandler({
@@ -65,6 +67,8 @@ export default function ChatRoomScreen({ route, navigation }) {
   const { t } = useTranslation('menu');
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
+  const { user } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
 
   const isFocused = useIsFocused(); // 현재 화면이 활성화되어 있는지 확인
   const [chatRoomId, setChatRoomId] = useState(initialChatRoomId);
@@ -290,6 +294,9 @@ export default function ChatRoomScreen({ route, navigation }) {
     if ((!messageText.trim() && !previewImage) || !chatRoomId) {
       return;
     }
+
+    // 깔때기 단계 2 보강: 비회원이 채팅방에 deep link 등으로 도달했을 때 메시지 전송 차단 + 가입 유도
+    if (!requireAuth('메시지 보내기')) return;
 
     if (isUploading) return;
 

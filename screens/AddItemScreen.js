@@ -25,6 +25,7 @@ import {
   translateOther,
 } from "../utils/vietnamLocations";
 import { useAuth } from "../contexts/AuthContext";
+import { useRequireAuth } from "../hooks/useRequireAuth";
 import { getColors } from "../utils/colors";
 import {
   collection,
@@ -41,6 +42,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function AddItemScreen({ navigation, route }) {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth(navigation);
   const { t, i18n } = useTranslation(['danggn', 'common']);
   const colorScheme = useColorScheme();
   const colors = getColors(colorScheme);
@@ -240,10 +242,8 @@ export default function AddItemScreen({ navigation, route }) {
       return;
     }
 
-    if (!user) {
-      Alert.alert(t('common:notice'), t('common:loginRequired'));
-      return;
-    }
+    // 깔때기 단계 2 보강: 비회원 분기 useRequireAuth hook 으로 통일 (작업 C)
+    if (!requireAuth('게시물 등록')) return;
 
     setUploading(true);
 
