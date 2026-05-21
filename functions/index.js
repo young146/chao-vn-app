@@ -910,56 +910,77 @@ exports.publishToFacebookPage = onRequest(
         }
       }
 
-      // ── 3. 각 페이지에 동일 콘텐츠 게시
+      // ── 3. 각 페이지에 동일 콘텐츠 게시 (실패 시 1회 자동 재시도)
+      //
+      // Facebook rate limit / 일시 부하 (code:1 "Please reduce the amount of data...")
+      // 대응: 첫 시도 실패 시 8초 대기 후 재시도. 보통 일시적이라 재시도로 해결됨.
+      // 두 번째도 실패하면 진짜 영구 fail (권한 문제 등) — broadcastLogs 에 기록.
       const pageResults = [];
+
+      async function tryPostToPage(page) {
+        const pageToken = page.access_token;
+        if (!pageToken) throw new Error("page access_token missing");
+
+        const photoIds = [];
+        const newsUp = await uploadPhotoUnpublished(page.id, pageToken, newsBuf);
+        if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
+        photoIds.push(newsUp.id);
+
+        for (const { buf } of promoBufs) {
+          const up = await uploadPhotoUnpublished(page.id, pageToken, buf);
+          if (up.error) {
+            console.warn(`[FBPublish v2] ${page.name} 광고 업로드 실패 (skip 1건): ${JSON.stringify(up.error)}`);
+            continue;
+          }
+          photoIds.push(up.id);
+        }
+
+        const feedParams = new URLSearchParams({
+          message,
+          attached_media: JSON.stringify(photoIds.map(id => ({ media_fbid: id }))),
+          access_token: pageToken,
+        });
+        const feedRes = await fetch(
+          `https://graph.facebook.com/v25.0/${page.id}/feed`,
+          { method: "POST", body: feedParams }
+        );
+        const feedData = await feedRes.json();
+        if (!feedRes.ok || feedData.error) {
+          throw new Error(`feed: ${JSON.stringify(feedData.error || feedData)}`);
+        }
+        return { postId: feedData.id, photoIds };
+      }
+
       for (const page of pages) {
-        try {
-          const pageToken = page.access_token;
-          if (!pageToken) throw new Error("page access_token missing");
-
-          // 3-1. 뉴스 + 광고 이미지 published=false 업로드
-          const photoIds = [];
-          const newsUp = await uploadPhotoUnpublished(page.id, pageToken, newsBuf);
-          if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
-          photoIds.push(newsUp.id);
-
-          for (const { buf } of promoBufs) {
-            const up = await uploadPhotoUnpublished(page.id, pageToken, buf);
-            if (up.error) {
-              // 광고 이미지 1개 실패해도 뉴스는 게시 계속
-              console.warn(`[FBPublish v2] ${page.name} 광고 업로드 실패 (skip 1건): ${JSON.stringify(up.error)}`);
-              continue;
+        let result = null;
+        let lastError = null;
+        let attempts = 0;
+        for (attempts = 1; attempts <= 2; attempts++) {
+          try {
+            result = await tryPostToPage(page);
+            break; // 성공 시 즉시 탈출
+          } catch (err) {
+            lastError = err;
+            if (attempts < 2) {
+              console.warn(`⚠️ [FBPublish v2] ${page.name} 1차 실패 (재시도 예정 8초 후): ${err.message}`);
+              await new Promise(r => setTimeout(r, 8000));
             }
-            photoIds.push(up.id);
           }
+        }
 
-          // 3-2. /feed 앨범 게시
-          const feedParams = new URLSearchParams({
-            message,
-            attached_media: JSON.stringify(photoIds.map(id => ({ media_fbid: id }))),
-            access_token: pageToken,
-          });
-          const feedRes = await fetch(
-            `https://graph.facebook.com/v25.0/${page.id}/feed`,
-            { method: "POST", body: feedParams }
-          );
-          const feedData = await feedRes.json();
-          if (!feedRes.ok || feedData.error) {
-            throw new Error(`feed: ${JSON.stringify(feedData.error || feedData)}`);
-          }
-
-          const postId = feedData.id;
+        if (result) {
           pageResults.push({
-            pageId: page.id, name: page.name, ok: true,
-            postId, photoIds, permalink: `https://www.facebook.com/${postId}`,
+            pageId: page.id, name: page.name, ok: true, attempts,
+            postId: result.postId, photoIds: result.photoIds,
+            permalink: `https://www.facebook.com/${result.postId}`,
           });
-          console.log(`✅ [FBPublish v2] ${page.name} 게시 성공: ${postId}`);
-        } catch (err) {
+          console.log(`✅ [FBPublish v2] ${page.name} 게시 성공 (${attempts}회차): ${result.postId}`);
+        } else {
           pageResults.push({
-            pageId: page.id, name: page.name, ok: false,
-            error: String(err.message || err),
+            pageId: page.id, name: page.name, ok: false, attempts: 2,
+            error: String(lastError?.message || lastError),
           });
-          console.error(`❌ [FBPublish v2] ${page.name} 게시 실패: ${err.message}`);
+          console.error(`❌ [FBPublish v2] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
         }
       }
 
