@@ -908,19 +908,24 @@ exports.publishToFacebookPage = onRequest(
         const pageToken = page.access_token;
         if (!pageToken) throw new Error("page access_token missing");
 
-        // 3-a. 메인 사진 업로드 (뉴스 + 첫 광고)
-        const mainPhotoIds = [];
-        const newsUp = await uploadPhotoUnpublished(page.id, pageToken, newsBuf);
-        if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
-        mainPhotoIds.push(newsUp.id);
-
-        let mainHasPromo = false;
+        // 3-a. 메인 사진 업로드 (뉴스 + 첫 광고 동시 업로드 → 직렬 대비 절반 시간)
+        const uploadPromises = [uploadPhotoUnpublished(page.id, pageToken, newsBuf)];
         if (firstPromoBuf) {
-          const up = await uploadPhotoUnpublished(page.id, pageToken, firstPromoBuf);
-          if (up.error) {
-            console.warn(`[FBPublish v3] ${page.name} 첫 광고 메인 업로드 실패 (뉴스만 메인): ${JSON.stringify(up.error)}`);
+          uploadPromises.push(uploadPhotoUnpublished(page.id, pageToken, firstPromoBuf));
+        }
+        const uploadResults = await Promise.all(uploadPromises);
+
+        const newsUp = uploadResults[0];
+        if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
+
+        const mainPhotoIds = [newsUp.id];
+        let mainHasPromo = false;
+        if (uploadResults[1]) {
+          const promoUp = uploadResults[1];
+          if (promoUp.error) {
+            console.warn(`[FBPublish v3] ${page.name} 첫 광고 메인 업로드 실패 (뉴스만 메인): ${JSON.stringify(promoUp.error)}`);
           } else {
-            mainPhotoIds.push(up.id);
+            mainPhotoIds.push(promoUp.id);
             mainHasPromo = true;
           }
         }
@@ -972,41 +977,46 @@ exports.publishToFacebookPage = onRequest(
         return { postId, photoIds: mainPhotoIds, commentIds, mainPromoIncluded: mainHasPromo };
       }
 
-      for (const page of pages) {
+      // 페이지 4개 병렬 처리 — 페이지마다 토큰이 다르므로 rate limit 독립.
+      // v2 직렬(40~60초) → v3 병렬(10~15초) 약 4배 단축.
+      // 단일 페이지 내부 (메인 업로드/feed/댓글)는 직렬 유지 — 같은 토큰 동시 호출 회피.
+      const pageOps = pages.map(async (page) => {
         let result = null;
         let lastError = null;
         let attempts = 0;
         for (attempts = 1; attempts <= 2; attempts++) {
           try {
             result = await tryPostToPage(page);
-            break; // 성공 시 즉시 탈출
+            break;
           } catch (err) {
             lastError = err;
             if (attempts < 2) {
-              console.warn(`⚠️ [FBPublish v2] ${page.name} 1차 실패 (재시도 예정 8초 후): ${err.message}`);
+              console.warn(`⚠️ [FBPublish v3] ${page.name} 1차 실패 (재시도 예정 8초 후): ${err.message}`);
               await new Promise(r => setTimeout(r, 8000));
             }
           }
         }
 
         if (result) {
-          pageResults.push({
+          console.log(`✅ [FBPublish v3] ${page.name} 게시 성공 (${attempts}회차): ${result.postId} / 댓글 ${result.commentIds.length}개`);
+          return {
             pageId: page.id, name: page.name, ok: true, attempts,
             postId: result.postId,
             photoIds: result.photoIds,
             commentIds: result.commentIds,
             mainPromoIncluded: result.mainPromoIncluded,
             permalink: `https://www.facebook.com/${result.postId}`,
-          });
-          console.log(`✅ [FBPublish v3] ${page.name} 게시 성공 (${attempts}회차): ${result.postId} / 댓글 ${result.commentIds.length}개`);
+          };
         } else {
-          pageResults.push({
+          console.error(`❌ [FBPublish v3] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
+          return {
             pageId: page.id, name: page.name, ok: false, attempts: 2,
             error: String(lastError?.message || lastError),
-          });
-          console.error(`❌ [FBPublish v3] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
+          };
         }
-      }
+      });
+
+      pageResults.push(...(await Promise.all(pageOps)));
 
       // ── 4. 결과 로그 + 응답
       const anyOk = pageResults.some(r => r.ok);
