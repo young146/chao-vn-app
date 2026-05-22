@@ -776,6 +776,31 @@ async function toMaxWidth(buffer, maxWidth = 1080) {
     .toBuffer();
 }
 
+// 페북 안전 비율(1200x630, 1.91:1) — 블러 확장 방식.
+// 원본을 contain으로 가운데 그대로 두고, 비는 영역은 같은 사진을 cover+blur한
+// 흐릿한 배경으로 채움 (Instagram/Twitter 흔한 패턴).
+// 결과: 광고 콘텐츠 잘림 X + 흰 여백 어색함 X + 페북 multi-photo 비율 통일됨.
+// 광고 카드의 원본 디자인(이메일 등 다른 채널에서도 사용)은 그대로 보존.
+async function toFacebookSafe(buffer, w = 1200, h = 630) {
+  // 1. 블러 배경 — 원본을 1200x630에 cover 크롭 + 강한 블러
+  const bg = await sharp(buffer)
+    .resize({ width: w, height: h, fit: "cover" })
+    .blur(30)
+    .modulate({ brightness: 0.85 }) // 약간 어둡게 → 전경 부각
+    .toBuffer();
+
+  // 2. 전경 — 원본을 1200x630 박스 안에 contain (비율 유지, 잘림 없음)
+  const fg = await sharp(buffer)
+    .resize({ width: w, height: h, fit: "inside" })
+    .toBuffer();
+
+  // 3. 배경 위에 전경 가운데 합성
+  return sharp(bg)
+    .composite([{ input: fg, gravity: "center" }])
+    .jpeg({ quality: 92 })
+    .toBuffer();
+}
+
 async function uploadPhotoUnpublished(pageId, pageToken, buffer) {
   const form = new FormData();
   form.append("published", "false");
@@ -892,16 +917,19 @@ exports.publishToFacebookPage = onRequest(
       }
       console.log(`[FBPublish v2] 접근 가능 페이지 ${pages.length}개: ${pages.map(p => p.name).join(", ")}`);
 
-      // ── 2. 메인 사진(뉴스 + 첫 광고)만 다운로드/리사이즈 (원본 비율 유지)
-      //    나머지 광고는 댓글의 attachment_url 로 직접 — 다운로드 불요
+      // ── 2. 메인 사진(뉴스 + 첫 광고) 다운로드 + 페북 안전 비율 정규화
+      //    - 뉴스 카드는 이미 1200x630 (1.91:1) 비율로 생성됨 → toMaxWidth 만으로 OK
+      //    - 첫 광고 카드는 원본이 와이드/정사각형 등 다양 → toFacebookSafe (블러 확장)
+      //      으로 1200x630 통일 → 페북이 두 사진을 같은 박스에 강제 통일할 때 잘림 방지
+      //    - 나머지 광고는 댓글 attachment_url 로 직접 — 단일 사진이라 페북 자동 처리
       const newsBuf = await toMaxWidth(await downloadImage(news.imageUrl), 1080);
 
       let firstPromoBuf = null;
       if (promos.length > 0) {
         try {
-          firstPromoBuf = await toMaxWidth(await downloadImage(promos[0].imageUrl), 1080);
+          firstPromoBuf = await toFacebookSafe(await downloadImage(promos[0].imageUrl));
         } catch (e) {
-          console.warn(`[FBPublish v3] 첫 광고 이미지 다운로드 실패 (메인 뉴스만 게시): ${promos[0].imageUrl}`, e.message);
+          console.warn(`[FBPublish v3] 첫 광고 이미지 다운로드/변환 실패 (메인 뉴스만 게시): ${promos[0].imageUrl}`, e.message);
         }
       }
 
