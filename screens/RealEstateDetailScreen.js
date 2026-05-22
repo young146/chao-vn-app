@@ -273,6 +273,41 @@ export default function RealEstateDetailScreen({ route, navigation }) {
   const isMyItem = item?.userId === user?.uid;
   const canDelete = !!(isMyItem || isAdmin());
 
+  const handleDelete = useCallback(() => {
+    if (!item) return;
+    Alert.alert(
+      t('common:delete'),
+      t('detail.deleteConfirm'),
+      [
+        { text: t('common:cancel'), style: "cancel" },
+        {
+          text: t('common:delete'),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (item.images && item.images.length > 0) {
+                for (const imageUrl of item.images) {
+                  try {
+                    if (imageUrl.includes("firebase")) {
+                      const imageRef = ref(storage, imageUrl);
+                      await deleteObject(imageRef);
+                    }
+                  } catch (imgError) { }
+                }
+              }
+              await deleteDoc(doc(db, "RealEstate", item.id));
+              Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+                { text: t('common:confirm'), onPress: () => navigation.goBack() },
+              ]);
+            } catch (error) {
+              Alert.alert(t('common:error'), t('detail.deleteFailed'));
+            }
+          },
+        },
+      ]
+    );
+  }, [item, navigation, t]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -281,48 +316,14 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             <Ionicons name="share-social-outline" size={24} color="#fff" />
           </TouchableOpacity>
           {canDelete && (
-            <TouchableOpacity onPress={() => {
-              // handleDelete는 early return 후 정의되므로 item 유효성을 여기서도 확인
-              if (!item) return;
-              Alert.alert(
-                t('common:delete'),
-                t('detail.deleteConfirm'),
-                [
-                  { text: t('common:cancel'), style: "cancel" },
-                  {
-                    text: t('common:delete'),
-                    style: "destructive",
-                    onPress: async () => {
-                      try {
-                        if (item.images && item.images.length > 0) {
-                          for (const imageUrl of item.images) {
-                            try {
-                              if (imageUrl.includes("firebase")) {
-                                const imageRef = ref(storage, imageUrl);
-                                await deleteObject(imageRef);
-                              }
-                            } catch (imgError) { }
-                          }
-                        }
-                        await deleteDoc(doc(db, "RealEstate", item.id));
-                        Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
-                          { text: t('common:confirm'), onPress: () => navigation.goBack() },
-                        ]);
-                      } catch (error) {
-                        Alert.alert(t('common:error'), t('detail.deleteFailed'));
-                      }
-                    },
-                  },
-                ]
-              );
-            }}>
+            <TouchableOpacity onPress={handleDelete}>
               <Ionicons name="trash-outline" size={24} color="#F44336" />
             </TouchableOpacity>
           )}
         </View>
       ),
     });
-  }, [navigation, canDelete, handleShare, item, t]);
+  }, [navigation, canDelete, handleShare, handleDelete, item, t]);
 
   // ── 여기서부터 early return (모든 Hook 호출 완료) ──
 
@@ -802,7 +803,7 @@ export default function RealEstateDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 관리자 수정 버튼 (내 매물이 아닐 때만) */}
+        {/* 관리자 수정/삭제 버튼 (내 매물이 아닐 때만) */}
         {!isMyItem && isAdmin() && (
           <View style={styles.ownerActions}>
             <TouchableOpacity
@@ -811,6 +812,13 @@ export default function RealEstateDetailScreen({ route, navigation }) {
             >
               <Ionicons name="shield-checkmark-outline" size={20} color="#FF9800" />
               <Text style={[styles.editButtonText, { color: '#FF9800' }]}>관리자 수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFEBEE', flex: 1 }]}
+              onPress={handleDelete}
+            >
+              <Ionicons name="shield-outline" size={20} color="#F44336" />
+              <Text style={[styles.editButtonText, { color: '#F44336' }]}>관리자 삭제</Text>
             </TouchableOpacity>
           </View>
         )}

@@ -171,6 +171,41 @@ export default function JobDetailScreen({ route, navigation }) {
   const isMyJob = job?.userId === user?.uid;
   const canDelete = !!(isMyJob || isAdmin());
 
+  const handleDelete = useCallback(() => {
+    if (!job) return;
+    Alert.alert(
+      t('common:delete'),
+      t('detail.deleteConfirm'),
+      [
+        { text: t('common:cancel'), style: "cancel" },
+        {
+          text: t('common:delete'),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (job.images && job.images.length > 0) {
+                for (const imageUrl of job.images) {
+                  try {
+                    if (imageUrl.includes("firebase")) {
+                      const imageRef = ref(storage, imageUrl);
+                      await deleteObject(imageRef);
+                    }
+                  } catch (imgError) { }
+                }
+              }
+              await deleteDoc(doc(db, "Jobs", job.id));
+              Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
+                { text: t('common:confirm'), onPress: () => navigation.goBack() },
+              ]);
+            } catch (error) {
+              Alert.alert(t('common:error'), t('detail.deleteFailed'));
+            }
+          },
+        },
+      ]
+    );
+  }, [job, navigation, t]);
+
   const handleChat = useCallback(() => {
     if (!user || !job) return;
     if (isMyJob) {
@@ -214,47 +249,14 @@ export default function JobDetailScreen({ route, navigation }) {
             <Ionicons name="share-social-outline" size={24} color="#fff" />
           </TouchableOpacity>
           {canDelete && (
-            <TouchableOpacity onPress={() => {
-              if (!job) return;
-              Alert.alert(
-                t('common:delete'),
-                t('detail.deleteConfirm'),
-                [
-                  { text: t('common:cancel'), style: "cancel" },
-                  {
-                    text: t('common:delete'),
-                    style: "destructive",
-                    onPress: async () => {
-                      try {
-                        if (job.images && job.images.length > 0) {
-                          for (const imageUrl of job.images) {
-                            try {
-                              if (imageUrl.includes("firebase")) {
-                                const imageRef = ref(storage, imageUrl);
-                                await deleteObject(imageRef);
-                              }
-                            } catch (imgError) { }
-                          }
-                        }
-                        await deleteDoc(doc(db, "Jobs", job.id));
-                        Alert.alert(t('detail.complete'), t('detail.deleteSuccess'), [
-                          { text: t('common:confirm'), onPress: () => navigation.goBack() },
-                        ]);
-                      } catch (error) {
-                        Alert.alert(t('common:error'), t('detail.deleteFailed'));
-                      }
-                    },
-                  },
-                ]
-              );
-            }}>
+            <TouchableOpacity onPress={handleDelete}>
               <Ionicons name="trash-outline" size={24} color="#F44336" />
             </TouchableOpacity>
           )}
         </View>
       ),
     });
-  }, [navigation, canDelete, handleShare, job, t]);
+  }, [navigation, canDelete, handleShare, handleDelete, job, t]);
 
   // ── 여기서부터 early return ──
 
@@ -704,7 +706,7 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* 관리자 수정 버튼 (내 공고가 아닐 때만) */}
+        {/* 관리자 수정/삭제 버튼 (내 공고가 아닐 때만) */}
         {!isMyJob && isAdmin() && (
           <View style={styles.ownerActions}>
             <TouchableOpacity
@@ -713,6 +715,13 @@ export default function JobDetailScreen({ route, navigation }) {
             >
               <Ionicons name="shield-checkmark-outline" size={20} color="#FF9800" />
               <Text style={[styles.editButtonText, { color: '#FF9800' }]}>관리자 수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFEBEE', flex: 1 }]}
+              onPress={handleDelete}
+            >
+              <Ionicons name="shield-outline" size={20} color="#F44336" />
+              <Text style={[styles.editButtonText, { color: '#F44336' }]}>관리자 삭제</Text>
             </TouchableOpacity>
           </View>
         )}

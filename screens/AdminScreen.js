@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -23,15 +23,82 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 
+// 관리 가능한 카테고리 정의
+const CATEGORIES = [
+  {
+    key: "danggn",
+    label: "당근/나눔",
+    collection: "XinChaoDanggn",
+    color: "#FF6B35",
+    tab: "당근/나눔",
+    detailScreen: "당근/나눔 상세",
+    paramKey: "item",
+    notifType: "item_rejected",
+  },
+  {
+    key: "realestate",
+    label: "부동산",
+    collection: "RealEstate",
+    color: "#E91E63",
+    tab: "부동산",
+    detailScreen: "부동산 상세",
+    paramKey: "item",
+    notifType: "item_rejected",
+  },
+  {
+    key: "job",
+    label: "일자리",
+    collection: "Jobs",
+    color: "#2196F3",
+    tab: "구인구직",
+    detailScreen: "구인구직 상세",
+    paramKey: "job",
+    notifType: "item_rejected",
+  },
+  {
+    key: "neighbor",
+    label: "이웃사업",
+    collection: "NeighborBusinesses",
+    color: "#7C3AED",
+    tab: "이웃사업",
+    detailScreen: "이웃사업 상세",
+    paramKey: "id", // NeighborBusinessDetail은 id 만 받음
+    notifType: "business_rejected",
+  },
+];
+
+function getItemTitle(item) {
+  return item.title || item.name || "(제목 없음)";
+}
+
+function getItemSubLine(item, catKey) {
+  if (catKey === "job") {
+    return item.salary
+      ? `${item.jobType || item.industry || ""} · ${item.salaryType || ""} ${item.salary}`
+      : item.jobType || item.industry || "";
+  }
+  if (catKey === "realestate") {
+    return item.dealType === "임대"
+      ? `임대 · 보증금 ${item.deposit || "-"} / 월 ${item.monthlyRent || "-"}`
+      : `${item.dealType || "매매"} ${item.price || ""}`;
+  }
+  if (catKey === "danggn") {
+    return item.priceText || (item.price ? String(item.price) : "");
+  }
+  if (catKey === "neighbor") {
+    return item.category || "";
+  }
+  return "";
+}
+
 export default function AdminScreen({ navigation }) {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
-  const [stats, setStats] = useState({
-    totalItems: 0,
-    categories: {},
-  });
   const [refreshing, setRefreshing] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeCat, setActiveCat] = useState("danggn");
+
+  const cat = CATEGORIES.find((c) => c.key === activeCat) || CATEGORIES[0];
 
   // ✅ 관리자 확인
   useEffect(() => {
@@ -43,43 +110,29 @@ export default function AdminScreen({ navigation }) {
       if (!admin) {
         Alert.alert("권한 없음", "관리자만 접근할 수 있습니다.");
         navigation.goBack();
-        return;
       }
-
-      loadItems();
     }
   }, [user]);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     try {
       const q = query(
-        collection(db, "XinChaoDanggn"),
+        collection(db, cat.collection),
         orderBy("createdAt", "desc")
       );
-      const itemsSnapshot = await getDocs(q);
-      const itemsData = itemsSnapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
-
-      setItems(itemsData);
-
-      // 통계 계산
-      const categoryCount = {};
-      itemsData.forEach((item) => {
-        const cat = item.category || "기타";
-        categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-      });
-
-      setStats({
-        totalItems: itemsData.length,
-        categories: categoryCount,
-      });
+      const snap = await getDocs(q);
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setItems(data);
     } catch (error) {
       console.error("데이터 로드 실패:", error);
-      Alert.alert("오류", "데이터를 불러올 수 없습니다.");
+      Alert.alert("오류", `${cat.label} 데이터를 불러올 수 없습니다.`);
+      setItems([]);
     }
-  };
+  }, [cat]);
+
+  useEffect(() => {
+    if (isAdmin) loadItems();
+  }, [isAdmin, loadItems]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -87,11 +140,12 @@ export default function AdminScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  // ✅ 물품 삭제 + 판매자에게 알림 (수정됨!)
+  // ✅ 물품 삭제 + 등록자에게 알림
   const handleDeleteItem = (item) => {
+    const title = getItemTitle(item);
     Alert.alert(
-      "물품 삭제",
-      `"${item.title}"\n\n이 물품을 삭제하시겠습니까?\n판매자에게 거부 알림이 전송됩니다.`,
+      `${cat.label} 삭제`,
+      `"${title}"\n\n이 항목을 삭제하시겠습니까?\n등록자에게 거부 알림이 전송됩니다.`,
       [
         { text: "취소", style: "cancel" },
         {
@@ -99,40 +153,24 @@ export default function AdminScreen({ navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
-              console.log("🗑️ 물품 삭제 시작:", item.id);
-              console.log("📧 판매자 userId:", item.userId);
+              await deleteDoc(doc(db, cat.collection, item.id));
 
-              // 1. 물품 삭제
-              await deleteDoc(doc(db, "XinChaoDanggn", item.id));
-              console.log("✅ 물품 삭제 완료");
-
-              // 2. 판매자에게 알림 생성 (간단하게!)
               if (item.userId) {
-                console.log("📨 알림 생성 중...");
-
                 await addDoc(collection(db, "notifications"), {
-                  userId: item.userId, // ✅ 직접 사용!
-                  type: "item_rejected",
-                  itemTitle: item.title,
+                  userId: item.userId,
+                  type: cat.notifType,
+                  itemTitle: title,
                   itemImage: item.images?.[0] || "",
-                  message: `귀하의 등록물품 "${item.title}"은 당사의 규정에 의해 등록이 거부되었습니다.`,
+                  message: `귀하의 등록 "${title}"은 당사의 규정에 의해 등록이 거부되었습니다.`,
                   read: false,
                   createdAt: serverTimestamp(),
                 });
-
-                console.log("✅ 알림 생성 완료!");
-              } else {
-                console.log("⚠️ userId가 없어서 알림을 생성할 수 없습니다.");
               }
 
-              Alert.alert(
-                "완료",
-                "물품이 삭제되고 판매자에게 알림이 전송되었습니다."
-              );
+              Alert.alert("완료", "삭제되었습니다.");
               loadItems();
             } catch (error) {
-              console.error("❌ 삭제 실패:", error);
-              console.error("❌ 에러 상세:", error.message);
+              console.error("삭제 실패:", error);
               Alert.alert("오류", `삭제에 실패했습니다.\n\n${error.message}`);
             }
           },
@@ -142,16 +180,23 @@ export default function AdminScreen({ navigation }) {
   };
 
   const handleViewDetail = (item) => {
-    // createdAt을 문자열로 변환하여 navigation params에 전달
+    // createdAt 직렬화
     const serializableItem = {
       ...item,
-      createdAt: item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
+      createdAt:
+        item.createdAt?.toDate?.()?.toISOString() || item.createdAt,
     };
-    navigation.navigate("당근/나눔 상세", { item: serializableItem });
-  };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("ko-KR").format(price) + "₫";
+    // 탭별로 param 키가 다름
+    const params =
+      cat.paramKey === "id"
+        ? { id: item.id }
+        : { [cat.paramKey]: serializableItem };
+
+    navigation.navigate(cat.tab, {
+      screen: cat.detailScreen,
+      params,
+    });
   };
 
   const renderItem = ({ item }) => (
@@ -177,24 +222,23 @@ export default function AdminScreen({ navigation }) {
 
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle} numberOfLines={1}>
-            {item.title}
+            {getItemTitle(item)}
           </Text>
-          <Text style={styles.itemPrice}>{item.priceText || String(item.price || '-')}</Text>
-          <View style={styles.itemMeta}>
-            <Text style={styles.itemCategory}>{item.category}</Text>
-            <Text style={styles.itemLocation}>
-              {item.city} · {item.district}
-            </Text>
-          </View>
+          <Text style={[styles.itemPrice, { color: cat.color }]} numberOfLines={1}>
+            {getItemSubLine(item, cat.key)}
+          </Text>
+          <Text style={styles.itemLocation} numberOfLines={1}>
+            {(item.city || "") + (item.district ? ` · ${item.district}` : "")}
+          </Text>
           <Text style={styles.itemUser} numberOfLines={1}>
             👤 {item.userEmail || "이메일 없음"}
           </Text>
-          <Text style={styles.itemUserId} numberOfLines={1}>
-            🆔 {item.userId || "userId 없음"}
-          </Text>
           {item.createdAt && (
             <Text style={styles.itemDate}>
-              📅 {item.createdAt.toDate().toLocaleDateString("ko-KR")}
+              📅{" "}
+              {item.createdAt.toDate
+                ? item.createdAt.toDate().toLocaleDateString("ko-KR")
+                : new Date(item.createdAt).toLocaleDateString("ko-KR")}
             </Text>
           )}
         </View>
@@ -216,46 +260,53 @@ export default function AdminScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <Ionicons name="shield-checkmark" size={32} color="#dc3545" />
-        <Text style={styles.title}>관리자 페이지</Text>
-        <Text style={styles.subtitle}>{user?.email}</Text>
+      {/* 컴팩트 헤더 — 이메일만 1줄 */}
+      <View style={styles.compactHeader}>
+        <Ionicons name="shield-checkmark" size={18} color="#dc3545" />
+        <Text style={styles.compactHeaderText} numberOfLines={1}>
+          {user?.email}
+        </Text>
       </View>
 
-      {/* 빠른 작업 */}
-      <View style={styles.quickActionsRow}>
-        <TouchableOpacity
-          style={styles.quickActionBtn}
-          onPress={() => navigation.navigate('이웃사업', { screen: '이웃사업 메인' })}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="storefront" size={20} color="#FF6B35" />
-          <Text style={styles.quickActionText}>이웃사업 관리</Text>
-          <Ionicons name="chevron-forward" size={16} color="#999" />
-        </TouchableOpacity>
+      {/* 카테고리 세그먼트 — 가로 4분할 */}
+      <View style={styles.segmentRow}>
+        {CATEGORIES.map((c) => {
+          const active = c.key === activeCat;
+          return (
+            <TouchableOpacity
+              key={c.key}
+              style={[
+                styles.segmentBtn,
+                active && {
+                  backgroundColor: c.color,
+                  borderColor: c.color,
+                },
+              ]}
+              onPress={() => setActiveCat(c.key)}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  active && styles.segmentTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {c.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* 통계 */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{stats.totalItems}</Text>
-          <Text style={styles.statLabel}>전체 물품</Text>
-        </View>
-        {Object.entries(stats.categories)
-          .slice(0, 3)
-          .map(([cat, count]) => (
-            <View key={cat} style={styles.statBox}>
-              <Text style={styles.statNumber}>{count}</Text>
-              <Text style={styles.statLabel}>{cat}</Text>
-            </View>
-          ))}
-      </View>
-
-      {/* 물품 목록 */}
-      <View style={styles.listHeader}>
-        <Text style={styles.listTitle}>📦 등록된 물품</Text>
-        <Text style={styles.listSubtitle}>삭제할 물품을 선택하세요</Text>
+      {/* 카운트 줄 — 한 줄, 컴팩트 */}
+      <View style={styles.countRow}>
+        <Text style={styles.countText}>
+          <Text style={{ fontWeight: "700", color: cat.color }}>
+            {items.length}
+          </Text>
+          개 · 항목 클릭 시 상세 이동, 우측 삭제 가능
+        </Text>
       </View>
 
       <FlatList
@@ -267,14 +318,14 @@ export default function AdminScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#dc3545"]}
-            tintColor="#dc3545"
+            colors={[cat.color]}
+            tintColor={cat.color}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cart-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>등록된 물품이 없습니다</Text>
+            <Text style={styles.emptyText}>등록된 항목이 없습니다</Text>
           </View>
         }
       />
@@ -287,61 +338,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  header: {
-    backgroundColor: "#fff",
-    padding: 20,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 8,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  statsContainer: {
+  // ── 컴팩트 헤더 (기존 큰 헤더 대체) ──
+  compactHeader: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    marginTop: 12,
-    padding: 16,
-    justifyContent: "space-around",
-  },
-  statBox: {
     alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#dc3545",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  listHeader: {
     backgroundColor: "#fff",
-    marginTop: 12,
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  listSubtitle: {
+  compactHeaderText: {
+    marginLeft: 6,
     fontSize: 12,
     color: "#666",
-    marginTop: 4,
+    flex: 1,
   },
+  // ── 4분할 세그먼트 ──
+  segmentRow: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    gap: 6,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#f8f9fa",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#555",
+  },
+  segmentTextActive: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  // ── 카운트 줄 ──
+  countRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  countText: {
+    fontSize: 12,
+    color: "#777",
+  },
+  // ── 리스트 ──
   listContent: {
     paddingBottom: 20,
   },
@@ -349,7 +401,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#fff",
     marginHorizontal: 12,
-    marginTop: 12,
+    marginTop: 10,
     borderRadius: 8,
     overflow: "hidden",
     borderWidth: 1,
@@ -389,37 +441,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   itemPrice: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FF6B35",
+    fontSize: 14,
+    fontWeight: "700",
     marginBottom: 4,
-  },
-  itemMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  itemCategory: {
-    fontSize: 12,
-    color: "#666",
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginRight: 8,
   },
   itemLocation: {
     fontSize: 12,
     color: "#999",
+    marginBottom: 2,
   },
   itemUser: {
     fontSize: 11,
     color: "#999",
-    marginBottom: 2,
-  },
-  itemUserId: {
-    fontSize: 10,
-    color: "#ccc",
     marginBottom: 2,
   },
   itemDate: {
@@ -448,26 +481,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
     marginTop: 16,
-  },
-  quickActionsRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  quickActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF5F0",
-    borderWidth: 1,
-    borderColor: "#FFE0D0",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  quickActionText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
-    marginLeft: 10,
   },
 });

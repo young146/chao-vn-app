@@ -1405,12 +1405,14 @@ function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
 
-  // 🚫 상세 페이지에서는 고정 하단 배너 숨김 (전화/채팅/후기 버튼이 가려지는 문제)
-  // 네비게이션 상태에서 현재 활성 라우트 중 '상세'가 포함된지 확인
+  // 🚫 상세 페이지 + 관리자 화면에서는 고정 하단 배너 숨김
+  //    - 상세: 전화/채팅/후기 버튼이 가려지는 문제
+  //    - 관리자 페이지/회원관리: 운영 작업 화면(목록 영역 확보 우선, 광고 노출 가치 없음)
+  const NO_AD_ROUTE_NAMES = new Set(['관리자 페이지', '회원관리']);
   const isDetailPage = require('@react-navigation/native').useNavigationState(state => {
     if (!state) return false;
     const checkRoute = (route) => {
-      if (route.name && route.name.includes('상세')) return true;
+      if (route.name && (route.name.includes('상세') || NO_AD_ROUTE_NAMES.has(route.name))) return true;
       if (route.state?.routes) return route.state.routes.some(r => checkRoute(r));
       return false;
     };
