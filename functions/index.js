@@ -847,7 +847,7 @@ exports.publishToFacebookPage = onRequest(
   {
     cors: false,
     invoker: "public",
-    memory: "512MiB",
+    memory: "1GiB", // 512MiB → 1GiB — sharp 블러 합성 + 4페이지 병렬 처리 가속
     timeoutSeconds: 300, // 4 페이지 × ~30초 마진
     secrets: ["FB_SYSTEM_USER_TOKEN", "PUBLISH_API_KEY"],
   },
@@ -978,12 +978,12 @@ exports.publishToFacebookPage = onRequest(
         }
         const postId = feedData.id;
 
-        // 3-c. 나머지 광고를 댓글로 첨부
-        // mainHasPromo 면 promos[0]은 메인에 이미 들어감 → slice(1)
+        // 3-c. 나머지 광고를 댓글로 첨부 — N개 병렬 (Promise.all)
+        //      Facebook 댓글 POST는 rate limit 관대 — 같은 페이지 토큰 동시 호출 안전.
+        //      광고 3~4개 직렬(~10초) → 병렬(~3초) 단축.
         const remainingPromos = promos.slice(mainHasPromo ? 1 : 0);
-        const commentIds = [];
-        for (const p of remainingPromos) {
-          if (!p?.imageUrl) continue;
+        const validPromos = remainingPromos.filter(p => p?.imageUrl);
+        const commentResults = await Promise.all(validPromos.map(async (p) => {
           const commentMsg = formatPromoLine(p) || "📌 협찬";
           const commentParams = new URLSearchParams({
             message: commentMsg,
@@ -997,14 +997,16 @@ exports.publishToFacebookPage = onRequest(
             );
             const cData = await cRes.json();
             if (cRes.ok && !cData.error && cData.id) {
-              commentIds.push(cData.id);
-            } else {
-              console.warn(`[FBPublish v3] ${page.name} 광고 댓글 실패 (skip): ${JSON.stringify(cData.error || cData)}`);
+              return cData.id;
             }
+            console.warn(`[FBPublish v3] ${page.name} 광고 댓글 실패 (skip): ${JSON.stringify(cData.error || cData)}`);
+            return null;
           } catch (e) {
             console.warn(`[FBPublish v3] ${page.name} 광고 댓글 예외 (skip): ${e.message}`);
+            return null;
           }
-        }
+        }));
+        const commentIds = commentResults.filter(Boolean);
 
         return { postId, photoIds: mainPhotoIds, commentIds, mainPromoIncluded: mainHasPromo };
       }
