@@ -854,13 +854,17 @@ exports.publishToFacebookPage = onRequest(
 
     const logBase = { channel: "facebook", news, promos };
 
-    // 메인 캡션 — 뉴스 본문만 (광고 정보는 각 광고 사진의 댓글로 분산 → 가독성)
-    // 단, 첫 광고는 메인 2번째 사진으로 들어가므로 그 광고만 메인 캡션 하단에 짧게 표기.
+    // 메인 캡션 — 뉴스 본문 + 광고주 전원 텍스트 나열.
+    // 페북 댓글은 자동 펼침이 불가(접혀 표시)하므로, 광고주 노출 보장 위해
+    // 모든 광고주의 이름·링크를 메인 캡션에 표기. 댓글의 광고 사진은 보너스.
     const mainLines = [news.caption];
     if (news.link) mainLines.push("", news.link);
     if (promos.length > 0) {
-      const first = formatPromoLine(promos[0]);
-      if (first) mainLines.push("", "━━━━━━━━━━", "📌 협찬", first);
+      mainLines.push("", "━━━━━━━━━━", "📌 오늘의 협찬");
+      for (const p of promos) {
+        const line = formatPromoLine(p);
+        if (line) mainLines.push(`• ${line}`);
+      }
     }
     const message = mainLines.join("\n");
 
