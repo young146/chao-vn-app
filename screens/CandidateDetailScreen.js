@@ -93,30 +93,9 @@ export default function CandidateDetailScreen({ route, navigation }) {
   const isMyProfile = candidate?.userId === user?.uid;
   const canManage = !!(isMyProfile || isAdmin());
 
-  // ── 헤더 버튼 ──
-  useLayoutEffect(() => {
+  // ── 삭제 ── (useLayoutEffect deps에 들어가야 하므로 위로 올림)
+  const handleDelete = useCallback(() => {
     if (!candidate) return;
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row", gap: 12, marginRight: 8, alignItems: "center" }}>
-          <TouchableOpacity onPress={() => handleShare('more')} style={{ marginRight: canManage ? 4 : 8 }}>
-            <Ionicons name="share-social-outline" size={24} color="#fff" />
-          </TouchableOpacity>
-          {canManage && (
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={handleDelete}
-            >
-              <Ionicons name="trash-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
-      ),
-    });
-  }, [candidate, canManage, navigation, handleShare]);
-
-  // ── 삭제 ──
-  const handleDelete = () => {
     Alert.alert("삭제", "이 프로필을 삭제하시겠습니까?", [
       { text: t("common:cancel"), style: "cancel" },
       {
@@ -139,7 +118,29 @@ export default function CandidateDetailScreen({ route, navigation }) {
         },
       },
     ]);
-  };
+  }, [candidate, navigation, t]);
+
+  // ── 헤더 버튼 ──
+  useLayoutEffect(() => {
+    if (!candidate) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", gap: 12, marginRight: 8, alignItems: "center" }}>
+          <TouchableOpacity onPress={() => handleShare('more')} style={{ marginRight: canManage ? 4 : 8 }}>
+            <Ionicons name="share-social-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+          {canManage && (
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash-outline" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
+      ),
+    });
+  }, [candidate, canManage, navigation, handleShare, handleDelete]);
 
   // ── 수정 ──
   const handleEdit = () => {
@@ -642,6 +643,13 @@ export default function CandidateDetailScreen({ route, navigation }) {
             >
               <Ionicons name="shield-checkmark-outline" size={20} color="#FF9800" />
               <Text style={[styles.editButtonText, { color: "#FF9800" }]}>관리자 수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: "#FFEBEE", flex: 1 }]}
+              onPress={handleDelete}
+            >
+              <Ionicons name="shield-outline" size={20} color="#F44336" />
+              <Text style={[styles.editButtonText, { color: "#F44336" }]}>관리자 삭제</Text>
             </TouchableOpacity>
           </View>
         )}
