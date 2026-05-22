@@ -747,15 +747,16 @@ exports.onCandidateWritten = onDocumentWritten(
 // 📘 publishToFacebookPage - 씬짜오베트남 페이지 자동 게시
 // daily-news-final 앱에서 카드 생성 직후 호출
 //
-// 동작:
-//  1) 뉴스 카드를 1080x1080 정사각형으로 변환 후 메인 게시 (multipart)
-//  2) 각 광고 카드는 게시물에 댓글로 등록 (attachment_url로 사진 첨부 + 메시지에 광고주 링크)
-//  → 광고 클릭은 댓글의 링크를 통해 작동
+// 동작 (v3, 2026-05-22 — 원본 비율 + 메인 2장 + 광고 댓글):
+//  1) 메인 게시물: 뉴스 카드 1장 + 첫 광고 카드 1장 (있을 경우) — 원본 비율 유지
+//     → 페이스북 2장 multi-photo 자동 레이아웃 (가로형은 위아래 풀폭, 정사각형은 좌우)
+//  2) 나머지 광고 카드는 게시 후 댓글로 첨부 (attachment_url + 광고주 링크 메시지)
+//  → 메인이 작게 그리드로 깨지던 v2 문제 해결. Lê Huy Khoa 같은 일반 게시물 형태.
 //
 // 입력 body:
 // {
 //   news:   { imageUrl, caption, link? }
-//   promos: [ { imageUrl, message, linkUrl? }, ... ]
+//   promos: [ { imageUrl, title?, linkUrl? }, ... ]
 // }
 // 하위호환: { imageUrl, caption, link } 단일 형식도 지원 (광고 없는 단순 게시)
 // ============================================================
@@ -766,20 +767,13 @@ async function downloadImage(url) {
   return Buffer.from(await r.arrayBuffer());
 }
 
-async function toSquare(buffer, size = 1080) {
+// 원본 비율 유지 + 최대 너비 1080 제한 (페북 업로드 효율).
+// v2에서 1:1 강제 → 흰 여백 letterbox + grid 작아짐 자해 문제로 제거.
+async function toMaxWidth(buffer, maxWidth = 1080) {
   return sharp(buffer)
-    .resize({ width: size, height: size, fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .resize({ width: maxWidth, withoutEnlargement: true })
     .jpeg({ quality: 92 })
     .toBuffer();
-}
-
-async function uploadPhotoMultipart(pageId, pageToken, buffer, caption) {
-  const form = new FormData();
-  form.append("caption", caption);
-  form.append("access_token", pageToken);
-  form.append("source", new Blob([buffer], { type: "image/jpeg" }), "card.jpg");
-  const r = await fetch(`https://graph.facebook.com/v25.0/${pageId}/photos`, { method: "POST", body: form });
-  return await r.json();
 }
 
 async function uploadPhotoUnpublished(pageId, pageToken, buffer) {
@@ -791,35 +785,38 @@ async function uploadPhotoUnpublished(pageId, pageToken, buffer) {
   return await r.json();
 }
 
+// 광고 정보 한 줄 — "title → linkUrl" / title만 / url만 / 빈 줄
+function formatPromoLine(p) {
+  const title = (p?.title || "").toString().trim();
+  const url = (p?.linkUrl || "").toString().trim();
+  if (title && url) return `${title} → ${url}`;
+  if (title) return title;
+  if (url) return url;
+  return "";
+}
+
 // ============================================================
-// publishToFacebookPage — Multi-Page v2 (2026-05-21 재구성)
+// publishToFacebookPage — Multi-Page v3 (2026-05-22 레이아웃 개편)
 // ============================================================
 //
-// 변경 사항 vs 옛 버전:
-//   - 옛: FB_PAGE_ID + FB_PAGE_ACCESS_TOKEN (단일 페이지, 만료성 토큰)
-//   - 신: FB_SYSTEM_USER_TOKEN (영구 시스템 사용자 토큰 1개) → /me/accounts 로
-//        4개 (또는 N개) 페이지 + 페이지별 Page Access Token 을 동적으로 발견
+// 변경 사항 vs v2 (2026-05-21):
+//   - v2: 모든 이미지 1080x1080 강제 → 앨범 N장 → 그리드로 작게 표시 (자해)
+//   - v3: 원본 비율 유지 + 메인 2장(뉴스+첫 광고) + 나머지 광고 댓글 첨부
+//        → 일반 사용자 게시물처럼 풀폭 표시
 //
-// 영구 토큰 발급 경로 (Meta Business Manager):
-//   1. business.facebook.com → 비즈니스 설정 → 사용자 → 시스템 사용자
-//   2. "dailynews-bot" (또는 이름) 시스템 사용자 추가
-//   3. 4 페이지 모두 "전체 액세스 (Admin)" 권한 부여
-//   4. 토큰 생성 — 기간 "기한 없음" 선택
-//   5. 발급된 토큰을 Firebase Secret FB_SYSTEM_USER_TOKEN 에 등록
-//
-// Secret 등록 명령:
-//   firebase functions:secrets:set FB_SYSTEM_USER_TOKEN --project chaovietnam-login
+// 시스템 사용자 토큰 (FB_SYSTEM_USER_TOKEN) 기반은 v2와 동일.
 //
 // 게시 흐름:
 //   1. 인증 (Bearer PUBLISH_API_KEY)
-//   2. 시스템 사용자 토큰으로 /me/accounts 호출 → 4 페이지 + 토큰 동적 발견
-//   3. 뉴스 + 광고 이미지 한 번만 다운로드 + 1:1 변환 (재사용으로 효율)
-//   4. 각 페이지에 published=false 업로드 → /feed 앨범 게시
+//   2. 시스템 사용자 토큰으로 /me/accounts 호출 → 페이지 + 토큰 동적 발견
+//   3. 뉴스 + 첫 광고 이미지 한 번만 다운로드 + 너비 1080 제한 (원본 비율 유지)
+//   4. 각 페이지에:
+//      a) 메인 사진 업로드 (뉴스 + 첫 광고) → /feed attached_media 로 묶음
+//      b) 게시 후 나머지 광고는 댓글 API 로 첨부 (attachment_url + 광고주 링크)
 //   5. broadcastLogs 에 페이지별 결과 기록
 //
 // 응답 호환성:
-//   - 옛: { ok, postId, permalink }
-//   - 신: { ok, postId, permalink, pageResults: [...] } — pageResults 추가, 호환 유지
+//   - { ok, postId, permalink, pageResults: [...] } — v2와 동일
 
 exports.publishToFacebookPage = onRequest(
   {
@@ -857,20 +854,15 @@ exports.publishToFacebookPage = onRequest(
 
     const logBase = { channel: "facebook", news, promos };
 
-    // 캡션 합성 (모든 페이지 동일)
-    const lines = [news.caption];
-    if (news.link) lines.push("", news.link);
+    // 메인 캡션 — 뉴스 본문만 (광고 정보는 각 광고 사진의 댓글로 분산 → 가독성)
+    // 단, 첫 광고는 메인 2번째 사진으로 들어가므로 그 광고만 메인 캡션 하단에 짧게 표기.
+    const mainLines = [news.caption];
+    if (news.link) mainLines.push("", news.link);
     if (promos.length > 0) {
-      lines.push("", "━━━━━━━━━━", "📌 오늘의 광고");
-      for (const p of promos) {
-        const title = (p.title || "").toString().trim();
-        const url = (p.linkUrl || "").toString().trim();
-        if (title && url) lines.push(`• ${title} → ${url}`);
-        else if (title) lines.push(`• ${title}`);
-        else if (url) lines.push(`• ${url}`);
-      }
+      const first = formatPromoLine(promos[0]);
+      if (first) mainLines.push("", "━━━━━━━━━━", "📌 협찬", first);
     }
-    const message = lines.join("\n");
+    const message = mainLines.join("\n");
 
     try {
       // ── 1. 시스템 사용자 토큰으로 페이지 목록 + 페이지별 토큰 발견
@@ -896,48 +888,47 @@ exports.publishToFacebookPage = onRequest(
       }
       console.log(`[FBPublish v2] 접근 가능 페이지 ${pages.length}개: ${pages.map(p => p.name).join(", ")}`);
 
-      // ── 2. 모든 이미지 한 번만 다운로드 + 1:1 변환 (페이지마다 재사용)
-      const newsBuf = await toSquare(await downloadImage(news.imageUrl), 1080);
-      const promoBufs = [];
-      for (const p of promos) {
+      // ── 2. 메인 사진(뉴스 + 첫 광고)만 다운로드/리사이즈 (원본 비율 유지)
+      //    나머지 광고는 댓글의 attachment_url 로 직접 — 다운로드 불요
+      const newsBuf = await toMaxWidth(await downloadImage(news.imageUrl), 1080);
+
+      let firstPromoBuf = null;
+      if (promos.length > 0) {
         try {
-          promoBufs.push({
-            buf: await toSquare(await downloadImage(p.imageUrl), 1080),
-            meta: p,
-          });
+          firstPromoBuf = await toMaxWidth(await downloadImage(promos[0].imageUrl), 1080);
         } catch (e) {
-          console.warn(`[FBPublish v2] 광고 이미지 다운로드 실패 (skip): ${p.imageUrl}`, e.message);
+          console.warn(`[FBPublish v3] 첫 광고 이미지 다운로드 실패 (메인 뉴스만 게시): ${promos[0].imageUrl}`, e.message);
         }
       }
 
       // ── 3. 각 페이지에 동일 콘텐츠 게시 (실패 시 1회 자동 재시도)
-      //
-      // Facebook rate limit / 일시 부하 (code:1 "Please reduce the amount of data...")
-      // 대응: 첫 시도 실패 시 8초 대기 후 재시도. 보통 일시적이라 재시도로 해결됨.
-      // 두 번째도 실패하면 진짜 영구 fail (권한 문제 등) — broadcastLogs 에 기록.
       const pageResults = [];
 
       async function tryPostToPage(page) {
         const pageToken = page.access_token;
         if (!pageToken) throw new Error("page access_token missing");
 
-        const photoIds = [];
+        // 3-a. 메인 사진 업로드 (뉴스 + 첫 광고)
+        const mainPhotoIds = [];
         const newsUp = await uploadPhotoUnpublished(page.id, pageToken, newsBuf);
         if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
-        photoIds.push(newsUp.id);
+        mainPhotoIds.push(newsUp.id);
 
-        for (const { buf } of promoBufs) {
-          const up = await uploadPhotoUnpublished(page.id, pageToken, buf);
+        let mainHasPromo = false;
+        if (firstPromoBuf) {
+          const up = await uploadPhotoUnpublished(page.id, pageToken, firstPromoBuf);
           if (up.error) {
-            console.warn(`[FBPublish v2] ${page.name} 광고 업로드 실패 (skip 1건): ${JSON.stringify(up.error)}`);
-            continue;
+            console.warn(`[FBPublish v3] ${page.name} 첫 광고 메인 업로드 실패 (뉴스만 메인): ${JSON.stringify(up.error)}`);
+          } else {
+            mainPhotoIds.push(up.id);
+            mainHasPromo = true;
           }
-          photoIds.push(up.id);
         }
 
+        // 3-b. 메인 게시
         const feedParams = new URLSearchParams({
           message,
-          attached_media: JSON.stringify(photoIds.map(id => ({ media_fbid: id }))),
+          attached_media: JSON.stringify(mainPhotoIds.map(id => ({ media_fbid: id }))),
           access_token: pageToken,
         });
         const feedRes = await fetch(
@@ -948,7 +939,37 @@ exports.publishToFacebookPage = onRequest(
         if (!feedRes.ok || feedData.error) {
           throw new Error(`feed: ${JSON.stringify(feedData.error || feedData)}`);
         }
-        return { postId: feedData.id, photoIds };
+        const postId = feedData.id;
+
+        // 3-c. 나머지 광고를 댓글로 첨부
+        // mainHasPromo 면 promos[0]은 메인에 이미 들어감 → slice(1)
+        const remainingPromos = promos.slice(mainHasPromo ? 1 : 0);
+        const commentIds = [];
+        for (const p of remainingPromos) {
+          if (!p?.imageUrl) continue;
+          const commentMsg = formatPromoLine(p) || "📌 협찬";
+          const commentParams = new URLSearchParams({
+            message: commentMsg,
+            attachment_url: p.imageUrl,
+            access_token: pageToken,
+          });
+          try {
+            const cRes = await fetch(
+              `https://graph.facebook.com/v25.0/${postId}/comments`,
+              { method: "POST", body: commentParams }
+            );
+            const cData = await cRes.json();
+            if (cRes.ok && !cData.error && cData.id) {
+              commentIds.push(cData.id);
+            } else {
+              console.warn(`[FBPublish v3] ${page.name} 광고 댓글 실패 (skip): ${JSON.stringify(cData.error || cData)}`);
+            }
+          } catch (e) {
+            console.warn(`[FBPublish v3] ${page.name} 광고 댓글 예외 (skip): ${e.message}`);
+          }
+        }
+
+        return { postId, photoIds: mainPhotoIds, commentIds, mainPromoIncluded: mainHasPromo };
       }
 
       for (const page of pages) {
@@ -971,16 +992,19 @@ exports.publishToFacebookPage = onRequest(
         if (result) {
           pageResults.push({
             pageId: page.id, name: page.name, ok: true, attempts,
-            postId: result.postId, photoIds: result.photoIds,
+            postId: result.postId,
+            photoIds: result.photoIds,
+            commentIds: result.commentIds,
+            mainPromoIncluded: result.mainPromoIncluded,
             permalink: `https://www.facebook.com/${result.postId}`,
           });
-          console.log(`✅ [FBPublish v2] ${page.name} 게시 성공 (${attempts}회차): ${result.postId}`);
+          console.log(`✅ [FBPublish v3] ${page.name} 게시 성공 (${attempts}회차): ${result.postId} / 댓글 ${result.commentIds.length}개`);
         } else {
           pageResults.push({
             pageId: page.id, name: page.name, ok: false, attempts: 2,
             error: String(lastError?.message || lastError),
           });
-          console.error(`❌ [FBPublish v2] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
+          console.error(`❌ [FBPublish v3] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
         }
       }
 
@@ -992,7 +1016,7 @@ exports.publishToFacebookPage = onRequest(
       await db.collection("broadcastLogs").add({
         ...logBase,
         ok: allOk,
-        mode: "multi-page-album-v2",
+        mode: "multi-page-main2-comments-v3",
         pageResults,
         successCount: pageResults.filter(r => r.ok).length,
         failureCount: pageResults.filter(r => !r.ok).length,
@@ -1003,12 +1027,12 @@ exports.publishToFacebookPage = onRequest(
         ok: anyOk, // 하나라도 성공하면 ok (호환성)
         postId: firstSuccess?.postId || null,
         permalink: firstSuccess?.permalink || null,
-        pageResults, // 신규 — 페이지별 결과 추적용
+        pageResults, // 페이지별 결과 추적
       });
     } catch (err) {
-      console.error("❌ [FBPublish v2] 호출 실패:", err);
+      console.error("❌ [FBPublish v3] 호출 실패:", err);
       await db.collection("broadcastLogs").add({
-        ...logBase, ok: false, mode: "multi-page-album-v2",
+        ...logBase, ok: false, mode: "multi-page-main2-comments-v3",
         error: String(err.message || err), at: new Date(),
       });
       return res.status(500).json({ ok: false, error: String(err.message || err) });
