@@ -504,14 +504,14 @@
                     placeholder="상품 상세 설명, 사용 기간, 하자 여부 등"></textarea></div>
         </div>
         <div class="card">
-            <div class="card-title">📞 연락처</div>
+            <div class="card-title">📞 연락처 (1개 이상 필수)</div>
             <div style="background:#fff3e0;border-left:4px solid #FF6B35;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#bf360c;line-height:1.7;">
-                ⚠️ <strong>전화번호와 이메일은 필수 입력입니다.</strong><br>
-                구매자가 연락할 수 있는 수단을 정확히 입력해 주세요.
+                ⚠️ <strong>전화 · 이메일 · 카카오톡 ID 중 1개 이상</strong>만 입력하면 됩니다.<br>
+                구매자가 연락할 수 있는 수단을 1개 이상 적어 주세요.
             </div>
-            <div class="field"><label>전화번호 / Zalo <span class="req">*</span></label><input type="tel" id="contact-phone"
+            <div class="field"><label>전화번호 / Zalo</label><input type="tel" id="contact-phone"
                     placeholder="예) 090-123-4567" oninput="updatePreview()"></div>
-            <div class="field"><label>이메일 <span class="req">*</span></label><input type="email" id="contact-email"
+            <div class="field"><label>이메일</label><input type="email" id="contact-email"
                     placeholder="예) example@email.com" oninput="updatePreview()" autocapitalize="none"></div>
             <div class="field"><label>카카오톡 ID</label><input type="text" id="contact-kakao" placeholder="예) xinchao2025" oninput="updatePreview()">
             </div>
@@ -743,11 +743,12 @@
 
             const phone = document.getElementById('contact-phone').value.trim();
             const email = document.getElementById('contact-email').value.trim();
-            if (!phone) {
-                showToast('❗ 전화번호를 입력해주세요');
+            const kakao = document.getElementById('contact-kakao').value.trim();
+            if (!phone && !email && !kakao) {
+                showToast('❗ 연락처를 1개 이상 입력해 주세요 (전화/이메일/카카오톡 중 택1)');
                 return;
             }
-            if (!email || !email.includes('@')) {
+            if (email && !email.includes('@')) {
                 showToast('❗ 이메일을 정확히 입력해주세요');
                 return;
             }
