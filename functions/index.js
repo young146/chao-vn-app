@@ -821,27 +821,43 @@ function formatPromoLine(p) {
 }
 
 // ============================================================
-// publishToFacebookPage — Multi-Page v3 (2026-05-22 레이아웃 개편)
+// publishToFacebookPage — Multi-Page v4 (2026-05-22 본문 carousel 일원화)
 // ============================================================
 //
-// 변경 사항 vs v2 (2026-05-21):
-//   - v2: 모든 이미지 1080x1080 강제 → 앨범 N장 → 그리드로 작게 표시 (자해)
-//   - v3: 원본 비율 유지 + 메인 2장(뉴스+첫 광고) + 나머지 광고 댓글 첨부
-//        → 일반 사용자 게시물처럼 풀폭 표시
+// 변경 사항 vs v3 (어제):
+//   - v3: 본문 2장(뉴스+첫 광고) + 나머지 광고 댓글 → 광고 사진 댓글 펴봐야 보임
+//   - v4: 본문 carousel 에 뉴스 + 모든 광고 일원화. 댓글 첨부 제거.
 //
-// 시스템 사용자 토큰 (FB_SYSTEM_USER_TOKEN) 기반은 v2와 동일.
+// 왜 본문 일원화가 우월:
+//   - 본문 그리드: 사진은 작아 보여도 모두 일목요연하게 노출.
+//   - 페북 갤러리: carousel 안 모든 사진을 클릭 시 풀스크린 좌우 슬라이드로
+//     하나씩 큰 사이즈 표시 → 본문 작은 그리드 + 갤러리 = 노출 손실 없음.
+//   - 댓글: 자동 펴짐 X, 사용자가 펼쳐야 보임 → 노출도 낮음.
+//   - 광고주 노출은 본문 캡션 텍스트(이름+링크 나열) 가 보장 (변경 없음).
+//
+// 시스템 사용자 토큰 (FB_SYSTEM_USER_TOKEN) 기반은 v2~v3 와 동일.
+//
+// 광고 4장 제한 (PROMO_PHOTO_LIMIT = 3):
+//   - 페북 4장 게시 = "큰 위 1장 + 작은 아래 3장" 그리드 → 뉴스 풀폭 노출 거의 확정
+//   - 5장+ 게시 = 2:3 비대칭 그리드 → 뉴스가 좌상단 1/4 영역으로 작아짐 (자해)
+//   - 5번째+ 광고는 사진 미첨부, 캡션 텍스트의 광고주 이름·링크는 그대로 (노출 부분 보장)
 //
 // 게시 흐름:
 //   1. 인증 (Bearer PUBLISH_API_KEY)
 //   2. 시스템 사용자 토큰으로 /me/accounts 호출 → 페이지 + 토큰 동적 발견
-//   3. 뉴스 + 첫 광고 이미지 한 번만 다운로드 + 너비 1080 제한 (원본 비율 유지)
+//   3. 뉴스(1080 폭) + 광고 최대 3개(toFacebookSafe 로 1200x630 통일) 1회 변환
 //   4. 각 페이지에:
-//      a) 메인 사진 업로드 (뉴스 + 첫 광고) → /feed attached_media 로 묶음
-//      b) 게시 후 나머지 광고는 댓글 API 로 첨부 (attachment_url + 광고주 링크)
+//      a) 사진 unpublished 업로드 (병렬) → photo IDs
+//      b) /feed 에 attached_media 로 묶어 carousel 게시 (총 최대 4장)
 //   5. broadcastLogs 에 페이지별 결과 기록
 //
 // 응답 호환성:
-//   - { ok, postId, permalink, pageResults: [...] } — v2와 동일
+//   - { ok, postId, permalink, pageResults: [...] } — v2~v3 과 동일
+
+// 페북 attached_media 사진 개수 정책 — 뉴스(1) + 광고(최대 PROMO_PHOTO_LIMIT) = 총 3장.
+// 3장 게시 그리드는 "큰 위 1장 + 작은 아래 2장" → 뉴스 풀폭, 광고 2장 좌우 균등.
+// 4장 이상 게시는 뉴스가 1/4 또는 1/6 영역으로 축소되므로 회피.
+const PROMO_PHOTO_LIMIT = 2;
 
 exports.publishToFacebookPage = onRequest(
   {
@@ -917,19 +933,22 @@ exports.publishToFacebookPage = onRequest(
       }
       console.log(`[FBPublish v2] 접근 가능 페이지 ${pages.length}개: ${pages.map(p => p.name).join(", ")}`);
 
-      // ── 2. 메인 사진(뉴스 + 첫 광고) 다운로드 + 페북 안전 비율 정규화
-      //    - 뉴스 카드는 이미 1200x630 (1.91:1) 비율로 생성됨 → toMaxWidth 만으로 OK
-      //    - 첫 광고 카드는 원본이 와이드/정사각형 등 다양 → toFacebookSafe (블러 확장)
-      //      으로 1200x630 통일 → 페북이 두 사진을 같은 박스에 강제 통일할 때 잘림 방지
-      //    - 나머지 광고는 댓글 attachment_url 로 직접 — 단일 사진이라 페북 자동 처리
+      // ── 2. 사진(뉴스 + 광고 최대 3개) 다운로드 + 페북 안전 비율 정규화
+      //    - 뉴스 카드는 이미 1200x630 (1.91:1) 비율로 생성됨 → toMaxWidth(1080) 로 OK
+      //    - 광고 카드는 원본이 와이드/정사각형 등 다양 → toFacebookSafe (블러 확장)
+      //      으로 1200x630 통일 → 페북 carousel 그리드 박스 잘림 방지
+      //    - 광고는 입력 순서 기준 첫 PROMO_PHOTO_LIMIT 개만 사진 첨부.
+      //      나머지는 캡션 텍스트의 광고주 이름·링크로만 노출.
+      //    - 변환/다운로드 실패 광고는 skip (나머지로 게시 진행)
       const newsBuf = await toMaxWidth(await downloadImage(news.imageUrl), 1080);
 
-      let firstPromoBuf = null;
-      if (promos.length > 0) {
+      const promoBufs = [];
+      for (const p of promos.slice(0, PROMO_PHOTO_LIMIT)) {
         try {
-          firstPromoBuf = await toFacebookSafe(await downloadImage(promos[0].imageUrl));
+          const buf = await toFacebookSafe(await downloadImage(p.imageUrl));
+          promoBufs.push(buf);
         } catch (e) {
-          console.warn(`[FBPublish v3] 첫 광고 이미지 다운로드/변환 실패 (메인 뉴스만 게시): ${promos[0].imageUrl}`, e.message);
+          console.warn(`[FBPublish v4] 광고 이미지 다운로드/변환 실패 (skip): ${p.imageUrl}`, e.message);
         }
       }
 
@@ -940,29 +959,30 @@ exports.publishToFacebookPage = onRequest(
         const pageToken = page.access_token;
         if (!pageToken) throw new Error("page access_token missing");
 
-        // 3-a. 메인 사진 업로드 (뉴스 + 첫 광고 동시 업로드 → 직렬 대비 절반 시간)
-        const uploadPromises = [uploadPhotoUnpublished(page.id, pageToken, newsBuf)];
-        if (firstPromoBuf) {
-          uploadPromises.push(uploadPhotoUnpublished(page.id, pageToken, firstPromoBuf));
-        }
+        // 3-a. 모든 사진 unpublished 업로드 (뉴스 + 모든 광고 동시 → 직렬 대비 1/N 시간)
+        const uploadPromises = [
+          uploadPhotoUnpublished(page.id, pageToken, newsBuf),
+          ...promoBufs.map(buf => uploadPhotoUnpublished(page.id, pageToken, buf)),
+        ];
         const uploadResults = await Promise.all(uploadPromises);
 
         const newsUp = uploadResults[0];
         if (newsUp.error) throw new Error(`news photo upload: ${JSON.stringify(newsUp.error)}`);
 
+        // mainPhotoIds: 뉴스 + 업로드 성공한 광고들 (개별 실패는 그 사진만 skip)
         const mainPhotoIds = [newsUp.id];
-        let mainHasPromo = false;
-        if (uploadResults[1]) {
-          const promoUp = uploadResults[1];
-          if (promoUp.error) {
-            console.warn(`[FBPublish v3] ${page.name} 첫 광고 메인 업로드 실패 (뉴스만 메인): ${JSON.stringify(promoUp.error)}`);
-          } else {
-            mainPhotoIds.push(promoUp.id);
-            mainHasPromo = true;
+        for (let i = 1; i < uploadResults.length; i++) {
+          const r = uploadResults[i];
+          if (r.error) {
+            console.warn(`[FBPublish v4] ${page.name} 광고 사진 업로드 실패 (skip): ${JSON.stringify(r.error)}`);
+          } else if (r.id) {
+            mainPhotoIds.push(r.id);
           }
         }
 
-        // 3-b. 메인 게시
+        // 3-b. 메인 게시 — 모든 사진을 attached_media 로 carousel 묶음.
+        //      페북 본문은 그리드(작게)로 표시하지만, 사용자가 사진 클릭 시
+        //      갤러리에서 풀사이즈로 하나씩 노출 → 댓글 분리 불필요.
         const feedParams = new URLSearchParams({
           message,
           attached_media: JSON.stringify(mainPhotoIds.map(id => ({ media_fbid: id }))),
@@ -978,37 +998,7 @@ exports.publishToFacebookPage = onRequest(
         }
         const postId = feedData.id;
 
-        // 3-c. 나머지 광고를 댓글로 첨부 — N개 병렬 (Promise.all)
-        //      Facebook 댓글 POST는 rate limit 관대 — 같은 페이지 토큰 동시 호출 안전.
-        //      광고 3~4개 직렬(~10초) → 병렬(~3초) 단축.
-        const remainingPromos = promos.slice(mainHasPromo ? 1 : 0);
-        const validPromos = remainingPromos.filter(p => p?.imageUrl);
-        const commentResults = await Promise.all(validPromos.map(async (p) => {
-          const commentMsg = formatPromoLine(p) || "📌 협찬";
-          const commentParams = new URLSearchParams({
-            message: commentMsg,
-            attachment_url: p.imageUrl,
-            access_token: pageToken,
-          });
-          try {
-            const cRes = await fetch(
-              `https://graph.facebook.com/v25.0/${postId}/comments`,
-              { method: "POST", body: commentParams }
-            );
-            const cData = await cRes.json();
-            if (cRes.ok && !cData.error && cData.id) {
-              return cData.id;
-            }
-            console.warn(`[FBPublish v3] ${page.name} 광고 댓글 실패 (skip): ${JSON.stringify(cData.error || cData)}`);
-            return null;
-          } catch (e) {
-            console.warn(`[FBPublish v3] ${page.name} 광고 댓글 예외 (skip): ${e.message}`);
-            return null;
-          }
-        }));
-        const commentIds = commentResults.filter(Boolean);
-
-        return { postId, photoIds: mainPhotoIds, commentIds, mainPromoIncluded: mainHasPromo };
+        return { postId, photoIds: mainPhotoIds };
       }
 
       // 페이지 4개 병렬 처리 — 페이지마다 토큰이 다르므로 rate limit 독립.
@@ -1025,24 +1015,22 @@ exports.publishToFacebookPage = onRequest(
           } catch (err) {
             lastError = err;
             if (attempts < 2) {
-              console.warn(`⚠️ [FBPublish v3] ${page.name} 1차 실패 (재시도 예정 8초 후): ${err.message}`);
+              console.warn(`⚠️ [FBPublish v4] ${page.name} 1차 실패 (재시도 예정 8초 후): ${err.message}`);
               await new Promise(r => setTimeout(r, 8000));
             }
           }
         }
 
         if (result) {
-          console.log(`✅ [FBPublish v3] ${page.name} 게시 성공 (${attempts}회차): ${result.postId} / 댓글 ${result.commentIds.length}개`);
+          console.log(`✅ [FBPublish v4] ${page.name} 게시 성공 (${attempts}회차): ${result.postId} / 사진 ${result.photoIds.length}장`);
           return {
             pageId: page.id, name: page.name, ok: true, attempts,
             postId: result.postId,
             photoIds: result.photoIds,
-            commentIds: result.commentIds,
-            mainPromoIncluded: result.mainPromoIncluded,
             permalink: `https://www.facebook.com/${result.postId}`,
           };
         } else {
-          console.error(`❌ [FBPublish v3] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
+          console.error(`❌ [FBPublish v4] ${page.name} 게시 실패 (2회 시도 모두): ${lastError?.message}`);
           return {
             pageId: page.id, name: page.name, ok: false, attempts: 2,
             error: String(lastError?.message || lastError),
@@ -1060,7 +1048,7 @@ exports.publishToFacebookPage = onRequest(
       await db.collection("broadcastLogs").add({
         ...logBase,
         ok: allOk,
-        mode: "multi-page-main2-comments-v3",
+        mode: "multi-page-carousel-v4",
         pageResults,
         successCount: pageResults.filter(r => r.ok).length,
         failureCount: pageResults.filter(r => !r.ok).length,
@@ -1074,9 +1062,9 @@ exports.publishToFacebookPage = onRequest(
         pageResults, // 페이지별 결과 추적
       });
     } catch (err) {
-      console.error("❌ [FBPublish v3] 호출 실패:", err);
+      console.error("❌ [FBPublish v4] 호출 실패:", err);
       await db.collection("broadcastLogs").add({
-        ...logBase, ok: false, mode: "multi-page-main2-comments-v3",
+        ...logBase, ok: false, mode: "multi-page-carousel-v4",
         error: String(err.message || err), at: new Date(),
       });
       return res.status(500).json({ ok: false, error: String(err.message || err) });
