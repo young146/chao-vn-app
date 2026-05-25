@@ -315,30 +315,47 @@ export default function App() {
     if (!url) return;
     console.log('🔗 [안전망] 딥링크 수신:', url);
 
+    // 웹 경로명 → 내부 타입명 매핑 (linking config와 동일)
+    const WEB_TO_TYPE = {
+      market: 'danggn', jobs: 'job', realestate: 'realestate', neighborbusiness: 'neighbor',
+      danggn: 'danggn', job: 'job', neighbor: 'neighbor',
+    };
+    const pathKeys = Object.keys(WEB_TO_TYPE).join('|');
+
     // URL에서 type, id 파싱
     let type = null, id = null;
 
-    // chaovietnam://danggn/ID
-    const schemeMatch = url.match(/chaovietnam:\/\/([a-z]+)\/([^?/\s]+)/);
+    // chaovietnam://{type}/ID (내부 scheme)
+    const schemeMatch = url.match(new RegExp(`chaovietnam:\\/\\/(${pathKeys})\\/([^?/\\s]+)`));
     if (schemeMatch) {
-      type = schemeMatch[1];
+      type = WEB_TO_TYPE[schemeMatch[1]];
       id = schemeMatch[2];
     }
 
-    // https://chaovietnam.co.kr/app/share/danggn/ID
+    // https://chaovietnam.co.kr/app/share/{type}/ID (구 공유 endpoint)
     if (!type) {
-      const webMatch = url.match(/chaovietnam\.co\.kr\/app\/share\/([a-z]+)\/([^?/\s]+)/);
+      const webMatch = url.match(new RegExp(`chaovietnam\\.co\\.kr\\/app\\/share\\/(${pathKeys})\\/([^?/\\s]+)`));
       if (webMatch) {
-        type = webMatch[1];
+        type = WEB_TO_TYPE[webMatch[1]];
         id = webMatch[2];
       }
     }
 
-    // 🏷️ 탭전용 딥링크: chaovietnam://danggn (ID없음) → 탭 메인으로 이동
+    // https://(www.)vnkorlife.com/{market|jobs|realestate|neighborbusiness}/ID — 카톡·페북·이메일 실제 공유 URL
     if (!type) {
-      const tabOnlyMatch = url.match(/chaovietnam:\/\/([a-z]+)$/);
+      const vnMatch = url.match(new RegExp(`vnkorlife\\.com\\/(${pathKeys})\\/([^?/\\s]+)`));
+      if (vnMatch) {
+        type = WEB_TO_TYPE[vnMatch[1]];
+        id = vnMatch[2];
+      }
+    }
+
+    // 🏷️ 탭전용 딥링크: ID없는 패턴 → 탭 메인으로 이동
+    if (!type) {
+      const tabOnlyMatch = url.match(new RegExp(`(?:chaovietnam:\\/\\/|vnkorlife\\.com\\/(?:tab\\/)?)(${pathKeys})\\/?$`));
       if (tabOnlyMatch) {
-        const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산' }[tabOnlyMatch[1]];
+        const t = WEB_TO_TYPE[tabOnlyMatch[1]];
+        const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산', neighbor: '이웃사업' }[t];
         if (tabName) {
           let attempts = 0;
           const tryNav = () => {
@@ -364,6 +381,7 @@ export default function App() {
       danggn: { tab: '당근/나눔', main: '당근/나눔 메인', screen: '당근/나눔 상세' },
       job: { tab: '구인구직', main: '구인구직 메인', screen: '구인구직 상세' },
       realestate: { tab: '부동산', main: '부동산 메인', screen: '부동산 상세' },
+      neighbor: { tab: '이웃사업', main: '이웃사업 메인', screen: '이웃사업 상세' },
     };
     const target = screenMap[type];
     if (!target) return;
@@ -670,6 +688,10 @@ export default function App() {
               'chaovietnam://',
               'https://chaovietnam.co.kr',
               'https://www.chaovietnam.co.kr',
+              // vnkorlife.com — 카톡/페북/이메일에서 공유되는 상품·채용·부동산 URL의 실제 도메인
+              // 누락 시 React Navigation이 URL을 자기 관할로 인식 못 함 → 메인(뉴스) 화면으로 떨어짐
+              'https://vnkorlife.com',
+              'https://www.vnkorlife.com',
             ],
             // 🔗 expo-linking을 명시적으로 사용 (React Navigation 기본값은 react-native Linking)
             async getInitialURL() {
@@ -746,10 +768,25 @@ export default function App() {
                 };
               }
 
-              // 🏷️ 탭전용 경로: /tab/danggn 또는 /danggn (ID없음) → 탭 메인
-              const tabOnlyMatch = cleanPath.match(/^(?:tab\/)?(danggn|job|realestate|neighbor)$/);
+              // 웹 경로명(market/jobs/realestate/neighborbusiness) → 내부 타입명(danggn/job/realestate/neighbor) 변환
+              // 카톡·페북·이메일에서 공유되는 URL은 모두 *웹 경로명* 사용 (deepLinkUtils.js의 TYPE_TO_PATH)
+              const WEB_TO_TYPE = {
+                market: 'danggn',
+                jobs: 'job',
+                realestate: 'realestate',
+                neighborbusiness: 'neighbor',
+                // 내부 타입명도 그대로 받아 호환 유지
+                danggn: 'danggn',
+                job: 'job',
+                neighbor: 'neighbor',
+              };
+              const pathKeys = Object.keys(WEB_TO_TYPE).join('|');
+
+              // 🏷️ 탭전용 경로: /tab/{name} 또는 /{name} (ID없음) → 탭 메인
+              const tabOnlyMatch = cleanPath.match(new RegExp(`^(?:tab\\/)?(${pathKeys})\\/?$`));
               if (tabOnlyMatch) {
-                const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산', neighbor: '이웃사업' }[tabOnlyMatch[1]];
+                const type = WEB_TO_TYPE[tabOnlyMatch[1]];
+                const tabName = { danggn: '당근/나눔', job: '구인구직', realestate: '부동산', neighbor: '이웃사업' }[type];
                 console.log(`🏷️ 탭전용 딥링크: ${tabName} 탭 메인`);
                 return {
                   routes: [{
@@ -759,14 +796,15 @@ export default function App() {
                 };
               }
 
-              const match = cleanPath.match(/^(danggn|job|realestate|neighbor)\/([^?/]+)/);
+              const match = cleanPath.match(new RegExp(`^(${pathKeys})\\/([^?/]+)`));
               if (!match) {
                 console.log('❌ 경로 파싱 실패:', cleanPath);
                 return undefined;
               }
 
-              const [, type, id] = match;
-              console.log(`🔗 수동 파싱 성공: type=${type}, id=${id}`);
+              const type = WEB_TO_TYPE[match[1]];
+              const id = match[2];
+              console.log(`🔗 수동 파싱 성공: type=${type}, id=${id} (원본 path=${match[1]})`);
 
               const screenMap = {
                 danggn: { tab: '당근/나눔', main: '당근/나눔 메인', screen: '당근/나눔 상세' },
