@@ -936,6 +936,51 @@ exports.runDailyDigestNow = onRequest(
   }
 );
 
+/** 관리자 커스텀 푸시 발송 — 특별 이벤트·공지용
+ * POST body: { title, body, dryRun? }
+ * Header: x-admin-key: xinchao_2026_dailydigest */
+exports.sendCustomPush = onRequest(
+  { cors: true, region: "asia-northeast3" },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+    const adminKey = req.headers["x-admin-key"] || req.query.key;
+    if (adminKey !== "xinchao_2026_dailydigest") {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+    const { title, body, dryRun = false } = req.body || {};
+    if (!title || !body) {
+      res.status(400).json({ success: false, error: "title과 body는 필수입니다." });
+      return;
+    }
+    if (title.length > 50) {
+      res.status(400).json({ success: false, error: "제목은 50자 이하로 입력하세요." });
+      return;
+    }
+    if (body.length > 150) {
+      res.status(400).json({ success: false, error: "내용은 150자 이하로 입력하세요." });
+      return;
+    }
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const result = await sendBroadcastPush({
+        title,
+        body,
+        data: { type: "custom", campaign: `custom_${today}`, screen: "뉴스" },
+        logType: "custom_push",
+        dryRun: !!dryRun,
+      });
+      res.json({ success: true, ...result });
+    } catch (e) {
+      console.error("❌ sendCustomPush 실패:", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
+);
+
 // ============================================================
 // 🗂️ Jobs/{jobId} onWrite → Notion 구인 DB 업서트
 // (기존 onNewJobCreated FCM 함수와 별개 - 건드리지 않음)
