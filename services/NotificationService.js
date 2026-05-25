@@ -298,9 +298,16 @@ class NotificationService {
         return;
       }
 
-      // 📣 커스텀 푸시 — url 있으면 브라우저/인앱 열기, 없으면 뉴스 탭
+      // 📣 커스텀 푸시 — announcementId 있으면 공지 상세, url 있으면 브라우저, 없으면 뉴스 탭
       if (data?.type === "custom") {
-        if (data?.url) {
+        if (data?.announcementId && navigationRef?.isReady()) {
+          try {
+            navigationRef.navigate("MainApp", {
+              screen: "메뉴",
+              params: { screen: "공지 상세", params: { announcementId: data.announcementId } },
+            });
+          } catch (e) { console.error("❌ 공지 상세 라우팅 실패:", e); }
+        } else if (data?.url) {
           try {
             const canOpen = await Linking.canOpenURL(data.url);
             if (canOpen) await Linking.openURL(data.url);

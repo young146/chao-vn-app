@@ -188,6 +188,7 @@ import { PopupAd, FixedBottomBanner } from "./components/AdBanner";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import WelcomeAfterSignupScreen from "./screens/WelcomeAfterSignupScreen";
+import AnnouncementDetailScreen from "./screens/AnnouncementDetailScreen";
 import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
 import MagazineScreen from "./screens/MagazineScreen";
@@ -1377,6 +1378,15 @@ function MenuStack() {
             </TouchableOpacity>
           ),
         })}
+      />
+      <Stack.Screen
+        name="공지 상세"
+        component={AnnouncementDetailScreen}
+        options={{
+          title: "공지사항",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
       />
     </Stack.Navigator>
   );

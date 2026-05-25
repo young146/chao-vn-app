@@ -977,15 +977,36 @@ exports.sendCustomPush = onRequest(
     }
     try {
       const today = new Date().toISOString().slice(0, 10);
+
+      // announcements 문서 먼저 생성 — 댓글 스레드의 루트
+      let announcementId = null;
+      if (!dryRun) {
+        const announcementRef = await db.collection("announcements").add({
+          title,
+          body,
+          imageUrl: imageUrl || null,
+          url: url || null,
+          commentCount: 0,
+          sentAt: FieldValue.serverTimestamp(),
+        });
+        announcementId = announcementRef.id;
+      }
+
       const result = await sendBroadcastPush({
         title,
         body,
-        data: { type: "custom", campaign: `custom_${today}`, screen: "뉴스", ...(url ? { url } : {}) },
+        data: {
+          type: "custom",
+          campaign: `custom_${today}`,
+          screen: "뉴스",
+          ...(url ? { url } : {}),
+          ...(announcementId ? { announcementId } : {}),
+        },
         logType: "custom_push",
         imageUrl: imageUrl || null,
         dryRun: !!dryRun,
       });
-      res.json({ success: true, ...result });
+      res.json({ success: true, announcementId, ...result });
     } catch (e) {
       console.error("❌ sendCustomPush 실패:", e);
       res.status(500).json({ success: false, error: e.message });

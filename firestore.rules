@@ -203,6 +203,26 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 📣 announcements (푸시 공지 + 댓글 스레드)
+    // Cloud Function(Admin SDK)이 문서 생성 → 규칙 불필요
+    // 앱: 모든 사용자 읽기, 인증 사용자 댓글 쓰기
+    // ========================================
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 500;
+        allow delete: if request.auth != null
+          && (resource.data.userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // ========================================
     // 🚫 기본 거부 (위에서 정의되지 않은 모든 문서)
     // ========================================
     match /{document=**} {
