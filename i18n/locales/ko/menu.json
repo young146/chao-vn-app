@@ -107,6 +107,8 @@
   },
   "notificationSettings": {
     "title": "알림 설정",
+    "dailyDigestNotification": "매일 새 소식 알림",
+    "dailyDigestDesc": "매일 아침 뉴스와 저녁 신규 등록 물품 소식을 받습니다",
     "newsSection": "뉴스 알림",
     "newArticle": "새 기사 알림",
     "newArticleDesc": "새로운 기사가 올라오면 알림을 받습니다",

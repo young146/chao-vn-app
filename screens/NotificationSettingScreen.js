@@ -36,6 +36,7 @@ export default function NotificationSettingScreen() {
     { id: "bell", label: t('notificationSettings.bellSound'), file: "bell.wav", channel: "chat_bell" },
   ];
   const [settings, setSettings] = useState({
+    dailyDigest: true, // 매일 새 소식 알림 기본값
     newArticles: true,
     comments: true,
     community: true,
@@ -70,6 +71,7 @@ export default function NotificationSettingScreen() {
           const fs = docSnap.data();
           setSettings((prev) => ({
             ...prev,
+            dailyDigest: fs.dailyDigest !== undefined ? fs.dailyDigest : prev.dailyDigest,
             nearbyItems: fs.nearbyItems !== undefined ? fs.nearbyItems : prev.nearbyItems,
             chat: fs.chat !== undefined ? fs.chat : prev.chat,
             review: fs.reviews !== undefined ? fs.reviews : prev.review,
@@ -105,6 +107,7 @@ export default function NotificationSettingScreen() {
         await setDoc(
           docRef,
           {
+            dailyDigest: newSettings.dailyDigest,
             nearbyItems: newSettings.nearbyItems,
             chat: newSettings.chat,
             reviews: newSettings.review,
@@ -166,6 +169,30 @@ export default function NotificationSettingScreen() {
       {/* 뉴스 관련 알림 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📰 {t('notificationSettings.newsSection')}</Text>
+
+        {/* 🆕 매일 새 소식 알림 (Daily Digest) */}
+        <View style={styles.settingItem}>
+          <View style={styles.settingLeft}>
+            <Ionicons
+              name="notifications"
+              size={20}
+              color="#FF6B35"
+              style={styles.settingIcon}
+            />
+            <View>
+              <Text style={styles.settingLabel}>{t('notificationSettings.dailyDigestNotification')}</Text>
+              <Text style={styles.settingDescription}>
+                {t('notificationSettings.dailyDigestDesc')}
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={settings.dailyDigest}
+            onValueChange={() => toggleSetting("dailyDigest")}
+            trackColor={{ false: "#ccc", true: "#FF6B35" }}
+            thumbColor="#fff"
+          />
+        </View>
 
         <View style={styles.settingItem}>
           <View style={styles.settingLeft}>
