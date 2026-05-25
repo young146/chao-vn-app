@@ -258,9 +258,17 @@ class NotificationService {
         title: notification.request.content.title,
         body: notification.request.content.body,
         roomId: data?.roomId,
+        type: data?.type,
+        campaign: data?.campaign,
         currentChatRoom: this.currentChatRoomId,
       });
-      
+
+      // 🔍 [측정 인프라] 푸시 수신 이벤트
+      try {
+        const { logPushReceived } = require("../lib/analytics");
+        logPushReceived(data?.type || "unknown", data?.campaign || null);
+      } catch (_) { /* analytics 실패는 흐름에 영향 없음 */ }
+
       // 알림이 이미 표시되었으므로 여기서는 로그만 남김
       // 실제 알림 표시 제어는 setupNotificationHandler에서 처리됨
     });
@@ -272,9 +280,23 @@ class NotificationService {
   setupNotificationResponseListener() {
     return Notifications.addNotificationResponseReceivedListener(async (response) => {
       console.log("👆 알림 탭됨:", response);
-      
+
       const data = response.notification.request.content.data;
-      
+
+      // 🔍 [측정 인프라] 푸시 탭 이벤트 (단계 3 retention 효과 측정)
+      try {
+        const { logPushClicked } = require("../lib/analytics");
+        logPushClicked(data?.type || "unknown", data?.campaign || null);
+      } catch (_) { /* analytics 실패는 흐름에 영향 없음 */ }
+
+      // 🌅 일일 새 소식 푸시 → 뉴스 탭으로 이동
+      if (data?.type === "daily_digest" && navigationRef?.isReady()) {
+        try {
+          navigationRef.navigate("MainApp", { screen: "뉴스" });
+        } catch (e) { console.error("❌ 일일 푸시 라우팅 실패:", e); }
+        return;
+      }
+
       // 채팅방으로 이동
       if (data?.screen === "ChatRoom" && data?.roomId && navigationRef?.isReady()) {
         try {

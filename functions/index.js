@@ -1,5 +1,6 @@
 const { onDocumentCreated, onDocumentWritten, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
@@ -699,6 +700,167 @@ async function sendMulticastFCM(tokens, { title, body, data, imageUrl }) {
     }
   }
 }
+
+// ============================================================
+// 🌅 일일 새 소식 푸시 (Daily Digest) — 단계 3 retention 무기
+// 매일 베트남 시간 18시: 24h 신규 채용/부동산/당근 count → 전 사용자 푸시
+// 토글: notificationSettings.dailyDigest === false 인 사용자만 제외
+// ============================================================
+
+const TZ_VN = "Asia/Ho_Chi_Minh";
+
+/** 메시지 톤 로테이션 — 평일은 간결 정보형, 주말은 호기심 유발형 */
+function buildDailyDigestMessage(jobs, realestate, danggn, dayOfWeek) {
+  const parts = [];
+  if (jobs > 0) parts.push(`채용 ${jobs}`);
+  if (realestate > 0) parts.push(`부동산 ${realestate}`);
+  if (danggn > 0) parts.push(`당근/나눔 ${danggn}`);
+  const counts = parts.join(" · ");
+
+  // dayOfWeek: 0=일, 1=월, ... 6=토
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  if (isWeekend) {
+    return {
+      title: "🌟 씬짜오 주말 새 소식",
+      body: `${counts}건이 올라왔어요. 주말에 둘러보세요!`,
+    };
+  }
+  return {
+    title: "🌅 씬짜오 오늘의 새 소식",
+    body: `${counts}건이 새로 올라왔어요. 탭해서 확인하세요!`,
+  };
+}
+
+/** 24h 신규 콘텐츠 카운트 (Jobs/RealEstate/XinChaoDanggn) */
+async function countNewItemsLast24h() {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const safeCount = async (col) => {
+    try {
+      const snap = await db.collection(col).where("createdAt", ">=", since).limit(500).get();
+      return snap.size;
+    } catch (e) {
+      console.warn(`⚠️ ${col} count 실패:`, e.message);
+      return 0;
+    }
+  };
+  const [jobs, realestate, danggn] = await Promise.all([
+    safeCount("Jobs"),
+    safeCount("RealEstate"),
+    safeCount("XinChaoDanggn"),
+  ]);
+  return { jobs, realestate, danggn };
+}
+
+/** 핵심 발송 로직 — 스케줄러와 테스트 트리거가 공유 */
+async function runDailyDigestPush({ dryRun = false } = {}) {
+  // 1. 24h 신규 콘텐츠 카운트
+  const { jobs, realestate, danggn } = await countNewItemsLast24h();
+  console.log(`📊 24h 신규: 채용 ${jobs} · 부동산 ${realestate} · 당근 ${danggn}`);
+
+  if (jobs + realestate + danggn === 0) {
+    console.log("⏭️ 신규 콘텐츠 0건 — 발송 skip");
+    await db.collection("broadcastLogs").add({
+      type: "daily_digest_push",
+      status: "skipped_no_content",
+      sentAt: FieldValue.serverTimestamp(),
+    });
+    return { skipped: true };
+  }
+
+  // 2. 메시지 빌드
+  const dayOfWeek = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
+  const { title, body } = buildDailyDigestMessage(jobs, realestate, danggn, dayOfWeek);
+  const campaign = `daily_digest_${new Date().toISOString().slice(0, 10)}`;
+  const data = { type: "daily_digest", campaign, screen: "뉴스" };
+
+  // 3. 발송 대상 토큰 수집 — dailyDigest !== false 만
+  const usersSnap = await db.collection("users").get();
+  const fcmTokens = [];
+  const expoTokens = [];
+
+  const checks = usersSnap.docs.map(async (userDoc) => {
+    const uid = userDoc.id;
+    const u = userDoc.data();
+    try {
+      const settingsDoc = await db.collection("notificationSettings").doc(uid).get();
+      if (settingsDoc.exists && settingsDoc.data().dailyDigest === false) return;
+    } catch (_) { /* 설정 없으면 기본 허용 */ }
+
+    const fcm = Array.isArray(u.fcmTokens)
+      ? u.fcmTokens
+      : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
+    const expoPush = Array.isArray(u.expoPushTokens)
+      ? u.expoPushTokens
+      : [u.expoPushToken].filter(Boolean);
+    fcmTokens.push(...fcm);
+    expoTokens.push(...expoPush);
+  });
+  await Promise.allSettled(checks);
+
+  const uniqueFcm = [...new Set(fcmTokens)];
+  const uniqueExpo = [...new Set(expoTokens)].filter(t => Expo.isExpoPushToken(t));
+  console.log(`📬 일일 푸시 대상: FCM ${uniqueFcm.length}개, Expo ${uniqueExpo.length}개`);
+
+  if (dryRun) {
+    console.log("🧪 dryRun — 실발송 없음");
+    return { dryRun: true, title, body, fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length };
+  }
+
+  // 4. 발송
+  if (uniqueFcm.length > 0) {
+    await sendMulticastFCM(uniqueFcm, { title, body, data });
+  }
+  if (uniqueExpo.length > 0) {
+    const messages = uniqueExpo.map(t => ({
+      to: t, sound: "default", title, body, data, channelId: "default", priority: "high",
+    }));
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      try { await expo.sendPushNotificationsAsync(chunk); }
+      catch (e) { console.error("❌ Expo 발송 실패:", e.message); }
+    }
+  }
+
+  // 5. 로그
+  await db.collection("broadcastLogs").add({
+    type: "daily_digest_push",
+    campaign,
+    content: { jobs, realestate, danggn },
+    title, body,
+    fcmCount: uniqueFcm.length,
+    expoCount: uniqueExpo.length,
+    sentAt: FieldValue.serverTimestamp(),
+  });
+
+  console.log(`✅ 일일 푸시 발송 완료: FCM ${uniqueFcm.length} + Expo ${uniqueExpo.length}`);
+  return { fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length, title, body };
+}
+
+/** 매일 베트남 시간 18시 자동 발송 */
+exports.dailyDigestPush = onSchedule(
+  { schedule: "0 18 * * *", timeZone: TZ_VN, region: "asia-northeast3", memory: "512MiB" },
+  async () => { await runDailyDigestPush(); }
+);
+
+/** 테스트/수동 트리거 — admin만 호출 가능. ?dryRun=1 지원 */
+exports.runDailyDigestNow = onRequest(
+  { cors: true, region: "asia-northeast3" },
+  async (req, res) => {
+    const adminKey = req.query.key || req.headers["x-admin-key"];
+    if (adminKey !== "xinchao_2026_dailydigest") {
+      res.status(401).send("Unauthorized");
+      return;
+    }
+    const dryRun = req.query.dryRun === "1";
+    try {
+      const result = await runDailyDigestPush({ dryRun });
+      res.json({ success: true, ...result });
+    } catch (e) {
+      console.error("❌ runDailyDigestNow 실패:", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
+);
 
 // ============================================================
 // 🗂️ Jobs/{jobId} onWrite → Notion 구인 DB 업서트
