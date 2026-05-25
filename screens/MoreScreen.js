@@ -156,6 +156,13 @@ export default function MoreScreen({ navigation }) {
       color: "#2196F3",
       requiresAuth: true,
     },
+    {
+      id: "announcements",
+      title: "공지사항",
+      icon: "megaphone",
+      screen: "공지사항 목록",
+      color: "#FF6B35",
+    },
   ];
 
   const handleMenuPress = (item) => {
