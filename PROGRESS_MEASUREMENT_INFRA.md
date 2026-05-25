@@ -6,7 +6,7 @@
 > SOP: [directives/MEASUREMENT_INFRA_SETUP.md](directives/MEASUREMENT_INFRA_SETUP.md)
 >
 > 시작: 2026-05-20
-> 최종 갱신: 2026-05-20 (셋업 시작 — 아직 작업 시작 전)
+> 최종 갱신: 2026-05-25 (소셜 가입 signup_complete 4경로 통합)
 
 ---
 
@@ -31,7 +31,7 @@
 |---|---|---|---|---|
 | 1-1 | `@react-native-firebase/analytics` 설치 | ✅ | `package.json`에 `^21.14.0` 추가, `node_modules` 설치 확인 | 2026-05-20 |
 | 1-2 | Analytics 초기화 + 자동 화면 추적 | ✅ | `lib/analytics.js` 신규 작성, App.js `NavigationContainer`에 `onReady`/`onStateChange` 연결. 모든 화면 진입이 `screen_view`로 자동 기록됨 | 2026-05-20 |
-| 1-3 | 주요 이벤트 6종 심기 | ✅ | PostDetailScreen(magazine_open/news_read/share_clicked), JobDetailScreen(job_view), RealEstateDetailScreen(realestate_view), AuthContext(signup_complete: email) | 2026-05-20 |
+| 1-3 | 주요 이벤트 6종 심기 | ✅ | PostDetailScreen(magazine_open/news_read/share_clicked), JobDetailScreen(job_view), RealEstateDetailScreen(realestate_view), AuthContext(signup_complete: **email/google/apple/kakao**) | 2026-05-25 |
 | 1-4 | DebugView로 이벤트 흐름 확인 | ⏳ | — | — |
 | 1-5 | **EAS Build + Store Submit** (네이티브 모듈 추가이므로 OTA 불가) | ⏳ | iOS 빌드번호 73 / Android versionCode 106으로 자동 증가 | — |
 
@@ -70,6 +70,7 @@
 
 > 매 작업 완료/이슈 발생 시 한 줄씩 추가. 가장 최근이 맨 위.
 
+- `2026-05-25` — **소셜 가입 signup_complete 4경로 통합** — `AuthContext.js`의 googleLogin/appleLogin/kakaoLogin 각 `isNewSignup` 분기에 `logSignupComplete('google'|'apple'|'kakao')` 추가. 기존 이메일 가입 패턴(line 109~111) 동일 적용 — defensive require + try/catch로 OTA-safe. iOS·Android 5/21 빌드의 native analytics 모듈이 그대로 수신. 단계 3 retention 코호트 측정 사전 작업 (4명 중 3명 측정 누락 차단).
 - `2026-05-20` — Phase 5 가이드 작성 완료 (`MEASUREMENT_DASHBOARD_SETUP.md`). 코드 작업 없음. GA4/Looker Studio 콘솔에서 사용자 직접 실행. 코드 작업 전체 100% — 10/14 완료, 나머지 4개는 사용자 콘솔/빌드 작업.
 - `2026-05-20` — Phase 4 (4-1·4-2) 일괄 완료. `kakao-broadcast.js` 신규 + 일일 발송 후 `kakao-out/*.txt` 파일 자동 생성. 다음: Phase 5 (대시보드, 사용자 콘솔 작업).
 - `2026-05-20` — Phase 3 (3-1·3-2) 일괄 완료. `email-service.js`에 UTM 자동 부착 + 캠페인 ID 자동 생성. SendGrid·SMTP 폴백 공유. 다음: Phase 4 (카톡 UTM).
@@ -90,7 +91,7 @@
 - **Phase 2-2 Vercel 배포** — `vnkorlife-web` 저장소에 변경 사항 push 시 Vercel 자동 배포. 사용자가 commit 직후 vnkorlife.com 페이지 소스 보기로 `G-QTCWJ6GGH0` 검색하여 검증.
 - **Phase 1-5 EAS Build 승인 필요** — 네이티브 모듈 추가이므로 OTA 불가. 다른 앱 작업(UTM 수신 등)도 함께 묶어서 1회 빌드 권장. 진행 시점 결정 필요.
 - **Phase 1-4 DebugView 확인** — 빌드 후 사용자가 실기기 또는 시뮬레이터에서 앱을 실행하고 Firebase 콘솔의 Analytics > DebugView에서 이벤트가 흐르는지 확인 필요. (사용자만 가능)
-- **소셜 회원가입 이벤트 추가 instrument** — 현재 `signup_complete`는 이메일 가입에만 발화. Google/Apple/Kakao 첫 가입은 다음 라운드에서 추가 권장 (`AuthContext.js` 라인 232 `!userDoc.exists()` 분기 등).
+- ~~**소셜 회원가입 이벤트 추가 instrument**~~ ✅ 2026-05-25 완료 — Google/Apple/Kakao 세 경로 모두 `signup_complete` 발화 (method 라벨로 구분). 4개 가입 경로 모두 측정됨.
 - **카테고리 ID 검증** — `NEWS_CATEGORY_ID = 31` 가정. 실제 WordPress 사이트에서 뉴스 카테고리 ID가 31이 맞는지 사용자 확인 필요.
 - **Phase 4 카톡 출력 확인** — 다음 일일 발송 시 `daily-news-final/kakao-out/YYYY-MM-DD.txt` 파일 생성됨. 사용자가 그 내용을 카톡방 3개(씬짜오 구인구직 / 부동산 / 당근·나눔)에 복사·붙여넣기.
 - **Phase 5 콘솔 작업** — `directives/MEASUREMENT_DASHBOARD_SETUP.md` 가이드 따라 사용자가 직접 Looker Studio 보고서 작성 (코드 없음, 30~60분 소요 예상). 데이터 흐름이 안정된 뒤 (Phase 1~4 모두 배포 + 24시간 경과) 진행 권장.

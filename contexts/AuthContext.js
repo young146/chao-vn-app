@@ -256,6 +256,12 @@ export const AuthProvider = ({ children }) => {
             adminAlerts: true,
           }),
         ]);
+
+        // 🔍 [측정 인프라] 구글 회원가입 완료 이벤트
+        try {
+          const { logSignupComplete } = require('../lib/analytics');
+          logSignupComplete('google');
+        } catch (_) { /* analytics 실패는 회원가입 흐름에 영향 없음 */ }
       }
 
       // 깔때기 단계 2 보강 A v2: 신규 소셜 가입자도 환영 화면 경유 (LoginScreen 에서 분기)
@@ -303,6 +309,12 @@ export const AuthProvider = ({ children }) => {
           chat: true,
           adminAlerts: true,
         });
+
+        // 🔍 [측정 인프라] 애플 회원가입 완료 이벤트
+        try {
+          const { logSignupComplete } = require('../lib/analytics');
+          logSignupComplete('apple');
+        } catch (_) { /* analytics 실패는 회원가입 흐름에 영향 없음 */ }
       }
 
       return { success: true, user: appleUser, isNewSignup };
@@ -383,6 +395,12 @@ export const AuthProvider = ({ children }) => {
             adminAlerts: true,
           })
         ]);
+
+        // 🔍 [측정 인프라] 카카오 회원가입 완료 이벤트
+        try {
+          const { logSignupComplete } = require('../lib/analytics');
+          logSignupComplete('kakao');
+        } catch (_) { /* analytics 실패는 회원가입 흐름에 영향 없음 */ }
       } else {
         // 기존 사용자는 프로필 정보만 업데이트
         await setDoc(userRef, {
