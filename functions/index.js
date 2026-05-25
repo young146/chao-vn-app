@@ -1015,6 +1015,71 @@ exports.sendCustomPush = onRequest(
 );
 
 // ============================================================
+// ⏰ 예약 발송 체크 — 5분마다 pushDrafts 컬렉션 확인
+// ============================================================
+exports.scheduledPushCheck = onSchedule(
+  { schedule: "every 5 minutes", timeZone: TZ_VN, region: "asia-northeast3", memory: "512MiB" },
+  async () => {
+    const now = new Date();
+    let snap;
+    try {
+      snap = await db.collection("pushDrafts")
+        .where("status", "==", "scheduled")
+        .where("scheduledAt", "<=", now)
+        .get();
+    } catch (e) {
+      console.error("❌ pushDrafts 조회 실패:", e.message);
+      return;
+    }
+
+    if (snap.empty) return;
+    console.log(`⏰ scheduledPushCheck: ${snap.size}건 발송 시작`);
+
+    for (const draftDoc of snap.docs) {
+      const d = draftDoc.data();
+      try {
+        await draftDoc.ref.update({ status: "sending" });
+
+        const announcementRef = await db.collection("announcements").add({
+          title: d.title,
+          body: d.body,
+          imageUrl: d.imageUrl || null,
+          url: d.url || null,
+          commentCount: 0,
+          sentAt: FieldValue.serverTimestamp(),
+        });
+
+        const today = new Date().toISOString().slice(0, 10);
+        const result = await sendBroadcastPush({
+          title: d.title,
+          body: d.body,
+          data: {
+            type: "custom",
+            campaign: `scheduled_${today}`,
+            screen: "뉴스",
+            ...(d.url ? { url: d.url } : {}),
+            announcementId: announcementRef.id,
+          },
+          logType: "custom_push",
+          imageUrl: d.imageUrl || null,
+          dryRun: false,
+        });
+
+        await draftDoc.ref.update({
+          status: "sent",
+          announcementId: announcementRef.id,
+          sentAt: FieldValue.serverTimestamp(),
+        });
+        console.log(`✅ 예약 발송 완료: ${draftDoc.id} (${d.title}) — FCM ${result.fcmCount} + Expo ${result.expoCount}`);
+      } catch (e) {
+        console.error(`❌ 예약 발송 실패: ${draftDoc.id}`, e.message);
+        await draftDoc.ref.update({ status: "failed", error: e.message }).catch(() => {});
+      }
+    }
+  }
+);
+
+// ============================================================
 // 🗂️ Jobs/{jobId} onWrite → Notion 구인 DB 업서트
 // (기존 onNewJobCreated FCM 함수와 별개 - 건드리지 않음)
 // ============================================================
