@@ -752,7 +752,7 @@ async function countNewItemsLast24h() {
 }
 
 /** 공통 발송 헬퍼 — 일일 푸시 2종(뉴스/새 등록) 공유 */
-async function sendBroadcastPush({ title, body, data, logType, dryRun = false }) {
+async function sendBroadcastPush({ title, body, data, logType, dryRun = false, imageUrl = null }) {
   const usersSnap = await db.collection("users").get();
   const fcmTokens = [];
   const expoTokens = [];
@@ -786,11 +786,12 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false })
   }
 
   if (uniqueFcm.length > 0) {
-    await sendMulticastFCM(uniqueFcm, { title, body, data });
+    await sendMulticastFCM(uniqueFcm, { title, body, data, imageUrl });
   }
   if (uniqueExpo.length > 0) {
     const messages = uniqueExpo.map(t => ({
       to: t, sound: "default", title, body, data, channelId: "default", priority: "high",
+      ...(imageUrl ? { image: imageUrl } : {}),
     }));
     const chunks = expo.chunkPushNotifications(messages);
     for (const chunk of chunks) {
@@ -806,6 +807,8 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false })
     fcmCount: uniqueFcm.length,
     expoCount: uniqueExpo.length,
     sentAt: FieldValue.serverTimestamp(),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(data.url ? { url: data.url } : {}),
   });
 
   console.log(`✅ ${logType} 발송 완료: FCM ${uniqueFcm.length} + Expo ${uniqueExpo.length}`);
@@ -951,7 +954,7 @@ exports.sendCustomPush = onRequest(
       res.status(401).json({ success: false, error: "Unauthorized" });
       return;
     }
-    const { title, body, dryRun = false } = req.body || {};
+    const { title, body, url = null, imageUrl = null, dryRun = false } = req.body || {};
     if (!title || !body) {
       res.status(400).json({ success: false, error: "title과 body는 필수입니다." });
       return;
@@ -964,13 +967,22 @@ exports.sendCustomPush = onRequest(
       res.status(400).json({ success: false, error: "내용은 150자 이하로 입력하세요." });
       return;
     }
+    if (url && !/^https?:\/\/.+/.test(url)) {
+      res.status(400).json({ success: false, error: "링크는 http(s)://로 시작해야 합니다." });
+      return;
+    }
+    if (imageUrl && !/^https?:\/\/.+/.test(imageUrl)) {
+      res.status(400).json({ success: false, error: "이미지 URL은 http(s)://로 시작해야 합니다." });
+      return;
+    }
     try {
       const today = new Date().toISOString().slice(0, 10);
       const result = await sendBroadcastPush({
         title,
         body,
-        data: { type: "custom", campaign: `custom_${today}`, screen: "뉴스" },
+        data: { type: "custom", campaign: `custom_${today}`, screen: "뉴스", ...(url ? { url } : {}) },
         logType: "custom_push",
+        imageUrl: imageUrl || null,
         dryRun: !!dryRun,
       });
       res.json({ success: true, ...result });

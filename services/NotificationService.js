@@ -1,6 +1,6 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import { Platform } from "react-native";
+import { Platform, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // ✅ iOS 크래시 수정: Lazy getter를 사용하여 초기화 완료 후에만 접근
 import { getDb, getAuthInstance } from "../firebase/config";
@@ -295,6 +295,21 @@ class NotificationService {
         try {
           navigationRef.navigate("MainApp", { screen: "뉴스" });
         } catch (e) { console.error("❌ 일일 푸시 라우팅 실패:", e); }
+        return;
+      }
+
+      // 📣 커스텀 푸시 — url 있으면 브라우저/인앱 열기, 없으면 뉴스 탭
+      if (data?.type === "custom") {
+        if (data?.url) {
+          try {
+            const canOpen = await Linking.canOpenURL(data.url);
+            if (canOpen) await Linking.openURL(data.url);
+          } catch (e) { console.error("❌ 커스텀 푸시 URL 열기 실패:", e); }
+        } else if (navigationRef?.isReady()) {
+          try {
+            navigationRef.navigate("MainApp", { screen: "뉴스" });
+          } catch (e) { console.error("❌ 커스텀 푸시 라우팅 실패:", e); }
+        }
         return;
       }
 
