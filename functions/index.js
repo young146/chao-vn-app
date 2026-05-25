@@ -835,8 +835,21 @@ async function runNewItemsPush({ dryRun = false } = {}) {
   return await sendBroadcastPush({ title, body, data, logType: "daily_new_items_push", dryRun });
 }
 
-/** 아침 10시 — 뉴스 헤드라인 푸시 (WordPress REST API) */
+/** 아침 10시 — 뉴스 헤드라인 푸시 (WordPress REST API)
+ * 일요일 제외 (일요일은 뉴스 발행 안 함) */
 async function runNewsPush({ dryRun = false } = {}) {
+  // 일요일이면 skip (수동 트리거 보호)
+  const dayOfWeekVN = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
+  if (dayOfWeekVN === 0) {
+    console.log("⏭️ 일요일 — 뉴스 발행 안 함, skip");
+    await db.collection("broadcastLogs").add({
+      type: "daily_news_push",
+      status: "skipped_sunday",
+      sentAt: FieldValue.serverTimestamp(),
+    });
+    return { skipped: true, reason: "sunday" };
+  }
+
   // 베트남 한국 뉴스 카테고리 (id=31) — chaovietnam.co.kr 뉴스
   const NEWS_CATEGORY_ID = 31;
   const PER_PAGE = 5;
@@ -894,9 +907,9 @@ exports.dailyDigestPush = onSchedule(
   async () => { await runNewItemsPush(); }
 );
 
-/** 매일 베트남 시간 10시 — 뉴스 헤드라인 푸시 */
+/** 베트남 시간 10시 — 뉴스 헤드라인 푸시 (월~토, 일요일은 뉴스 발행 X) */
 exports.dailyNewsPush = onSchedule(
-  { schedule: "0 10 * * *", timeZone: TZ_VN, region: "asia-northeast3", memory: "512MiB" },
+  { schedule: "0 10 * * 1-6", timeZone: TZ_VN, region: "asia-northeast3", memory: "512MiB" },
   async () => { await runNewsPush(); }
 );
 
