@@ -289,8 +289,9 @@ class NotificationService {
         logPushClicked(data?.type || "unknown", data?.campaign || null);
       } catch (_) { /* analytics 실패는 흐름에 영향 없음 */ }
 
-      // 🌅 일일 새 소식 푸시 → 뉴스 탭으로 이동
-      if (data?.type === "daily_digest" && navigationRef?.isReady()) {
+      // 🌅 일일 푸시(아침 뉴스 / 저녁 새 등록 / 구버전 daily_digest) → 뉴스 탭으로 이동
+      const dailyPushTypes = ["daily_digest", "daily_news", "new_items"];
+      if (dailyPushTypes.includes(data?.type) && navigationRef?.isReady()) {
         try {
           navigationRef.navigate("MainApp", { screen: "뉴스" });
         } catch (e) { console.error("❌ 일일 푸시 라우팅 실패:", e); }

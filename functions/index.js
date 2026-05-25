@@ -751,29 +751,8 @@ async function countNewItemsLast24h() {
   return { jobs, realestate, danggn };
 }
 
-/** 핵심 발송 로직 — 스케줄러와 테스트 트리거가 공유 */
-async function runDailyDigestPush({ dryRun = false } = {}) {
-  // 1. 24h 신규 콘텐츠 카운트
-  const { jobs, realestate, danggn } = await countNewItemsLast24h();
-  console.log(`📊 24h 신규: 채용 ${jobs} · 부동산 ${realestate} · 당근 ${danggn}`);
-
-  if (jobs + realestate + danggn === 0) {
-    console.log("⏭️ 신규 콘텐츠 0건 — 발송 skip");
-    await db.collection("broadcastLogs").add({
-      type: "daily_digest_push",
-      status: "skipped_no_content",
-      sentAt: FieldValue.serverTimestamp(),
-    });
-    return { skipped: true };
-  }
-
-  // 2. 메시지 빌드
-  const dayOfWeek = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
-  const { title, body } = buildDailyDigestMessage(jobs, realestate, danggn, dayOfWeek);
-  const campaign = `daily_digest_${new Date().toISOString().slice(0, 10)}`;
-  const data = { type: "daily_digest", campaign, screen: "뉴스" };
-
-  // 3. 발송 대상 토큰 수집 — dailyDigest !== false 만
+/** 공통 발송 헬퍼 — 일일 푸시 2종(뉴스/새 등록) 공유 */
+async function sendBroadcastPush({ title, body, data, logType, dryRun = false }) {
   const usersSnap = await db.collection("users").get();
   const fcmTokens = [];
   const expoTokens = [];
@@ -799,14 +778,13 @@ async function runDailyDigestPush({ dryRun = false } = {}) {
 
   const uniqueFcm = [...new Set(fcmTokens)];
   const uniqueExpo = [...new Set(expoTokens)].filter(t => Expo.isExpoPushToken(t));
-  console.log(`📬 일일 푸시 대상: FCM ${uniqueFcm.length}개, Expo ${uniqueExpo.length}개`);
+  console.log(`📬 ${logType} 대상: FCM ${uniqueFcm.length}개, Expo ${uniqueExpo.length}개`);
 
   if (dryRun) {
     console.log("🧪 dryRun — 실발송 없음");
     return { dryRun: true, title, body, fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length };
   }
 
-  // 4. 발송
   if (uniqueFcm.length > 0) {
     await sendMulticastFCM(uniqueFcm, { title, body, data });
   }
@@ -821,28 +799,108 @@ async function runDailyDigestPush({ dryRun = false } = {}) {
     }
   }
 
-  // 5. 로그
   await db.collection("broadcastLogs").add({
-    type: "daily_digest_push",
-    campaign,
-    content: { jobs, realestate, danggn },
+    type: logType,
+    campaign: data.campaign,
     title, body,
     fcmCount: uniqueFcm.length,
     expoCount: uniqueExpo.length,
     sentAt: FieldValue.serverTimestamp(),
   });
 
-  console.log(`✅ 일일 푸시 발송 완료: FCM ${uniqueFcm.length} + Expo ${uniqueExpo.length}`);
+  console.log(`✅ ${logType} 발송 완료: FCM ${uniqueFcm.length} + Expo ${uniqueExpo.length}`);
   return { fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length, title, body };
 }
 
-/** 매일 베트남 시간 18시 자동 발송 */
+/** 저녁 6시 — 새 등록 물품 푸시 */
+async function runNewItemsPush({ dryRun = false } = {}) {
+  const { jobs, realestate, danggn } = await countNewItemsLast24h();
+  console.log(`📊 24h 신규: 채용 ${jobs} · 부동산 ${realestate} · 당근 ${danggn}`);
+
+  if (jobs + realestate + danggn === 0) {
+    console.log("⏭️ 신규 콘텐츠 0건 — skip");
+    await db.collection("broadcastLogs").add({
+      type: "daily_new_items_push",
+      status: "skipped_no_content",
+      sentAt: FieldValue.serverTimestamp(),
+    });
+    return { skipped: true };
+  }
+
+  const dayOfWeek = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
+  const { title, body } = buildDailyDigestMessage(jobs, realestate, danggn, dayOfWeek);
+  const campaign = `new_items_${new Date().toISOString().slice(0, 10)}`;
+  const data = { type: "new_items", campaign, screen: "뉴스" };
+
+  return await sendBroadcastPush({ title, body, data, logType: "daily_new_items_push", dryRun });
+}
+
+/** 아침 10시 — 뉴스 헤드라인 푸시 (WordPress REST API) */
+async function runNewsPush({ dryRun = false } = {}) {
+  // 베트남 한국 뉴스 카테고리 (id=31) — chaovietnam.co.kr 뉴스
+  const NEWS_CATEGORY_ID = 31;
+  const PER_PAGE = 5;
+
+  // 오늘 베트남 시간 자정 이후 발행된 뉴스만 (UTC+7)
+  const nowVN = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN }));
+  const todayStartVN = new Date(nowVN.getFullYear(), nowVN.getMonth(), nowVN.getDate());
+  const afterIso = new Date(todayStartVN.getTime() - 7 * 60 * 60 * 1000).toISOString(); // VN 자정 = UTC 전날 17:00
+
+  const url = `https://chaovietnam.co.kr/wp-json/wp/v2/posts?categories=${NEWS_CATEGORY_ID}&per_page=${PER_PAGE}&after=${encodeURIComponent(afterIso)}&_fields=id,title,link,date`;
+
+  let posts = [];
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`WP API ${res.status}`);
+    posts = await res.json();
+  } catch (e) {
+    console.error("❌ WP 뉴스 가져오기 실패:", e.message);
+    await db.collection("broadcastLogs").add({
+      type: "daily_news_push",
+      status: "skipped_wp_fail",
+      error: e.message,
+      sentAt: FieldValue.serverTimestamp(),
+    });
+    return { skipped: true, error: e.message };
+  }
+
+  if (!Array.isArray(posts) || posts.length === 0) {
+    console.log("⏭️ 오늘 발행된 뉴스 0건 — skip");
+    await db.collection("broadcastLogs").add({
+      type: "daily_news_push",
+      status: "skipped_no_news",
+      sentAt: FieldValue.serverTimestamp(),
+    });
+    return { skipped: true };
+  }
+
+  // 메시지 빌드 — 첫 헤드라인 + 외 N건
+  const decode = (s) => String(s || "").replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, "").trim();
+  const headline1 = decode(posts[0].title?.rendered);
+  const title = "📰 씬짜오 오늘의 뉴스";
+  const body = posts.length > 1
+    ? `${headline1} · 외 ${posts.length - 1}건`
+    : headline1;
+
+  const campaign = `news_${new Date().toISOString().slice(0, 10)}`;
+  const data = { type: "daily_news", campaign, screen: "뉴스" };
+
+  return await sendBroadcastPush({ title, body, data, logType: "daily_news_push", dryRun });
+}
+
+/** 매일 베트남 시간 18시 — 새 등록 물품 푸시 */
 exports.dailyDigestPush = onSchedule(
   { schedule: "0 18 * * *", timeZone: TZ_VN, region: "asia-northeast3", memory: "512MiB" },
-  async () => { await runDailyDigestPush(); }
+  async () => { await runNewItemsPush(); }
 );
 
-/** 테스트/수동 트리거 — admin만 호출 가능. ?dryRun=1 지원 */
+/** 매일 베트남 시간 10시 — 뉴스 헤드라인 푸시 */
+exports.dailyNewsPush = onSchedule(
+  { schedule: "0 10 * * *", timeZone: TZ_VN, region: "asia-northeast3", memory: "512MiB" },
+  async () => { await runNewsPush(); }
+);
+
+/** 테스트/수동 트리거 — admin만 호출. ?dryRun=1 지원. ?which=news|items 로 종류 선택 */
 exports.runDailyDigestNow = onRequest(
   { cors: true, region: "asia-northeast3" },
   async (req, res) => {
@@ -852,9 +910,12 @@ exports.runDailyDigestNow = onRequest(
       return;
     }
     const dryRun = req.query.dryRun === "1";
+    const which = req.query.which || "items";
     try {
-      const result = await runDailyDigestPush({ dryRun });
-      res.json({ success: true, ...result });
+      const result = which === "news"
+        ? await runNewsPush({ dryRun })
+        : await runNewItemsPush({ dryRun });
+      res.json({ success: true, which, ...result });
     } catch (e) {
       console.error("❌ runDailyDigestNow 실패:", e);
       res.status(500).json({ success: false, error: e.message });
