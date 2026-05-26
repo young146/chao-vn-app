@@ -269,6 +269,7 @@ export default function JobsScreen({ navigation }) {
       // Jobs 컬렉션 (구인 + 예전 jobType:'구직')
       const jobsQuery = query(
         collection(db, "Jobs"),
+        orderBy("createdAt", "desc"),
         limit(isFirstFetch ? 60 : ITEMS_PER_PAGE)
       );
 
