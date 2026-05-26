@@ -106,6 +106,7 @@ import { NavigationContainer, useNavigation, createNavigationContainerRef, getSt
 
 // 딥링크 핸들링용 navigation ref (앱 실행 중 딥링크 수신 시 사용)
 const navigationRef = createNavigationContainerRef();
+notificationService.setNavigationRef(navigationRef);
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
