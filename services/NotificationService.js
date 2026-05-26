@@ -275,6 +275,20 @@ class NotificationService {
   }
 
   /**
+   * 네비게이션 준비될 때까지 재시도 (cold-start 대응)
+   * 앱이 죽어 있다가 알림 탭으로 켜지면 navigationRef.isReady()가 처음엔 false
+   */
+  _navigateWhenReady(navFn, attempts = 0) {
+    if (navigationRef?.isReady()) {
+      try { navFn(); } catch (e) { console.error("❌ 알림 네비게이션 실패:", e); }
+    } else if (attempts < 25) {
+      setTimeout(() => this._navigateWhenReady(navFn, attempts + 1), 200);
+    } else {
+      console.warn("⚠️ 네비게이션 준비 타임아웃 (5초)");
+    }
+  }
+
+  /**
    * 알림 탭 리스너 설정 (사용자가 알림을 탭했을 때)
    */
   setupNotificationResponseListener() {
@@ -291,31 +305,31 @@ class NotificationService {
 
       // 🌅 일일 푸시(아침 뉴스 / 저녁 새 등록 / 구버전 daily_digest) → 뉴스 탭으로 이동
       const dailyPushTypes = ["daily_digest", "daily_news", "new_items"];
-      if (dailyPushTypes.includes(data?.type) && navigationRef?.isReady()) {
-        try {
-          navigationRef.navigate("MainApp", { screen: "뉴스" });
-        } catch (e) { console.error("❌ 일일 푸시 라우팅 실패:", e); }
+      if (dailyPushTypes.includes(data?.type)) {
+        this._navigateWhenReady(() =>
+          navigationRef.navigate("MainApp", { screen: "뉴스" })
+        );
         return;
       }
 
       // 📣 커스텀 푸시 — announcementId 있으면 공지 상세, url 있으면 브라우저, 없으면 뉴스 탭
       if (data?.type === "custom") {
-        if (data?.announcementId && navigationRef?.isReady()) {
-          try {
+        if (data?.announcementId) {
+          this._navigateWhenReady(() =>
             navigationRef.navigate("MainApp", {
               screen: "메뉴",
               params: { screen: "공지 상세", params: { announcementId: data.announcementId } },
-            });
-          } catch (e) { console.error("❌ 공지 상세 라우팅 실패:", e); }
+            })
+          );
         } else if (data?.url) {
           try {
             const canOpen = await Linking.canOpenURL(data.url);
             if (canOpen) await Linking.openURL(data.url);
           } catch (e) { console.error("❌ 커스텀 푸시 URL 열기 실패:", e); }
-        } else if (navigationRef?.isReady()) {
-          try {
-            navigationRef.navigate("MainApp", { screen: "뉴스" });
-          } catch (e) { console.error("❌ 커스텀 푸시 라우팅 실패:", e); }
+        } else {
+          this._navigateWhenReady(() =>
+            navigationRef.navigate("MainApp", { screen: "뉴스" })
+          );
         }
         return;
       }
