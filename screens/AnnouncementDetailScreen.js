@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Alert, Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import * as ImagePicker from "expo-image-picker";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
@@ -19,6 +20,7 @@ const BRAND = "#FF6B35";
 export default function AnnouncementDetailScreen({ route }) {
   const { announcementId } = route.params;
   const { user } = useAuth();
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [announcement, setAnnouncement] = useState(null);
   const [comments, setComments] = useState([]);
@@ -229,7 +231,7 @@ export default function AnnouncementDetailScreen({ route }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingBottom: tabBarHeight }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={90}
     >
@@ -241,7 +243,7 @@ export default function AnnouncementDetailScreen({ route }) {
         ListEmptyComponent={
           <Text style={styles.emptyText}>첫 댓글을 남겨보세요!</Text>
         }
-        contentContainerStyle={{ paddingBottom: 16 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
       />
 
       {/* 입력 영역 */}
