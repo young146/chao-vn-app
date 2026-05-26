@@ -158,9 +158,9 @@ export default function MoreScreen({ navigation }) {
     },
     {
       id: "announcements",
-      title: "공지사항",
+      title: "알림 대화창",
       icon: "megaphone",
-      screen: "공지사항 목록",
+      screen: "알림 대화창 목록",
       color: "#FF6B35",
     },
   ];

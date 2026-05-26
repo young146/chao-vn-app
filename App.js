@@ -1382,19 +1382,19 @@ function MenuStack() {
         })}
       />
       <Stack.Screen
-        name="공지사항 목록"
+        name="알림 대화창 목록"
         component={AnnouncementsListScreen}
         options={{
-          title: "공지사항",
+          title: "알림 대화창",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}
       />
       <Stack.Screen
-        name="공지 상세"
+        name="알림 대화창"
         component={AnnouncementDetailScreen}
         options={{
-          title: "공지사항",
+          title: "알림 대화창",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}

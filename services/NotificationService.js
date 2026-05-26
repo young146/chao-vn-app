@@ -312,13 +312,13 @@ class NotificationService {
         return;
       }
 
-      // 📣 커스텀 푸시 — announcementId 있으면 공지 상세, url 있으면 브라우저, 없으면 뉴스 탭
+      // 📣 커스텀 푸시 — announcementId 있으면 알림 대화창, url 있으면 브라우저, 없으면 뉴스 탭
       if (data?.type === "custom") {
         if (data?.announcementId) {
           this._navigateWhenReady(() =>
             navigationRef.navigate("MainApp", {
               screen: "메뉴",
-              params: { screen: "공지 상세", params: { announcementId: data.announcementId } },
+              params: { screen: "알림 대화창", params: { announcementId: data.announcementId } },
             })
           );
         } else if (data?.url) {

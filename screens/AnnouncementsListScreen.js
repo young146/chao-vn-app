@@ -45,7 +45,7 @@ export default function AnnouncementsListScreen({ navigation }) {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("공지 상세", { announcementId: item.id })}
+      onPress={() => navigation.navigate("알림 대화창", { announcementId: item.id })}
       activeOpacity={0.8}
     >
       {item.imageUrl && (
@@ -95,7 +95,7 @@ export default function AnnouncementsListScreen({ navigation }) {
       ListEmptyComponent={
         <View style={styles.center}>
           <Ionicons name="megaphone-outline" size={48} color="#ddd" />
-          <Text style={styles.emptyText}>등록된 공지사항이 없습니다.</Text>
+          <Text style={styles.emptyText}>등록된 알림이 없습니다.</Text>
         </View>
       }
       contentContainerStyle={announcements.length === 0 ? { flex: 1 } : { paddingBottom: 24 }}
