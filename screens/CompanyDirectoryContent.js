@@ -420,13 +420,17 @@ export default function CompanyDirectoryContent() {
         <Text style={styles.searchHint}>플라스틱 사출, 금형, 물류 등 키워드로 검색 가능</Text>
       </View>
 
-      {/* 지역 필터 칩 */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.areaFilterScroll}
-        contentContainerStyle={styles.areaFilterContent}
-      >
+      {/* 지역 필터 라벨 + 칩 */}
+      <View style={styles.areaFilterWrap}>
+        <View style={styles.areaFilterLabelRow}>
+          <Ionicons name="location-outline" size={14} color="#1565C0" />
+          <Text style={styles.areaFilterLabel}>지역 선택</Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.areaFilterContent}
+        >
         {AREAS.map((area) => (
           <TouchableOpacity
             key={area}
@@ -439,7 +443,8 @@ export default function CompanyDirectoryContent() {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* 총 건수 */}
       {!loading && (
@@ -542,31 +547,50 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  areaFilterWrap: {
+    backgroundColor: '#F8FAFD',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  areaFilterLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+  },
+  areaFilterLabel: {
+    fontSize: 12,
+    color: '#1565C0',
+    fontWeight: '600',
+  },
   areaFilterContent: {
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 4,
     gap: 6,
   },
   areaChipBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#d0d7e0',
     marginRight: 6,
   },
   areaChipBtnActive: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#1565C0',
     borderColor: '#1565C0',
   },
   areaChipBtnText: {
     fontSize: 14,
-    color: '#555',
+    color: '#1565C0',
     fontWeight: '500',
   },
   areaChipBtnTextActive: {
-    color: '#1565C0',
+    color: '#fff',
     fontWeight: '700',
   },
   countRow: {
