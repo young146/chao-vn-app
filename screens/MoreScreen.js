@@ -163,6 +163,14 @@ export default function MoreScreen({ navigation }) {
       screen: "알림 대화창 목록",
       color: "#FF6B35",
     },
+    {
+      id: "company_directory",
+      title: "기업 디렉토리",
+      icon: "business",
+      screen: "기업 디렉토리",
+      color: "#1565C0",
+      description: "베트남 진출 한국기업 5,000여 곳 검색",
+    },
   ];
 
   const handleMenuPress = (item) => {
@@ -229,7 +237,12 @@ export default function MoreScreen({ navigation }) {
               >
                 <Ionicons name={item.icon} size={24} color={item.color} />
               </View>
-              <Text style={styles.menuTitle}>{item.title}</Text>
+              <View>
+                <Text style={styles.menuTitle}>{item.title}</Text>
+                {item.description ? (
+                  <Text style={styles.menuDescription}>{item.description}</Text>
+                ) : null}
+              </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
@@ -420,6 +433,11 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     color: "#333",
+  },
+  menuDescription: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
   },
   adminSection: {
     backgroundColor: "#fff",
