@@ -51,12 +51,10 @@ const DetailModal = memo(({ company, visible, onClose }) => {
     }
   };
 
-  // 이메일 목록 파싱: 쉼표 또는 공백 구분
   const emailList = company.email
     ? company.email.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
     : [];
 
-  // 등록일 포매팅: "2026-04-30 04:35:04" → "2026-04-30"
   const formattedDate = company.created_at
     ? String(company.created_at).slice(0, 10)
     : null;
@@ -69,7 +67,6 @@ const DetailModal = memo(({ company, visible, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={styles.modalContainer}>
-        {/* 헤더 */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="close" size={24} color="#333" />
@@ -79,7 +76,6 @@ const DetailModal = memo(({ company, visible, onClose }) => {
         </View>
 
         <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 40 }}>
-          {/* 지역 칩 */}
           {company.area ? (
             <View style={styles.modalAreaRow}>
               <View style={styles.areaChip}>
@@ -89,7 +85,6 @@ const DetailModal = memo(({ company, visible, onClose }) => {
             </View>
           ) : null}
 
-          {/* 기본 정보 */}
           <View style={styles.modalSection}>
             {company.director ? (
               <View style={styles.modalRow}>
@@ -132,7 +127,6 @@ const DetailModal = memo(({ company, visible, onClose }) => {
             ) : null}
           </View>
 
-          {/* 연락처 */}
           <View style={styles.modalSection}>
             {company.tel ? (
               <TouchableOpacity style={styles.modalContactRow} onPress={handleTel}>
@@ -169,7 +163,6 @@ const DetailModal = memo(({ company, visible, onClose }) => {
             ))}
           </View>
 
-          {/* 부가 정보 */}
           {(company.source || company.source_url || formattedDate || company.id != null) ? (
             <View style={styles.modalSection}>
               {company.source ? (
@@ -279,9 +272,10 @@ const CompanyCard = memo(({ item, onPress }) => {
 });
 
 // ============================================================
-// 메인 화면
+// 임베드 가능한 기업 디렉토리 콘텐츠 컴포넌트
+// (navigation 의존 없음 — NeighborBusinessesScreen에서 인라인 사용)
 // ============================================================
-export default function CompanyDirectoryScreen() {
+export default function CompanyDirectoryContent() {
   const [query, setQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('전체');
   const [companies, setCompanies] = useState([]);
@@ -298,7 +292,6 @@ export default function CompanyDirectoryScreen() {
   const debounceTimer = useRef(null);
   const isSearch = query.trim().length > 0;
 
-  // 첫 페이지 로드
   const fetchFirst = useCallback(async (q, area, isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
@@ -328,12 +321,10 @@ export default function CompanyDirectoryScreen() {
     }
   }, []);
 
-  // 초기 로드
   useEffect(() => {
     fetchFirst('', '전체');
   }, []);
 
-  // 검색어 debounce (300ms)
   const handleQueryChange = (text) => {
     setQuery(text);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -342,13 +333,11 @@ export default function CompanyDirectoryScreen() {
     }, 300);
   };
 
-  // 지역 필터 변경 (즉시)
   const handleAreaChange = (area) => {
     setSelectedArea(area);
     fetchFirst(query, area);
   };
 
-  // 무한 스크롤 — 다음 페이지
   const loadMore = useCallback(async () => {
     if (loadingMore || page >= totalPages) return;
     const nextPage = page + 1;
@@ -371,16 +360,13 @@ export default function CompanyDirectoryScreen() {
     }
   }, [loadingMore, page, totalPages, selectedArea, query, isSearch]);
 
-  // pull-to-refresh
   const onRefresh = useCallback(() => {
     fetchFirst(query, selectedArea, true);
   }, [fetchFirst, query, selectedArea]);
 
-  // 카드 탭 → 모달
   const handleCardPress = useCallback((company) => {
     setSelectedCompany(company);
     setModalVisible(true);
-    // analytics (defensive)
     try {
       logEvent('company_view', { company_id: String(company.id ?? ''), company_name: company.company ?? '' });
     } catch (_) {}
@@ -522,7 +508,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  // 검색바
   searchSection: {
     backgroundColor: '#fff',
     paddingHorizontal: 12,
@@ -552,7 +537,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginLeft: 2,
   },
-  // 지역 필터
   areaFilterScroll: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -585,7 +569,6 @@ const styles = StyleSheet.create({
     color: '#1565C0',
     fontWeight: '700',
   },
-  // 건수
   countRow: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -594,7 +577,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
   },
-  // 로딩/에러
   centerLoader: {
     flex: 1,
     justifyContent: 'center',
@@ -631,7 +613,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // 리스트
   listContent: {
     paddingTop: 4,
     paddingBottom: FIXED_BOTTOM_HEIGHT + 60,
@@ -654,7 +635,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#bbb',
   },
-  // 카드
   card: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
@@ -737,7 +717,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4CAF50',
   },
-  // 모달
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
@@ -829,19 +808,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#333',
-  },
-  sourceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  sourceLabel: {
-    fontSize: 12,
-    color: '#aaa',
-  },
-  sourceText: {
-    fontSize: 12,
-    color: '#aaa',
   },
 });

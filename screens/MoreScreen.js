@@ -163,14 +163,6 @@ export default function MoreScreen({ navigation }) {
       screen: "알림 대화창 목록",
       color: "#FF6B35",
     },
-    {
-      id: "company_directory",
-      title: "기업 디렉토리",
-      icon: "business",
-      screen: "기업 디렉토리",
-      color: "#1565C0",
-      description: "베트남 진출 한국기업 5,000여 곳 검색",
-    },
   ];
 
   const handleMenuPress = (item) => {

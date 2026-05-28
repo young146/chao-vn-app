@@ -227,7 +227,6 @@ import AdminScreen from "./screens/AdminScreen";
 import LanguageSelectScreen from "./screens/LanguageSelectScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import SplashAnimation from "./components/SplashAnimation";
-import CompanyDirectoryScreen from "./screens/CompanyDirectoryScreen";
 
 // ============================================
 // 📢 광고문의 헤더 버튼 (모든 탭에서 공유)
@@ -1397,15 +1396,6 @@ function MenuStack() {
         options={{
           title: "알림 대화창",
           headerStyle: { backgroundColor: "#FF6B35" },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
-        name="기업 디렉토리"
-        component={CompanyDirectoryScreen}
-        options={{
-          title: "기업 디렉토리",
-          headerStyle: { backgroundColor: "#1565C0" },
           headerTintColor: "#fff",
         }}
       />

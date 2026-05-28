@@ -26,6 +26,7 @@ import {
   translateCity,
   translateOther,
 } from '../utils/vietnamLocations';
+import CompanyDirectoryContent from './CompanyDirectoryContent';
 
 /**
  * 이웃사업 탭 메인 화면 (Phase 1)
@@ -84,6 +85,9 @@ export default function NeighborBusinessesScreen() {
   const navigation = useNavigation();
   const auth = useAuth() || {};
   const userIsAdmin = typeof auth.isAdmin === 'function' ? auth.isAdmin() : !!auth.isAdmin;
+
+  // 세그먼트 컨트롤: 'neighbor' | 'company'
+  const [selectedTab, setSelectedTab] = useState('neighbor');
 
   const [city, setCity] = useState('all');
   const [district, setDistrict] = useState('all');
@@ -306,31 +310,99 @@ export default function NeighborBusinessesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {renderFilters()}
-      {loading && !refreshing ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#7C3AED" />
-        </View>
-      ) : (
-        <FlatList
-          data={businesses}
-          keyExtractor={(item) => item.id}
-          renderItem={renderBusinessCard}
-          ListHeaderComponent={() => <AdBanner screen="neighbor" style={{ marginTop: 8 }} />}
-          ListEmptyComponent={renderEmptyState}
-          contentContainerStyle={
-            businesses.length === 0 ? styles.listEmpty : styles.listContent
-          }
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-        />
-      )}
-
-      {userIsAdmin && (
-        <TouchableOpacity style={styles.fab} onPress={navigateToAdd} activeOpacity={0.8}>
-          <Ionicons name="add" size={28} color="#fff" />
+      {/* ===== 세그먼트 컨트롤 ===== */}
+      <View style={styles.segmentBar}>
+        {/* 이웃 사업소 탭 */}
+        <TouchableOpacity
+          style={[
+            styles.segmentBtn,
+            selectedTab === 'neighbor' && styles.segmentBtnActiveNeighbor,
+          ]}
+          onPress={() => setSelectedTab('neighbor')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={18}
+            color={selectedTab === 'neighbor' ? '#fff' : '#888'}
+          />
+          <Text
+            style={[
+              styles.segmentBtnText,
+              selectedTab === 'neighbor'
+                ? styles.segmentBtnTextActive
+                : styles.segmentBtnTextInactive,
+            ]}
+          >
+            이웃 사업소
+          </Text>
         </TouchableOpacity>
+
+        {/* 진출 기업 탭 */}
+        <TouchableOpacity
+          style={[
+            styles.segmentBtn,
+            selectedTab === 'company'
+              ? styles.segmentBtnActiveCompany
+              : styles.segmentBtnInactiveCompany,
+          ]}
+          onPress={() => setSelectedTab('company')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="business-outline"
+            size={18}
+            color={selectedTab === 'company' ? '#fff' : '#1565C0'}
+          />
+          <Text
+            style={[
+              styles.segmentBtnText,
+              selectedTab === 'company'
+                ? styles.segmentBtnTextActive
+                : styles.segmentBtnTextCompanyInactive,
+            ]}
+          >
+            진출 기업
+          </Text>
+          {/* NEW 배지 */}
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>NEW</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* ===== 콘텐츠 영역 ===== */}
+      {selectedTab === 'neighbor' ? (
+        <>
+          {renderFilters()}
+          {loading && !refreshing ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="large" color="#7C3AED" />
+            </View>
+          ) : (
+            <FlatList
+              data={businesses}
+              keyExtractor={(item) => item.id}
+              renderItem={renderBusinessCard}
+              ListHeaderComponent={() => <AdBanner screen="neighbor" style={{ marginTop: 8 }} />}
+              ListEmptyComponent={renderEmptyState}
+              contentContainerStyle={
+                businesses.length === 0 ? styles.listEmpty : styles.listContent
+              }
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+              }
+            />
+          )}
+
+          {userIsAdmin && (
+            <TouchableOpacity style={styles.fab} onPress={navigateToAdd} activeOpacity={0.8}>
+              <Ionicons name="add" size={28} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </>
+      ) : (
+        <CompanyDirectoryContent />
       )}
     </SafeAreaView>
   );
@@ -338,6 +410,65 @@ export default function NeighborBusinessesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+
+  // ===== 세그먼트 컨트롤 =====
+  segmentBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  segmentBtn: {
+    flex: 1,
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    gap: 6,
+    position: 'relative',
+    backgroundColor: '#F5F5F5',
+  },
+  segmentBtnActiveNeighbor: {
+    backgroundColor: '#4CAF50',
+  },
+  segmentBtnActiveCompany: {
+    backgroundColor: '#1565C0',
+  },
+  segmentBtnInactiveCompany: {
+    backgroundColor: '#E3F2FD',
+  },
+  segmentBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  segmentBtnTextActive: {
+    color: '#fff',
+  },
+  segmentBtnTextInactive: {
+    color: '#666',
+  },
+  segmentBtnTextCompanyInactive: {
+    color: '#1565C0',
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+    backgroundColor: '#E53935',
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  newBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
 
   filterBar: {
     flexDirection: 'row',
