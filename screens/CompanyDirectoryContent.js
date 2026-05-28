@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
   View,
   Text,
@@ -23,8 +23,15 @@ import { FIXED_BOTTOM_HEIGHT } from '../components/AdBanner';
 // 지역 필터 칩 목록
 // ============================================================
 const AREAS = [
-  '전체', '호치민', '하노이', '하이퐁', '다낭', '빈증', '동나이',
-  '붕따우', '냐짱', '껀터', '퀴논', '기타',
+  { label: '전체', value: '' },
+  { label: '하노이', value: 'HANOI' },
+  { label: '호치민', value: 'HCMC' },
+  { label: '박닌', value: 'BAC NINH' },
+  { label: '빈증', value: 'BINH DUONG' },
+  { label: '동나이', value: 'DONG NAI' },
+  { label: '하이퐁', value: 'HAI PHONG' },
+  { label: '다낭', value: 'DA NANG' },
+  { label: '박장', value: 'BAC GIANG' },
 ];
 
 const PER_PAGE = 20;
@@ -277,7 +284,7 @@ const CompanyCard = memo(({ item, onPress }) => {
 // ============================================================
 export default function CompanyDirectoryContent() {
   const [query, setQuery] = useState('');
-  const [selectedArea, setSelectedArea] = useState('전체');
+  const [selectedArea, setSelectedArea] = useState('');
   const [companies, setCompanies] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -301,7 +308,7 @@ export default function CompanyDirectoryContent() {
     setError(null);
 
     try {
-      const areaParam = area === '전체' ? '' : area;
+      const areaParam = area;
       let data;
       if (q.trim()) {
         data = await searchCompanies({ q: q.trim(), area: areaParam, page: 1, per_page: PER_PAGE });
@@ -322,7 +329,7 @@ export default function CompanyDirectoryContent() {
   }, []);
 
   useEffect(() => {
-    fetchFirst('', '전체');
+    fetchFirst('', '');
   }, []);
 
   const handleQueryChange = (text) => {
@@ -343,7 +350,7 @@ export default function CompanyDirectoryContent() {
     const nextPage = page + 1;
     setLoadingMore(true);
     try {
-      const areaParam = selectedArea === '전체' ? '' : selectedArea;
+      const areaParam = selectedArea;
       let data;
       if (isSearch) {
         data = await searchCompanies({ q: query.trim(), area: areaParam, page: nextPage, per_page: PER_PAGE });
@@ -433,13 +440,13 @@ export default function CompanyDirectoryContent() {
         >
         {AREAS.map((area) => (
           <TouchableOpacity
-            key={area}
-            style={[styles.areaChipBtn, selectedArea === area && styles.areaChipBtnActive]}
-            onPress={() => handleAreaChange(area)}
+            key={area.value || 'all'}
+            style={[styles.areaChipBtn, selectedArea === area.value && styles.areaChipBtnActive]}
+            onPress={() => handleAreaChange(area.value)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.areaChipBtnText, selectedArea === area && styles.areaChipBtnTextActive]}>
-              {area}
+            <Text style={[styles.areaChipBtnText, selectedArea === area.value && styles.areaChipBtnTextActive]}>
+              {area.label}
             </Text>
           </TouchableOpacity>
         ))}
