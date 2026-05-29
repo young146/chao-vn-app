@@ -4,7 +4,7 @@
 > 다음 EAS Build 시점을 결정할 때 이 파일을 본다.
 >
 > 시작: 2026-05-21
-> 최종 갱신: 2026-05-21
+> 최종 갱신: 2026-05-29
 
 ---
 
@@ -64,6 +64,7 @@ eas submit:list --limit 3
 |---|---|---|---|
 | `791c3af` | 2026-05-21 | SignupScreen 닉네임 우선 + App.js 가입 후 환영 메시지 | OTA 즉시 활성. 가입 흐름 개선 |
 | `c0c8b05` | 2026-05-21 | `public_html/go/app` GA4 태그 추가 | Firebase Hosting 배포 작업 (앱 무관). 이미 deploy 완료 |
+| `f94294d` | 2026-05-29 | 헤더 광고 로딩 지연 해소 — Firestore 읽기 dedup + 화면별 캐시 분리 (`FirebaseAdService.js`, `AdBanner.js`) | OTA 발송 완료 (runtime 2.4.2 양 플랫폼). iOS 정상 수신 확인. 상세는 ↓ 2026-05-29 섹션 |
 
 ---
 
@@ -107,6 +108,30 @@ iOS build 73 + Android versionCode 106 모두 EAS Build 완료(17분). `--auto-s
 - 주요 이벤트: `screen_view`, `welcome_screen_shown` (신규 가입 시), `visitor_value_card_shown`, `job_view`, `realestate_view`, `news_read`, `share_clicked`
 - iOS 심사 통과 후 양쪽 데이터 통합 분석
 - 1주 후 GA4 + Firebase Analytics 데이터로 깔때기 단계 2·3 효과 진단
+
+---
+
+## ✅ 2026-05-29 — 헤더 광고 로딩 지연 수정 + 안드로이드 업데이트 오류 진단
+
+**1) 헤더 광고 로딩 지연 수정 (커밋 `f94294d`, OTA 발송 완료)**
+
+- **증상**: iOS에서 헤더 광고가 매우 느리게/불규칙하게 뜨고(빈 화면), 첫 로드 시 깨진 이미지가 잠깐 번쩍임. (하단 광고는 정상)
+- **원인**: 탭 5개(news/job/realestate/danggn/neighbor)가 부팅 시 `lazy:false`로 동시에 mount되는데, 각 탭 헤더가 서로 다른 `screen` 값으로 *단일 슬롯 캐시*를 번갈아 무효화 → Firestore를 5~6번 동시에 읽음. 하단은 `screen="all"` 하나뿐이라 멀쩡했던 것. (사용자가 "하단도 같은 현상이어야 하지 않나"로 정확히 지적 → 검증으로 확인됨)
+- **수정**:
+  - `FirebaseAdService.js`: raw 문서를 *공유 Promise*로 1번만 fetch(`getRawDocs`, 동시 호출 dedup) + 화면별 결과 캐시(`screenCache`) 분리 → 동시 6개 호출이 Firestore 읽기 1번으로 수렴
+  - `AdBanner.js`: 모듈 캐시도 화면별 분리, 이미지 `onLoad` 게이팅(깨짐 번쩍임 제거), 보이는/다음 슬롯만 blur 계산(`isVisible`)으로 blur storm 완화
+- **검증**: dedup 독립 테스트(`.tmp/adcache-dedup-test.js` — 6동시→읽기1, 탭별 광고 안 섞임) + babel 파싱 + orphan 참조 grep + diff 리뷰. iOS 실기기에서 광고 정상 표시 확인 → 동일 JS가 양 플랫폼 동작이므로 코드 정상 입증.
+
+**2) 안드로이드 "업데이트 확인" 버튼 오류 진단 (코드 변경 없음)**
+
+- **증상**: 안드로이드에서 수동 업데이트 버튼이 계속 "오류가 발생했습니다". iOS는 반복하니 사라짐. 안드로이드 폰은 v2.4.2 확인됨.
+- **진단**: EAS manifest endpoint를 양 플랫폼 직접 curl —
+  - Android: **HTTP 200** 정상 manifest(업데이트 서버에 *존재함*), 응답 9.6초
+  - iOS: HTTP 503(서버 일시 오류), 18.7초
+- **결론**: "업데이트 없음"이 아니라 **번들(5.4MB) 다운로드 단계(`fetchUpdateAsync`)의 일시적 실패 + EAS 서버 응답 지연**. iOS가 재시도로 통과한 점이 일시적 현상의 증거. **광고 코드 수정과 무관**(동일 JS가 iOS에서 정상 동작).
+- **표면 원인 가림**: [MoreScreen.js:107](screens/MoreScreen.js#L107)이 모든 실패를 제목·본문 동일한 `오류가 발생했습니다`로 덮어 진짜 원인이 안 보임.
+- **상태**: 🟡 보류 — 내일 재확인. 안드로이드 자동 백그라운드 업데이트(`ON_LOAD`)가 돌고 있어 앱 재시작 반복 시 결국 수신됨.
+- **후속 제안(미승인)**: 수동 버튼을 "확인만 + 백그라운드 적용 안내"로 변경 + 오류 문구 부드럽게. 단 이 수정 자체가 OTA로 나가야 해서 안드로이드가 현재 OTA를 먼저 1회 받아야 하는 catch-22 존재.
 
 ---
 
