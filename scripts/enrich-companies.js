@@ -24,25 +24,39 @@
 const fs = require('fs');
 const path = require('path');
 
+// kocham.kr SSL이 약한 DH 키를 사용해 최신 Node fetch가 ERR_SSL_DH_KEY_TOO_SMALL로 거부함.
+// 크롤링 대상 사이트라 보안 레벨을 낮춰 연결 허용 (외부 데이터 읽기 전용).
+try {
+  const { Agent, setGlobalDispatcher } = require('undici');
+  setGlobalDispatcher(new Agent({ connect: { ciphers: 'DEFAULT@SECLEVEL=0' } }));
+} catch (_) {}
+
 (function loadEnv() {
-  const envPath = path.join(__dirname, '..', '.env');
-  if (!fs.existsSync(envPath)) return;
-  const lines = fs.readFileSync(envPath, 'utf8').split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
-    if (eqIdx < 1) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-    if (!process.env[key]) process.env[key] = val;
+  const candidates = [
+    path.join(__dirname, '..', '.env'),
+    // daily-news-final 크리덴셜 우선 (WP 어드민 권한 확인된 계정)
+    path.join('C:', 'xinchao-news-final', 'daily-news-final', '.env'),
+    path.join(process.env.USERPROFILE || '', 'OneDrive', 'dev-secrets', 'chao-vn-app', 'functions', '.env'),
+  ];
+  for (const envPath of candidates) {
+    if (!fs.existsSync(envPath)) continue;
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx < 1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+      if (!process.env[key]) process.env[key] = val;
+    }
   }
 })();
 
 // ─── 설정 ────────────────────────────────────────────────────────────────────
 const WP_BASE = (process.env.WP_BASE_URL || 'https://chaovietnam.co.kr').replace(/\/$/, '');
-const WP_USER = process.env.WP_USER || '';
-const WP_PASS = process.env.WP_APP_PASSWORD || '';
+const WP_USER = process.env.WP_USER || process.env.WORDPRESS_USERNAME || '';
+const WP_PASS = process.env.WP_APP_PASSWORD || process.env.WORDPRESS_APP_PASSWORD || '';
 const THROTTLE_MS = 1000;        // 회사당 1초 대기
 const BATCH_PER_PAGE = 100;      // WP API 페이지당 회사 수
 const LOG_FILE = path.join(__dirname, '..', 'ENRICHMENT_LOG.txt');
@@ -182,24 +196,32 @@ function parseKochamVietnam(html) {
     mobile: '', additional_emails: [], founded_year: '',
   };
 
-  // .sub-container 또는 메인 컨텐츠 영역 추출
+  // 실제 회사 본문만 격리한다.
+  // 주의: 바깥 .sub-container에는 LNB 메뉴·시계·작성자(by 관리자) 같은 잡음이 섞여 있으므로
+  //       작성자 정보(.info-writing) 블록 "이후"부터 첨부/댓글 영역 "이전"까지만 본문으로 본다.
+  //       (이 격리를 안 하면 "by 관리자" 등 게시판 보일러플레이트가 description으로 들어간다.)
   let contentHtml = '';
-  const subContainerMatch = html.match(/<div[^>]*class=["'][^"']*sub-container[^"']*["'][^>]*>([\s\S]*?)<\/div>\s*<\/div>/i)
-    || html.match(/<div[^>]*class=["'][^"']*content[^"']*["'][^>]*>([\s\S]*?)<div[^>]*class=["'][^"']*reply/i);
-  if (subContainerMatch) {
-    contentHtml = subContainerMatch[1];
-  } else {
-    // fallback: <p> 태그 전체 사용
-    contentHtml = html;
+  const subContainerMatch = html.match(
+    /class=["'][^"']*sub-container[^"']*["'][^>]*>([\s\S]*?)(?=<div class=["'][^"']*(?:bd-file|view-bottom|comment|reply|sns|btn-wrap)[^"']*["']|<footer|<\/body)/i
+  );
+  contentHtml = subContainerMatch ? subContainerMatch[1] : html;
+
+  // 작성자 정보(.info-writing) 줄과 그 앞부분(제목/메뉴 등)을 제거
+  const iwPos = contentHtml.search(/class=["'][^"']*info-writing/i);
+  if (iwPos >= 0) {
+    const closePos = contentHtml.indexOf('</div>', iwPos);
+    if (closePos >= 0) contentHtml = contentHtml.slice(closePos + 6);
   }
+  // HTML 주석 제거 (<!-- ... -->)
+  contentHtml = contentHtml.replace(/<!--[\s\S]*?-->/g, '');
 
   // 텍스트로 변환
   const allText = decodeEntities(stripTags(contentHtml));
 
-  // 단락 분리 (p 태그 기준)
+  // 단락 분리 (p 태그 + br 기준)
   const paragraphs = contentHtml
-    .split(/<\/?p[^>]*>/gi)
-    .map(p => decodeEntities(stripTags(p)).trim())
+    .split(/<\/?p[^>]*>|<br\s*\/?>/gi)
+    .map(p => decodeEntities(stripTags(p)).replace(/\s+/g, ' ').trim())
     .filter(Boolean);
 
   // 섹션 파싱: 한국어 라벨 기반
@@ -272,17 +294,9 @@ function parseKochamVietnam(html) {
     }
   }
 
-  // 회사소개가 없는 경우: 메인 텍스트 블록 추출 (긴 단락)
-  if (descLines.length === 0) {
-    // 회사명, 연락처 제외 긴 단락
-    for (const para of paragraphs) {
-      if (para.length > 80 && !/^(tel|fax|phone|주소|add|e-mail|homepage|mobile)/i.test(para)) {
-        descLines.push(para);
-        if (descLines.length >= 5) break;
-      }
-    }
-  }
-
+  // ⚠️ "회사소개" 라벨이 없으면 description은 비워둔다.
+  //    예전엔 여기서 "긴 단락"을 아무거나 긁었는데, 그게 게시판 안내문 같은
+  //    쓰레기를 description으로 집어넣는 원인이었다. 부실 페이지는 그냥 빈 값으로 둔다.
   result.description = descLines.join('\n').trim();
   result.products = productLines.join('\n').trim();
 
@@ -297,7 +311,7 @@ function parseKochamVietnam(html) {
 
 // ─── WP API: 회사 목록 페이지네이션 ─────────────────────────────────────────
 async function fetchCompanyPage(page) {
-  const url = `${WP_BASE}/wp-json/xcd/v1/list?page=${page}&per_page=${BATCH_PER_PAGE}`;
+  const url = `${WP_BASE}/wp-json/xcd/v1/list?page=${page}&per_page=${BATCH_PER_PAGE}&has_source_url=1`;
   const res = await fetch(url, { headers: { ...wpAuthHeader() } });
   if (!res.ok) throw new Error(`list API 오류: ${res.status} ${url}`);
   return res.json();
@@ -369,7 +383,9 @@ async function enrichOne(company) {
   const additionalEmailsStr = (parsed.additional_emails || []).join(', ');
 
   const payload = {
-    // 기존 필드 유지 — company 필드는 WP API 필수, 현재값 그대로 전달
+    // ⚠️ enrichment 전용 필드만 보낸다. 플러그인 update는 부분 업데이트(요청에 포함된
+    //    필드만 갱신)이므로, director/industry/area 등 여기 없는 필드는 기존값이 유지된다.
+    //    company는 매칭 키 검증용으로만 동봉 (현재값과 동일하므로 변경 없음).
     company: name,
     description: parsed.description || '',
     products: parsed.products || '',
@@ -431,6 +447,7 @@ async function main() {
     const globalIdx = startIdx + i;
     const prefix = `[${globalIdx + 1}/${allCompanies.length}]`;
 
+    let fetched = false;
     try {
       const result = await enrichOne(c);
 
@@ -441,9 +458,11 @@ async function main() {
         }
       } else if (result.error) {
         totalError++;
+        fetched = true;
         log(`${prefix} ERROR ${c.company} — ${result.error}`);
       } else {
         totalUpdated++;
+        fetched = true;
         const summary = [];
         if (result.parsed.description) summary.push(`소개 ${result.parsed.description.length}자`);
         if (result.parsed.products) summary.push(`제품 ${result.parsed.products.length}자`);
@@ -453,13 +472,14 @@ async function main() {
       }
     } catch (e) {
       totalError++;
+      fetched = true;
       log(`${prefix} FATAL ${c.company} — ${e.message}`);
     }
 
     totalProcessed++;
 
-    // 1초 throttle
-    if (i < toProcess.length - 1) {
+    // source_url fetch가 실제 발생한 경우에만 throttle (스킵 행은 대기 불필요)
+    if (fetched && i < toProcess.length - 1) {
       await sleep(THROTTLE_MS);
     }
   }

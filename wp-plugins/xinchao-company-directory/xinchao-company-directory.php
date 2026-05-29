@@ -914,7 +914,7 @@ function xcd_build_search_text($data) {
 /**
  * POST/JSON 본문에서 회사 필드를 추출해 정제된 배열로 반환한다.
  */
-function xcd_extract_company_fields(WP_REST_Request $request) {
+function xcd_extract_company_fields(WP_REST_Request $request, $partial = false) {
     $fields = ['company', 'director', 'industry_group', 'industry_detail',
                'area', 'address', 'tel', 'homepage', 'email', 'source', 'source_url',
                'description', 'products', 'employees', 'country', 'mobile',
@@ -940,13 +940,22 @@ function xcd_extract_company_fields(WP_REST_Request $request) {
         'founded_year'     => 20,
     ];
 
+    $body = $request->get_json_params() ?: [];
+
     $data = [];
     foreach ($fields as $f) {
         $val = $request->get_param($f);
+        // 요청에 해당 필드가 실제로 포함되었는지 판정 (query param 또는 JSON body)
+        $present = ($val !== null) || array_key_exists($f, $body);
+
+        // 부분 업데이트(PATCH 의미): 요청에 없는 필드는 건드리지 않고 건너뛴다.
+        // 이렇게 해야 enrich 같은 일부 필드만 보내는 요청이 나머지 필드를 ''로 덮어쓰지 않는다.
+        if ($partial && !$present) {
+            continue;
+        }
+
         if ($val === null) {
-            // JSON body로도 시도
-            $body = $request->get_json_params();
-            $val = isset($body[$f]) ? $body[$f] : '';
+            $val = array_key_exists($f, $body) ? $body[$f] : '';
         }
         // description/products는 sanitize_textarea_field 사용 (줄바꿈 보존)
         if (in_array($f, ['description', 'products'], true)) {
@@ -958,9 +967,8 @@ function xcd_extract_company_fields(WP_REST_Request $request) {
     }
 
     // enriched_at: 크롤러가 직접 설정할 수 있도록 별도 처리
-    $body_params = $request->get_json_params() ?: [];
-    if (isset($body_params['enriched_at'])) {
-        $ea = sanitize_text_field((string)$body_params['enriched_at']);
+    if (array_key_exists('enriched_at', $body)) {
+        $ea = sanitize_text_field((string)$body['enriched_at']);
         $data['enriched_at'] = $ea ?: null;
     }
 
@@ -1049,6 +1057,9 @@ function xcd_rest_list(WP_REST_Request $request) {
         $where[]  = 'industry_group = %s';
         $params[] = $group;
     }
+    if ($request->get_param('has_source_url') === '1') {
+        $where[] = "source_url IS NOT NULL AND source_url != ''";
+    }
     $where_sql = implode(' AND ', $where);
 
     $count_sql = "SELECT COUNT(*) FROM $table WHERE $where_sql";
@@ -1124,18 +1135,37 @@ function xcd_rest_update(WP_REST_Request $request) {
 
     $id = intval($request->get_param('id'));
 
-    // 존재 확인
-    $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $id));
-    if (!$exists) {
+    // 존재 확인 + 기존 레코드 전체 로드 (부분 업데이트 병합용)
+    $existing = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id),
+        ARRAY_A
+    );
+    if (!$existing) {
         return new WP_Error('not_found', '해당 회사를 찾을 수 없습니다.', ['status' => 404]);
     }
 
-    $data = xcd_extract_company_fields($request);
-    if (empty($data['company'])) {
-        return new WP_Error('bad_request', 'company 필드는 필수입니다.', ['status' => 400]);
+    // 부분 업데이트: 요청에 포함된 필드만 추출한다. 없는 필드는 기존값을 유지한다.
+    $data = xcd_extract_company_fields($request, true);
+
+    // company를 명시적으로 빈 값으로 보내려는 경우만 거부 (생략은 허용 → 기존값 유지)
+    if (array_key_exists('company', $data) && $data['company'] === '') {
+        return new WP_Error('bad_request', 'company 필드는 비울 수 없습니다.', ['status' => 400]);
     }
 
-    $data['search_text'] = mb_substr(xcd_build_search_text($data), 0, 65535);
+    if (empty($data)) {
+        // 변경할 필드가 없으면 기존 레코드를 그대로 반환
+        $item = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, company, director, industry_group, industry_detail, area, address, tel, homepage, email, source, source_url, created_at,
+                    description, products, employees, country, mobile, additional_emails, founded_year, enriched_at
+             FROM $table WHERE id = %d",
+            $id
+        ));
+        return rest_ensure_response(['success' => true, 'item' => $item]);
+    }
+
+    // search_text는 기존값 + 신규값을 병합한 전체 레코드 기준으로 재생성
+    $merged = array_merge($existing, $data);
+    $data['search_text'] = mb_substr(xcd_build_search_text($merged), 0, 65535);
 
     $wpdb->update($table, $data, ['id' => $id]);
 
