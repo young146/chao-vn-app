@@ -5,10 +5,15 @@
 import { collection, getDocs, query, where, updateDoc, doc, increment } from 'firebase/firestore';
 import { getDb } from '../firebase/config';
 
-let cachedConfig = null;
-let lastFetchTime = 0;
-let cachedScreen = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
+// 화면별 결과 캐시 (screen → { config, time })
+const screenCache = {};
+
+// raw Firestore 문서는 한 번만 fetch. 동시 호출 dedup용 promise 보관.
+let rawDocsCache = null;
+let rawFetchTime = 0;
+let rawFetchPromise = null;
 
 // daily-news-final position → main AdBanner 슬롯 매핑
 const POSITION_TO_SLOTS = {
@@ -90,50 +95,58 @@ const expandAdToMainFormat = (ad) => {
   }));
 };
 
+// Firestore raw 문서를 1번만 가져온다.
+// 동시에 여러 screen이 호출해도 Promise를 공유하므로 네트워크 요청은 1회만 발생.
+const getRawDocs = async () => {
+  const now = Date.now();
+  if (rawDocsCache && now - rawFetchTime < CACHE_DURATION) return rawDocsCache;
+  if (rawFetchPromise) return rawFetchPromise;
+
+  rawFetchPromise = (async () => {
+    const db = await getDb();
+    const snapshot = await getDocs(
+      query(collection(db, 'app_ads'), where('isActive', '==', true)),
+    );
+    const docs = [];
+    snapshot.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
+    rawDocsCache = docs;
+    rawFetchTime = Date.now();
+    return docs;
+  })().finally(() => { rawFetchPromise = null; });
+
+  return rawFetchPromise;
+};
+
 /**
  * Firestore "app_ads" 컬렉션에서 활성 광고를 가져와 슬롯별 dict로 변환합니다.
- * AdBanner.js의 fetchAdConfig(screen)와 호환되는 형식으로 반환.
+ * raw 문서는 한 번만 fetch 후 재사용. 화면별 결과는 개별 캐싱.
  *
  * @param {string} callerScreen - 'all' | 'home' | 'news' | 'job' | 'realestate' | 'danggn'
  * @returns {Promise<object>} 슬롯별 광고 배열 dict
  */
 export const fetchAppAdsConfig = async (callerScreen = 'all') => {
   const now = Date.now();
-  if (
-    cachedConfig &&
-    cachedScreen === callerScreen &&
-    now - lastFetchTime < CACHE_DURATION
-  ) {
-    return cachedConfig;
-  }
+  const cached = screenCache[callerScreen];
+  if (cached && now - cached.time < CACHE_DURATION) return cached.config;
 
   try {
     console.log(`📢 Firebase 광고 로드: screen=${callerScreen}`);
-    const db = await getDb();
-    const snapshot = await getDocs(
-      query(collection(db, 'app_ads'), where('isActive', '==', true)),
-    );
+    const docs = await getRawDocs();
 
     const config = EMPTY_CONFIG();
     const today = todayStr();
     let total = 0;
 
-    snapshot.forEach((docSnap) => {
-      const data = { id: docSnap.id, ...docSnap.data() };
+    for (const data of docs) {
+      if (data.startDate && data.startDate > today) continue;
+      if (data.endDate && data.endDate < today) continue;
+      if (!matchesScreen(data, callerScreen)) continue;
 
-      // 날짜 범위 검증
-      if (data.startDate && data.startDate > today) return;
-      if (data.endDate && data.endDate < today) return;
-
-      // screen 매칭
-      if (!matchesScreen(data, callerScreen)) return;
-
-      // position → 슬롯 매핑
       const slots = POSITION_TO_SLOTS[data.position];
-      if (!slots) return;
+      if (!slots) continue;
 
       const adObjects = expandAdToMainFormat(data);
-      if (adObjects.length === 0) return;
+      if (adObjects.length === 0) continue;
 
       for (const slot of slots) {
         for (const adObj of adObjects) {
@@ -141,11 +154,9 @@ export const fetchAppAdsConfig = async (callerScreen = 'all') => {
         }
       }
       total += 1;
-    });
+    }
 
-    cachedConfig = config;
-    cachedScreen = callerScreen;
-    lastFetchTime = now;
+    screenCache[callerScreen] = { config, time: Date.now() };
 
     const counts = Object.entries(config)
       .filter(([, arr]) => arr.length > 0)
@@ -153,7 +164,7 @@ export const fetchAppAdsConfig = async (callerScreen = 'all') => {
       .join(', ') || '없음';
     console.log(`✅ Firebase 광고 ${total}건 로드 (${counts})`);
 
-    return cachedConfig;
+    return config;
   } catch (error) {
     console.log('❌ Firebase 광고 로드 실패:', error?.message || error);
     return EMPTY_CONFIG();
@@ -189,7 +200,8 @@ export const trackAppAdClick = async (campaignId) => {
 
 // 캐시 강제 무효화 (개발/디버깅용)
 export const invalidateAppAdsCache = () => {
-  cachedConfig = null;
-  cachedScreen = null;
-  lastFetchTime = 0;
+  Object.keys(screenCache).forEach((k) => delete screenCache[k]);
+  rawDocsCache = null;
+  rawFetchTime = 0;
+  rawFetchPromise = null;
 };

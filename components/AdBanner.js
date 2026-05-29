@@ -53,11 +53,9 @@ const AD_SCREENS = {
 };
 
 // ============================================
-// 캐시
+// 캐시 (화면별 개별 보관 — 탭 전환 시 서로 덮어쓰지 않음)
 // ============================================
-let cachedAds = null;
-let lastFetchTime = 0;
-let currentScreen = 'all';
+const screenAdsCache = {}; // { [screen]: { ads, time } }
 
 // ============================================
 // 인라인 광고 중복 방지 (인덱스 기반)
@@ -231,7 +229,9 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   );
 };
 
-const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
+const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = true }) => {
+  const [loaded, setLoaded] = useState(false);
+
   if (ad?.videoUrl) {
     const thumbUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey]
       ? ad.thumbnails[thumbnailKey]
@@ -259,17 +259,22 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
   if (imageUrl) {
     return (
       <View style={[style, { overflow: 'hidden' }]}>
-        {/* 사이즈 안 맞는 광고의 여백을 채우는 blur 배경 (보험용 fill) */}
-        <Image
-          source={{ uri: imageUrl }}
-          style={{ position: 'absolute', width: '100%', height: '100%' }}
-          resizeMode="cover"
-          blurRadius={20}
-        />
+        {/* blur 배경(보험용): 보이는 슬롯이고 이미지 로드 완료 후에만 렌더.
+            - isVisible 가드: 화면 밖 슬롯 N개가 동시에 blur 계산하는 것을 방지
+            - loaded 가드: 이미지 완전 로드 전 깨진 프레임이 blur 되어 보이는 현상 방지 */}
+        {isVisible && loaded && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={{ position: 'absolute', width: '100%', height: '100%' }}
+            resizeMode="cover"
+            blurRadius={20}
+          />
+        )}
         <Image
           source={{ uri: imageUrl }}
           style={{ width: '100%', height: '100%' }}
           resizeMode="contain"
+          onLoad={() => setLoaded(true)}
         />
       </View>
     );
@@ -288,17 +293,12 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
  */
 const fetchAdConfig = async (screen = 'all') => {
   const now = Date.now();
-
-  // 컴포넌트 단위 캐시 (FirebaseAdService 내부 캐시와 이중 안전망)
-  if (cachedAds && (now - lastFetchTime) < CACHE_DURATION && currentScreen === screen) {
-    return cachedAds;
-  }
+  const cached = screenAdsCache[screen];
+  if (cached && (now - cached.time) < CACHE_DURATION) return cached.ads;
 
   const config = await fetchAppAdsConfig(screen);
-  cachedAds = config;
-  lastFetchTime = now;
-  currentScreen = screen;
-  return cachedAds;
+  screenAdsCache[screen] = { ads: config, time: now };
+  return config;
 };
 
 /**
@@ -431,18 +431,21 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
       >
         {W > 0 && slots.map((ad, i) => {
           const isVideo = !!ad?.videoUrl;
+          // blur는 현재 슬롯(i===index)과 다음에 들어올 슬롯(i===index+1)만 계산.
+          // 나머지 화면 밖 슬롯에서 blur를 동시에 계산하면 iOS 메인 스레드가 막힘.
+          const isCurrentOrNext = i === index || i === index + 1;
           return (
             <View key={i} style={{ width: size.width, height: size.height }}>
               {isVideo ? (
                 // 영상은 현재 보이는 칸일 때만 재생, 나머지는 정지 썸네일
-                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={i === index} />
+                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={i === index} isVisible={isCurrentOrNext} />
               ) : (
                 <TouchableOpacity
                   style={{ flex: 1 }}
                   onPress={() => handleAdPress(ad)}
                   activeOpacity={0.85}
                 >
-                  <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} />
+                  <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} isVisible={isCurrentOrNext} />
                 </TouchableOpacity>
               )}
             </View>
