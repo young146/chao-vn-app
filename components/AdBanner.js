@@ -234,11 +234,24 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   );
 };
 
-const AdMedia = ({ ad, style, thumbnailKey = null }) => {
+const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
   if (ad?.videoUrl) {
     const thumbUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey]
       ? ad.thumbnails[thumbnailKey]
       : ad?.thumbnailUrl || ad?.imageUrl || null;
+    // 비활성 슬롯(띠에서 화면 밖)인 영상은 플레이어 대신 정지 썸네일로 표시.
+    // → 여러 영상이 동시에 재생되어 메모리/성능을 잡아먹는 것을 방지.
+    if (!active) {
+      if (thumbUrl) {
+        return (
+          <View style={[style, { overflow: 'hidden', backgroundColor: '#111' }]}>
+            <Image source={{ uri: thumbUrl }} style={{ position: 'absolute', width: '100%', height: '100%' }} resizeMode="cover" blurRadius={20} />
+            <Image source={{ uri: thumbUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+          </View>
+        );
+      }
+      return <View style={[style, { backgroundColor: '#111' }]} />;
+    }
     return <AdMediaVideo videoUrl={ad.videoUrl} style={style} thumbnailUrl={thumbUrl} />;
   }
 
@@ -356,85 +369,111 @@ const getRandomAdByPriority = (ads) => {
  * @param {boolean} showIndicator - 하단 인디케이터 점 표시 여부
  */
 export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs = 5000, showIndicator = true }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const SCREEN_WIDTH = Dimensions.get('window').width;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [index, setIndex] = useState(0);
+  // 슬롯 너비 = 컨테이너 실제 너비. onLayout으로 측정(화면폭은 초기 추정값).
+  const [width, setWidth] = useState(Dimensions.get('window').width);
+  const translateX = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
-  // 전환 중복 방지 가드: iOS에서 네이티브 드라이버 콜백 지연으로
-  // 타이머 틱이 애니메이션 진행 중에 또 들어와 인덱스가 +2 점프(건너뜀)되거나
-  // 반쪽 애니메이션으로 같은 광고가 반복돼 보이던 문제를 막는다.
   const isAnimatingRef = useRef(false);
+  // 타이머 콜백이 항상 최신 index를 읽도록 ref 동기화 (stale closure 방지)
+  const indexRef = useRef(0);
+  indexRef.current = index;
 
+  const n = ads ? ads.length : 0;
+
+  // 띠 전체를 한 칸(width)씩 왼쪽으로 민다. 각 칸의 '내용'은 절대 바뀌지 않으므로
+  // 위치(translateX)와 화면 내용이 어긋날 수 없다. 끝(복제본)에 닿으면 0으로 즉시
+  // 되돌리는데, 복제본 == 첫 광고라 이음매가 보이지 않는다.
   const goToNext = useCallback(() => {
-    if (!ads || ads.length <= 1) return;
-    if (isAnimatingRef.current) return; // 이미 전환 중이면 무시
+    if (n <= 1) return;
+    if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
-    // 1) 현재 광고를 왼쪽으로 밀어냄
-    Animated.timing(slideAnim, {
-      toValue: -SCREEN_WIDTH,
+    const next = indexRef.current + 1;
+    Animated.timing(translateX, {
+      toValue: -next * width,
       duration: 350,
       useNativeDriver: true,
-    }).start(() => {
-      // 2) 인덱스 업데이트 + 오른쪽에서 시작
-      setCurrentIndex(prev => (prev + 1) % ads.length);
-      slideAnim.setValue(SCREEN_WIDTH);
-      // 3) 오른쪽에서 왼쪽으로 슬라이드 인
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        useNativeDriver: true,
-      }).start(() => {
-        // 전환이 완전히 끝난 뒤에만 가드 해제
-        isAnimatingRef.current = false;
-      });
+    }).start(({ finished }) => {
+      if (finished) {
+        if (next >= n) {
+          // 복제본 슬롯(=첫 광고)에 도달 → 위치만 0으로 순간 복귀(내용 동일, 무이음)
+          translateX.setValue(0);
+          setIndex(0);
+        } else {
+          setIndex(next);
+        }
+      }
+      isAnimatingRef.current = false;
     });
-  }, [ads, slideAnim, SCREEN_WIDTH]);
+  }, [n, width, translateX]);
+
+  // ads가 바뀌면 처음으로 리셋
+  useEffect(() => {
+    setIndex(0);
+    translateX.setValue(0);
+  }, [ads, translateX]);
 
   useEffect(() => {
-    if (!ads || ads.length <= 1) return;
-
-    // ⚠️ 현재 광고가 비디오이면 슬라이딩 중단 (영상 재생 보장)
-    const currentAd = ads[currentIndex];
+    if (n <= 1) return;
+    // 현재 광고가 영상이면 자동 슬라이드 중단(영상 재생 보장)
+    const currentAd = ads[index];
     if (currentAd?.videoUrl) {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       return;
     }
-
     timerRef.current = setInterval(goToNext, intervalMs);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [ads, currentIndex, goToNext, intervalMs]);
+  }, [n, index, ads, goToNext, intervalMs]);
 
   if (!ads || ads.length === 0) return null;
 
-  const ad = ads[currentIndex];
-  if (!ad?.imageUrl && !ad?.videoUrl) return null;
-
-  const isVideo = !!ad?.videoUrl;
+  // 띠 구성: [광고0, 광고1, ..., 광고N-1, 광고0(복제본)]
+  const slots = n > 1 ? [...ads, ads[0]] : ads;
+  const currentAd = ads[index];
+  const currentIsVideo = !!currentAd?.videoUrl;
 
   return (
-    <View style={[containerStyle, { overflow: 'hidden' }]}>
+    <View
+      style={[containerStyle, { overflow: 'hidden' }]}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w && Math.abs(w - width) > 1) {
+          setWidth(w);
+          translateX.setValue(-indexRef.current * w);
+        }
+      }}
+    >
       <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { transform: [{ translateX: slideAnim }] },
-        ]}
+        style={{
+          flexDirection: 'row',
+          width: width * slots.length,
+          height: '100%',
+          transform: [{ translateX }],
+        }}
       >
-        {isVideo ? (
-          // 영상 광고: 전체화면은 AdMediaVideo 내부에서 처리
-          <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} />
-        ) : (
-          // 이미지 광고: 탭 시 linkUrl로 이동
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => handleAdPress(ad)}
-            activeOpacity={0.85}
-          >
-            <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} />
-          </TouchableOpacity>
-        )}
+        {slots.map((ad, i) => {
+          // 현재 보이는 슬롯과 그 다음 슬롯만 영상 재생(나머지는 정지 썸네일)
+          const isActive = i === index || i === index + 1;
+          const isVideo = !!ad?.videoUrl;
+          return (
+            <View key={i} style={{ width, height: '100%' }}>
+              {isVideo ? (
+                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={isActive} />
+              ) : (
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => handleAdPress(ad)}
+                  activeOpacity={0.85}
+                >
+                  <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} />
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })}
       </Animated.View>
 
       {/* 인디케이터 점 */}
@@ -445,12 +484,12 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
               key={idx}
               style={[
                 styles.indicatorDot,
-                idx === currentIndex && styles.indicatorDotActive,
-                idx === currentIndex && a?.videoUrl && styles.indicatorDotVideo,
+                idx === index && styles.indicatorDotActive,
+                idx === index && a?.videoUrl && styles.indicatorDotVideo,
               ]}
             />
           ))}
-          {isVideo && (
+          {currentIsVideo && (
             <Text style={styles.indicatorVideoLabel}>▶</Text>
           )}
         </View>
