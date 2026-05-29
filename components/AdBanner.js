@@ -360,9 +360,15 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
   const SCREEN_WIDTH = Dimensions.get('window').width;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
+  // 전환 중복 방지 가드: iOS에서 네이티브 드라이버 콜백 지연으로
+  // 타이머 틱이 애니메이션 진행 중에 또 들어와 인덱스가 +2 점프(건너뜀)되거나
+  // 반쪽 애니메이션으로 같은 광고가 반복돼 보이던 문제를 막는다.
+  const isAnimatingRef = useRef(false);
 
   const goToNext = useCallback(() => {
     if (!ads || ads.length <= 1) return;
+    if (isAnimatingRef.current) return; // 이미 전환 중이면 무시
+    isAnimatingRef.current = true;
     // 1) 현재 광고를 왼쪽으로 밀어냄
     Animated.timing(slideAnim, {
       toValue: -SCREEN_WIDTH,
@@ -377,7 +383,10 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
         toValue: 0,
         duration: 350,
         useNativeDriver: true,
-      }).start();
+      }).start(() => {
+        // 전환이 완전히 끝난 뒤에만 가드 해제
+        isAnimatingRef.current = false;
+      });
     });
   }, [ads, slideAnim, SCREEN_WIDTH]);
 
