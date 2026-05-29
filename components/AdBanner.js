@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions, Animated } from "react-native";
+import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions, ScrollView } from "react-native";
 let VideoView = () => null;
 let useVideoPlayer = () => null;
 try {
@@ -150,10 +150,7 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
     return (
       <View style={[style, { position: 'relative', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
         {thumbnailUrl ? (
-          <>
-            <Image source={{ uri: thumbnailUrl }} style={{ position: 'absolute', width: '100%', height: '100%' }} resizeMode="cover" blurRadius={20} />
-            <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-          </>
+          <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
         ) : (
           <Text style={{ color: '#fff', fontSize: 12, opacity: 0.7 }}>🎦 광고 영상 (빌드 후 재생)</Text>
         )}
@@ -245,7 +242,6 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
       if (thumbUrl) {
         return (
           <View style={[style, { overflow: 'hidden', backgroundColor: '#111' }]}>
-            <Image source={{ uri: thumbUrl }} style={{ position: 'absolute', width: '100%', height: '100%' }} resizeMode="cover" blurRadius={20} />
             <Image source={{ uri: thumbUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
           </View>
         );
@@ -262,13 +258,7 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
 
   if (imageUrl) {
     return (
-      <View style={[style, { overflow: 'hidden' }]}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={{ position: 'absolute', width: '100%', height: '100%' }}
-          resizeMode="cover"
-          blurRadius={20}
-        />
+      <View style={[style, { overflow: 'hidden', backgroundColor: '#fff' }]}>
         <Image
           source={{ uri: imageUrl }}
           style={{ width: '100%', height: '100%' }}
@@ -370,102 +360,75 @@ const getRandomAdByPriority = (ads) => {
  */
 export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs = 5000, showIndicator = true }) {
   const [index, setIndex] = useState(0);
-  // 슬롯 너비 = 컨테이너 실제 너비. onLayout으로 측정(화면폭은 초기 추정값).
-  const [width, setWidth] = useState(Dimensions.get('window').width);
-  const translateX = useRef(new Animated.Value(0)).current;
-  const timerRef = useRef(null);
-  const isAnimatingRef = useRef(false);
-  // 타이머 콜백이 항상 최신 index를 읽도록 ref 동기화 (stale closure 방지)
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const scrollRef = useRef(null);
   const indexRef = useRef(0);
   indexRef.current = index;
 
   const n = ads ? ads.length : 0;
+  // 끝→처음 매끄러운 루프용으로 첫 광고 복제본을 맨 뒤에 붙인다.
+  const slots = n > 1 ? [...ads, ads[0]] : ads;
+  const W = size.width;
 
-  // 띠 전체를 한 칸(width)씩 왼쪽으로 민다. 각 칸의 '내용'은 절대 바뀌지 않으므로
-  // 위치(translateX)와 화면 내용이 어긋날 수 없다. 끝(복제본)에 닿으면 0으로 즉시
-  // 되돌리는데, 복제본 == 첫 광고라 이음매가 보이지 않는다.
+  // 한 칸 다음으로 슬라이드. 가로 ScrollView가 네이티브로 부드럽게 처리한다.
+  // 모든 광고는 계속 mount 상태라 재로딩(백지)이 없다.
   const goToNext = useCallback(() => {
-    if (n <= 1) return;
-    if (isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
+    if (n <= 1 || !W || !scrollRef.current) return;
     const next = indexRef.current + 1;
-    Animated.timing(translateX, {
-      toValue: -next * width,
-      duration: 350,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        if (next >= n) {
-          // 복제본 슬롯(=첫 광고)에 도달 → 위치만 0으로 순간 복귀(내용 동일, 무이음)
-          translateX.setValue(0);
-          setIndex(0);
-        } else {
-          setIndex(next);
-        }
-      }
-      isAnimatingRef.current = false;
-    });
-  }, [n, width, translateX]);
+    scrollRef.current.scrollTo({ x: next * W, animated: true });
+    if (next >= n) {
+      // 복제본(=첫 광고)까지 슬라이드한 뒤, 위치만 0으로 순간 복귀(내용 동일 → 이음매 없음)
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ x: 0, animated: false });
+        setIndex(0);
+      }, 400);
+    } else {
+      setIndex(next);
+    }
+  }, [n, W]);
+
+  // 자동 슬라이드 타이머 (현재 광고가 영상이면 멈춰 재생 보장)
+  useEffect(() => {
+    if (n <= 1 || !W) return;
+    if (ads[index]?.videoUrl) return;
+    const t = setInterval(goToNext, intervalMs);
+    return () => clearInterval(t);
+  }, [n, W, index, ads, goToNext, intervalMs]);
 
   // ads가 바뀌면 처음으로 리셋
   useEffect(() => {
     setIndex(0);
-    translateX.setValue(0);
-  }, [ads, translateX]);
-
-  useEffect(() => {
-    if (n <= 1) return;
-    // 현재 광고가 영상이면 자동 슬라이드 중단(영상 재생 보장)
-    const currentAd = ads[index];
-    if (currentAd?.videoUrl) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-      return;
-    }
-    timerRef.current = setInterval(goToNext, intervalMs);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [n, index, ads, goToNext, intervalMs]);
+    scrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [ads]);
 
   if (!ads || ads.length === 0) return null;
 
-  // 띠 구성: [광고0, 광고1, ..., 광고N-1, 광고0(복제본)]
-  const slots = n > 1 ? [...ads, ads[0]] : ads;
-  const currentAd = ads[index];
-  const currentIsVideo = !!currentAd?.videoUrl;
+  const currentIsVideo = !!ads[index]?.videoUrl;
 
   return (
     <View
       style={[containerStyle, { overflow: 'hidden' }]}
       onLayout={(e) => {
-        const w = e.nativeEvent.layout.width;
-        if (w && Math.abs(w - width) > 1) {
-          setWidth(w);
-          translateX.setValue(-indexRef.current * w);
+        const { width: w, height: h } = e.nativeEvent.layout;
+        if (w && (Math.abs(w - size.width) > 1 || Math.abs(h - size.height) > 1)) {
+          setSize({ width: w, height: h });
         }
       }}
     >
-      <Animated.View
-        style={{
-          flexDirection: 'row',
-          width: width * slots.length,
-          height: '100%',
-          transform: [{ translateX }],
-        }}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
       >
-        {slots.map((ad, i) => {
-          // 화면 근처 슬롯만 실제 이미지로 렌더(메모리 보호).
-          //   - 현재(index) / 다음(index+1): 보이거나 들어오는 중
-          //   - 첫 슬롯(0): 끝→처음 무이음 루프를 위해 항상 유지
-          // 그 외 멀리 있는 슬롯은 빈 자리(width만 유지)로 둬서, 광고 개수와
-          // 무관하게 동시 디코딩 이미지 수를 3개 안팎으로 묶는다.
-          const inWindow = i === index || i === index + 1 || i === 0;
+        {W > 0 && slots.map((ad, i) => {
           const isVideo = !!ad?.videoUrl;
           return (
-            <View key={i} style={{ width, height: '100%' }}>
-              {!inWindow ? null : isVideo ? (
-                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={i === index || i === index + 1} />
+            <View key={i} style={{ width: size.width, height: size.height }}>
+              {isVideo ? (
+                // 영상은 현재 보이는 칸일 때만 재생, 나머지는 정지 썸네일
+                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={i === index} />
               ) : (
                 <TouchableOpacity
                   style={{ flex: 1 }}
@@ -478,7 +441,7 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
             </View>
           );
         })}
-      </Animated.View>
+      </ScrollView>
 
       {/* 인디케이터 점 */}
       {showIndicator && ads.length > 1 && (
