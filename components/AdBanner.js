@@ -455,13 +455,17 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
         }}
       >
         {slots.map((ad, i) => {
-          // 현재 보이는 슬롯과 그 다음 슬롯만 영상 재생(나머지는 정지 썸네일)
-          const isActive = i === index || i === index + 1;
+          // 화면 근처 슬롯만 실제 이미지로 렌더(메모리 보호).
+          //   - 현재(index) / 다음(index+1): 보이거나 들어오는 중
+          //   - 첫 슬롯(0): 끝→처음 무이음 루프를 위해 항상 유지
+          // 그 외 멀리 있는 슬롯은 빈 자리(width만 유지)로 둬서, 광고 개수와
+          // 무관하게 동시 디코딩 이미지 수를 3개 안팎으로 묶는다.
+          const inWindow = i === index || i === index + 1 || i === 0;
           const isVideo = !!ad?.videoUrl;
           return (
             <View key={i} style={{ width, height: '100%' }}>
-              {isVideo ? (
-                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={isActive} />
+              {!inWindow ? null : isVideo ? (
+                <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={i === index || i === index + 1} />
               ) : (
                 <TouchableOpacity
                   style={{ flex: 1 }}
