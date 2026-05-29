@@ -62,6 +62,14 @@ const DetailModal = memo(({ company, visible, onClose }) => {
     ? company.email.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
     : [];
 
+  const additionalEmailList = company.additional_emails
+    ? company.additional_emails.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const handleMobile = () => {
+    if (company.mobile) Linking.openURL(`tel:${company.mobile.replace(/\s/g, '')}`);
+  };
+
   const formattedDate = company.created_at
     ? String(company.created_at).slice(0, 10)
     : null;
@@ -134,6 +142,62 @@ const DetailModal = memo(({ company, visible, onClose }) => {
             ) : null}
           </View>
 
+          {/* 회사 소개 / 주요 제품 / 추가 정보 — 크롤링된 데이터 */}
+          {(company.description || company.products || company.employees ||
+            company.founded_year || company.country) ? (
+            <View style={styles.modalSection}>
+              {company.description ? (
+                <View style={styles.modalRow}>
+                  <Ionicons name="information-circle-outline" size={18} color="#666" style={styles.modalIcon} />
+                  <View style={styles.modalRowContent}>
+                    <Text style={styles.modalLabel}>회사 소개</Text>
+                    <Text style={styles.modalValue}>{company.description}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {company.products ? (
+                <View style={styles.modalRow}>
+                  <Ionicons name="cube-outline" size={18} color="#666" style={styles.modalIcon} />
+                  <View style={styles.modalRowContent}>
+                    <Text style={styles.modalLabel}>주요 제품/서비스</Text>
+                    <Text style={styles.modalValue}>{company.products}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {company.employees ? (
+                <View style={styles.modalRow}>
+                  <Ionicons name="people-outline" size={18} color="#666" style={styles.modalIcon} />
+                  <View style={styles.modalRowContent}>
+                    <Text style={styles.modalLabel}>고용인원</Text>
+                    <Text style={styles.modalValue}>{company.employees}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {company.founded_year ? (
+                <View style={styles.modalRow}>
+                  <Ionicons name="flag-outline" size={18} color="#666" style={styles.modalIcon} />
+                  <View style={styles.modalRowContent}>
+                    <Text style={styles.modalLabel}>창립연도</Text>
+                    <Text style={styles.modalValue}>{company.founded_year}년</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {company.country ? (
+                <View style={styles.modalRow}>
+                  <Ionicons name="earth-outline" size={18} color="#666" style={styles.modalIcon} />
+                  <View style={styles.modalRowContent}>
+                    <Text style={styles.modalLabel}>법인등록국가</Text>
+                    <Text style={styles.modalValue}>{company.country}</Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
           <View style={styles.modalSection}>
             {company.tel ? (
               <TouchableOpacity style={styles.modalContactRow} onPress={handleTel}>
@@ -165,6 +229,30 @@ const DetailModal = memo(({ company, visible, onClose }) => {
                   <Ionicons name="mail" size={20} color="#FF9800" />
                 </View>
                 <Text style={[styles.modalContactText, { color: '#FF9800' }]}>{email}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#ccc" />
+              </TouchableOpacity>
+            ))}
+
+            {company.mobile ? (
+              <TouchableOpacity style={styles.modalContactRow} onPress={handleMobile}>
+                <View style={[styles.contactIconWrap, { backgroundColor: '#E8F5E9' }]}>
+                  <Ionicons name="phone-portrait-outline" size={20} color="#4CAF50" />
+                </View>
+                <Text style={[styles.modalContactText, { color: '#4CAF50' }]}>{company.mobile}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#ccc" />
+              </TouchableOpacity>
+            ) : null}
+
+            {additionalEmailList.map((email, idx) => (
+              <TouchableOpacity
+                key={`ae_${idx}`}
+                style={styles.modalContactRow}
+                onPress={() => Linking.openURL(`mailto:${email}`)}
+              >
+                <View style={[styles.contactIconWrap, { backgroundColor: '#F3E5F5' }]}>
+                  <Ionicons name="mail-open-outline" size={20} color="#9C27B0" />
+                </View>
+                <Text style={[styles.modalContactText, { color: '#9C27B0' }]}>{email}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#ccc" />
               </TouchableOpacity>
             ))}

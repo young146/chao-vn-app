@@ -1080,6 +1080,119 @@ exports.scheduledPushCheck = onSchedule(
 );
 
 // ============================================================
+// 📋 어드민 데이터 읽기 — Vercel admin SDK 자격증명 우회
+// ============================================================
+exports.adminRead = onRequest(
+  { cors: true, region: "asia-northeast3" },
+  async (req, res) => {
+    const adminKey = req.headers["x-admin-key"] || req.query.key;
+    if (adminKey !== "xinchao_2026_dailydigest") {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+
+    const col = req.query.collection;
+    const announcementId = req.query.announcementId;
+
+    const toJS = (v) => (v && typeof v.toDate === "function" ? v.toDate().toISOString() : v);
+    const docToObj = (d) => {
+      const out = { id: d.id };
+      for (const [k, v] of Object.entries(d.data())) out[k] = toJS(v);
+      return out;
+    };
+
+    try {
+      // 댓글 조회
+      if (col === "announcements" && announcementId) {
+        const snap = await db.collection("announcements").doc(announcementId)
+          .collection("comments").orderBy("createdAt", "asc").get();
+        return res.json({ success: true, comments: snap.docs.map(docToObj) });
+      }
+
+      // broadcastLogs
+      if (col === "broadcastLogs") {
+        const snap = await db.collection("broadcastLogs")
+          .orderBy("sentAt", "desc").limit(50).get();
+
+        // commentCount 병합
+        const annSnap = await db.collection("announcements")
+          .orderBy("sentAt", "desc").limit(50).get();
+        const ccMap = {};
+        annSnap.docs.forEach(d => { ccMap[d.id] = d.data().commentCount || 0; });
+
+        const logs = snap.docs.map(d => {
+          const obj = docToObj(d);
+          obj.commentCount = obj.announcementId ? (ccMap[obj.announcementId] ?? 0) : null;
+          return obj;
+        });
+        return res.json({ success: true, logs });
+      }
+
+      // pushDrafts
+      if (col === "pushDrafts") {
+        const snap = await db.collection("pushDrafts")
+          .where("status", "in", ["draft", "scheduled"])
+          .orderBy("createdAt", "desc").limit(100).get();
+        return res.json({ success: true, drafts: snap.docs.map(docToObj) });
+      }
+
+      res.status(400).json({ success: false, error: "Unknown collection" });
+    } catch (e) {
+      console.error("❌ adminRead 실패:", e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
+);
+
+// ============================================================
+// ✏️ 어드민 데이터 쓰기 — pushDrafts CRUD
+// ============================================================
+exports.adminWrite = onRequest(
+  { cors: true, region: "asia-northeast3" },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).end(); return; }
+    const adminKey = req.headers["x-admin-key"] || req.query.key;
+    if (adminKey !== "xinchao_2026_dailydigest") {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+
+    const { action, collection: col, docId, data } = req.body || {};
+    if (!["pushDrafts"].includes(col)) {
+      res.status(400).json({ success: false, error: "Invalid collection" });
+      return;
+    }
+
+    try {
+      if (action === "add") {
+        const toSave = { ...data };
+        if (toSave.scheduledAt) toSave.scheduledAt = new Date(toSave.scheduledAt);
+        toSave.createdAt = FieldValue.serverTimestamp();
+        toSave.updatedAt = FieldValue.serverTimestamp();
+        const ref = await db.collection(col).add(toSave);
+        return res.json({ success: true, id: ref.id });
+      }
+      if (action === "update") {
+        if (!docId) return res.status(400).json({ success: false, error: "docId required" });
+        const toUpdate = { ...data, updatedAt: FieldValue.serverTimestamp() };
+        if (toUpdate.scheduledAt) toUpdate.scheduledAt = new Date(toUpdate.scheduledAt);
+        await db.collection(col).doc(docId).update(toUpdate);
+        return res.json({ success: true });
+      }
+      if (action === "delete") {
+        if (!docId) return res.status(400).json({ success: false, error: "docId required" });
+        await db.collection(col).doc(docId).delete();
+        return res.json({ success: true });
+      }
+      res.status(400).json({ success: false, error: "Unknown action" });
+    } catch (e) {
+      console.error("❌ adminWrite 실패:", e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
+);
+
+// ============================================================
 // 🗂️ Jobs/{jobId} onWrite → Notion 구인 DB 업서트
 // (기존 onNewJobCreated FCM 함수와 별개 - 건드리지 않음)
 // ============================================================
