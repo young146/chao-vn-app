@@ -258,7 +258,14 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true }) => {
 
   if (imageUrl) {
     return (
-      <View style={[style, { overflow: 'hidden', backgroundColor: '#fff' }]}>
+      <View style={[style, { overflow: 'hidden' }]}>
+        {/* 사이즈 안 맞는 광고의 여백을 채우는 blur 배경 (보험용 fill) */}
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ position: 'absolute', width: '100%', height: '100%' }}
+          resizeMode="cover"
+          blurRadius={20}
+        />
         <Image
           source={{ uri: imageUrl }}
           style={{ width: '100%', height: '100%' }}
