@@ -2,18 +2,27 @@
 // daily-news-final 어드민(Firestore "app_ads")의 광고 데이터를
 // 앱 AdBanner.js가 기대하는 슬롯별 dict로 변환해 제공합니다.
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { collection, getDocs, query, where, updateDoc, doc, increment } from 'firebase/firestore';
 import { getDb } from '../firebase/config';
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5분
+const CACHE_DURATION = 5 * 60 * 1000; // 5분 (세션 내 화면별 결과 캐시)
+
+// 광고 디스크 캐시 (stale-while-revalidate).
+// - 디스크 캐시는 만료시키지 않는다 → 콜드 스타트에서 며칠 지난 캐시라도 즉시 노출(노출 공백 0).
+// - 다만 캐시가 REFRESH_INTERVAL보다 오래됐으면 백그라운드에서 1회 갱신해 최신 광고를 받아온다.
+//   (표시는 캐시로 즉시, 최신화는 뒤에서 → 노출과 최신성을 분리)
+const PERSIST_KEY = 'app_ads_raw_cache_v1';
+const REFRESH_INTERVAL = 60 * 60 * 1000; // 1시간: 이보다 오래된 캐시면 백그라운드 갱신
 
 // 화면별 결과 캐시 (screen → { config, time })
 const screenCache = {};
 
 // raw Firestore 문서는 한 번만 fetch. 동시 호출 dedup용 promise 보관.
-let rawDocsCache = null;
-let rawFetchTime = 0;
-let rawFetchPromise = null;
+let rawDocsCache = null;      // 이번 세션 메모리에 올라온 문서
+let rawDocsStoredAt = 0;      // 그 문서가 디스크에 저장/네트워크 fetch된 시각
+let rawFetchPromise = null;   // 동시 호출 dedup
+let bgRefreshing = false;     // 백그라운드 갱신 중복 방지
 
 // daily-news-final position → main AdBanner 슬롯 매핑
 const POSITION_TO_SLOTS = {
@@ -95,23 +104,72 @@ const expandAdToMainFormat = (ad) => {
   }));
 };
 
-// Firestore raw 문서를 1번만 가져온다.
-// 동시에 여러 screen이 호출해도 Promise를 공유하므로 네트워크 요청은 1회만 발생.
+// 디스크(AsyncStorage)에서 광고 문서를 읽는다. 없거나 손상 시 null.
+const loadPersistedDocs = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(PERSIST_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.docs)) return null;
+    return parsed; // { docs, time }
+  } catch (_) {
+    return null;
+  }
+};
+
+// 디스크에 광고 문서를 저장한다. 동기 직렬화/비동기 쓰기 모두 예외를 삼킨다(노출엔 영향 없음).
+const persistDocs = (docs, time) => {
+  try {
+    AsyncStorage.setItem(PERSIST_KEY, JSON.stringify({ docs, time })).catch(() => {});
+  } catch (_) {}
+};
+
+// 실제 Firestore fetch + 메모리/디스크 캐시 동시 갱신.
+const fetchAndStoreRawDocs = async () => {
+  const db = await getDb();
+  const snapshot = await getDocs(
+    query(collection(db, 'app_ads'), where('isActive', '==', true)),
+  );
+  const docs = [];
+  snapshot.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
+  rawDocsCache = docs;
+  rawDocsStoredAt = Date.now();
+  persistDocs(docs, rawDocsStoredAt); // fire-and-forget
+  return docs;
+};
+
+// 캐시가 묵었을 때 백그라운드에서 1회만 갱신 (노출은 막지 않음, 중복 요청 방지).
+const refreshInBackground = () => {
+  if (bgRefreshing) return;
+  bgRefreshing = true;
+  fetchAndStoreRawDocs()
+    .catch(() => {})
+    .finally(() => { bgRefreshing = false; });
+};
+
+// Firestore raw 문서를 가져온다. 우선순위: 메모리 → 디스크 → 네트워크.
+// 표시는 항상 캐시로 즉시. 캐시가 REFRESH_INTERVAL보다 오래됐을 때만 백그라운드 갱신.
+// 동시에 여러 screen이 호출해도 Promise를 공유하므로 네트워크/디스크 읽기는 1회만 발생.
 const getRawDocs = async () => {
-  const now = Date.now();
-  if (rawDocsCache && now - rawFetchTime < CACHE_DURATION) return rawDocsCache;
+  // 1) 메모리 캐시 — 이번 세션에서 이미 로드함. 항상 즉시 반환.
+  if (rawDocsCache) {
+    if (Date.now() - rawDocsStoredAt >= REFRESH_INTERVAL) refreshInBackground();
+    return rawDocsCache;
+  }
   if (rawFetchPromise) return rawFetchPromise;
 
   rawFetchPromise = (async () => {
-    const db = await getDb();
-    const snapshot = await getDocs(
-      query(collection(db, 'app_ads'), where('isActive', '==', true)),
-    );
-    const docs = [];
-    snapshot.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
-    rawDocsCache = docs;
-    rawFetchTime = Date.now();
-    return docs;
+    // 2) 디스크 캐시 — 콜드 스타트에서 네트워크 없이 즉시 노출.
+    const persisted = await loadPersistedDocs();
+    if (persisted) {
+      rawDocsCache = persisted.docs;
+      rawDocsStoredAt = persisted.time;
+      // 묵은 캐시면 stale 즉시 반환 + 백그라운드 갱신.
+      if (Date.now() - persisted.time >= REFRESH_INTERVAL) refreshInBackground();
+      return persisted.docs;
+    }
+    // 3) 디스크에도 없음(최초 실행) → 네트워크에서 가져와 저장. (storedAt=now → 곧바로 또 갱신하지 않음)
+    return fetchAndStoreRawDocs();
   })().finally(() => { rawFetchPromise = null; });
 
   return rawFetchPromise;
@@ -170,8 +228,8 @@ export const fetchAppAdsConfig = async (callerScreen = 'all', _attempt = 0) => {
     // Firebase 초기화 지연 등으로 실패 시 최대 2회 재시도 (2s, 4s 대기)
     if (_attempt < 2) {
       await new Promise((r) => setTimeout(r, 2000 * (_attempt + 1)));
-      rawDocsCache = null; // 캐시 무효화 후 재시도
-      rawFetchTime = 0;
+      rawDocsCache = null; // 메모리 캐시 무효화 후 재시도 (디스크 캐시는 보존)
+      rawDocsStoredAt = 0;
       return fetchAppAdsConfig(callerScreen, _attempt + 1);
     }
     return EMPTY_CONFIG();
@@ -205,10 +263,24 @@ export const trackAppAdClick = async (campaignId) => {
   }
 };
 
-// 캐시 강제 무효화 (개발/디버깅용)
+/**
+ * 앱 시작(스플래시) 시점에 호출하는 광고 워밍업.
+ * - 디스크 캐시를 메모리로 끌어올려, 첫 화면이 그려질 때 광고가 이미 준비되게 함(노출 공백 0).
+ * - getRawDocs가 "캐시가 1시간 이상 묵었으면 백그라운드 갱신"까지 알아서 처리하므로
+ *   여기서 별도 갱신 호출은 하지 않는다(중복 네트워크 방지).
+ * 스플래시(약 5초) 유휴 시간을 쓰므로 체감 지연 없음. fire-and-forget — 절대 throw 안 함.
+ */
+export const prefetchAppAds = async () => {
+  try {
+    await getRawDocs(); // 디스크/메모리 워밍 + 필요 시 백그라운드 갱신
+  } catch (_) {}
+};
+
+// 캐시 강제 무효화 (개발/디버깅용) — 메모리 + 디스크 모두 비움
 export const invalidateAppAdsCache = () => {
   Object.keys(screenCache).forEach((k) => delete screenCache[k]);
   rawDocsCache = null;
-  rawFetchTime = 0;
+  rawDocsStoredAt = 0;
   rawFetchPromise = null;
+  AsyncStorage.removeItem(PERSIST_KEY).catch(() => {});
 };

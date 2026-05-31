@@ -186,6 +186,7 @@ setupNotificationChannels();
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { PopupAd, FixedBottomBanner } from "./components/AdBanner";
+import { prefetchAppAds } from "./services/FirebaseAdService";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import WelcomeAfterSignupScreen from "./screens/WelcomeAfterSignupScreen";
@@ -472,6 +473,11 @@ export default function App() {
           setIsReady(true);
           return;
         }
+
+        // 📢 광고 워밍업 — 스플래시(최소 5초) 유휴 시간에 광고를 미리 데워서
+        //    첫 화면 진입 시 광고가 이미 메모리에 준비되도록 함(노출 공백 0).
+        //    fire-and-forget: 초기화 흐름을 막지 않음.
+        prefetchAppAds();
 
         // 🚀 1. OTA 직후 재시작 여부 확인 (캐시보다 먼저)
         const otaFlag = await AsyncStorage.getItem('OTA_JUST_APPLIED').catch(() => null);
