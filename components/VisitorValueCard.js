@@ -51,15 +51,18 @@ export default function VisitorValueCard({ navigation }) {
           loaded: true,
         });
         // 노출 측정 (defensive — analytics.js 가 부재 시 no-op)
-        // ⚠️ 파라미터 값은 반드시 String 으로 보낸다. Firebase Analytics Android 네이티브는
-        //    숫자(Double) 파라미터를 받으면 ClassCastException(Double→String) 을 던질 수 있고,
-        //    이건 JS try/catch 로 못 잡혀 *앱 전체가 네이티브 크래시* 한다(비로그인 부팅 경로 = 신규설치 무한루프 원인).
-        //    다른 모든 이벤트(logNewsRead, company_view 등)도 String() 으로 보내며 안전함이 입증됨.
+        // 🚨 파라미터 이름에 GA4 *예약어* 를 쓰지 말 것. 특히 `items` 는 GA4 전자상거래
+        //    예약 파라미터로 *반드시 배열(ArrayList)* 이어야 한다. 여기에 스칼라(숫자/문자열)를
+        //    넣으면 Firebase Android 네이티브 toBundle() 이 ArrayList 로 캐스팅하려다
+        //    ClassCastException 을 던지고, 이건 JS try/catch 로 못 잡혀 *앱 전체가 네이티브 크래시* 한다.
+        //    (비로그인 부팅 경로에서 실행 → 신규설치 무한 크래시 루프의 실제 원인. logcat 으로 확인:
+        //     "java.lang.String cannot be cast to java.util.ArrayList at ...AnalyticsModule.toBundle")
+        //    → 예약어가 아닌 이름(job_count/realestate_count/item_count)으로 변경.
         try {
           logEvent('visitor_value_card_shown', {
-            jobs: String(jobsCount?.data().count ?? 0),
-            realEstate: String(realEstateCount?.data().count ?? 0),
-            items: String(itemsCount?.data().count ?? 0),
+            job_count: String(jobsCount?.data().count ?? 0),
+            realestate_count: String(realEstateCount?.data().count ?? 0),
+            item_count: String(itemsCount?.data().count ?? 0),
           });
         } catch (_) {}
       } catch (_) { /* fail-safe — 카드 자체 숨김 */ }
