@@ -51,7 +51,17 @@ export default function VisitorValueCard({ navigation }) {
           loaded: true,
         });
         // 노출 측정 (defensive — analytics.js 가 부재 시 no-op)
-        try { logEvent('visitor_value_card_shown', { jobs: jobsCount?.data().count ?? 0, realEstate: realEstateCount?.data().count ?? 0, items: itemsCount?.data().count ?? 0 }); } catch (_) {}
+        // ⚠️ 파라미터 값은 반드시 String 으로 보낸다. Firebase Analytics Android 네이티브는
+        //    숫자(Double) 파라미터를 받으면 ClassCastException(Double→String) 을 던질 수 있고,
+        //    이건 JS try/catch 로 못 잡혀 *앱 전체가 네이티브 크래시* 한다(비로그인 부팅 경로 = 신규설치 무한루프 원인).
+        //    다른 모든 이벤트(logNewsRead, company_view 등)도 String() 으로 보내며 안전함이 입증됨.
+        try {
+          logEvent('visitor_value_card_shown', {
+            jobs: String(jobsCount?.data().count ?? 0),
+            realEstate: String(realEstateCount?.data().count ?? 0),
+            items: String(itemsCount?.data().count ?? 0),
+          });
+        } catch (_) {}
       } catch (_) { /* fail-safe — 카드 자체 숨김 */ }
     })();
 
