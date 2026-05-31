@@ -549,18 +549,26 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
   const [adList, setAdList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-
-
   useEffect(() => {
-    const loadAd = async () => {
-      setIsLoading(true);
+    let retryTimer;
+    const loadAd = async (isRetry = false) => {
+      if (!isRetry) setIsLoading(true);
+      if (isRetry) {
+        // 재시도 전 캐시 무효화 (FirebaseAdService 캐시 리셋)
+        delete screenAdsCache[screen];
+      }
       const ads = await fetchAdConfig(screen);
       const headerAds = (ads?.header || []).filter(a => a?.imageUrl || a?.videoUrl);
       headerAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(headerAds);
-      setIsLoading(false);
+      if (!isRetry) setIsLoading(false);
+      // 첫 시도에서 광고 없으면 4초 후 1회 재시도 (Firebase 초기화 지연 대응)
+      if (!isRetry && headerAds.length === 0) {
+        retryTimer = setTimeout(() => loadAd(true), 4000);
+      }
     };
     loadAd();
+    return () => { if (retryTimer) clearTimeout(retryTimer); };
   }, [screen]);
 
   if (isLoading) return <View style={[styles.headerBanner, style]} />;
@@ -595,35 +603,33 @@ export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, inter
   const [adList, setAdList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-
-
   useEffect(() => {
-    const loadAd = async () => {
-      setIsLoading(true);
+    let retryTimer;
+    const loadAd = async (isRetry = false) => {
+      if (!isRetry) setIsLoading(true);
+      if (isRetry) delete screenAdsCache[screen];
       const ads = await fetchAdConfig(screen);
       const allInlineAds = (ads?.inline || []).filter(a => a?.imageUrl || a?.videoUrl);
 
       let filtered;
       if (positionIndex === 0) {
-        // positionIndex 미지정 → 전체 광고 슬라이딩 (기존 동작)
         filtered = allInlineAds;
       } else {
-        // positionIndex 지정 →
-        //   ① inlinePosition === 0 (공용, 모든 자리): 항상 포함
-        //   ② inlinePosition === positionIndex (이 자리 전용): 포함
-        //   ③ 그 외 다른 자리 전용 광고: 제외
         filtered = allInlineAds.filter(a => {
           const pos = a.inlinePosition ?? 0;
           return pos === 0 || pos === positionIndex;
         });
       }
 
-      // 우선순위 높은 순 정렬
       filtered.sort((a, b) => (a.priority || 10) - (b.priority || 10));
       setAdList(filtered);
-      setIsLoading(false);
+      if (!isRetry) setIsLoading(false);
+      if (!isRetry && filtered.length === 0) {
+        retryTimer = setTimeout(() => loadAd(true), 4000);
+      }
     };
     loadAd();
+    return () => { if (retryTimer) clearTimeout(retryTimer); };
   }, [screen, positionIndex]);
 
   if (isLoading) return <View style={[styles.inlineAd, style]} />;

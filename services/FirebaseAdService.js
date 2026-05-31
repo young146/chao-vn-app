@@ -124,13 +124,13 @@ const getRawDocs = async () => {
  * @param {string} callerScreen - 'all' | 'home' | 'news' | 'job' | 'realestate' | 'danggn'
  * @returns {Promise<object>} 슬롯별 광고 배열 dict
  */
-export const fetchAppAdsConfig = async (callerScreen = 'all') => {
+export const fetchAppAdsConfig = async (callerScreen = 'all', _attempt = 0) => {
   const now = Date.now();
   const cached = screenCache[callerScreen];
   if (cached && now - cached.time < CACHE_DURATION) return cached.config;
 
   try {
-    console.log(`📢 Firebase 광고 로드: screen=${callerScreen}`);
+    console.log(`📢 Firebase 광고 로드: screen=${callerScreen}${_attempt > 0 ? ` (재시도 ${_attempt})` : ''}`);
     const docs = await getRawDocs();
 
     const config = EMPTY_CONFIG();
@@ -167,6 +167,13 @@ export const fetchAppAdsConfig = async (callerScreen = 'all') => {
     return config;
   } catch (error) {
     console.log('❌ Firebase 광고 로드 실패:', error?.message || error);
+    // Firebase 초기화 지연 등으로 실패 시 최대 2회 재시도 (2s, 4s 대기)
+    if (_attempt < 2) {
+      await new Promise((r) => setTimeout(r, 2000 * (_attempt + 1)));
+      rawDocsCache = null; // 캐시 무효화 후 재시도
+      rawFetchTime = 0;
+      return fetchAppAdsConfig(callerScreen, _attempt + 1);
+    }
     return EMPTY_CONFIG();
   }
 };

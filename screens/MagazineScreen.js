@@ -827,7 +827,6 @@ export default function MagazineScreen({ navigation, route }) {
             </View>
           ) : null
         }
-        removeClippedSubviews={true}
         windowSize={10}
         maxToRenderPerBatch={5}
         initialNumToRender={6}
