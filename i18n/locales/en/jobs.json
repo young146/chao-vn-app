@@ -10,6 +10,8 @@
   "noJobs": "No job listings available",
   "beFirst": "Be the first to post!",
   "loginMessage": "You need to login to post a job listing.\nLogin now?",
+  "matchPromoTitle": "Get job matches made for you",
+  "matchPromoSubtitle": "Register your profile and we'll pick new jobs that fit your desired role",
   "jobDetail": "Job Details",
   "addJob": "Post Job",
   "allCities": "All Locations",

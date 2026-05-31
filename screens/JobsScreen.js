@@ -426,12 +426,17 @@ export default function JobsScreen({ navigation }) {
       {/* 광고 배너 */}
       <AdBanner screen="job" style={{ marginTop: 8 }} />
 
-      {/* 로그인 유도 배너 */}
+      {/* 비회원 가입 유도 — "이력서 등록하면 맞춤 공고 매칭" (가입 전환 + 구직자 풀 확대) */}
       {!user && (
-        <TouchableOpacity style={styles.loginBanner} onPress={() => navigation.navigate("로그인")}>
-          <Ionicons name="lock-closed" size={20} color="#2196F3" />
-          <Text style={styles.loginBannerText}>{t('loginMessage').split('\n')[0]}</Text>
-          <Ionicons name="chevron-forward" size={20} color="#2196F3" />
+        <TouchableOpacity style={styles.matchPromo} onPress={() => navigation.navigate("로그인")} activeOpacity={0.85}>
+          <View style={styles.matchPromoIcon}>
+            <Ionicons name="briefcase" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.matchPromoTitle}>{t('matchPromoTitle')}</Text>
+            <Text style={styles.matchPromoSub}>{t('matchPromoSubtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#1565C0" />
         </TouchableOpacity>
       )}
 
@@ -549,6 +554,37 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 8,
     borderRadius: 8,
+  },
+  matchPromo: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F1FC",
+    borderColor: "#1565C0",
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 10,
+  },
+  matchPromoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1565C0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  matchPromoTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1565C0",
+  },
+  matchPromoSub: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 2,
+    lineHeight: 16,
   },
   loginBannerText: {
     flex: 1,
