@@ -572,12 +572,16 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
       const ads = await fetchAdConfig(screen);
       const headerAds = (ads?.header || []).filter(a => a?.imageUrl || a?.videoUrl);
       headerAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
-      resolvedAdsCache[cacheKey] = headerAds; // 다음 마운트용으로 보관
-      prefetchAdImages(headerAds);            // 이미지 미리 받기
-      setAdList(headerAds);
-      // 광고가 정말 없을 때만 4초 후 1회 재시도 (Firebase 초기화 지연 대응)
-      if (!isRetry && headerAds.length === 0) {
-        retryTimer = setTimeout(() => loadAd(true), 4000);
+
+      if (headerAds.length > 0) {
+        resolvedAdsCache[cacheKey] = headerAds; // 다음 마운트용으로 보관
+        prefetchAdImages(headerAds);            // 이미지 미리 받기
+        setAdList(headerAds);
+      } else if (!resolvedAdsCache[cacheKey]?.length) {
+        // 받은 게 비어있고 '보여주던 광고도 없을 때만' 4초 후 1회 재시도.
+        // 이미 노출 중인 광고가 있으면 일시적 빈 응답(네트워크 오류 등)으로
+        // 광고를 지우지 않는다 → 변화가 있기 전까지 항상 노출 유지.
+        if (!isRetry) retryTimer = setTimeout(() => loadAd(true), 4000);
       }
     };
     loadAd();
