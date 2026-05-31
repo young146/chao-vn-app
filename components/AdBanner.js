@@ -562,6 +562,12 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
   // 이전에 해석해둔 광고로 초기화 → 리마운트해도 회색 빈 박스 없이 즉시 표시.
   const [adList, setAdList] = useState(() => resolvedAdsCache[cacheKey] || []);
 
+  // 헤더 슬롯 높이(750:300)를 '명시적 픽셀'로 계산한다.
+  // iOS는 FlatList 헤더 안에서 aspectRatio로만 높이를 준 뷰의 onLayout 높이를
+  // 0/지연으로 보고하는 경우가 있어, 슬라이드가 0높이로 그려져 '자리만 차지한 백지'가 됨.
+  // 하단 고정배너처럼 픽셀 높이를 직접 줘서 iOS에서도 안정적으로 렌더되게 한다.
+  const bannerHeight = Math.round(Dimensions.get('window').width * 300 / 750);
+
   useEffect(() => {
     let retryTimer;
     const loadAd = async (isRetry = false) => {
@@ -594,7 +600,7 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
     return (
       <AdSlider
         ads={adList}
-        containerStyle={[styles.headerBanner, style]}
+        containerStyle={[styles.headerBanner, { height: bannerHeight }, style]}
         thumbnailKey="header"
         intervalMs={intervalMs}
       />
