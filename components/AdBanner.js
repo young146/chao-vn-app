@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, StyleSheet, Image, TouchableOpacity, Linking, Platform, Modal, Text, Dimensions, ScrollView } from "react-native";
+// 광고 이미지는 expo-image(SDWebImage 네이티브 캐싱)로 표시한다.
+// RN 기본 Image는 iOS에서 원격이미지 로딩 지연/부분백지/prefetch 버그가 있어 광고에 부적합.
+import { Image as ExpoImage } from "expo-image";
 let VideoView = () => null;
 let useVideoPlayer = () => null;
 try {
@@ -61,13 +64,6 @@ const screenAdsCache = {}; // { [screen]: { ads, time } }
 // → 컴포넌트가 리마운트(네비게이션/리스트 리렌더)돼도 캐시에서 즉시 시드되어
 //   회색 빈 박스/깜빡임 없이 바로 광고가 뜬다. (루트에 한 번 마운트되는 하단배너가 안정적인 것과 동일한 효과)
 const resolvedAdsCache = {}; // { [key]: ad[] }
-
-// 이미지를 미리 받아둔다(이미 캐시면 무비용). 표시 직전 백지(다운로드 대기) 방지.
-const prefetchAdImages = (ads) => {
-  for (const a of ads || []) {
-    if (a?.imageUrl) Image.prefetch(a.imageUrl).catch(() => {});
-  }
-};
 
 // ============================================
 // 인라인 광고 중복 방지 (인덱스 기반)
@@ -242,8 +238,6 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
 };
 
 const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = true }) => {
-  const [loaded, setLoaded] = useState(false);
-
   if (ad?.videoUrl) {
     const thumbUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey]
       ? ad.thumbnails[thumbnailKey]
@@ -254,7 +248,12 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = tr
       if (thumbUrl) {
         return (
           <View style={[style, { overflow: 'hidden', backgroundColor: '#111' }]}>
-            <Image source={{ uri: thumbUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            <ExpoImage
+              source={thumbUrl}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+            />
           </View>
         );
       }
@@ -269,24 +268,17 @@ const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = tr
     : ad?.imageUrl;
 
   if (imageUrl) {
+    // expo-image(SDWebImage 네이티브 캐싱)로 표시 → iOS 원격이미지 지연/부분백지 근본 회피.
+    // 레터박스 여백은 컨테이너 배경색으로 채운다. (불안정한 RN blurRadius 배경은 iOS
+    // 부분 백지의 원인이라 제거 — RN #20910)
     return (
-      <View style={[style, { overflow: 'hidden' }]}>
-        {/* blur 배경(보험용): 보이는 슬롯이고 이미지 로드 완료 후에만 렌더.
-            - isVisible 가드: 화면 밖 슬롯 N개가 동시에 blur 계산하는 것을 방지
-            - loaded 가드: 이미지 완전 로드 전 깨진 프레임이 blur 되어 보이는 현상 방지 */}
-        {isVisible && loaded && (
-          <Image
-            source={{ uri: imageUrl }}
-            style={{ position: 'absolute', width: '100%', height: '100%' }}
-            resizeMode="cover"
-            blurRadius={20}
-          />
-        )}
-        <Image
-          source={{ uri: imageUrl }}
+      <View style={[style, { overflow: 'hidden', backgroundColor: '#f0f0f0' }]}>
+        <ExpoImage
+          source={imageUrl}
           style={{ width: '100%', height: '100%' }}
-          resizeMode="contain"
-          onLoad={() => setLoaded(true)}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          transition={120}
         />
       </View>
     );
@@ -580,8 +572,7 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
       headerAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
 
       if (headerAds.length > 0) {
-        resolvedAdsCache[cacheKey] = headerAds; // 다음 마운트용으로 보관
-        prefetchAdImages(headerAds);            // 이미지 미리 받기
+        resolvedAdsCache[cacheKey] = headerAds; // 다음 마운트용으로 보관 (expo-image가 캐싱 담당)
         setAdList(headerAds);
       } else if (!resolvedAdsCache[cacheKey]?.length) {
         // 받은 게 비어있고 '보여주던 광고도 없을 때만' 4초 후 1회 재시도.
