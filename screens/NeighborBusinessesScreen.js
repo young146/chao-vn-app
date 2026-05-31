@@ -384,7 +384,7 @@ export default function NeighborBusinessesScreen() {
               data={businesses}
               keyExtractor={(item) => item.id}
               renderItem={renderBusinessCard}
-              ListHeaderComponent={() => <AdBanner screen="neighbor" style={{ marginTop: 8 }} />}
+              ListHeaderComponent={<AdBanner screen="neighbor" style={{ marginTop: 8 }} />}
               ListEmptyComponent={renderEmptyState}
               contentContainerStyle={
                 businesses.length === 0 ? styles.listEmpty : styles.listContent

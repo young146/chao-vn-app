@@ -57,6 +57,18 @@ const AD_SCREENS = {
 // ============================================
 const screenAdsCache = {}; // { [screen]: { ads, time } }
 
+// 해석된 광고 결과를 '만료 없이' 보관한다.
+// → 컴포넌트가 리마운트(네비게이션/리스트 리렌더)돼도 캐시에서 즉시 시드되어
+//   회색 빈 박스/깜빡임 없이 바로 광고가 뜬다. (루트에 한 번 마운트되는 하단배너가 안정적인 것과 동일한 효과)
+const resolvedAdsCache = {}; // { [key]: ad[] }
+
+// 이미지를 미리 받아둔다(이미 캐시면 무비용). 표시 직전 백지(다운로드 대기) 방지.
+const prefetchAdImages = (ads) => {
+  for (const a of ads || []) {
+    if (a?.imageUrl) Image.prefetch(a.imageUrl).catch(() => {});
+  }
+};
+
 // ============================================
 // 인라인 광고 중복 방지 (인덱스 기반)
 // ============================================
@@ -546,13 +558,13 @@ export function HomeSectionAd({ style, intervalMs = 5000 }) {
  * @param {boolean} useAdMob - 자체 광고 없을 때 AdMob 사용 여부
  */
 export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
-  const [adList, setAdList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cacheKey = `header:${screen}`;
+  // 이전에 해석해둔 광고로 초기화 → 리마운트해도 회색 빈 박스 없이 즉시 표시.
+  const [adList, setAdList] = useState(() => resolvedAdsCache[cacheKey] || []);
 
   useEffect(() => {
     let retryTimer;
     const loadAd = async (isRetry = false) => {
-      if (!isRetry) setIsLoading(true);
       if (isRetry) {
         // 재시도 전 캐시 무효화 (FirebaseAdService 캐시 리셋)
         delete screenAdsCache[screen];
@@ -560,20 +572,20 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
       const ads = await fetchAdConfig(screen);
       const headerAds = (ads?.header || []).filter(a => a?.imageUrl || a?.videoUrl);
       headerAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
+      resolvedAdsCache[cacheKey] = headerAds; // 다음 마운트용으로 보관
+      prefetchAdImages(headerAds);            // 이미지 미리 받기
       setAdList(headerAds);
-      if (!isRetry) setIsLoading(false);
-      // 첫 시도에서 광고 없으면 4초 후 1회 재시도 (Firebase 초기화 지연 대응)
+      // 광고가 정말 없을 때만 4초 후 1회 재시도 (Firebase 초기화 지연 대응)
       if (!isRetry && headerAds.length === 0) {
         retryTimer = setTimeout(() => loadAd(true), 4000);
       }
     };
     loadAd();
     return () => { if (retryTimer) clearTimeout(retryTimer); };
-  }, [screen]);
+  }, [screen, cacheKey]);
 
-  if (isLoading) return <View style={[styles.headerBanner, style]} />;
-
-  // 자체 광고가 있으면 슬라이더로 표시
+  // 하단 고정배너와 동일한 방식: 광고 없으면 회색 빈 박스 대신 접는다(자리 차지 X).
+  // 있으면 곧바로 슬라이더로 표시 (isLoading 빈 박스 단계 제거 → 백지 노출 없음).
   if (adList.length > 0) {
     return (
       <AdSlider
@@ -584,8 +596,6 @@ export default function AdBanner({ screen = 'all', style, intervalMs = 5000 }) {
       />
     );
   }
-
-
 
   return null;
 }

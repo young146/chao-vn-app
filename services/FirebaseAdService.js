@@ -3,6 +3,7 @@
 // 앱 AdBanner.js가 기대하는 슬롯별 dict로 변환해 제공합니다.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'react-native';
 import { collection, getDocs, query, where, updateDoc, doc, increment } from 'firebase/firestore';
 import { getDb } from '../firebase/config';
 
@@ -263,16 +264,31 @@ export const trackAppAdClick = async (campaignId) => {
   }
 };
 
+// 모든 광고 이미지를 미리 받아둔다(이미 캐시면 무비용). 화면 진입 전 백지(다운로드 대기) 방지.
+const prefetchAdImages = (docs) => {
+  try {
+    for (const ad of docs || []) {
+      if (ad?.type === 'video') continue; // 영상은 prefetch 대상 아님
+      const imgs = Array.isArray(ad.images) ? ad.images : [];
+      for (const url of imgs) {
+        if (url) Image.prefetch(url).catch(() => {});
+      }
+    }
+  } catch (_) {}
+};
+
 /**
  * 앱 시작(스플래시) 시점에 호출하는 광고 워밍업.
  * - 디스크 캐시를 메모리로 끌어올려, 첫 화면이 그려질 때 광고가 이미 준비되게 함(노출 공백 0).
+ * - 모든 광고 이미지를 미리 다운로드해 화면 진입 시 백지 없이 즉시 표시.
  * - getRawDocs가 "캐시가 1시간 이상 묵었으면 백그라운드 갱신"까지 알아서 처리하므로
  *   여기서 별도 갱신 호출은 하지 않는다(중복 네트워크 방지).
  * 스플래시(약 5초) 유휴 시간을 쓰므로 체감 지연 없음. fire-and-forget — 절대 throw 안 함.
  */
 export const prefetchAppAds = async () => {
   try {
-    await getRawDocs(); // 디스크/메모리 워밍 + 필요 시 백그라운드 갱신
+    const docs = await getRawDocs(); // 디스크/메모리 워밍 + 필요 시 백그라운드 갱신
+    prefetchAdImages(docs);          // 스플래시 동안 모든 광고 이미지 미리 다운로드
   } catch (_) {}
 };
 
