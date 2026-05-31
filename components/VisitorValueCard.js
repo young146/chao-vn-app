@@ -66,7 +66,14 @@ export default function VisitorValueCard({ navigation }) {
 
   const handleSignupPress = () => {
     try { logEvent('visitor_value_card_cta_clicked'); } catch (_) {}
-    navigation?.navigate?.('로그인');
+    // '로그인' 화면은 RootStack(최상위)에 있음.
+    // MagazineScreen의 navigation은 NewsStack 소속이라 직접 navigate 불가.
+    // getParent()로 RootStack까지 올라가서 호출해야 실제로 이동함.
+    try {
+      navigation?.getParent?.()?.navigate?.('로그인');
+    } catch (_) {
+      navigation?.navigate?.('로그인'); // 폴백 (Navigator 구조 변경 대비)
+    }
   };
 
   return (

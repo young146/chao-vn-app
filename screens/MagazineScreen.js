@@ -4,6 +4,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -23,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 import SectionNewsModal from '../components/SectionNewsModal';
 import AnnouncementBanner from '../components/AnnouncementBanner';
+import MarketStrip from '../components/MarketStrip';
 import VisitorValueCard from '../components/VisitorValueCard';
 
 const { width } = Dimensions.get('window');
@@ -345,6 +347,7 @@ export default function MagazineScreen({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPopup, setShowPopup] = useState(false); // 🎯 팝업 상태
   const popupShownRef = useRef(false); // 세션 중 한 번만 표시
+  const mainListRef = useRef(null);
 
   // 날짜 선택 관련 state
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -568,6 +571,7 @@ export default function MagazineScreen({ navigation, route }) {
       />
 
       <FlatList
+        ref={mainListRef}
         data={type === 'home' && !searchQuery ? [] : posts}
         renderItem={({ item, index }) => (
           <View>
@@ -599,8 +603,8 @@ export default function MagazineScreen({ navigation, route }) {
             {type === 'home' && (
               <HomeBanner style={{ marginBottom: 8 }} />
             )}
-            {/* 뉴스/기타 탭 헤더 광고 */}
-            {type !== 'home' && (
+            {/* 뉴스/기타 탭 헤더 광고 (뉴스탭 제외 — 스크롤 성능) */}
+            {type !== 'home' && type !== 'news' && (
               <AdBanner screen="news" style={{ marginBottom: 8 }} />
             )}
 
@@ -632,11 +636,23 @@ export default function MagazineScreen({ navigation, route }) {
               </View>
             )}
 
+            {/* 📊 마켓 정보 카드 (날씨·환율·항공권·주가) — 뉴스 탭 상단 가로 스와이프 */}
+            {type === 'news' && !searchQuery && (
+              <MarketStrip
+                onScrollLock={() => mainListRef.current?.setNativeProps({ scrollEnabled: false })}
+                onScrollUnlock={() => mainListRef.current?.setNativeProps({ scrollEnabled: true })}
+              />
+            )}
+
             {/* 🗂️ 뉴스 항목별 기사 보기 (카테고리 버튼) */}
             {type === 'news' && !searchQuery && sectionsList.length > 0 && (
               <View style={styles.sectionButtonsContainer}>
                 <Text style={styles.sectionButtonsTitle}>🗞️ 뉴스 항목별 기사 보기</Text>
-                <View style={styles.sectionButtonsRow}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sectionButtonsRow}
+                >
                   {sectionsList.map((section) => (
                     <TouchableOpacity
                       key={section.key || section.id}
@@ -648,7 +664,7 @@ export default function MagazineScreen({ navigation, route }) {
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
+                </ScrollView>
               </View>
             )}
 
@@ -811,6 +827,11 @@ export default function MagazineScreen({ navigation, route }) {
             </View>
           ) : null
         }
+        removeClippedSubviews={true}
+        windowSize={10}
+        maxToRenderPerBatch={5}
+        initialNumToRender={6}
+        nestedScrollEnabled={true}
       />
 
       {/* 🎯 홈 화면 팝업 광고 (10초 후 자동 닫힘) */}
@@ -943,8 +964,8 @@ const styles = StyleSheet.create({
   },
   sectionButtonsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
+    paddingVertical: 4,
   },
   sectionButton: {
     backgroundColor: '#fff',

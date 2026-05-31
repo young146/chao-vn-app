@@ -1057,9 +1057,6 @@ function xcd_rest_list(WP_REST_Request $request) {
         $where[]  = 'industry_group = %s';
         $params[] = $group;
     }
-    if ($request->get_param('has_source_url') === '1') {
-        $where[] = "source_url IS NOT NULL AND source_url != ''";
-    }
     $where_sql = implode(' AND ', $where);
 
     $count_sql = "SELECT COUNT(*) FROM $table WHERE $where_sql";

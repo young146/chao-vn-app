@@ -748,4 +748,21 @@ export const getSectionNews = async (sectionKey, categoryId, page = 1) => {
   }
 };
 
+/**
+ * 마켓 정보(날씨·환율·항공권·주가 + 시계열) 가져오기 — 뉴스 탭 상단 카드용.
+ * jenny/v1/market 엔드포인트. 실패 시 null 반환 → 화면에서 카드 영역 숨김.
+ */
+export const getMarketData = async () => {
+  try {
+    const response = await api.get(`${JENNY_API_URL}/market`);
+    if (response.data && response.data.success) {
+      return response.data;
+    }
+    return null;
+  } catch (error) {
+    console.log("마켓 정보 API 불가:", error?.message || error);
+    return null;
+  }
+};
+
 export { MAGAZINE_BASE_URL, BOARD_BASE_URL };
