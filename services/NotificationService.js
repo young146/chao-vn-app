@@ -179,6 +179,32 @@ class NotificationService {
   }
 
   /**
+   * all_users FCM 토픽 구독 — 비로그인 설치자도 브로드캐스트 알림 수신
+   * 권한이 이미 있으면 즉시 실행, 없으면 조용히 skip
+   */
+  async subscribeToAllUsersTopic() {
+    if (!Device.isDevice) return;
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") return;
+
+      const tokenConfig = Platform.OS === "android" ? { gcmSenderId: "249390849714" } : {};
+      const devicePushToken = await Notifications.getDevicePushTokenAsync(tokenConfig);
+      const fcmToken = devicePushToken.data;
+      if (!fcmToken) return;
+
+      await fetch("https://asia-northeast3-chaovietnam-login.cloudfunctions.net/subscribeToAllUsers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: fcmToken }),
+      });
+      console.log("✅ all_users 토픽 구독 완료");
+    } catch (e) {
+      console.log("⚠️ 토픽 구독 실패 (무시):", e.message);
+    }
+  }
+
+  /**
    * 푸시 토큰 등록 (Expo + FCM)
    */
   async registerTokens(user) {
@@ -189,6 +215,9 @@ class NotificationService {
 
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
+
+    // 권한 획득 시점에 토픽 구독 (로그인 후 처음 권한 받는 신규 사용자 대응)
+    this.subscribeToAllUsersTopic();
 
     try {
       // Expo Push Token
@@ -499,6 +528,9 @@ class NotificationService {
 
       // 2. 알림 채널 생성 (Android)
       await this.setupChannels();
+
+      // 2-1. 권한이 이미 있으면 비로그인 상태에서도 토픽 구독 (비동기, 실패해도 무시)
+      this.subscribeToAllUsersTopic();
 
       // 3. 알림 수신 리스너 설정
       const receivedListener = this.setupNotificationReceivedListener();

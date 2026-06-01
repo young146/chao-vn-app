@@ -751,68 +751,52 @@ async function countNewItemsLast24h() {
   return { jobs, realestate, danggn };
 }
 
-/** 공통 발송 헬퍼 — 일일 푸시 2종(뉴스/새 등록) 공유 */
+/** 공통 발송 헬퍼 — all_users 토픽으로 발송 (비로그인 설치자 포함) */
 async function sendBroadcastPush({ title, body, data, logType, dryRun = false, imageUrl = null }) {
-  const usersSnap = await db.collection("users").get();
-  const fcmTokens = [];
-  const expoTokens = [];
-
-  const checks = usersSnap.docs.map(async (userDoc) => {
-    const uid = userDoc.id;
-    const u = userDoc.data();
-    try {
-      const settingsDoc = await db.collection("notificationSettings").doc(uid).get();
-      if (settingsDoc.exists && settingsDoc.data().dailyDigest === false) return;
-    } catch (_) { /* 설정 없으면 기본 허용 */ }
-
-    const fcm = Array.isArray(u.fcmTokens)
-      ? u.fcmTokens
-      : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
-    const expoPush = Array.isArray(u.expoPushTokens)
-      ? u.expoPushTokens
-      : [u.expoPushToken].filter(Boolean);
-    fcmTokens.push(...fcm);
-    expoTokens.push(...expoPush);
-  });
-  await Promise.allSettled(checks);
-
-  const uniqueFcm = [...new Set(fcmTokens)];
-  const uniqueExpo = [...new Set(expoTokens)].filter(t => Expo.isExpoPushToken(t));
-  console.log(`📬 ${logType} 대상: FCM ${uniqueFcm.length}개, Expo ${uniqueExpo.length}개`);
+  console.log(`📬 ${logType} → all_users 토픽 발송`);
 
   if (dryRun) {
     console.log("🧪 dryRun — 실발송 없음");
-    return { dryRun: true, title, body, fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length };
+    return { dryRun: true, title, body, channel: "topic/all_users" };
   }
 
-  if (uniqueFcm.length > 0) {
-    await sendMulticastFCM(uniqueFcm, { title, body, data, imageUrl });
-  }
-  if (uniqueExpo.length > 0) {
-    const messages = uniqueExpo.map(t => ({
-      to: t, sound: "default", title, body, data, channelId: "default", priority: "high",
-      ...(imageUrl ? { image: imageUrl } : {}),
-    }));
-    const chunks = expo.chunkPushNotifications(messages);
-    for (const chunk of chunks) {
-      try { await expo.sendPushNotificationsAsync(chunk); }
-      catch (e) { console.error("❌ Expo 발송 실패:", e.message); }
-    }
+  const message = {
+    topic: "all_users",
+    notification: { title, body },
+    data: data ? Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])) : {},
+    android: {
+      priority: "high",
+      notification: {
+        channelId: "default",
+        sound: "default",
+        ...(imageUrl ? { imageUrl } : {}),
+      },
+    },
+    apns: {
+      payload: { aps: { sound: "default", badge: 1, "mutable-content": 1 } },
+      headers: { "apns-priority": "10", "apns-push-type": "alert" },
+    },
+  };
+
+  try {
+    const result = await getMessaging().send(message);
+    console.log(`✅ ${logType} 토픽 발송 완료:`, result);
+  } catch (e) {
+    console.error(`❌ ${logType} 토픽 발송 실패:`, e.message);
+    throw e;
   }
 
   await db.collection("broadcastLogs").add({
     type: logType,
-    campaign: data.campaign,
+    campaign: data?.campaign || null,
     title, body,
-    fcmCount: uniqueFcm.length,
-    expoCount: uniqueExpo.length,
+    channel: "topic/all_users",
     sentAt: FieldValue.serverTimestamp(),
     ...(imageUrl ? { imageUrl } : {}),
-    ...(data.url ? { url: data.url } : {}),
+    ...(data?.url ? { url: data.url } : {}),
   });
 
-  console.log(`✅ ${logType} 발송 완료: FCM ${uniqueFcm.length} + Expo ${uniqueExpo.length}`);
-  return { fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length, title, body };
+  return { channel: "topic/all_users", title, body };
 }
 
 /** 저녁 6시 — 새 등록 물품 푸시 */
@@ -903,6 +887,23 @@ async function runNewsPush({ dryRun = false } = {}) {
 
   return await sendBroadcastPush({ title, body, data, logType: "daily_news_push", dryRun });
 }
+
+/** FCM 토큰을 all_users 토픽에 구독 — 비로그인 설치자 포함 전체 도달 */
+exports.subscribeToAllUsers = onRequest(
+  { cors: true, region: "asia-northeast3" },
+  async (req, res) => {
+    const token = req.body?.token || req.query?.token;
+    if (!token) { res.status(400).json({ error: "token required" }); return; }
+    try {
+      await getMessaging().subscribeToTopic([token], "all_users");
+      console.log("✅ all_users 토픽 구독:", token.substring(0, 20) + "...");
+      res.json({ success: true });
+    } catch (e) {
+      console.error("❌ 토픽 구독 실패:", e.message);
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
 
 /** 매일 베트남 시간 18시 — 새 등록 물품 푸시 */
 exports.dailyDigestPush = onSchedule(
