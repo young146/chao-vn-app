@@ -192,6 +192,36 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
     });
   }
 
+  // 1-2) 호텔 최저가 (Hotellook 제휴) — 링크가 있을 때만
+  if (data.links?.hotel) {
+    cards.push({
+      key: 'hotel',
+      icon: '🏨',
+      title: '호텔 최저가',
+      subtitle: '베트남',
+      accent: '#0d9488',
+      showGraph: false,
+      metrics: [{ label: '하노이·호치민·다낭 등', value: '실시간 최저가' }],
+      buttonText: '호텔 검색하기',
+      linkUrl: data.links.hotel,
+    });
+  }
+
+  // 1-3) 여행 eSIM (Airalo 제휴) — 링크가 있을 때만
+  if (data.links?.esim) {
+    cards.push({
+      key: 'esim',
+      icon: '📱',
+      title: '여행 eSIM',
+      subtitle: 'Airalo',
+      accent: '#ff5b3a',
+      showGraph: false,
+      metrics: [{ label: '베트남 도착 즉시 데이터', value: 'eSIM 즉시개통' }],
+      buttonText: 'eSIM 보기',
+      linkUrl: data.links.esim,
+    });
+  }
+
   // 2) 환율
   const ex = data.exchange || {};
   const exMetrics = [];
@@ -264,6 +294,38 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
     });
   }
 
+  // 3-2) 국제 금시세·유가 (정보). 한국 관례: 상승=빨강, 하락=파랑.
+  const cm = data.commodity || {};
+  [
+    { k: 'gold', icon: '🥇', title: '국제 금시세', accent: '#d97706', btn: '금시세 보기', link: data.links?.gold },
+    { k: 'oil', icon: '🛢️', title: '국제 유가(WTI)', accent: '#0ea5e9', btn: '유가 보기', link: data.links?.oil },
+  ].forEach(({ k, icon, title, accent, btn, link }) => {
+    if (cm[k] && cm[k].value) {
+      const up = cm[k].dir === 'up';
+      const down = cm[k].dir === 'down';
+      const color = up ? '#e03131' : down ? '#1971c2' : '#868e96';
+      const arrow = up ? '▲' : down ? '▼' : '–';
+      cards.push({
+        key: k,
+        icon,
+        title,
+        subtitle: '전일 대비',
+        accent,
+        metrics: [{
+          label: cm[k].label || title,
+          value: cm[k].value,
+          unit: cm[k].unit ? ` ${cm[k].unit}` : '',
+          sub: `${arrow} ${cm[k].pct}%`,
+          subColor: color,
+          spark: cm[k].spark,
+          graphColor: color,
+        }],
+        buttonText: btn,
+        linkUrl: link,
+      });
+    }
+  });
+
   // 4) 날씨 (수익 없음 → 맨 뒤, 그래프 없음)
   const weather = Array.isArray(data.weather) ? data.weather : [];
   if (weather.length) {
@@ -278,7 +340,8 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
         label: w.city,
         value: w.temp,
       })),
-      buttonText: null,
+      buttonText: '날씨 자세히',
+      linkUrl: data.links?.weather || 'https://www.accuweather.com/',
     });
   }
 
