@@ -20,6 +20,7 @@ const SectionNewsModal = ({ isVisible, onClose, sectionKey, sectionTitle, catego
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [opening, setOpening] = useState(false);
 
   useEffect(() => {
     if (isVisible && sectionKey) {
@@ -60,10 +61,28 @@ const SectionNewsModal = ({ isVisible, onClose, sectionKey, sectionTitle, catego
     }
   };
 
-  const handleNewsPress = (item) => {
-    onClose();
-    if (navigation && item.id) {
-      navigation.navigate('NewsDetail', { postId: item.id });
+  const handleNewsPress = async (item) => {
+    if (!navigation || !item?.id || opening) {
+      return;
+    }
+    // section-news 응답은 요약 데이터만 담겨 본문(content)이 없으므로,
+    // 상세 화면(PostDetail)이 기대하는 원본 WP post 를 id 로 받아와 넘긴다.
+    setOpening(true);
+    try {
+      const post = await wordpressApi.wordpressApi.getPostDetail(
+        wordpressApi.MAGAZINE_BASE_URL,
+        item.id
+      );
+      onClose();
+      navigation.navigate('PostDetail', {
+        post,
+        baseUrl: wordpressApi.MAGAZINE_BASE_URL,
+      });
+    } catch (error) {
+      console.error('Failed to open news detail:', error);
+      onClose();
+    } finally {
+      setOpening(false);
     }
   };
 
@@ -72,6 +91,7 @@ const SectionNewsModal = ({ isVisible, onClose, sectionKey, sectionTitle, catego
       style={styles.newsCard}
       onPress={() => handleNewsPress(item)}
       activeOpacity={0.7}
+      disabled={opening}
     >
       {item.thumbnail && (
         <Image
@@ -141,6 +161,12 @@ const SectionNewsModal = ({ isVisible, onClose, sectionKey, sectionTitle, catego
               ) : null
             }
           />
+
+          {opening && (
+            <View style={styles.openingOverlay}>
+              <ActivityIndicator size="large" color="#d97706" />
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -254,6 +280,14 @@ const styles = StyleSheet.create({
   },
   footerLoader: {
     marginVertical: 16,
+  },
+  openingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
 });
 
