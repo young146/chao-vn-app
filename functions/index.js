@@ -799,8 +799,16 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false, i
   return { channel: "topic/all_users", title, body };
 }
 
-/** 저녁 6시 — 새 등록 물품 푸시 */
+/** 저녁 6시 — 새 등록 물품 푸시 (월요일은 지난주 인기 매물 top 10) */
 async function runNewItemsPush({ dryRun = false } = {}) {
+  const nowVN = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN }));
+  const dayOfWeek = nowVN.getDay(); // 0=일, 1=월
+
+  // 월요일: 지난주(월~일) 조회수 top 10 매물
+  if (dayOfWeek === 1) {
+    return await runWeeklyItemsPush({ dryRun });
+  }
+
   const { jobs, realestate, danggn } = await countNewItemsLast24h();
   console.log(`📊 24h 신규: 채용 ${jobs} · 부동산 ${realestate} · 당근 ${danggn}`);
 
@@ -814,7 +822,6 @@ async function runNewItemsPush({ dryRun = false } = {}) {
     return { skipped: true };
   }
 
-  const dayOfWeek = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
   const { title, body } = buildDailyDigestMessage(jobs, realestate, danggn, dayOfWeek);
   const campaign = `new_items_${new Date().toISOString().slice(0, 10)}`;
   const data = { type: "new_items", campaign, screen: "뉴스" };
@@ -822,11 +829,140 @@ async function runNewItemsPush({ dryRun = false } = {}) {
   return await sendBroadcastPush({ title, body, data, logType: "daily_new_items_push", dryRun });
 }
 
-/** 아침 10시 — 뉴스 헤드라인 푸시 (WordPress REST API)
- * 일요일 제외 (일요일은 뉴스 발행 안 함) */
+/** 월요일 18시 전용 — 지난주 조회수 top 매물 */
+async function runWeeklyItemsPush({ dryRun = false } = {}) {
+  // 지난주 월~일 범위 (베트남 기준)
+  const nowVN = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN }));
+  const todayStart = new Date(nowVN.getFullYear(), nowVN.getMonth(), nowVN.getDate());
+  const lastMonday = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const lastSunday = new Date(todayStart.getTime() - 1);
+
+  const COLS = ["XinChaoDanggn", "Jobs", "RealEstate"];
+  const COL_LABELS = { XinChaoDanggn: "당근", Jobs: "채용", RealEstate: "부동산" };
+  const allItems = [];
+
+  for (const col of COLS) {
+    try {
+      const snap = await db.collection(col)
+        .where("createdAt", ">=", lastMonday)
+        .where("createdAt", "<=", lastSunday)
+        .orderBy("createdAt", "desc")
+        .limit(200)
+        .get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        if ((d.viewCount || 0) > 0) {
+          allItems.push({
+            col, label: COL_LABELS[col],
+            title: d.title || d.jobTitle || "제목 없음",
+            viewCount: d.viewCount || 0,
+          });
+        }
+      });
+    } catch (e) {
+      console.warn(`⚠️ ${col} 조회 실패:`, e.message);
+    }
+  }
+
+  allItems.sort((a, b) => b.viewCount - a.viewCount);
+  const top = allItems.slice(0, 10);
+  console.log(`📊 지난주 매물 top ${top.length}건 (전체 ${allItems.length}건 중)`);
+
+  if (top.length === 0) {
+    console.log("⏭️ 지난주 조회된 매물 없음 — skip");
+    return { skipped: true };
+  }
+
+  const topItem = top[0];
+  const title = "🏆 지난주 인기 매물 TOP";
+  const body = top.length > 1
+    ? `${topItem.label} · ${topItem.title} 외 ${top.length - 1}건`
+    : `${topItem.label} · ${topItem.title}`;
+
+  const campaign = `weekly_items_${new Date().toISOString().slice(0, 10)}`;
+  const data = { type: "new_items", campaign, screen: "뉴스" };
+
+  return await sendBroadcastPush({ title, body, data, logType: "weekly_items_push", dryRun });
+}
+
+/** 월요일 10시 전용 — GA4로 지난주 인기 뉴스 top 10 */
+async function runWeeklyNewsPush({ dryRun = false } = {}) {
+  const GA4_PROPERTY_ID = process.env.GA4_PROPERTY_ID;
+  const SA_JSON = process.env.GCP_SERVICE_ACCOUNT_JSON;
+
+  if (!GA4_PROPERTY_ID || !SA_JSON) {
+    console.warn("⚠️ GA4_PROPERTY_ID 또는 서비스계정 없음 — 일반 뉴스 푸시로 대체");
+    return await runRegularNewsPush({ dryRun });
+  }
+
+  let posts = [];
+  try {
+    const { BetaAnalyticsDataClient } = require("@google-analytics/data");
+    const svc = JSON.parse(SA_JSON);
+    const client = new BetaAnalyticsDataClient({
+      credentials: { client_email: svc.client_email, private_key: svc.private_key },
+      projectId: svc.project_id,
+    });
+
+    const [report] = await client.runReport({
+      property: `properties/${GA4_PROPERTY_ID}`,
+      dateRanges: [{ startDate: "7daysAgo", endDate: "1daysAgo" }],
+      dimensions: [{ name: "pageTitle" }, { name: "pagePath" }],
+      metrics: [{ name: "screenPageViews" }],
+      dimensionFilter: {
+        filter: {
+          fieldName: "pagePath",
+          stringFilter: { matchType: "CONTAINS", value: "chaovietnam.co.kr" },
+        },
+      },
+      orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+      limit: 20,
+    });
+
+    posts = (report.rows || [])
+      .map(r => ({
+        title: r.dimensionValues[0].value.replace(/\s*[-–|].*$/, "").trim(),
+        path: r.dimensionValues[1].value,
+        views: +r.metricValues[0].value,
+      }))
+      .filter(p => p.title && !p.title.includes("씬짜오베트남") && p.views > 1)
+      .slice(0, 10);
+  } catch (e) {
+    console.error("❌ GA4 조회 실패:", e.message, "— 일반 뉴스 푸시로 대체");
+    return await runRegularNewsPush({ dryRun });
+  }
+
+  if (posts.length === 0) {
+    console.log("⏭️ GA4 인기 뉴스 없음 — 일반 뉴스 푸시로 대체");
+    return await runRegularNewsPush({ dryRun });
+  }
+
+  console.log(`📊 지난주 인기 뉴스 top ${posts.length}건`);
+  const title = "📰 지난주 가장 많이 읽은 뉴스";
+  const body = posts.length > 1
+    ? `${posts[0].title} 외 ${posts.length - 1}건`
+    : posts[0].title;
+
+  const campaign = `weekly_news_${new Date().toISOString().slice(0, 10)}`;
+  const data = { type: "daily_news", campaign, screen: "뉴스" };
+
+  return await sendBroadcastPush({ title, body, data, logType: "weekly_news_push", dryRun });
+}
+
+/** 아침 10시 — 뉴스 헤드라인 푸시 (월요일은 GA4 기반 지난주 인기 뉴스 top 10) */
 async function runNewsPush({ dryRun = false } = {}) {
-  // 일요일이면 skip (수동 트리거 보호)
   const dayOfWeekVN = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
+
+  if (dayOfWeekVN === 1) return await runWeeklyNewsPush({ dryRun });
+
+  return await runRegularNewsPush({ dryRun });
+}
+
+/** 화~토 — 당일 뉴스 헤드라인 푸시 */
+async function runRegularNewsPush({ dryRun = false } = {}) {
+  const dayOfWeekVN = new Date(new Date().toLocaleString("en-US", { timeZone: TZ_VN })).getDay();
+
+  // 일요일이면 skip
   if (dayOfWeekVN === 0) {
     console.log("⏭️ 일요일 — 뉴스 발행 안 함, skip");
     await db.collection("broadcastLogs").add({
