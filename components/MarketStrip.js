@@ -127,6 +127,7 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef(null);
+  const didInitRef = useRef(false); // 무한 순환: 가운데 복제벌로 1회 초기 위치 이동
 
   useEffect(() => {
     let mounted = true;
@@ -347,9 +348,31 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
 
   if (!cards.length) return null;
 
+  // ── 무한 순환(캐러셀) 설정 ──────────────────────────────────────────────
+  // 카드가 2장 이상이면 3벌 복제하고 가운데 벌에서 시작한다. 사용자가 손으로
+  // 좌/우로 밀어 경계(첫째·셋째 벌)에 들어서면, 한 벌 너비(N*STEP)만큼 보이지
+  // 않게 순간 이동시켜 항상 가운데 벌에 머무르게 한다 → 끝없이 좌우로 슬라이드.
+  const STEP = CARD_W + CARD_GAP;
+  const N = cards.length;
+  const LOOP = N > 1;
+  const display = LOOP ? cards.concat(cards, cards) : cards;
+  const baseX = N * STEP; // 가운데 벌 첫 카드 위치
+
+  const maybeWrap = (x) => {
+    if (!LOOP) return;
+    const total = N * STEP;
+    if (x < total) {
+      // 첫째 벌로 넘어옴 → 한 벌 앞으로 이동
+      listRef.current?.scrollTo({ x: x + total, animated: false });
+    } else if (x >= total * 2) {
+      // 셋째 벌로 넘어감 → 한 벌 뒤로 이동
+      listRef.current?.scrollTo({ x: x - total, animated: false });
+    }
+  };
+
   const onScroll = (e) => {
     const x = e.nativeEvent.contentOffset.x;
-    const idx = Math.round(x / (CARD_W + CARD_GAP));
+    const idx = ((Math.round(x / STEP)) % N + N) % N;
     if (idx !== activeIdx) setActiveIdx(idx);
   };
 
@@ -360,24 +383,30 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate={0.92}
-        snapToInterval={CARD_W + CARD_GAP}
+        snapToInterval={STEP}
         snapToAlignment="start"
         directionalLockEnabled={true}
         nestedScrollEnabled={true}
         contentContainerStyle={styles.listContent}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        onContentSizeChange={() => {
+          if (LOOP && !didInitRef.current) {
+            didInitRef.current = true;
+            listRef.current?.scrollTo({ x: baseX, animated: false });
+          }
+        }}
         onScrollBeginDrag={() => onScrollLock?.()}
-        onScrollEndDrag={() => onScrollUnlock?.()}
-        onMomentumScrollEnd={() => onScrollUnlock?.()}
+        onScrollEndDrag={(e) => { maybeWrap(e.nativeEvent.contentOffset.x); onScrollUnlock?.(); }}
+        onMomentumScrollEnd={(e) => { maybeWrap(e.nativeEvent.contentOffset.x); onScrollUnlock?.(); }}
       >
-        {cards.map((card, i) => (
-          <View key={card.key} style={{ marginLeft: i === 0 ? 0 : CARD_GAP }}>
+        {display.map((card, i) => (
+          <View key={`${card.key}-${i}`} style={{ marginRight: CARD_GAP }}>
             <MarketCard card={card} />
           </View>
         ))}
       </ScrollView>
-      {/* 페이지 인디케이터 */}
+      {/* 페이지 인디케이터 (논리 카드 수만큼) */}
       <View style={styles.dots}>
         {cards.map((c, i) => (
           <View
