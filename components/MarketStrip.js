@@ -189,7 +189,9 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
 
   // ── 카드 구성 (웹과 동일: 정보 먼저 → 커머스). 노출은 가로 무한 슬라이드. ──
   const cards = [];
-  const brandLogo = (d) => `https://icon.horse/icon/${d}`;
+  const brandLogo = (d) => d === 'booking.com'
+    ? `https://www.google.com/s2/favicons?domain=${d}&sz=128` // 컬러 파란 'B' (icon.horse는 채도 죽음)
+    : `https://icon.horse/icon/${d}`;
 
   // ===== 정보 카드 (먼저) =====
 
