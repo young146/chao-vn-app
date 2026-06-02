@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   Linking,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as wordpressApi from '../services/wordpressApi';
@@ -71,51 +72,83 @@ function SparkBars({ points, color }) {
 
 // ── 카드 1장 ────────────────────────────────────────────────────────────────
 function MarketCard({ card }) {
-  const openLink = () => {
-    if (card.linkUrl) Linking.openURL(card.linkUrl).catch(() => {});
+  const openLink = (url) => {
+    if (url) Linking.openURL(url).catch(() => {});
   };
 
   return (
     <View style={[styles.card, { width: CARD_W }]}>
-      {/* 헤더: 아이콘 + 제목 + 부제 */}
+      {/* 빈 공백 채우는 워터마크 (호텔🏨·여행🧳) — 콘텐츠 뒤 */}
+      {!!card.watermark && <Text style={styles.watermark}>{card.watermark}</Text>}
+
+      {/* 헤더: 브랜드 로고 또는 이모지 + 제목 + 부제 */}
       <View style={styles.cardHeader}>
-        <Text style={styles.cardIcon}>{card.icon}</Text>
+        {card.logo
+          ? <Image source={{ uri: card.logo }} style={styles.cardLogo} />
+          : <Text style={styles.cardIcon}>{card.icon}</Text>}
         <Text style={styles.cardTitle}>{card.title}</Text>
         {!!card.subtitle && <Text style={styles.cardSubtitle}>{card.subtitle}</Text>}
       </View>
 
-      {/* 본문: 지표 1~2개 (값 + 막대그래프) */}
-      <View style={styles.metricsRow}>
-        {card.metrics.map((m, idx) => (
-          <View key={idx} style={styles.metric}>
-            <View style={styles.metricValRow}>
-              {!!m.flag && <Text style={styles.flag}>{m.flag}</Text>}
-              <Text style={styles.metricLabel}>{m.label}</Text>
-            </View>
-            <Text style={[styles.metricValue, m.valueColor && { color: m.valueColor }]}>
-              {m.value}
-              {!!m.unit && <Text style={styles.metricUnit}>{m.unit}</Text>}
-            </Text>
-            {!!m.sub && <Text style={[styles.metricSub, m.subColor && { color: m.subColor }]}>{m.sub}</Text>}
-            {card.showGraph !== false && (
-              <View style={styles.graphBox}>
-                <SparkBars points={m.spark} color={m.graphColor || card.accent} />
+      {card.rows ? (
+        /* 결합 카드 (여행 준비: eSIM + 투어) — 브랜드별 행 */
+        <View style={styles.travelList}>
+          {card.rows.map((r, idx) => (
+            <View key={idx} style={styles.travelItem}>
+              <View style={styles.travelInfo}>
+                {!!r.logo && <Image source={{ uri: r.logo }} style={styles.travelLogo} />}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.travelName}>{r.name}</Text>
+                  <Text style={styles.travelDesc}>{r.desc}</Text>
+                </View>
               </View>
-            )}
+              <TouchableOpacity
+                style={[styles.travelBtn, { backgroundColor: r.accent }]}
+                onPress={() => openLink(r.link)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.travelBtnText}>{r.btn}</Text>
+                <Ionicons name="chevron-forward" size={13} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <>
+          {/* 본문: 지표 1~2개 (값 + 막대그래프) */}
+          <View style={styles.metricsRow}>
+            {card.metrics.map((m, idx) => (
+              <View key={idx} style={styles.metric}>
+                <View style={styles.metricValRow}>
+                  {!!m.flag && <Text style={styles.flag}>{m.flag}</Text>}
+                  <Text style={styles.metricLabel}>{m.label}</Text>
+                </View>
+                <Text style={[styles.metricValue, m.valueColor && { color: m.valueColor }]}>
+                  {m.value}
+                  {!!m.unit && <Text style={styles.metricUnit}>{m.unit}</Text>}
+                </Text>
+                {!!m.sub && <Text style={[styles.metricSub, m.subColor && { color: m.subColor }]}>{m.sub}</Text>}
+                {card.showGraph !== false && (
+                  <View style={styles.graphBox}>
+                    <SparkBars points={m.spark} color={m.graphColor || card.accent} />
+                  </View>
+                )}
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
 
-      {/* 제휴/소스 버튼 (항상 노출) */}
-      {!!card.buttonText && (
-        <TouchableOpacity
-          style={[styles.cardBtn, { backgroundColor: card.accent }]}
-          onPress={openLink}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.cardBtnText}>{card.buttonText}</Text>
-          <Ionicons name="chevron-forward" size={14} color="#fff" />
-        </TouchableOpacity>
+          {/* 제휴/소스 버튼 (항상 노출) */}
+          {!!card.buttonText && (
+            <TouchableOpacity
+              style={[styles.cardBtn, { backgroundColor: card.accent }]}
+              onPress={() => openLink(card.linkUrl)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.cardBtnText}>{card.buttonText}</Text>
+              <Ionicons name="chevron-forward" size={14} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </>
       )}
     </View>
   );
@@ -154,87 +187,25 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
   // 데이터 없으면 영역 자체를 숨김 (깨진 화면 방지)
   if (!data) return null;
 
-  // ── 카드 구성 (수익 우선 순서: 항공권 → 환율 → 주가 → 날씨) ──
+  // ── 카드 구성 (웹과 동일: 정보 먼저 → 커머스). 노출은 가로 무한 슬라이드. ──
   const cards = [];
+  const brandLogo = (d) => `https://icon.horse/icon/${d}`;
 
-  // 1) 항공권
-  const af = data.airfare || {};
-  const afMetrics = [];
-  if (af.sgn && af.sgn.price) {
-    afMetrics.push({
-      label: af.sgn.label || '호치민',
-      flag: '🇻🇳',
-      value: af.sgn.price,
-      unit: af.sgn.unit || '원~',
-      spark: af.sgn.spark,
-      graphColor: '#2f9e44',
-    });
-  }
-  if (af.han && af.han.price) {
-    afMetrics.push({
-      label: af.han.label || '하노이',
-      flag: '🇻🇳',
-      value: af.han.price,
-      unit: af.han.unit || '원~',
-      spark: af.han.spark,
-      graphColor: '#2f9e44',
-    });
-  }
-  if (afMetrics.length) {
-    cards.push({
-      key: 'airfare',
-      icon: '✈️',
-      title: '항공권 최저가',
-      subtitle: '인천 출발',
-      accent: '#1a73e8',
-      metrics: afMetrics,
-      buttonText: '항공권 검색하기',
-      linkUrl: AVIASALES_URL,
-    });
-  }
+  // ===== 정보 카드 (먼저) =====
 
-  // 1-2) 호텔 최저가 (Hotellook 제휴) — 링크가 있을 때만
-  if (data.links?.hotel) {
+  // 1) 날씨
+  const weather = Array.isArray(data.weather) ? data.weather : [];
+  if (weather.length) {
     cards.push({
-      key: 'hotel',
-      icon: '🏨',
-      title: '호텔·숙소',
-      subtitle: '베트남',
-      accent: '#0d9488',
+      key: 'weather',
+      icon: '🌤',
+      title: '오늘의 날씨',
+      subtitle: 'Open-Meteo',
+      accent: '#0ea5e9',
       showGraph: false,
-      metrics: [{ label: '호텔·아파트·게스트하우스', value: '최저가 비교' }],
-      buttonText: '숙소 검색하기',
-      linkUrl: data.links.hotel,
-    });
-  }
-
-  // 1-3) 여행 eSIM (Airalo 제휴) — 링크가 있을 때만
-  if (data.links?.esim) {
-    cards.push({
-      key: 'esim',
-      icon: '📱',
-      title: '여행 eSIM',
-      subtitle: 'Airalo',
-      accent: '#ff5b3a',
-      showGraph: false,
-      metrics: [{ label: '베트남 도착 즉시 데이터', value: 'eSIM 즉시개통' }],
-      buttonText: 'eSIM 보기',
-      linkUrl: data.links.esim,
-    });
-  }
-
-  // 1-4) 투어·입장권 (Klook 제휴) — 링크 있을 때만
-  if (data.links?.tour) {
-    cards.push({
-      key: 'tour',
-      icon: '🎟️',
-      title: '투어·입장권',
-      subtitle: 'Klook',
-      accent: '#ff6b2c',
-      showGraph: false,
-      metrics: [{ label: '바나힐·하롱베이·공항픽업 등', value: '액티비티·티켓 예약' }],
-      buttonText: '투어 예약하기',
-      linkUrl: data.links.tour,
+      metrics: weather.slice(0, 3).map((w) => ({ label: w.city, value: w.temp })),
+      buttonText: '날씨 자세히',
+      linkUrl: data.links?.weather || 'https://www.accuweather.com/',
     });
   }
 
@@ -242,90 +213,37 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
   const ex = data.exchange || {};
   const exMetrics = [];
   if (ex.usd && ex.usd.value) {
-    exMetrics.push({
-      label: '1 USD',
-      flag: '🇺🇸',
-      value: ex.usd.value,
-      unit: ex.usd.unit || '₫',
-      spark: ex.usd.spark,
-      graphColor: '#e03131',
-      valueColor: '#059669',
-    });
+    exMetrics.push({ label: '1 USD', flag: '🇺🇸', value: ex.usd.value, unit: ex.usd.unit || '₫', spark: ex.usd.spark, graphColor: '#e03131', valueColor: '#059669' });
   }
   if (ex.krw && ex.krw.value) {
-    exMetrics.push({
-      label: ex.krw.label || '100 KRW',
-      flag: '🇰🇷',
-      value: ex.krw.value,
-      unit: ex.krw.unit || '₫',
-      spark: ex.krw.spark,
-      graphColor: '#e03131',
-      valueColor: '#059669',
-    });
+    exMetrics.push({ label: ex.krw.label || '100 KRW', flag: '🇰🇷', value: ex.krw.value, unit: ex.krw.unit || '₫', spark: ex.krw.spark, graphColor: '#e03131', valueColor: '#059669' });
   }
   if (exMetrics.length) {
-    cards.push({
-      key: 'exchange',
-      icon: '💱',
-      title: '환율',
-      subtitle: '30일 추세',
-      accent: '#059669',
-      metrics: exMetrics,
-      buttonText: '환율 검색',
-      linkUrl: data.links?.exchange || 'https://finance.naver.com/marketindex/',
-    });
+    cards.push({ key: 'exchange', icon: '💱', title: '환율', subtitle: '30일 추세', accent: '#059669', metrics: exMetrics, buttonText: '환율 검색', linkUrl: data.links?.exchange || 'https://finance.naver.com/marketindex/' });
   }
 
-  // 2-2) 송금 (Wise 제휴) — 환율 본 직후가 송금 의향 최고점. 링크 있을 때만.
+  // 3) 송금 (Wise) — 환율 본 직후가 송금 의향 최고점
   if (data.links?.send) {
-    cards.push({
-      key: 'send',
-      icon: '💸',
-      title: '한국 → 베트남 송금',
-      subtitle: 'Wise',
-      accent: '#163300',
-      showGraph: false,
-      metrics: [{ label: '은행보다 저렴한 환율·수수료', value: 'Wise로 송금' }],
-      buttonText: '이 환율로 송금하기',
-      linkUrl: data.links.send,
-    });
+    cards.push({ key: 'send', logo: brandLogo('wise.com'), icon: '💸', title: '한국 → 베트남 송금', subtitle: 'Wise', accent: '#163300', showGraph: false, metrics: [{ label: '은행보다 저렴한 환율·수수료', value: 'Wise로 송금' }], buttonText: '이 환율로 송금하기', linkUrl: data.links.send });
   }
 
-  // 3) 주가
+  // 4) 주가
   const st = data.stock || {};
   const stMetrics = [];
   ['kospi', 'vnindex'].forEach((k) => {
     if (st[k] && st[k].value) {
       const up = st[k].dir === 'up';
       const down = st[k].dir === 'down';
-      // 한국 관례: 상승=빨강, 하락=파랑
       const color = up ? '#e03131' : down ? '#1971c2' : '#868e96';
       const arrow = up ? '▲' : down ? '▼' : '–';
-      stMetrics.push({
-        label: st[k].label || k,
-        flag: k === 'kospi' ? '🇰🇷' : '🇻🇳',
-        value: st[k].value,
-        sub: `${arrow} ${st[k].pct}%`,
-        subColor: color,
-        spark: st[k].spark,
-        graphColor: color,
-      });
+      stMetrics.push({ label: st[k].label || k, flag: k === 'kospi' ? '🇰🇷' : '🇻🇳', value: st[k].value, sub: `${arrow} ${st[k].pct}%`, subColor: color, spark: st[k].spark, graphColor: color });
     }
   });
   if (stMetrics.length) {
-    cards.push({
-      key: 'stock',
-      icon: '📈',
-      title: '주가지수',
-      subtitle: '전일 대비',
-      accent: '#7048e8',
-      metrics: stMetrics,
-      buttonText: '주가 확인',
-      linkUrl: data.links?.stock || 'https://kr.investing.com/indices/major-indices',
-    });
+    cards.push({ key: 'stock', icon: '📈', title: '주가지수', subtitle: '전일 대비', accent: '#7048e8', metrics: stMetrics, buttonText: '주가 확인', linkUrl: data.links?.stock || 'https://kr.investing.com/indices/major-indices' });
   }
 
-  // 3-2) 국제 금시세·유가 (정보). 한국 관례: 상승=빨강, 하락=파랑.
+  // 5) 금시세·유가
   const cm = data.commodity || {};
   [
     { k: 'gold', icon: '🥇', title: '국제 금시세', accent: '#d97706', btn: '금시세 보기', link: data.links?.gold },
@@ -336,44 +254,40 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
       const down = cm[k].dir === 'down';
       const color = up ? '#e03131' : down ? '#1971c2' : '#868e96';
       const arrow = up ? '▲' : down ? '▼' : '–';
-      cards.push({
-        key: k,
-        icon,
-        title,
-        subtitle: '전일 대비',
-        accent,
-        metrics: [{
-          label: cm[k].label || title,
-          value: cm[k].value,
-          unit: cm[k].unit ? ` ${cm[k].unit}` : '',
-          sub: `${arrow} ${cm[k].pct}%`,
-          subColor: color,
-          spark: cm[k].spark,
-          graphColor: color,
-        }],
-        buttonText: btn,
-        linkUrl: link,
-      });
+      cards.push({ key: k, icon, title, subtitle: '전일 대비', accent, metrics: [{ label: cm[k].label || title, value: cm[k].value, unit: cm[k].unit ? ` ${cm[k].unit}` : '', sub: `${arrow} ${cm[k].pct}%`, subColor: color, spark: cm[k].spark, graphColor: color }], buttonText: btn, linkUrl: link });
     }
   });
 
-  // 4) 날씨 (수익 없음 → 맨 뒤, 그래프 없음)
-  const weather = Array.isArray(data.weather) ? data.weather : [];
-  if (weather.length) {
-    cards.push({
-      key: 'weather',
-      icon: '🌤',
-      title: '오늘의 날씨',
-      subtitle: 'Open-Meteo',
-      accent: '#0ea5e9',
-      showGraph: false,
-      metrics: weather.slice(0, 3).map((w) => ({
-        label: w.city,
-        value: w.temp,
-      })),
-      buttonText: '날씨 자세히',
-      linkUrl: data.links?.weather || 'https://www.accuweather.com/',
-    });
+  // ===== 커머스 카드 (그다음) =====
+
+  // 6) 항공권 (Aviasales)
+  const af = data.airfare || {};
+  const afMetrics = [];
+  if (af.sgn && af.sgn.price) {
+    afMetrics.push({ label: af.sgn.label || '호치민', flag: '🇻🇳', value: af.sgn.price, unit: af.sgn.unit || '원~', spark: af.sgn.spark, graphColor: '#2f9e44' });
+  }
+  if (af.han && af.han.price) {
+    afMetrics.push({ label: af.han.label || '하노이', flag: '🇻🇳', value: af.han.price, unit: af.han.unit || '원~', spark: af.han.spark, graphColor: '#2f9e44' });
+  }
+  if (afMetrics.length) {
+    cards.push({ key: 'airfare', logo: brandLogo('aviasales.com'), icon: '✈️', title: '항공권 최저가', subtitle: '인천 출발', accent: '#1a73e8', metrics: afMetrics, buttonText: '항공권 검색하기', linkUrl: AVIASALES_URL });
+  }
+
+  // 7) 호텔·숙소 (Booking.com)
+  if (data.links?.hotel) {
+    cards.push({ key: 'hotel', logo: brandLogo('booking.com'), title: '호텔·숙소', subtitle: 'Booking.com', accent: '#003580', showGraph: false, watermark: '🏨', metrics: [{ label: '호텔·아파트 최저가 비교', value: '바로 예약' }], buttonText: '숙소 예약하기', linkUrl: data.links.hotel });
+  }
+
+  // 8) 여행 준비 = eSIM(Airalo) + 투어(Klook) 한 카드
+  const travelRows = [];
+  if (data.links?.esim) {
+    travelRows.push({ logo: brandLogo('airalo.com'), name: 'Airalo eSIM', desc: '도착 즉시 데이터·QR 설치', btn: 'eSIM 보기', link: data.links.esim, accent: '#ff5b3a' });
+  }
+  if (data.links?.tour) {
+    travelRows.push({ logo: brandLogo('klook.com'), name: 'Klook 투어·입장권', desc: '바나힐·하롱베이·공항픽업', btn: '투어 예약', link: data.links.tour, accent: '#ff6b2c' });
+  }
+  if (travelRows.length) {
+    cards.push({ key: 'travel', icon: '🧳', title: '여행 준비', accent: '#7048e8', watermark: '🧳', rows: travelRows });
   }
 
   if (!cards.length) return null;
@@ -464,6 +378,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   card: {
+    position: 'relative',
+    overflow: 'hidden',
     backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
@@ -475,12 +391,28 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  watermark: {
+    position: 'absolute',
+    right: -6,
+    bottom: 10,
+    fontSize: 92,
+    opacity: 0.06,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 14,
   },
   cardIcon: { fontSize: 20, marginRight: 7 },
+  cardLogo: { width: 22, height: 22, borderRadius: 5, marginRight: 7 },
+  travelList: { gap: 16 },
+  travelItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  travelInfo: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 },
+  travelLogo: { width: 26, height: 26, borderRadius: 6 },
+  travelName: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  travelDesc: { fontSize: 11.5, color: '#6b7280', fontWeight: '500', marginTop: 1 },
+  travelBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14 },
+  travelBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
   cardTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
   cardSubtitle: { fontSize: 11, color: '#9ca3af', marginLeft: 6, fontWeight: '500' },
   metricsRow: {
