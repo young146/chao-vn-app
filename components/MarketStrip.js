@@ -198,12 +198,12 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
     cards.push({
       key: 'hotel',
       icon: '🏨',
-      title: '호텔 최저가',
+      title: '호텔·숙소',
       subtitle: '베트남',
       accent: '#0d9488',
       showGraph: false,
-      metrics: [{ label: '하노이·호치민·다낭 등', value: '실시간 최저가' }],
-      buttonText: '호텔 검색하기',
+      metrics: [{ label: '호텔·아파트·게스트하우스', value: '최저가 비교' }],
+      buttonText: '숙소 검색하기',
       linkUrl: data.links.hotel,
     });
   }
@@ -266,7 +266,7 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
     cards.push({
       key: 'send',
       icon: '💸',
-      title: '한국 ↔ 베트남 송금',
+      title: '한국 → 베트남 송금',
       subtitle: 'Wise',
       accent: '#163300',
       showGraph: false,
