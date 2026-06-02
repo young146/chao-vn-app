@@ -223,6 +223,21 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
     });
   }
 
+  // 1-4) 투어·입장권 (Klook 제휴) — 링크 있을 때만
+  if (data.links?.tour) {
+    cards.push({
+      key: 'tour',
+      icon: '🎟️',
+      title: '투어·입장권',
+      subtitle: 'Klook',
+      accent: '#ff6b2c',
+      showGraph: false,
+      metrics: [{ label: '바나힐·하롱베이·공항픽업 등', value: '액티비티·티켓 예약' }],
+      buttonText: '투어 예약하기',
+      linkUrl: data.links.tour,
+    });
+  }
+
   // 2) 환율
   const ex = data.exchange || {};
   const exMetrics = [];
