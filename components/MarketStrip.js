@@ -261,6 +261,21 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
     });
   }
 
+  // 2-2) 송금 (Wise 제휴) — 환율 본 직후가 송금 의향 최고점. 링크 있을 때만.
+  if (data.links?.send) {
+    cards.push({
+      key: 'send',
+      icon: '💸',
+      title: '한국 ↔ 베트남 송금',
+      subtitle: 'Wise',
+      accent: '#163300',
+      showGraph: false,
+      metrics: [{ label: '은행보다 저렴한 환율·수수료', value: 'Wise로 송금' }],
+      buttonText: '이 환율로 송금하기',
+      linkUrl: data.links.send,
+    });
+  }
+
   // 3) 주가
   const st = data.stock || {};
   const stMetrics = [];
