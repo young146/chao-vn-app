@@ -1044,7 +1044,7 @@ async function runRegularNewsPush({ dryRun = false } = {}) {
   const headline1 = decode(posts[0].title?.rendered);
   const title = "📰 씬짜오 오늘의 뉴스";
   const body = posts.length > 1
-    ? `${headline1} · 외 ${posts.length - 1}건`
+    ? `${headline1} · 외 오늘의 모든 뉴스`
     : headline1;
 
   const campaign = `news_${new Date().toISOString().slice(0, 10)}`;
