@@ -223,6 +223,17 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 📇 deviceTokens (기기 푸시 토큰 명단 — 로그인 불필요)
+    // 앱 설치자 전원(비로그인 포함)이 자기 기기 토큰을 등록.
+    // 읽기는 토큰 보호 위해 관리자만 (서버는 Admin SDK라 규칙 우회).
+    // ========================================
+    match /deviceTokens/{docId} {
+      allow read: if isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // ========================================
     // 🚫 기본 거부 (위에서 정의되지 않은 모든 문서)
     // ========================================
     match /{document=**} {

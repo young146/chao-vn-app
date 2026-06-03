@@ -751,52 +751,81 @@ async function countNewItemsLast24h() {
   return { jobs, realestate, danggn };
 }
 
-/** 공통 발송 헬퍼 — all_users 토픽으로 발송 (비로그인 설치자 포함) */
+/** 공통 발송 헬퍼 — Firestore 토큰 기반 전체 발송 */
 async function sendBroadcastPush({ title, body, data, logType, dryRun = false, imageUrl = null }) {
-  console.log(`📬 ${logType} → all_users 토픽 발송`);
+  const usersSnap = await db.collection("users").get();
+  const fcmTokens = [];
+  const expoTokens = [];
+
+  const checks = usersSnap.docs.map(async (userDoc) => {
+    const uid = userDoc.id;
+    const u = userDoc.data();
+    try {
+      const settingsDoc = await db.collection("notificationSettings").doc(uid).get();
+      if (settingsDoc.exists && settingsDoc.data().dailyDigest === false) return;
+    } catch (_) { /* 설정 없으면 기본 허용 */ }
+
+    const fcm = Array.isArray(u.fcmTokens)
+      ? u.fcmTokens
+      : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
+    const expoPush = Array.isArray(u.expoPushTokens)
+      ? u.expoPushTokens
+      : [u.expoPushToken].filter(Boolean);
+    fcmTokens.push(...fcm);
+    expoTokens.push(...expoPush);
+  });
+  await Promise.allSettled(checks);
+
+  // 비로그인 설치자 포함 — deviceTokens 명단도 합산 (앱 설치자 전원 도달)
+  try {
+    const deviceSnap = await db.collection("deviceTokens").get();
+    deviceSnap.docs.forEach((d) => {
+      const t = d.data();
+      if (t.fcmToken) fcmTokens.push(t.fcmToken);
+      if (t.expoPushToken) expoTokens.push(t.expoPushToken);
+    });
+    console.log(`📇 deviceTokens 명단: ${deviceSnap.size}개 기기 합산`);
+  } catch (e) {
+    console.error("⚠️ deviceTokens 읽기 실패:", e.message);
+  }
+
+  const uniqueFcm = [...new Set(fcmTokens)];
+  const uniqueExpo = [...new Set(expoTokens)].filter(t => Expo.isExpoPushToken(t));
+  console.log(`📬 ${logType} 대상: FCM ${uniqueFcm.length}개, Expo ${uniqueExpo.length}개`);
 
   if (dryRun) {
     console.log("🧪 dryRun — 실발송 없음");
-    return { dryRun: true, title, body, channel: "topic/all_users" };
+    return { dryRun: true, title, body, fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length };
   }
 
-  const message = {
-    topic: "all_users",
-    notification: { title, body },
-    data: data ? Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])) : {},
-    android: {
-      priority: "high",
-      notification: {
-        channelId: "default",
-        sound: "default",
-        ...(imageUrl ? { imageUrl } : {}),
-      },
-    },
-    apns: {
-      payload: { aps: { sound: "default", badge: 1, "mutable-content": 1 } },
-      headers: { "apns-priority": "10", "apns-push-type": "alert" },
-    },
-  };
-
-  try {
-    const result = await getMessaging().send(message);
-    console.log(`✅ ${logType} 토픽 발송 완료:`, result);
-  } catch (e) {
-    console.error(`❌ ${logType} 토픽 발송 실패:`, e.message);
-    throw e;
+  if (uniqueFcm.length > 0) {
+    await sendMulticastFCM(uniqueFcm, { title, body, data, imageUrl });
+  }
+  if (uniqueExpo.length > 0) {
+    const messages = uniqueExpo.map(t => ({
+      to: t, sound: "default", title, body, data, channelId: "default", priority: "high",
+      ...(imageUrl ? { image: imageUrl } : {}),
+    }));
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      try { await expo.sendPushNotificationsAsync(chunk); }
+      catch (e) { console.error("❌ Expo 발송 실패:", e.message); }
+    }
   }
 
   await db.collection("broadcastLogs").add({
     type: logType,
     campaign: data?.campaign || null,
     title, body,
-    channel: "topic/all_users",
+    fcmCount: uniqueFcm.length,
+    expoCount: uniqueExpo.length,
     sentAt: FieldValue.serverTimestamp(),
     ...(imageUrl ? { imageUrl } : {}),
     ...(data?.url ? { url: data.url } : {}),
   });
 
-  return { channel: "topic/all_users", title, body };
+  console.log(`✅ ${logType} 발송 완료: FCM ${uniqueFcm.length} + Expo ${uniqueExpo.length}`);
+  return { fcmCount: uniqueFcm.length, expoCount: uniqueExpo.length, title, body };
 }
 
 /** 저녁 6시 — 새 등록 물품 푸시 (월요일은 지난주 인기 매물 top 10) */

@@ -179,28 +179,55 @@ class NotificationService {
   }
 
   /**
-   * all_users FCM 토픽 구독 — 비로그인 설치자도 브로드캐스트 알림 수신
-   * 권한이 이미 있으면 즉시 실행, 없으면 조용히 skip
+   * 기기 푸시 토큰 저장 — 로그인 여부와 무관하게 앱 설치자 전원을 브로드캐스트 대상에 포함
+   * 권한이 이미 있으면 즉시 실행, 없으면 조용히 skip.
+   * (로그인 시 users/{uid}에 저장하던 것과 별개로, deviceTokens 명단에 기기 단위로 저장)
    */
-  async subscribeToAllUsersTopic() {
+  async saveDeviceToken() {
     if (!Device.isDevice) return;
     try {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== "granted") return;
 
-      const tokenConfig = Platform.OS === "android" ? { gcmSenderId: "249390849714" } : {};
-      const devicePushToken = await Notifications.getDevicePushTokenAsync(tokenConfig);
-      const fcmToken = devicePushToken.data;
-      if (!fcmToken) return;
+      // FCM/APNS 기기 토큰 (앱 꺼져도 도달하는 메인 채널)
+      let fcmToken = null;
+      try {
+        const tokenConfig = Platform.OS === "android" ? { gcmSenderId: "249390849714" } : {};
+        const devicePushToken = await Notifications.getDevicePushTokenAsync(tokenConfig);
+        fcmToken = devicePushToken.data;
+      } catch (_) { /* 토큰 획득 실패는 무시 */ }
 
-      await fetch("https://asia-northeast3-chaovietnam-login.cloudfunctions.net/subscribeToAllUsers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: fcmToken }),
-      });
-      console.log("✅ all_users 토픽 구독 완료");
+      // Expo 토큰 (백업 채널)
+      let expoPushToken = null;
+      try {
+        const projectId =
+          Constants?.expoConfig?.extra?.eas?.projectId ||
+          Constants?.easConfig?.projectId ||
+          Constants?.expoConfig?.projectId;
+        if (projectId) {
+          const r = await Notifications.getExpoPushTokenAsync({ projectId });
+          expoPushToken = r.data;
+        }
+      } catch (_) { /* 토큰 획득 실패는 무시 */ }
+
+      if (!fcmToken && !expoPushToken) return;
+
+      // 기기 단위 문서로 upsert (Firestore 문서 ID에 못 쓰는 문자 치환)
+      const docId = (fcmToken || expoPushToken).replace(/[/.#$[\]]/g, "_");
+      const db = await getDb();
+      await setDoc(
+        doc(db, "deviceTokens", docId),
+        {
+          ...(fcmToken ? { fcmToken } : {}),
+          ...(expoPushToken ? { expoPushToken } : {}),
+          platform: Platform.OS,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      console.log("✅ 기기 토큰 저장 완료 (deviceTokens)");
     } catch (e) {
-      console.log("⚠️ 토픽 구독 실패 (무시):", e.message);
+      console.log("⚠️ 기기 토큰 저장 실패 (무시):", e.message);
     }
   }
 
@@ -216,8 +243,8 @@ class NotificationService {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
 
-    // 권한 획득 시점에 토픽 구독 (로그인 후 처음 권한 받는 신규 사용자 대응)
-    this.subscribeToAllUsersTopic();
+    // 권한 획득 시점에 기기 토큰도 deviceTokens 명단에 저장 (전체 도달 보장)
+    this.saveDeviceToken();
 
     try {
       // Expo Push Token
@@ -529,8 +556,8 @@ class NotificationService {
       // 2. 알림 채널 생성 (Android)
       await this.setupChannels();
 
-      // 2-1. 권한이 이미 있으면 비로그인 상태에서도 토픽 구독 (비동기, 실패해도 무시)
-      this.subscribeToAllUsersTopic();
+      // 2-1. 권한이 이미 있으면 비로그인 상태에서도 기기 토큰 저장 (비동기, 실패해도 무시)
+      this.saveDeviceToken();
 
       // 3. 알림 수신 리스너 설정
       const receivedListener = this.setupNotificationReceivedListener();
