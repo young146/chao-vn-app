@@ -83,6 +83,14 @@
         { "fieldPath": "district", "order": "ASCENDING" },
         { "fieldPath": "apartment", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pushDrafts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
