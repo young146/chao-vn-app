@@ -757,6 +757,28 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false, i
   const fcmTokens = [];
   const expoTokens = [];
 
+  // 한 기기당 한 경로만 사용 (중복 알림 방지)
+  // - Android: FCM 직접 발송 (앱 꺼져도 도달)
+  // - iOS: Expo 사용 (iOS는 APNs 토큰이라 Admin FCM multicast에서 거부됨)
+  // - FCM/Expo 한쪽만 있으면 있는 쪽 사용
+  const addDeviceTokens = (d) => {
+    const fcm = Array.isArray(d.fcmTokens)
+      ? d.fcmTokens
+      : [d.fcmToken, d.fcmTokenDev, d.fcmTokenProd].filter(Boolean);
+    const expoPush = Array.isArray(d.expoPushTokens)
+      ? d.expoPushTokens
+      : [d.expoPushToken].filter(Boolean);
+    const isAndroid = d.platform === "android";
+
+    if (isAndroid && fcm.length) {
+      fcmTokens.push(...fcm);        // Android(명시) → FCM 한 경로
+    } else if (expoPush.length) {
+      expoTokens.push(...expoPush);  // iOS·platform불명 → Expo 한 경로(양쪽 안전)
+    } else if (fcm.length) {
+      fcmTokens.push(...fcm);        // Expo 없을 때만 FCM
+    }
+  };
+
   const checks = usersSnap.docs.map(async (userDoc) => {
     const uid = userDoc.id;
     const u = userDoc.data();
@@ -765,25 +787,14 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false, i
       if (settingsDoc.exists && settingsDoc.data().dailyDigest === false) return;
     } catch (_) { /* 설정 없으면 기본 허용 */ }
 
-    const fcm = Array.isArray(u.fcmTokens)
-      ? u.fcmTokens
-      : [u.fcmToken, u.fcmTokenDev, u.fcmTokenProd].filter(Boolean);
-    const expoPush = Array.isArray(u.expoPushTokens)
-      ? u.expoPushTokens
-      : [u.expoPushToken].filter(Boolean);
-    fcmTokens.push(...fcm);
-    expoTokens.push(...expoPush);
+    addDeviceTokens(u);
   });
   await Promise.allSettled(checks);
 
   // 비로그인 설치자 포함 — deviceTokens 명단도 합산 (앱 설치자 전원 도달)
   try {
     const deviceSnap = await db.collection("deviceTokens").get();
-    deviceSnap.docs.forEach((d) => {
-      const t = d.data();
-      if (t.fcmToken) fcmTokens.push(t.fcmToken);
-      if (t.expoPushToken) expoTokens.push(t.expoPushToken);
-    });
+    deviceSnap.docs.forEach((d) => addDeviceTokens(d.data()));
     console.log(`📇 deviceTokens 명단: ${deviceSnap.size}개 기기 합산`);
   } catch (e) {
     console.error("⚠️ deviceTokens 읽기 실패:", e.message);
