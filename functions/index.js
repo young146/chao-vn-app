@@ -817,13 +817,20 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false, i
       to: t, sound: "default", title, body, data, channelId: "default", priority: "high",
       ...(imageUrl ? { image: imageUrl } : {}),
     }));
-    const chunks = expo.chunkPushNotifications(messages);
+    // ⚠️ iOS 누락 방지: 한 요청에 많이 몰아 보내면 Expo/APNs가 일부를 조용히
+    // 드롭함(영수증 ok로 나와도 폰엔 미도달). 작은 묶음(20)으로 쪼개고 간격을 둔다.
+    const EXPO_BATCH = 20;
+    const EXPO_GAP_MS = 1500;
     const tickets = [];
-    for (const chunk of chunks) {
+    for (let i = 0; i < messages.length; i += EXPO_BATCH) {
+      const chunk = messages.slice(i, i + EXPO_BATCH);
       try {
         const t = await expo.sendPushNotificationsAsync(chunk);
         tickets.push(...t);
       } catch (e) { console.error("❌ Expo 발송 실패(chunk):", e.message); }
+      if (i + EXPO_BATCH < messages.length) {
+        await new Promise((r) => setTimeout(r, EXPO_GAP_MS));
+      }
     }
     const okCount = tickets.filter(t => t.status === "ok").length;
     const errTickets = tickets.filter(t => t.status === "error");
