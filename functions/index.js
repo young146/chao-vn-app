@@ -818,10 +818,40 @@ async function sendBroadcastPush({ title, body, data, logType, dryRun = false, i
       ...(imageUrl ? { image: imageUrl } : {}),
     }));
     const chunks = expo.chunkPushNotifications(messages);
+    const tickets = [];
     for (const chunk of chunks) {
-      try { await expo.sendPushNotificationsAsync(chunk); }
-      catch (e) { console.error("❌ Expo 발송 실패:", e.message); }
+      try {
+        const t = await expo.sendPushNotificationsAsync(chunk);
+        tickets.push(...t);
+      } catch (e) { console.error("❌ Expo 발송 실패(chunk):", e.message); }
     }
+    const okCount = tickets.filter(t => t.status === "ok").length;
+    const errTickets = tickets.filter(t => t.status === "error");
+    console.log(`📨 Expo 티켓: ok ${okCount}, error ${errTickets.length}`);
+    if (errTickets.length) {
+      console.error("❌ Expo 티켓 에러 샘플:", JSON.stringify(errTickets.slice(0, 5)));
+    }
+    // 영수증 확인 (실제 디바이스 도달 여부) — DeviceNotRegistered 등 탐지
+    const receiptIds = tickets.filter(t => t.id).map(t => t.id);
+    try {
+      const idChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
+      const rcptErr = {};
+      for (const ids of idChunks) {
+        const receipts = await expo.getPushNotificationReceiptsAsync(ids);
+        for (const rid in receipts) {
+          const r = receipts[rid];
+          if (r.status === "error") {
+            const code = r.details?.error || "unknown";
+            rcptErr[code] = (rcptErr[code] || 0) + 1;
+          }
+        }
+      }
+      if (Object.keys(rcptErr).length) {
+        console.error("❌ Expo 영수증 에러:", JSON.stringify(rcptErr));
+      } else {
+        console.log("✅ Expo 영수증: 에러 없음");
+      }
+    } catch (e) { console.error("⚠️ Expo 영수증 조회 실패:", e.message); }
   }
 
   await db.collection("broadcastLogs").add({
