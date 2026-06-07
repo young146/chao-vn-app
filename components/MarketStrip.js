@@ -25,7 +25,8 @@ import * as wordpressApi from '../services/wordpressApi';
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = Math.round(SCREEN_W * 0.82); // 화면의 82% — 다음 카드가 ~18% 보여 "더 있다"는 신호
 const CARD_GAP = 12;
-const AVIASALES_URL = 'https://www.aviasales.com/?marker=733771';
+// 항공권 fallback: market API에 links.flights 가 아직 없을 때만 사용(Trip.com 항공권 검색·예약, 제휴 추적 포함)
+const TRIP_FLIGHTS_URL = 'https://www.trip.com/flights/?locale=ko-KR&curr=KRW&Allianceid=1094387&SID=2209817&trip_sub1=jennyflights-733771&utm_campaign=733771';
 
 // ── 미니 막대 그래프 (순수 View) ──────────────────────────────────────────
 // points: 숫자 배열(오래된→최신). color: 막대 색.
@@ -137,7 +138,7 @@ function MarketCard({ card }) {
             ))}
           </View>
 
-          {/* 제휴/소스 버튼 (항상 노출) */}
+          {/* 제휴/소스 버튼 (항상 노출) — 단일 버튼 */}
           {!!card.buttonText && (
             <TouchableOpacity
               style={[styles.cardBtn, { backgroundColor: card.accent }]}
@@ -148,6 +149,20 @@ function MarketCard({ card }) {
               <Ionicons name="chevron-forward" size={14} color="#fff" />
             </TouchableOpacity>
           )}
+
+          {/* 다중 버튼 (예: 호텔 = Booking + Agoda). 로고 + 라벨 + 화살표 */}
+          {Array.isArray(card.buttons) && card.buttons.map((b, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[styles.cardBtn, { backgroundColor: b.accent || card.accent }, idx > 0 && { marginTop: 8 }]}
+              onPress={() => openLink(b.link)}
+              activeOpacity={0.85}
+            >
+              {!!b.logo && <Image source={{ uri: b.logo }} style={styles.cardBtnLogo} />}
+              <Text style={styles.cardBtnText}>{b.text}</Text>
+              <Ionicons name="chevron-forward" size={14} color="#fff" />
+            </TouchableOpacity>
+          ))}
         </>
       )}
     </View>
@@ -262,22 +277,31 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
 
   // ===== 커머스 카드 (그다음) =====
 
-  // 6) 항공권 (Aviasales)
+  // 6) 항공권 (Trip.com) — 그래프 없이 노선·최저가 + 단일 "검색 및 예약"
+  // 노선별 버튼은 "그 노선만 되는 것"처럼 오해를 줄 수 있어, 가격은 예시로 보여주고
+  // 버튼은 출발·도착·날짜 자유 선택이 가능한 Trip.com 항공권 검색·예약 한 개만 둔다.
   const af = data.airfare || {};
   const afMetrics = [];
-  if (af.sgn && af.sgn.price) {
-    afMetrics.push({ label: af.sgn.label || '호치민', flag: '🇻🇳', value: af.sgn.price, unit: af.sgn.unit || '원~', spark: af.sgn.spark, graphColor: '#2f9e44' });
-  }
   if (af.han && af.han.price) {
-    afMetrics.push({ label: af.han.label || '하노이', flag: '🇻🇳', value: af.han.price, unit: af.han.unit || '원~', spark: af.han.spark, graphColor: '#2f9e44' });
+    afMetrics.push({ label: '인천 → 하노이', value: af.han.price, unit: af.han.unit || '원~' });
+  }
+  if (af.sgn && af.sgn.price) {
+    afMetrics.push({ label: '인천 → 호치민', value: af.sgn.price, unit: af.sgn.unit || '원~' });
   }
   if (afMetrics.length) {
-    cards.push({ key: 'airfare', logo: brandLogo('aviasales.com'), icon: '✈️', title: '항공권 최저가', subtitle: '인천 출발', accent: '#1a73e8', metrics: afMetrics, buttonText: '항공권 검색하기', linkUrl: AVIASALES_URL });
+    cards.push({ key: 'airfare', logo: brandLogo('trip.com'), icon: '✈️', title: '항공권 최저가', subtitle: '인천 출발', accent: '#287dfa', showGraph: false, watermark: '✈️', metrics: afMetrics, buttonText: '항공권 검색 및 예약', linkUrl: data.links?.flights || TRIP_FLIGHTS_URL });
   }
 
-  // 7) 호텔·숙소 (Booking.com)
-  if (data.links?.hotel) {
-    cards.push({ key: 'hotel', logo: brandLogo('booking.com'), title: '호텔·숙소', subtitle: 'Booking.com', accent: '#003580', showGraph: false, watermark: '🏨', metrics: [{ label: '호텔·아파트 최저가 비교', value: '바로 예약' }], buttonText: '숙소 예약하기', linkUrl: data.links.hotel });
+  // 7) 호텔·숙소 (Booking.com · Agoda) — 두 곳 최저가 비교 후 바로 예약
+  if (data.links?.hotel || data.links?.hotel_agoda) {
+    const hotelBtns = [];
+    if (data.links?.hotel) {
+      hotelBtns.push({ text: 'Booking 예약', link: data.links.hotel, accent: '#003580', logo: brandLogo('booking.com') });
+    }
+    if (data.links?.hotel_agoda) {
+      hotelBtns.push({ text: 'Agoda 예약', link: data.links.hotel_agoda, accent: '#f5455c', logo: brandLogo('agoda.com') });
+    }
+    cards.push({ key: 'hotel', icon: '🏨', title: '호텔·숙소', subtitle: '최저가 비교', accent: '#003580', showGraph: false, watermark: '🏨', metrics: [{ label: '하노이·호치민·다낭 등', value: '호텔·숙소 최저가' }], buttons: hotelBtns });
   }
 
   // 8) 여행 준비 = eSIM(Airalo) + 투어(Klook) 한 카드
@@ -398,7 +422,7 @@ const styles = StyleSheet.create({
     right: -6,
     bottom: 10,
     fontSize: 92,
-    opacity: 0.06,
+    opacity: 0.14,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -455,6 +479,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cardBtnLogo: { width: 18, height: 18, borderRadius: 4, marginRight: 6 },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
