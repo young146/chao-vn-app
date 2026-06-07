@@ -312,9 +312,6 @@ export default function MarketStrip({ onScrollLock, onScrollUnlock }) {
   if (data.links?.tour) {
     travelRows.push({ logo: brandLogo('klook.com'), name: 'Klook 투어·입장권', desc: '바나힐·하롱베이·공항픽업', btn: '투어 예약', link: data.links.tour, accent: '#ff6b2c' });
   }
-  if (data.links?.dining) {
-    travelRows.push({ logo: brandLogo('klook.com'), name: '🍜 맛집·다이닝 할인', desc: '인기 식당 예약·할인권', btn: '맛집 할인', link: data.links.dining, accent: '#e8590c' });
-  }
   if (travelRows.length) {
     cards.push({ key: 'travel', icon: '🧳', title: '여행 준비', accent: '#7048e8', watermark: '🧳', rows: travelRows });
   }
