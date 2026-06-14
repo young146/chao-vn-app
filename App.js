@@ -228,6 +228,8 @@ import AdminScreen from "./screens/AdminScreen";
 import LanguageSelectScreen from "./screens/LanguageSelectScreen";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import SplashAnimation from "./components/SplashAnimation";
+import ForceUpdateModal from "./components/ForceUpdateModal";
+import { checkForceUpdate } from "./lib/versionCheck";
 
 // ============================================
 // 📢 광고문의 헤더 버튼 (모든 탭에서 공유)
@@ -309,6 +311,7 @@ export default function App() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [showLanguageSelect, setShowLanguageSelect] = useState(false);
   const [showStartupPopup, setShowStartupPopup] = useState(false);
+  const [showForceUpdate, setShowForceUpdate] = useState(false);
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
   const deepLinkHandledRef = useRef(false); // 중복 처리 방지
@@ -470,6 +473,14 @@ export default function App() {
         const firstLaunch = await isFirstLaunch();
         if (firstLaunch) {
           setShowLanguageSelect(true);
+          setIsReady(true);
+          return;
+        }
+
+        // 🚨 강제 업데이트 체크 (Firestore config/appVersion.minVersion)
+        const needsUpdate = await checkForceUpdate();
+        if (needsUpdate) {
+          setShowForceUpdate(true);
           setIsReady(true);
           return;
         }
@@ -862,6 +873,9 @@ export default function App() {
           screen="startup"
           autoCloseSeconds={10}
         />
+
+        {/* 🚨 강제 업데이트 팝업 — 닫기 불가, 스토어로 유도 */}
+        <ForceUpdateModal visible={showForceUpdate} />
 
       </SafeAreaProvider>
     </AuthProvider>
