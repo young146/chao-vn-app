@@ -754,7 +754,13 @@ export const getSectionNews = async (sectionKey, categoryId, page = 1) => {
  */
 export const getMarketData = async () => {
   try {
-    const response = await api.get(`${JENNY_API_URL}/market`);
+    // 캐시 우회: 서버(LiteSpeed)가 /market REST 응답을 페이지 캐시로 물고 있으면
+    // 플러그인을 새로 올려도 앱은 '옛 스냅샷'(hotel_agoda·flights 누락)을 계속 받는다.
+    // 매 호출마다 고유 쿼리를 붙여 항상 MISS(=신선한 데이터)로 받게 한다.
+    // (무거운 외부 API는 PHP transient로 따로 캐시되므로 서버 부하 영향 미미)
+    const response = await api.get(`${JENNY_API_URL}/market`, {
+      params: { _ts: Date.now() },
+    });
     if (response.data && response.data.success) {
       return response.data;
     }
