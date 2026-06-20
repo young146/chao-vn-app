@@ -3,7 +3,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { Expo } = require("expo-server-sdk");
 const sharp = require("sharp");
@@ -515,6 +515,56 @@ exports.onNewJobCreated = onDocumentCreated(
       { type: "new_item_job", itemId: jobId },
       { itemTitle: job.title || "", itemImage: (job.images && job.images[0]) || "" }
     );
+  }
+);
+
+// ============================================================
+// ⏰ Jobs 새 문서 → expiresAt 자동 설정 (createdAt + 30일)
+// ============================================================
+exports.onJobCreatedSetExpiry = onDocumentCreated(
+  "Jobs/{jobId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+
+    if (data.expiresAt) return;
+
+    const baseTime =
+      data.createdAt && typeof data.createdAt.toMillis === "function"
+        ? data.createdAt.toMillis()
+        : snap.createTime.toMillis();
+
+    await snap.ref.set(
+      { expiresAt: Timestamp.fromMillis(baseTime + 30 * 24 * 60 * 60 * 1000) },
+      { merge: true }
+    );
+    console.log(`✅ [JobExpiry] ${event.params.jobId} expiresAt 설정 완료`);
+  }
+);
+
+// ============================================================
+// ⏰ candidates 새 문서 → expiresAt 자동 설정 (createdAt + 30일)
+// ============================================================
+exports.onCandidateCreatedSetExpiry = onDocumentCreated(
+  "candidates/{candidateId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+
+    if (data.expiresAt) return;
+
+    const baseTime =
+      data.createdAt && typeof data.createdAt.toMillis === "function"
+        ? data.createdAt.toMillis()
+        : snap.createTime.toMillis();
+
+    await snap.ref.set(
+      { expiresAt: Timestamp.fromMillis(baseTime + 30 * 24 * 60 * 60 * 1000) },
+      { merge: true }
+    );
+    console.log(`✅ [CandidateExpiry] ${event.params.candidateId} expiresAt 설정 완료`);
   }
 );
 
