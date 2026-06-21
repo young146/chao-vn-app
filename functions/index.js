@@ -518,8 +518,10 @@ exports.onNewJobCreated = onDocumentCreated(
   }
 );
 
+const { parseSalaryText } = require("./salaryParser");
+
 // ============================================================
-// ⏰ Jobs 새 문서 → expiresAt 자동 설정 (createdAt + 30일)
+// ⏰ Jobs 새 문서 → expiresAt + salaryMinUsdPerMonth 자동 설정
 // ============================================================
 exports.onJobCreatedSetExpiry = onDocumentCreated(
   "Jobs/{jobId}",
@@ -528,18 +530,27 @@ exports.onJobCreatedSetExpiry = onDocumentCreated(
     if (!snap) return;
     const data = snap.data();
 
-    if (data.expiresAt) return;
+    const update = {};
 
-    const baseTime =
-      data.createdAt && typeof data.createdAt.toMillis === "function"
-        ? data.createdAt.toMillis()
-        : snap.createTime.toMillis();
+    // ① expiresAt: 없을 때만 설정
+    if (!data.expiresAt) {
+      const baseTime =
+        data.createdAt && typeof data.createdAt.toMillis === "function"
+          ? data.createdAt.toMillis()
+          : snap.createTime.toMillis();
+      update.expiresAt = Timestamp.fromMillis(baseTime + 30 * 24 * 60 * 60 * 1000);
+    }
 
-    await snap.ref.set(
-      { expiresAt: Timestamp.fromMillis(baseTime + 30 * 24 * 60 * 60 * 1000) },
-      { merge: true }
-    );
-    console.log(`✅ [JobExpiry] ${event.params.jobId} expiresAt 설정 완료`);
+    // ② 급여: salaryMinUsdPerMonth 없고 salary 텍스트 파싱 가능할 때만
+    if (!(Number(data.salaryMinUsdPerMonth) > 0)) {
+      const parsed = parseSalaryText(data.salary);
+      if (parsed !== null) update.salaryMinUsdPerMonth = parsed;
+    }
+
+    if (Object.keys(update).length === 0) return;
+
+    await snap.ref.set(update, { merge: true });
+    console.log(`✅ [JobCreated] ${event.params.jobId}`, JSON.stringify(update));
   }
 );
 
