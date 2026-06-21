@@ -171,6 +171,11 @@ export default function JobDetailScreen({ route, navigation }) {
   const isMyJob = job?.userId === user?.uid;
   const canDelete = !!(isMyJob || isAdmin());
 
+  const salaryMin = Number(job?.salaryMinUsdPerMonth);
+  const salaryText = salaryMin > 0
+    ? `${salaryMin.toLocaleString()} USD/월`
+    : job?.salary || t('detail.negotiable');
+
   const handleDelete = useCallback(() => {
     if (!job) return;
     Alert.alert(
@@ -508,12 +513,10 @@ export default function JobDetailScreen({ route, navigation }) {
           <TranslatedText style={styles.title}>{job.title}</TranslatedText>
 
           {/* 급여 강조 */}
-          {job.salary ? (
-            <View style={styles.salaryBox}>
-              <Ionicons name="cash-outline" size={20} color="#2196F3" />
-              <Text style={styles.salaryText}>{job.salary}</Text>
-            </View>
-          ) : null}
+          <View style={styles.salaryBox}>
+            <Ionicons name="cash-outline" size={20} color="#2196F3" />
+            <Text style={styles.salaryText}>{salaryText}</Text>
+          </View>
 
           {/* 스펙 그리드 */}
           <View style={styles.specBar}>
@@ -563,7 +566,7 @@ export default function JobDetailScreen({ route, navigation }) {
               <Ionicons name="cash-outline" size={18} color="#4CAF50" />
               <Text style={styles.labelText}>{t('detail.salary')}</Text>
             </View>
-            <TranslatedText style={styles.infoValue}>{job.salary || t('detail.negotiable')}</TranslatedText>
+            <Text style={styles.infoValue}>{salaryText}</Text>
           </View>
 
           {/* 고용 형태 */}
