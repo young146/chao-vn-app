@@ -244,7 +244,7 @@ export default function NeighborBusinessesScreen() {
       >
         <View>
           {thumb ? (
-            <Image source={{ uri: thumb }} style={styles.cardThumb} contentFit="cover" />
+            <Image source={{ uri: thumb }} style={styles.cardThumb} contentFit="contain" />
           ) : (
             <View style={[styles.cardThumb, styles.cardThumbEmpty]}>
               <Ionicons name={hasVideo ? 'videocam' : 'storefront-outline'} size={32} color="#CCC" />
