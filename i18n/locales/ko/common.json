@@ -40,6 +40,8 @@
   "new": "새상품",
   "used": "중고",
   "notice": "알림",
+  "chatUnavailableTitle": "채팅을 이용할 수 없어요",
+  "chatUnavailableMsg": "게시자가 아직 앱을 설치하지 않아 실시간 채팅이 불가능합니다.\n\n아래 연락처로 연락해 주세요.",
   "permissionRequired": "권한 필요",
   "cameraPermission": "카메라 접근 권한이 필요합니다.",
   "galleryPermission": "갤러리 접근 권한이 필요합니다.",

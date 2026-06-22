@@ -217,6 +217,15 @@ export default function JobDetailScreen({ route, navigation }) {
       Alert.alert(t('common:notice'), t('detail.ownPost'));
       return;
     }
+    // 웹 폼으로 등록된 글은 게시자에게 앱 계정(userId)이 없어 채팅을 받을 수 없음.
+    // → 죽은 채팅방으로 보내지 말고, 앱 미설치 안내 후 본문 연락처 사용을 유도.
+    if (!job.userId) {
+      Alert.alert(
+        t('common:chatUnavailableTitle', '채팅을 이용할 수 없어요'),
+        t('common:chatUnavailableMsg', '게시자가 아직 앱을 설치하지 않아 실시간 채팅이 불가능합니다.\n\n아래 연락처로 연락해 주세요.')
+      );
+      return;
+    }
     navigation.navigate("ChatRoom", {
       chatRoomId: null,
       itemId: job.id,

@@ -40,6 +40,8 @@
   "new": "Mới",
   "used": "Đã sử dụng",
   "notice": "Thông báo",
+  "chatUnavailableTitle": "Không thể trò chuyện",
+  "chatUnavailableMsg": "Người đăng chưa cài đặt ứng dụng nên không thể trò chuyện trực tiếp.\n\nVui lòng liên hệ qua thông tin bên dưới.",
   "permissionRequired": "Cần quyền truy cập",
   "cameraPermission": "Cần quyền truy cập camera.",
   "galleryPermission": "Cần quyền truy cập thư viện ảnh.",
