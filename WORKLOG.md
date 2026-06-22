@@ -23,6 +23,20 @@
 
 ---
 
+## 2026-06-22 — 채팅 오류·하단광고 가림 수정 + 로그아웃 시 로그인 유도
+
+- **한 일**:
+  1. **채팅 "채팅방 정보를 불러올 수 없습니다" 오류** → 원인은 카카오톡 폼 등록 글에 `userId`가 없어서임(채팅 받을 앱 계정 부재). 당근·구인·부동산 상세에서 `!item.userId`면 엉뚱한 에러 대신 **"게시자 앱 미설치 → 연락처로 연락" 안내 팝업**.
+  2. **채팅방 하단 광고가 입력창/전송버튼 가림** → `NO_AD_ROUTE_NAMES`에 `'ChatRoom'` 추가(채팅목록→채팅방 경로가 안 숨겨지던 구멍).
+  3. **로그아웃 시 로그인 유도** — 모든 탭 헤더 + 더보기 헤더에 "로그인" 버튼(`UserAvatarButton`), 로그아웃 시 권유 메시지. 강제 로그인 아님(방문자 둘러보기 유지 = 깔때기·앱스토어 심사 안전).
+- **배포**: 앱 OTA `production` 4회 — 커밋 `a910b3e`(당근 채팅+광고), `5463cdd`(구인·부동산 채팅), `57fcd3d`(헤더 로그인버튼+로그아웃 메시지), `4c324eb`(더보기 헤더)
+- **상태**: ✅ 완료 (실기기 확인 정상)
+- **다음 단계**: 카카오톡 폼(`public_html/form/*`)에 "앱으로 등록하면 실시간 채팅 가능" 공지 추가 — 사용자가 직접 작성 예정.
+- **⭐ 중요(재발 참조)**: [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) — 3채널 등록 구조, `source:'web'`=카카오 함정, 채팅 오류·하단광고 가림 원인/처방 정리.
+- **관련 파일**: [screens/ItemDetailScreen.js](screens/ItemDetailScreen.js), [screens/JobDetailScreen.js](screens/JobDetailScreen.js), [screens/RealEstateDetailScreen.js](screens/RealEstateDetailScreen.js), [App.js](App.js), [screens/MoreScreen.js](screens/MoreScreen.js), i18n(danggn/common/menu)
+
+---
+
 ## 2026-06-22 — 이웃사업 리스트 틀을 이미지 실제 비율에 자동 맞춤 (여백 제거)
 
 - **한 일**: 고정 4:3 틀 + contain은 와이드 배너(예 2.4:1)에서 상하 회색 여백이 크게 생김. 각 이미지의 `onLoad`로 실제 가로/세로 비율을 읽어 카드 틀(aspectRatio)을 이미지별로 동적 설정 → 여백 0. 로드 전 임시값 `DEFAULT_CARD_RATIO=16/9`, 이미지 없는 카드는 16:9 고정.
@@ -69,6 +83,7 @@
 
 ## 📚 주제별 심화 추적 (이 로그에서 갈라지는 문서)
 
+- [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) — 채팅 시스템 / 3채널 등록 구조 / 채팅·광고 오류 재발 참조
 - [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) — 미빌드 네이티브 변경 / 빌드 시점 결정
 - [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) — 측정 인프라 (Analytics)
 - [PROGRESS_PUSH_SYSTEM.md](PROGRESS_PUSH_SYSTEM.md) — 푸시 알림 시스템
