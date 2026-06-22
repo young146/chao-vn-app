@@ -66,6 +66,9 @@ const CATEGORIES = [
   { key: 'other', label: '기타' },
 ];
 
+// 리스트 이미지 로드 전 임시 비율 (대부분 가로형 배너). 로드되면 실제 비율로 교체되어 여백 제거
+const DEFAULT_CARD_RATIO = 16 / 9;
+
 // 썸네일 URL 선택: thumbnailIndex가 비디오면 첫 이미지로 폴백
 function pickThumbnail(b) {
   const imgs = b?.images || [];
@@ -96,6 +99,8 @@ export default function NeighborBusinessesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [businesses, setBusinesses] = useState([]);
+  // 리스트 이미지별 실제 가로/세로 비율 — 틀을 이미지에 맞춰 불필요한 여백 제거
+  const [imgRatios, setImgRatios] = useState({});
 
   const hasActiveFilter = city !== 'all' || district !== 'all' || category !== 'all';
 
@@ -244,7 +249,19 @@ export default function NeighborBusinessesScreen() {
       >
         <View>
           {thumb ? (
-            <Image source={{ uri: thumb }} style={styles.cardThumb} contentFit="contain" />
+            <Image
+              source={{ uri: thumb }}
+              style={[styles.cardThumb, { aspectRatio: imgRatios[b.id] || DEFAULT_CARD_RATIO }]}
+              contentFit="contain"
+              onLoad={(e) => {
+                const w = e?.source?.width;
+                const h = e?.source?.height;
+                if (w && h) {
+                  const r = w / h;
+                  setImgRatios((prev) => (prev[b.id] === r ? prev : { ...prev, [b.id]: r }));
+                }
+              }}
+            />
           ) : (
             <View style={[styles.cardThumb, styles.cardThumbEmpty]}>
               <Ionicons name={hasVideo ? 'videocam' : 'storefront-outline'} size={32} color="#CCC" />
@@ -518,10 +535,10 @@ const styles = StyleSheet.create({
   },
   cardThumb: {
     width: '100%',
-    aspectRatio: 4 / 3,
     backgroundColor: '#f5f5f5',
   },
   cardThumbEmpty: {
+    aspectRatio: 16 / 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
