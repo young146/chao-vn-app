@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     marginHorizontal: 12,
     marginVertical: 6,
     backgroundColor: '#fff',
@@ -517,8 +517,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardThumb: {
-    width: 100,
-    height: 100,
+    width: '100%',
+    aspectRatio: 4 / 3,
     backgroundColor: '#f5f5f5',
   },
   cardThumbEmpty: {
