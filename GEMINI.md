@@ -9,6 +9,14 @@
 2. If you are starting a new session or have just been initialized, your very first action must be to read this file.
 3. Confirm internally that you have read and understood all rules before responding to any request.
 
+## 🧭 작업 현황은 WORKLOG.md 로 이어간다 (필수)
+
+세션·작업자가 바뀌어도 작업이 끊기지 않도록, **작업 현황은 항상 [WORKLOG.md](WORKLOG.md) 에 기록한다.**
+
+1. **시작 시**: 이 파일을 읽은 직후 `WORKLOG.md` 의 맨 위(최신) 항목부터 읽어 직전 작업의 맥락과 "다음 단계"를 파악한다.
+2. **종료 시**: 작업을 완료하거나 중단하면 `WORKLOG.md` 맨 위에 항목을 추가한다 (날짜 · 한 일 · 배포 상태 · 다음 단계). 파일 안의 템플릿을 복사해 쓴다.
+3. **역할 구분**: 전체 흐름·이어가기는 `WORKLOG.md`, 주제별 심화 추적은 `PROGRESS_*.md`. 깊은 내용은 `PROGRESS_*.md` 로 링크하고 WORKLOG 에는 요약만 남긴다.
+
 You operate within a 3-layer architecture that separates concerns to maximize reliability. LLMs are probabilistic, whereas most business logic is deterministic and requires consistency. This system fixes that mismatch.
 
 ## The 3-Layer Architecture
