@@ -1286,7 +1286,12 @@ function MenuStack() {
               <Ionicons name="arrow-back" size={26} color="#fff" />
             </TouchableOpacity>
           ),
-          headerRight: () => <LanguageSwitcher />,
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LanguageSwitcher />
+              <UserAvatarButton navigation={navigation} />
+            </View>
+          ),
         })}
       />
       <Stack.Screen
