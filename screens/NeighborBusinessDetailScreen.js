@@ -38,8 +38,8 @@ function MediaCarouselItem({ uri, isVideo, width, height }) {
     return (
       <Image
         source={{ uri }}
-        style={{ width, height }}
-        contentFit="cover"
+        style={{ width, height, backgroundColor: '#f2f2f2' }}
+        contentFit="contain"
       />
     );
   }

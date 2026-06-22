@@ -613,7 +613,7 @@ export default function AddNeighborBusinessScreen() {
             <Text style={styles.inlineLabel}>활성화 상태</Text>
             <Switch value={active} onValueChange={setActive} />
           </View>
-          <Text style={styles.subLabel}>우선순위 노출 (숫자가 작을수록 우선 노출)</Text>
+          <Text style={styles.subLabel}>우선순위 노출 (숫자가 클수록 위로 노출 · 기본 10)</Text>
           <TextInput
             style={styles.input}
             value={priority}
