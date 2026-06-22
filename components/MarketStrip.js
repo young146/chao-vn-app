@@ -15,11 +15,11 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Linking,
   ActivityIndicator,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import * as wordpressApi from '../services/wordpressApi';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -73,8 +73,12 @@ function SparkBars({ points, color }) {
 
 // ── 카드 1장 ────────────────────────────────────────────────────────────────
 function MarketCard({ card }) {
+  // 인앱 브라우저로 강제 오픈. Linking.openURL은 폰에 Investing.com 등 해당
+  // 도메인 앱이 설치돼 있으면 그 앱으로 넘기려다 실패(무반응)할 수 있어,
+  // 앱링크 가로채기를 우회하는 WebBrowser로 모든 외부 http(s) 링크를 연다.
+  // (MarketStrip 링크는 전부 http(s) — tel:/mailto: 없음)
   const openLink = (url) => {
-    if (url) Linking.openURL(url).catch(() => {});
+    if (url) WebBrowser.openBrowserAsync(url).catch(() => {});
   };
 
   return (
