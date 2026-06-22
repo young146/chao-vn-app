@@ -57,6 +57,8 @@
     "noContact": "Không có liên hệ",
     "noContactMessage": "Không có thông tin liên hệ.\nVui lòng sử dụng chat.",
     "contactSeller": "Liên hệ người bán",
+    "chatUnavailableTitle": "Không thể trò chuyện",
+    "chatUnavailableMsg": "Người bán chưa cài đặt ứng dụng nên không thể trò chuyện trực tiếp.\n\nVui lòng liên hệ qua thông tin bên dưới (điện thoại · Kakao).",
     "favoriteAdded": "Đã thêm vào yêu thích!",
     "favoriteRemoved": "Đã xóa khỏi yêu thích.",
     "deleteConfirm": "Bạn có chắc muốn xóa?",

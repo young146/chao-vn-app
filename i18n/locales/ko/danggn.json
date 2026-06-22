@@ -57,6 +57,8 @@
     "noContact": "연락처 없음",
     "noContactMessage": "등록된 연락처가 없습니다.\n채팅을 이용해 주세요.",
     "contactSeller": "판매자에게 연락하기",
+    "chatUnavailableTitle": "채팅을 이용할 수 없어요",
+    "chatUnavailableMsg": "판매자가 아직 앱을 설치하지 않아 실시간 채팅이 불가능합니다.\n\n아래 연락처(전화·카카오)로 연락해 주세요.",
     "favoriteAdded": "찜 목록에 추가되었습니다!",
     "favoriteRemoved": "찜 목록에서 제거되었습니다.",
     "deleteConfirm": "정말 삭제하시겠습니까?",

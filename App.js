@@ -1484,10 +1484,12 @@ function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
 
-  // 🚫 상세 페이지 + 관리자 화면에서는 고정 하단 배너 숨김
+  // 🚫 상세 페이지 + 관리자 화면 + 채팅방에서는 고정 하단 배너 숨김
   //    - 상세: 전화/채팅/후기 버튼이 가려지는 문제
   //    - 관리자 페이지/회원관리: 운영 작업 화면(목록 영역 확보 우선, 광고 노출 가치 없음)
-  const NO_AD_ROUTE_NAMES = new Set(['관리자 페이지', '회원관리', '알림 대화창']);
+  //    - ChatRoom/알림 대화창: 배너가 메시지 입력창·전송 버튼을 덮어 채팅 기능 마비
+  //      (채팅목록→채팅방 경로는 스택에 '상세'가 없어 별도로 명시해야 숨겨짐)
+  const NO_AD_ROUTE_NAMES = new Set(['관리자 페이지', '회원관리', '알림 대화창', 'ChatRoom']);
   const isDetailPage = require('@react-navigation/native').useNavigationState(state => {
     if (!state) return false;
     const checkRoute = (route) => {

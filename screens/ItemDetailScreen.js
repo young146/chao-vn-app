@@ -205,6 +205,15 @@ export default function ItemDetailScreen({ route, navigation }) {
     if (!item) return;
     // 깔때기 단계 2 보강: 비회원이 채팅 시도 시 silent return 대신 가입 유도
     if (!requireAuth('판매자와 채팅')) return;
+    // 웹 폼으로 등록된 매물은 판매자에게 앱 계정(userId)이 없어 채팅을 받을 수 없음.
+    // → 죽은 채팅방으로 보내지 말고, 앱 미설치 안내 후 본문 연락처 사용을 유도.
+    if (!item.userId) {
+      Alert.alert(
+        t('detail.chatUnavailableTitle', '채팅을 이용할 수 없어요'),
+        t('detail.chatUnavailableMsg', '판매자가 아직 앱을 설치하지 않아 실시간 채팅이 불가능합니다.\n\n아래 연락처(전화·카카오)로 연락해 주세요.')
+      );
+      return;
+    }
     navigation.navigate("ChatRoom", {
       chatRoomId: null,
       itemId: item.id,

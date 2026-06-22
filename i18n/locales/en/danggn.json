@@ -57,6 +57,8 @@
     "noContact": "No contact",
     "noContactMessage": "No contact info available.\nPlease use chat.",
     "contactSeller": "Contact seller",
+    "chatUnavailableTitle": "Chat unavailable",
+    "chatUnavailableMsg": "The seller hasn't installed the app yet, so real-time chat isn't possible.\n\nPlease use the contact info below (phone · Kakao).",
     "favoriteAdded": "Added to favorites!",
     "favoriteRemoved": "Removed from favorites.",
     "deleteConfirm": "Are you sure you want to delete?",
