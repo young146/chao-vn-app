@@ -274,6 +274,7 @@ function HamburgerMenuButton({ navigation }) {
 // 사용자 아바타 버튼 (헤더 우측)
 function UserAvatarButton({ navigation }) {
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const [avatar, setAvatar] = React.useState(null);
 
   React.useEffect(() => {
@@ -290,6 +291,20 @@ function UserAvatarButton({ navigation }) {
       }).catch(() => { });
     } catch (e) { }
   }, [user?.uid]);
+
+  // 로그아웃 상태: 모든 헤더에 로그인 버튼 노출 (방문자 → 로그인/가입 유도)
+  if (!user) {
+    return (
+      <TouchableOpacity
+        onPress={() => navigation.navigate("로그인")}
+        style={{ flexDirection: "row", alignItems: "center", marginRight: 8, paddingHorizontal: 8, paddingVertical: 4 }}
+        activeOpacity={0.75}
+      >
+        <Ionicons name="person-circle-outline" size={20} color="#fff" />
+        <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700", marginLeft: 3 }}>{t('login')}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   if (!avatar) return null;
 

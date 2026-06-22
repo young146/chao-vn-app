@@ -121,7 +121,7 @@ export default function MoreScreen({ navigation }) {
         onPress: async () => {
           try {
             await logout();
-            Alert.alert(t('common:confirm'), t('logoutSuccess'));
+            Alert.alert(t('logoutSuccess'), t('loginEncourage'));
           } catch (error) {
             console.error("로그아웃 실패:", error);
             Alert.alert(t('common:error'), t('common:error'));
