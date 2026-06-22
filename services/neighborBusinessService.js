@@ -77,6 +77,18 @@ export async function fetchActiveBusinesses({ city, district, category, limit: m
 
       items.push(data);
     }
+
+    // 정렬: 우선순위(priority) 높은 순 → 같은 우선순위면 최신 등록 순
+    // (관리자가 priority로 상단 고정 가능하되, 기본값끼리는 새로 등록한 게 위로)
+    items.sort((a, b) => {
+      const pa = a.priority ?? 0;
+      const pb = b.priority ?? 0;
+      if (pb !== pa) return pb - pa;
+      const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return tb - ta;
+    });
+
     return items;
   } catch (err) {
     console.warn('[neighborBusinessService] fetchActiveBusinesses error:', err?.message);

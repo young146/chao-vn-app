@@ -106,25 +106,24 @@ export default function NeighborBusinessesScreen() {
 
   const loadData = useCallback(async (isRefresh = false) => {
     try {
-      // 1. 프리페치된(캐시된) 데이터 확인 및 즉시 표시
-      if (!isRefresh && businesses.length === 0) {
+      // 1. 필터가 없을 때만 프리페치(캐시)된 전체 목록으로 첫 화면을 즉시 채운다.
+      //    ⚠️ 필터 검색 중에는 캐시(=전체 목록)를 쓰면 안 된다. 결과가 0개인 지역을
+      //    검색하면 빈 목록 → 캐시 전체 복원 → 다시 빈 목록... 무한 새로고침(화면 흔들림)이 발생함.
+      if (!isRefresh && !hasActiveFilter) {
         try {
           const cachedData = await AsyncStorage.getItem('prefetched_neighbor_businesses');
-          if (cachedData) {
-            const parsedData = JSON.parse(cachedData);
-            if (parsedData.businesses) {
-              setBusinesses(parsedData.businesses);
-              console.log('⚡ [Cache] 프리페치된 이웃사업 데이터를 즉시 표시합니다.');
-            } else {
-              setLoading(true);
-            }
+          const parsed = cachedData ? JSON.parse(cachedData) : null;
+          if (parsed?.businesses) {
+            setBusinesses(parsed.businesses);
           } else {
             setLoading(true);
           }
         } catch (e) {
-          console.error('캐시 로드 실패:', e);
           setLoading(true);
         }
+      } else if (!isRefresh) {
+        // 필터 검색: 이전 결과를 가린 채 로딩 인디케이터를 표시한 뒤 서버 조회
+        setLoading(true);
       }
 
       const filters = {
@@ -139,7 +138,7 @@ export default function NeighborBusinessesScreen() {
       // 필터가 없을 때만 전체 캐시를 업데이트하여 다음 진입 시 즉시 렌더링
       if (!hasActiveFilter) {
         AsyncStorage.setItem('prefetched_neighbor_businesses', JSON.stringify({ businesses: list }))
-          .catch(e => console.error('캐시 저장 실패:', e));
+          .catch(() => {});
       }
     } catch (err) {
       console.warn('[NeighborBusinessesScreen] load error:', err?.message);
@@ -147,7 +146,7 @@ export default function NeighborBusinessesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [city, district, category, hasActiveFilter, businesses.length]);
+  }, [city, district, category, hasActiveFilter]);
 
   useFocusEffect(
     useCallback(() => {
