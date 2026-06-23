@@ -23,6 +23,16 @@
 
 ---
 
+## 2026-06-23 — 뉴스탭 마켓카드 외부링크 안 열림(investing.com) → 네이버로 교체
+
+- **한 일**: 뉴스탭 정보박스(`MarketStrip`) 주가·금·유가 버튼(kr.investing.com)이 앱에서만 안 열림. 원인 = investing.com이 인앱 브라우저에서 자기 앱으로 튕기거나 webview를 막음(국가 제한 아님 — 웹은 베트남 IP도 정상). ① 앱 `openLink`를 `Linking.openURL`→`WebBrowser.openBrowserAsync`로 교체(OTA 완료) ② 근본해결: jenny 플러그인 `/market` API·웹카드 링크를 **네이버 모바일 증권**으로 교체(`/go/mkt_*` 경유). 앱은 API 링크만 받아써서 OTA 불필요, jenny는 FTP 배포.
+- **배포**: 앱 OTA `production`(커밋 `b4a0243`, WebBrowser) / jenny 플러그인 FTP(daily-news-final 커밋 `67eabc0`)
+- **상태**: ✅ 완료 (사용자 실기기 정상 확인)
+- **함정 기록**: 네이버 commodity 딥링크는 홈으로 튕김 → `/marketindex/home/{metals,energy}` SSR 페이지 사용. 배포 후 `/go/` 최종착지 반드시 curl로 검증.
+- **관련**: [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) 증상 3, [components/MarketStrip.js](components/MarketStrip.js), `daily-news-final/wordpress-plugin/jenny-daily-news.php`
+
+---
+
 ## 2026-06-22 — 채팅 오류·하단광고 가림 수정 + 로그아웃 시 로그인 유도
 
 - **한 일**:

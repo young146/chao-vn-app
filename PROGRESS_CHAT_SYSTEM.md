@@ -47,6 +47,24 @@
 
 ---
 
+## 🐞 증상 3 — 뉴스탭 마켓카드 외부 링크가 앱에서만 안 열림 (investing.com)
+
+- **증상**: 뉴스탭 정보박스(`MarketStrip`)의 주가·금·유가 버튼(kr.investing.com)이 **앱에서 안 열림**. 웹은 지역(VPN) 무관하게 정상.
+- **국가 제한 아님**: 웹은 베트남 IP에서도 열림(사용자 확인). 앱·웹 링크도 동일(라이브 `/market` API로 확인). 즉 "여는 방식" 차이.
+- **진짜 원인**: investing.com은 폰에 **Investing.com 앱이 깔려 있으면** OS가 링크를 그 앱으로 가로채고, 그 앱이 해당 페이지를 못 열어 무반응. 게다가 **investing.com은 인앱 브라우저(webview)에서도 자기 앱으로 튕기거나 webview를 막아** `WebBrowser`로도, `/go/` 리다이렉트 경유로도 실패.
+- **조치(2026-06-23)**:
+  1. 앱: `MarketStrip.js` `openLink` 를 `Linking.openURL` → `WebBrowser.openBrowserAsync`(expo-web-browser, 이미 설치)로 교체 — 앱링크 가로채기 우회 시도. (이것만으론 investing 못 살림)
+  2. **근본 해결 — 소스 교체**: jenny 플러그인(`daily-news-final/wordpress-plugin/jenny-daily-news.php`)의 `/market` REST `links`와 웹 카드 링크를 **investing.com → 네이버 모바일 증권**으로 변경. `/go/{slug}` 경유(앱 가로채기 회피 + 클릭 집계). 앱은 API의 `links`만 받아쓰므로 **앱 OTA 불필요**, jenny 플러그인 FTP 업로드로 적용.
+     - 주가 `m.stock.naver.com/domestic/index/KOSPI/total`
+     - 금 `m.stock.naver.com/marketindex/home/metals`
+     - 유가 `m.stock.naver.com/marketindex/home/energy`
+     - (슬러그: `mkt_stock/mkt_gold/mkt_oil` in `jenny_affiliate_destinations()`)
+- **함정**: 네이버 commodity *딥링크*(`/marketindex/metals/CMDT_GC`, `/energy/OIL_CL`)는 홈으로 튕긴다. SSR로 안정적인 **`/marketindex/home/{metals,energy}`** 카테고리 페이지를 써야 안 튕김. (배포 후 `/go/` 최종 착지 URL을 curl `-L -w %{url_effective}`로 *반드시* 확인할 것)
+- **재발 시 일반 규칙**: 외부 링크가 *앱에서만* 안 열리면 → ① 그 사이트에 전용 앱이 있어 OS가 가로채는지 의심 ② `chaovietnam.co.kr/go/` 경유로 우회(초기 URL이 우리 도메인이라 가로채기 회피) ③ 그래도 안 되면(=그 사이트가 webview 자체를 막음) **앱으로 안 튕기는 사이트로 교체**. 마켓카드 링크는 jenny `/market` API의 `links`에서 옴(앱 하드코딩 아님).
+
+---
+
 ## 관련
 - 메모리: `project_marketplace_three_channels_chat`
+- jenny 플러그인 = `daily-news-final/wordpress-plugin/jenny-daily-news.php` (chaovietnam.co.kr WordPress, **FTP 수동 배포**). 앱 `MarketStrip`은 `/market` REST 소비만.
 - 전략 배경: 트래픽 vs 정보 균형 — 카카오 무료 유입은 자산화 대상
