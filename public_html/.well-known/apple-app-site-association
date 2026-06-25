@@ -9,6 +9,7 @@
           "/app/share/job/*",
           "/app/share/realestate/*",
           "/download*",
+          "/tab/*",
           "/view*"
         ]
       }
