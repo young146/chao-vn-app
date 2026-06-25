@@ -1,0 +1,9 @@
+총 5381개
+hanoi: 497개 중 주소 비정상(빈값/숫자만): 183개
+hcm:   4884개 중 주소 비정상: 1개
+하노이 비정상 샘플:
+  A&L (Vietnam) Corporation => addr=""
+  AJ Total VN Phonoi Branch => addr=""
+  AK Interiors => addr=""
+  ALIM GLOBAL => addr=""
+  ALPHA GREEN TECH VINA => addr=""

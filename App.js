@@ -230,6 +230,8 @@ import LanguageSwitcher from "./components/LanguageSwitcher";
 import SplashAnimation from "./components/SplashAnimation";
 import ForceUpdateModal from "./components/ForceUpdateModal";
 import { checkForceUpdate } from "./lib/versionCheck";
+import NetInfo from "@react-native-community/netinfo";
+import NetworkBanner from "./components/NetworkBanner";
 
 // ============================================
 // 📢 광고문의 헤더 버튼 (모든 탭에서 공유)
@@ -327,6 +329,7 @@ export default function App() {
   const [showLanguageSelect, setShowLanguageSelect] = useState(false);
   const [showStartupPopup, setShowStartupPopup] = useState(false);
   const [showForceUpdate, setShowForceUpdate] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
   const deepLinkHandledRef = useRef(false); // 중복 처리 방지
@@ -598,6 +601,14 @@ export default function App() {
     }, 100); // 100ms 후 스플래시 숨김 → 프로그레스 바 로딩 화면 표시
 
     return () => clearTimeout(timer);
+  }, []);
+
+  // 네트워크 상태 감지 — 오프라인 시 상단 배너 표시
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOffline(!state.isConnected);
+    });
+    return () => unsubscribe();
   }, []);
 
   // ✅ 완전 자동 OTA 업데이트: 새 버전 감지 시 자동 다운로드 → 자동 재시작
@@ -891,6 +902,9 @@ export default function App() {
 
         {/* 🚨 강제 업데이트 팝업 — 닫기 불가, 스토어로 유도 */}
         <ForceUpdateModal visible={showForceUpdate} />
+
+        {/* 네트워크 오프라인 배너 — 인터넷 끊길 시 상단 슬라이드인 */}
+        <NetworkBanner isOffline={isOffline} />
 
       </SafeAreaProvider>
     </AuthProvider>

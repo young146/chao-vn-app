@@ -1,0 +1,16 @@
+{
+  "parameters": {
+    "in_house_ads": {
+      "defaultValue": {
+        "value": "{   \"banner\": {     \"imageUrl\": \"https://chaovietnam.co.kr/ads/banner_ad.png\",     \"linkUrl\": \"https://chaovietnam.co.kr\"   },   \"inline\": {     \"imageUrl\": \"https://chaovietnam.co.kr/ads/inline_ad.png\",     \"linkUrl\": \"https://chaovietnam.co.kr\"   },   \"section\": {     \"imageUrl\": \"https://chaovietnam.co.kr/ads/section_ad.png\",     \"linkUrl\": \"https://chaovietnam.co.kr\"   } }"
+      },
+      "valueType": "JSON"
+    },
+    "show_in_house_ads": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN"
+    }
+  }
+}

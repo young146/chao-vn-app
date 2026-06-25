@@ -285,6 +285,8 @@ export default function ChatRoomScreen({ route, navigation }) {
           unreadCount: 0,
         });
       }
+    }, (error) => {
+      console.error("❌ 메시지 로드 실패:", error.code, error.message);
     });
 
     return () => unsubscribe();

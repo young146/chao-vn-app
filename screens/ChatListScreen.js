@@ -65,15 +65,22 @@ export default function ChatListScreen({ navigation }) {
         .filter(room => !!room.lastMessageSenderId);
 
       // 클라이언트 사이드 정렬 (lastMessageAt 기준 내림차순)
-      uniqueRooms.sort((a, b) => {
-        const timeA = a.lastMessageAt?.toDate?.() || new Date(a.lastMessageAt || 0);
-        const timeB = b.lastMessageAt?.toDate?.() || new Date(b.lastMessageAt || 0);
-        return timeB - timeA;
-      });
+      // AsyncStorage에서 역직렬화된 {seconds, nanoseconds} 객체도 처리
+      const toMs = (t) => {
+        if (!t) return 0;
+        if (t.toDate) return t.toDate().getTime();
+        if (typeof t.seconds === 'number') return t.seconds * 1000;
+        if (t instanceof Date) return t.getTime();
+        return new Date(t || 0).getTime();
+      };
+      uniqueRooms.sort((a, b) => toMs(b.lastMessageAt) - toMs(a.lastMessageAt));
 
       setChatRooms(uniqueRooms);
-      // 최신 데이터 캐시 업데이트
-      AsyncStorage.setItem("prefetched_chat_rooms", JSON.stringify(uniqueRooms));
+      // 빈 배열로 캐시 덮어쓰기 방지: Firestore가 오프라인/대기 중에 빈 결과를 반환하면
+      // 이전 세션 데이터가 지워지므로 실제 데이터가 있을 때만 저장
+      if (uniqueRooms.length > 0) {
+        AsyncStorage.setItem("prefetched_chat_rooms", JSON.stringify(uniqueRooms));
+      }
     }, (error) => {
       // 에러 발생 시 조용히 처리 (새 사용자 또는 권한 문제)
       console.log("채팅방 로드 중 에러 (무시됨):", error.code);
@@ -91,6 +98,9 @@ export default function ChatListScreen({ navigation }) {
       date = new Date(timestamp);
     } else if (timestamp.toDate) {
       date = timestamp.toDate();
+    } else if (typeof timestamp.seconds === 'number') {
+      // AsyncStorage JSON 역직렬화 시 Firestore Timestamp가 {seconds, nanoseconds} 객체로 변환됨
+      date = new Date(timestamp.seconds * 1000);
     } else {
       date = new Date(timestamp);
     }
