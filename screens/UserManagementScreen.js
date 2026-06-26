@@ -743,6 +743,8 @@ export default function UserManagementScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent={true}
+        statusBarTranslucent={true}
+        navigationBarTranslucent={true}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -754,7 +756,10 @@ export default function UserManagementScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
               {selectedUser && (
                 <>
                   <View style={styles.statusBadges}>
@@ -927,7 +932,12 @@ export default function UserManagementScreen() {
             </ScrollView>
 
             {isAdmin() && selectedUser && (
-              <View style={[styles.modalButtonRow, { paddingBottom: insets.bottom || 16 }]}>
+              <View
+                style={[
+                  styles.modalFooter,
+                  { paddingBottom: Math.max(insets.bottom, 16) },
+                ]}
+              >
                 <TouchableOpacity
                   style={[styles.modalActionButton, styles.deleteButtonModal]}
                   onPress={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
@@ -1103,7 +1113,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: "90%",
+    height: "88%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1178,10 +1188,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-  modalButtonRow: {
+  modalFooter: {
     flexDirection: "row",
-    margin: 20,
     gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#fff",
   },
   modalActionButton: {
     flex: 1,
