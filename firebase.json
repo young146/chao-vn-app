@@ -32,6 +32,10 @@
         "destination": "/go/app/index.html"
       },
       {
+        "source": "/go/update",
+        "destination": "/go/update/index.html"
+      },
+      {
         "source": "/tab/danggn",
         "destination": "/tab/danggn/index.html"
       },

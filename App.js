@@ -605,9 +605,14 @@ export default function App() {
 
   // 네트워크 상태 감지 — 오프라인 시 상단 배너 표시
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsOffline(!state.isConnected);
-    });
+    // iOS는 리스너 첫 emit 시 isConnected 가 null(상태 미확정)로 와서
+    // !null=true 가 되어 인터넷이 있어도 오프라인으로 오인됨. 그리고 이후
+    // 네트워크 변화가 없으면 null 인 채로 멈춰 배너가 계속 떠 있음.
+    // → 명시적으로 false 일 때만 오프라인 처리한다 (null/undefined = 오프라인 아님).
+    const handle = (state) => setIsOffline(state.isConnected === false);
+    // 시작 시 실제 상태를 1회 직접 조회해 첫 emit 의 null 을 보정
+    NetInfo.fetch().then(handle).catch(() => {});
+    const unsubscribe = NetInfo.addEventListener(handle);
     return () => unsubscribe();
   }, []);
 

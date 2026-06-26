@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>씬짜오베트남 앱 업데이트</title>
+  <meta name="description" content="씬짜오베트남 앱을 최신 버전으로 업데이트하세요. 기기에 맞는 앱스토어로 자동 안내합니다.">
+
+  <!-- Open Graph (카카오톡 · 페이스북 · Zalo 링크 미리보기) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="씬짜오베트남">
+  <meta property="og:title" content="씬짜오베트남 앱 업데이트 안내">
+  <meta property="og:description" content="최신 버전으로 업데이트하세요. 버튼을 누르면 기기에 맞는 스토어로 이동합니다.">
+  <meta property="og:image" content="https://chaovietnam-login.web.app/assets/promo-app.png">
+  <meta property="og:image:width" content="1080">
+  <meta property="og:image:height" content="1080">
+  <meta property="og:url" content="https://chaovietnam-login.web.app/go/update">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="씬짜오베트남 앱 업데이트 안내">
+  <meta name="twitter:description" content="최신 버전으로 업데이트하세요. 기기에 맞는 스토어로 이동합니다.">
+  <meta name="twitter:image" content="https://chaovietnam-login.web.app/assets/promo-app.png">
+
+  <!-- GA4 측정 태그 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QTCWJ6GGH0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QTCWJ6GGH0');
+  </script>
+
+  <style>
+    :root {
+      --brand: #ff6b35;
+      --brand-dark: #e55d2a;
+      --bg: #f7f8fb;
+      --text: #222;
+      --muted: #6b7280;
+      --card: #fff;
+      --line: #eceff3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(17, 24, 39, 0.08);
+      padding: 22px 18px 18px;
+      text-align: center;
+    }
+    .logo {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      line-height: 1.35;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .status {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fff5f1;
+      color: #8a3f22;
+      font-size: 13px;
+    }
+    .btns { margin-top: 16px; display: grid; gap: 8px; }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      border: none;
+      border-radius: 11px;
+      height: 46px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.2s ease;
+    }
+    a.btn:active { transform: scale(0.98); }
+    .primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    }
+    .line {
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+    .small {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #9aa1ab;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <img class="logo" src="https://vnkorlife.com/logo.png" alt="씬짜오베트남" onerror="this.style.display='none'">
+    <h1>씬짜오베트남 앱 업데이트</h1>
+    <p>최신 버전으로 업데이트하기 위해 기기에 맞는 앱스토어로 이동합니다.</p>
+    <div class="status" id="status">스토어로 이동 중입니다...</div>
+    <div class="btns">
+      <a class="btn primary" id="iosBtn" href="#" rel="noopener noreferrer" style="display:none;">🍎 App Store에서 업데이트</a>
+      <a class="btn primary" id="androidBtn" href="#" rel="noopener noreferrer" style="display:none;">▶ Play Store에서 업데이트</a>
+    </div>
+    <div class="small">자동으로 이동되지 않으면 위 버튼을 눌러주세요.</div>
+  </main>
+
+  <script>
+    (function () {
+      // ⚠️ 업데이트 안내 전용 — 앱 열기(deeplink) 시도 없이 곧장 스토어로 보낸다.
+      // (이미 구버전 앱이 깔린 사용자가 대상이므로, deeplink 를 쓰면 구버전 앱이 열려 업데이트가 안 됨)
+      var IOS_STORE = "https://apps.apple.com/app/id6754750793";
+      var ANDROID_STORE = "https://play.google.com/store/apps/details?id=com.yourname.chaovnapp&referrer=src%3Dupdate";
+
+      var ua = navigator.userAgent || "";
+      var isAndroid = /Android/i.test(ua);
+      var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+      var statusEl = document.getElementById("status");
+      var iosBtn = document.getElementById("iosBtn");
+      var androidBtn = document.getElementById("androidBtn");
+
+      iosBtn.setAttribute("href", IOS_STORE);
+      androidBtn.setAttribute("href", ANDROID_STORE);
+
+      if (isIOS) {
+        iosBtn.style.display = "inline-flex";
+        try { gtag('event', 'update_redirect', { platform: 'ios' }); } catch (e) {}
+        window.location.replace(IOS_STORE);
+      } else if (isAndroid) {
+        androidBtn.style.display = "inline-flex";
+        try { gtag('event', 'update_redirect', { platform: 'android' }); } catch (e) {}
+        window.location.replace(ANDROID_STORE);
+      } else {
+        // 데스크탑/기타 — 자동 이동 없이 두 버튼 모두 표시
+        statusEl.textContent = "사용 중인 휴대폰에 맞는 스토어 버튼을 눌러주세요.";
+        iosBtn.classList.remove("primary"); iosBtn.classList.add("line");
+        iosBtn.style.display = "inline-flex";
+        androidBtn.style.display = "inline-flex";
+        try { gtag('event', 'update_redirect', { platform: 'desktop' }); } catch (e) {}
+      }
+    })();
+  </script>
+</body>
+</html>
