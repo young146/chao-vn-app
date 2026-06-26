@@ -198,4 +198,5 @@
 ## 11. 관련 문서
 
 - `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` — AI 협업 원칙
-- `directives/작업 이어가기.md` — 진행 중인 작업 + 다음 후보
+- `WORKLOG.md` — **작업 이어가기는 항상 여기부터** (시간순 현황 + 다음 단계 + 문서 지도)
+- `directives/ROADMAP.md` — 개선 백로그(다음에 만들 후보)

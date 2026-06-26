@@ -6,7 +6,22 @@
 >
 > **쓰기 규칙**: 작업을 완료하거나 중단할 때마다 맨 위에 새 항목을 추가한다. 깊은 기술 추적은 주제별 `PROGRESS_*.md`로 링크하고, 이 파일에는 **"무엇을 · 어디까지 · 다음은"** 요약만 남긴다.
 >
-> 최종 갱신: 2026-06-22
+> 최종 갱신: 2026-06-26
+
+---
+
+## 📂 문서 지도 — 이어가기는 **여기(WORKLOG)** 하나로 시작한다
+
+> 새 세션/작업자는 **이 파일만 열면 된다.** 아래 주제별 문서는 *깊은 내용이 필요할 때만* 들어간다.
+
+| 문서 | 무엇 | 언제 보나 | 상태 |
+|---|---|---|---|
+| **(이 파일) WORKLOG.md** | 모든 작업의 시간순 현황·다음단계 | **항상 여기부터** | 🟢 활성 |
+| [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) | 스토어 빌드에 아직 안 들어간 네이티브 변경 | "지금 EAS 빌드 해야 하나?" 판단 시 | 🟢 활성 |
+| [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) | 채팅·등록채널 구조와 함정 | 채팅/등록 오류 재발 시 | 🟢 참조 |
+| [directives/ROADMAP.md](directives/ROADMAP.md) | 개선 백로그(ASO·로그인전환·푸시 등) | "다음에 뭘 만들지" 정할 때 | 🟡 백로그 |
+| [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) | GA4/측정 셋업 진행 | 측정 작업 재개 시 | 🟡 정체(5/25) |
+| [PROGRESS_PUSH_SYSTEM.md](PROGRESS_PUSH_SYSTEM.md) | 푸시 발송 시스템 구조 | 푸시 손볼 때 참고 | ⚪ 완료/참고 |
 
 ---
 
@@ -20,6 +35,32 @@
 - **다음 단계**: 다음 작업자가 이어서 할 일 (없으면 "없음")
 - **관련 파일/문서**: 링크
 ```
+
+---
+
+## 2026-06-26 — 잘못된 App Store ID 전수 수정 + iOS 오프라인 배너 버그 + 업데이트 안내 링크
+
+- **한 일**:
+  ① 코드 전체의 잘못된 iOS App Store ID(`id6480538597`=404, 플레이스홀더 `id123456789`) **9곳** → 정상 `id6754750793`으로 통일.
+  ② **iOS 오프라인 배너가 인터넷 있어도 상시 표시되던 버그** 수정. 원인은 netinfo 값(정상 `conn=true`)이 아니라 `NetworkBanner` 숨김 이동거리 `-60`이 iOS 큰 `insets.top`(노치 ~59)을 못 덮어 배너가 화면 상단에 남던 것 → `-(insets.top+60)`으로 수정. (Android는 insets.top이 작아 원래 정상이었음 = 플랫폼 차이)
+  ③ **업데이트 안내용 단일 링크 페이지** `public_html/go/update` 신설 — OS 감지 후 *앱 열기 시도 없이* 곧장 스토어로. (기존 `/go/app`은 deeplink로 구앱을 열어버려 업데이트용으로 부적합)
+- **배포**: 앱 OTA 3건(`production`, runtime 2.4.3, iOS+Android) — ID수정·진단·배너수정. Firebase Hosting 배포(`/go/update`). 커밋 `16245fd`·`126d777`·`6f7bc75`(진단,제거됨)·`d7c0aa5`.
+- **상태**: ✅ 완료 — iOS 실기기 확인(인터넷 끊기면 배너 뜨고, 연결되면 사라짐).
+- **다음 단계**: (선택) 다음 EAS 빌드에 netinfo·딥링크 `associatedDomains`·iOS analytics 반영 → [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md). WP 딥링크 플러그인 FTP는 **불필요**(구버전, 실라우터는 `public_html/app/share/index.php`이며 스토어ID 미사용).
+- **단일 안내 링크**: `https://chaovietnam-login.web.app/go/update`
+- **관련 파일/문서**: `components/NetworkBanner.js`, `components/ForceUpdateModal.js`, `public_html/go/update/index.html`, `firebase.json`
+
+---
+
+## 2026-06-23 — 씬짜오 매거진 옐로페이지(Vol-561) 디지털화 OCR
+
+- **한 일**: 스캔 이미지 PDF(`Z:/VOL/VOL_NEW/Vol-561/04-PDF/561_yellowpage-2.pdf`, 42p, 글꼴0)를 비전 OCR로 구조화. PDF→페이지JPEG 추출 + sharp로 2×3 타일(확대·샤픈) → 페이지별 병렬 OCR 에이전트 → 병합·정규화·중복제거. **2,176개 업체** 추출(이름·전화·주소·담당자·카테고리). 라이프플라자(아임웹 디렉토리)는 통째 복제 대신 *전화·주소 교차검증용* 으로만 사용 결정(우리 PDF가 원본=법적 리스크 없음).
+- **배포**: 미배포 (로컬 추출물만, 라이브 DB 미접촉)
+- **상태**: 🟡 진행중 — 매거진 OCR + 라이프플라자 크롤링 + 통합 완료, 검수 대기
+- **추가 진행(같은 날)**: 대분류 색띠 기준 배정 / 라이프플라자 크롤 2,619 / 비교(겹침 25%, 두 곳 독립수집 판명) / **통합 마스터 4,319개**(도시·구군·카테고리 검색구조). 사용자 결정: 둘 다 통합 + 베트남남부 옐로페이지로 전환
+- **다음 단계**: ① `yellowpage_master.csv` 검수 ② 잔여 보정(도시 미상 749·대분류 기타 477) ③ `NeighborBusinesses` 임포트(source 보존, 사전승인) ④ 앱·vnkorlife 도시/구군/카테고리 검색 UI
+- **관련**: `scripts/yellowpage/{crawl_lifeplaza,compare,build_directory}.js`, 산출 `.tmp/yellowpage/out/yellowpage_master.{csv,json}`
+- **관련 파일/문서**: [directives/yellowpage_digitize.md](directives/yellowpage_digitize.md), `scripts/yellowpage/{extract_pages,merge}.js`, 산출물 `.tmp/yellowpage/out/yellowpage.{csv,json}`
 
 ---
 

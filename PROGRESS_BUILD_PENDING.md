@@ -48,13 +48,14 @@ eas submit:list --limit 3
 
 > 마지막 운영 빌드 이후 *네이티브 모듈/설정* 에 영향을 주는 변경들.
 
-**현재**: 미빌드 네이티브 변경 2건 누적. 다음 빌드(2.4.3) 에 포함 예정.
+**현재**: 미빌드 네이티브 변경 3건 누적 (iOS analytics 🔴 + remote-config + netinfo). 다음 빌드(2.4.3) 에 포함 예정.
 
 | 커밋 | 날짜 | 변경 | 영향 | Priority | 상태 |
 |---|---|---|---|---|---|
-| ~~`5714bdc`~~ | ~~2026-05-20~~ | ~~`@react-native-firebase/analytics@21.14.0` 추가~~ | ~~앱 내 측정 데이터 흐름~~ | ~~🟡 medium~~ | ✅ 5/21 빌드 포함 |
+| (미커밋) | 2026-06-15 | **iOS Firebase Analytics 활성화** — `GoogleService-Info.plist`의 `IS_ANALYTICS_ENABLED` false→true + app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED:true` | iOS 측정 0건 → 정상 수집. (안드로이드는 처음부터 정상) | 🔴 critical(측정 손실) | ⏳ **iOS 빌드+재출시 대기** |
 | `323cfad`+`4e40683` | 2026-06-14 | `@react-native-firebase/remote-config` — 강제 업데이트 팝업 | 구버전 사용자 스토어 유도. 현재 try-catch로 silent fail (팝업 미작동) | 🟡 medium | ⏳ 2.4.3 빌드 대기 |
 | `(현재)` | 2026-06-26 | `@react-native-community/netinfo` — 오프라인 감지 배너 | 인터넷 끊길 시 상단 배너 표시 | 🟡 medium | ⏳ 2.4.3 빌드 대기 |
+| ~~`5714bdc`~~ | ~~2026-05-20~~ | ~~`@react-native-firebase/analytics@21.14.0` 추가~~ | ~~앱 내 측정 데이터 흐름~~ | ~~🟡 medium~~ | ✅ 5/21 빌드 포함. iOS도 출시됨(2.4.2)이나 plist 플래그로 수집은 꺼져있었음 |
 
 ---
 
