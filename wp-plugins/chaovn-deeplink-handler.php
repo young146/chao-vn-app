@@ -21,7 +21,7 @@ define('CHAOVN_ANDROID_SHA256',     'A1:3F:CC:62:D0:78:8C:24:DF:5D:CF:74:95:A3:6
 define('CHAOVN_IOS_BUNDLE_ID',      'com.yourname.chaovnapp');
 define('CHAOVN_IOS_TEAM_ID',        '9NAKBDVGPP');
 define('CHAOVN_PLAY_STORE_URL',     'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp');
-define('CHAOVN_APP_STORE_URL',      'https://apps.apple.com/app/id123456789'); // ← 실제 App Store ID 로 교체
+define('CHAOVN_APP_STORE_URL',      'https://apps.apple.com/app/id6754750793');
 define('CHAOVN_APP_SCHEME',         'chaovietnam://');
 define('CHAOVN_NEWS_TERMINAL_SLUG', 'daily-news-terminal');
 

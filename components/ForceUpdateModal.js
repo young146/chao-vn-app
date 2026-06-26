@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, Platform, Linking, StyleSheet } from 'react-native';
 
-const IOS_URL = 'https://apps.apple.com/app/id6480538597';
+const IOS_URL = 'https://apps.apple.com/app/id6754750793';
 const ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.yourname.chaovnapp';
 
 export default function ForceUpdateModal({ visible }) {
