@@ -18,30 +18,23 @@ import {
   collection,
   getDocs,
   deleteDoc,
-  addDoc,
   doc,
   query,
   where,
-  serverTimestamp,
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAuth } from "../contexts/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserManagementScreen() {
   const { isAdmin } = useAuth();
-  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState(null);
-  const [banReasonModalVisible, setBanReasonModalVisible] = useState(false);
-  const [banReason, setBanReason] = useState("");
-  const [banningUser, setBanningUser] = useState(null);
 
   // 검색 & 필터
   const [searchText, setSearchText] = useState("");
@@ -259,88 +252,6 @@ export default function UserManagementScreen() {
       Alert.alert("오류", `회원 삭제에 실패했습니다.\n\n${error.message}`);
     } finally {
       setDeletingUserId(null);
-    }
-  };
-
-  const handleBanUser = (userId, userName) => {
-    setModalVisible(false);
-    setTimeout(() => {
-      setBanningUser({ id: userId, name: userName });
-      setBanReason("");
-      setBanReasonModalVisible(true);
-    }, 300);
-  };
-
-  const confirmBan = () => {
-    if (!banReason.trim()) {
-      Alert.alert("알림", "제명 사유를 입력해주세요.");
-      return;
-    }
-    setBanReasonModalVisible(false);
-    setTimeout(() => {
-      Alert.alert(
-        "⛔ 영구 제명 최종 확인",
-        `${banningUser?.name}을(를) 영구 제명하시겠습니까?\n\n사유: ${banReason}\n\n• 모든 게시물이 삭제됩니다\n• 재로그인이 영구 차단됩니다\n• 이 작업은 되돌릴 수 없습니다`,
-        [
-          { text: "취소", style: "cancel" },
-          {
-            text: "영구 제명",
-            style: "destructive",
-            onPress: () => banUserCompletely(banningUser.id, banningUser.name, banReason),
-          },
-        ]
-      );
-    }, 300);
-  };
-
-  const banUserCompletely = async (userId, userName, reason) => {
-    try {
-      setDeletingUserId(userId);
-      const userDoc = users.find((u) => u.id === userId);
-
-      // 1. bannedUsers 컬렉션에 블랙리스트 등록
-      await addDoc(collection(db, "bannedUsers"), {
-        uid: userId,
-        email: userDoc?.email || null,
-        kakaoId: userDoc?.kakaoId ? String(userDoc.kakaoId) : null,
-        phone: userDoc?.phone || null,
-        name: userDoc?.name || userName,
-        reason: reason,
-        bannedAt: serverTimestamp(),
-        bannedBy: "admin",
-      });
-
-      // 2. 모든 게시물 삭제
-      const cols = [
-        "bookmarks", "comments", "XinChaoDanggn", "Jobs",
-        "RealEstate", "NeighborBusinesses", "candidates", "Agents", "reviews", "favorites",
-      ];
-      for (const col of cols) {
-        const snap = await getDocs(query(collection(db, col), where("userId", "==", userId)));
-        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
-      }
-
-      // 3. 알림 설정 삭제
-      try { await deleteDoc(doc(db, "notificationSettings", userId)); } catch (_) {}
-
-      // 4. 프로필 사진 삭제
-      if (userDoc?.profileImage) {
-        try {
-          const imagePath = userDoc.profileImage.split("/o/")[1]?.split("?")[0];
-          if (imagePath) await deleteObject(ref(storage, decodeURIComponent(imagePath)));
-        } catch (_) {}
-      }
-
-      // 5. users 문서 삭제
-      await deleteDoc(doc(db, "users", userId));
-
-      setUsers(users.filter((u) => u.id !== userId));
-      Alert.alert("완료", `${userName}이(가) 영구 제명되었습니다.\n재가입 및 재로그인이 차단되었습니다.`);
-    } catch (error) {
-      Alert.alert("오류", `영구 제명에 실패했습니다.\n${error.message}`);
-    } finally {
-      setDeletingUserId(null);
-      setBanningUser(null);
     }
   };
 
@@ -693,58 +604,11 @@ export default function UserManagementScreen() {
         }
       />
 
-      {/* 제명 사유 입력 모달 */}
-      <Modal
-        visible={banReasonModalVisible}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setBanReasonModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.banReasonContainer}>
-            <View style={styles.banReasonHeader}>
-              <Ionicons name="ban" size={24} color="#8B0000" />
-              <Text style={styles.banReasonTitle}>영구 제명 사유 입력</Text>
-            </View>
-            <Text style={styles.banReasonSubtitle}>
-              {banningUser?.name} 회원을 제명합니다.{"\n"}사유를 입력하면 블랙리스트에 기록됩니다.
-            </Text>
-            <TextInput
-              style={styles.banReasonInput}
-              placeholder="예) 사기성 구인공고 반복 등록, 불법 상품 판매..."
-              placeholderTextColor="#aaa"
-              value={banReason}
-              onChangeText={setBanReason}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-            <View style={styles.banReasonButtons}>
-              <TouchableOpacity
-                style={styles.banCancelButton}
-                onPress={() => setBanReasonModalVisible(false)}
-              >
-                <Text style={styles.banCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.banConfirmButton}
-                onPress={confirmBan}
-              >
-                <Ionicons name="ban" size={16} color="#fff" />
-                <Text style={styles.banConfirmText}>제명 진행</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* 상세보기 모달 */}
       <Modal
         visible={modalVisible}
         animationType="slide"
         transparent={true}
-        statusBarTranslucent={true}
-        navigationBarTranslucent={true}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -756,10 +620,7 @@ export default function UserManagementScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              style={styles.modalBody}
-              contentContainerStyle={{ paddingBottom: 24 }}
-            >
+            <ScrollView style={styles.modalBody}>
               {selectedUser && (
                 <>
                   <View style={styles.statusBadges}>
@@ -928,40 +789,25 @@ export default function UserManagementScreen() {
                   </View>
                 </>
               )}
-
             </ScrollView>
 
             {isAdmin() && selectedUser && (
-              <View
-                style={[
-                  styles.modalFooter,
-                  { paddingBottom: Math.max(insets.bottom, 16) },
-                ]}
+              <TouchableOpacity
+                style={styles.deleteButtonModal}
+                onPress={() =>
+                  handleDeleteUser(selectedUser.id, selectedUser.name)
+                }
+                disabled={deletingUserId === selectedUser.id}
               >
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.deleteButtonModal]}
-                  onPress={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
-                  disabled={deletingUserId === selectedUser.id}
-                >
-                  {deletingUserId === selectedUser.id ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="trash-outline" size={18} color="#fff" />
-                      <Text style={styles.deleteButtonText}>삭제</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.banButtonModal]}
-                  onPress={() => handleBanUser(selectedUser.id, selectedUser.name)}
-                  disabled={deletingUserId === selectedUser.id}
-                >
-                  <Ionicons name="ban" size={18} color="#fff" />
-                  <Text style={styles.deleteButtonText}>영구 제명</Text>
-                </TouchableOpacity>
-              </View>
+                {deletingUserId === selectedUser.id ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="trash" size={20} color="#fff" />
+                    <Text style={styles.deleteButtonText}>회원 삭제</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -1113,7 +959,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: "88%",
+    maxHeight: "90%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1129,7 +975,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   modalBody: {
-    flex: 1,
     padding: 20,
   },
   statusBadges: {
@@ -1188,99 +1033,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-  modalFooter: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  modalActionButton: {
-    flex: 1,
+  deleteButtonModal: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
-    borderRadius: 8,
-    gap: 6,
-  },
-  deleteButtonModal: {
     backgroundColor: "#dc3545",
-  },
-  banButtonModal: {
-    backgroundColor: "#8B0000",
+    padding: 16,
+    margin: 20,
+    borderRadius: 8,
+    gap: 8,
   },
   deleteButtonText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "bold",
-  },
-  banReasonContainer: {
-    backgroundColor: "#fff",
-    margin: 24,
-    borderRadius: 16,
-    padding: 24,
-  },
-  banReasonHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-  banReasonTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#8B0000",
-  },
-  banReasonSubtitle: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  banReasonInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: "#333",
-    minHeight: 80,
-    backgroundColor: "#fafafa",
-    marginBottom: 20,
-  },
-  banReasonButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  banCancelButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-  },
-  banCancelText: {
-    fontSize: 15,
-    color: "#666",
-    fontWeight: "600",
-  },
-  banConfirmButton: {
-    flex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
-    borderRadius: 8,
-    backgroundColor: "#8B0000",
-    gap: 6,
-  },
-  banConfirmText: {
-    color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });
