@@ -8,6 +8,19 @@
 
 ---
 
+## 🚨🚨 다음 빌드 전 필수 체크리스트 (절대 빠뜨리지 말 것) 🚨🚨
+
+> **EAS Build 를 시작하기 직전, 이 목록의 변경이 *작업 폴더에 반드시 들어가 있는지* 확인하고 빌드한다.**
+> (2026-06-25 2.4.3 빌드에서 아래 ①이 **누락된 채 빌드되어** iOS 측정이 계속 꺼진 사고가 있었음 — 재발 금지)
+
+- [ ] **① iOS Firebase Analytics 활성화** 🔴 — `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = **`true`**, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = **`true`** 인지 확인. (꺼져 있으면 iOS 사용자 측정이 0건으로 계속 비어감)
+- [ ] 빌드 직전 `git status` 로 위 두 파일이 **커밋/포함된 상태**인지 확인 (미커밋이면 다른 PC 빌드에 안 들어감).
+- [ ] 빌드 후 Firebase Analytics 콘솔에서 **iOS 이벤트가 실제로 들어오는지** 확인 후 이 항목 ✅ 처리.
+
+> 📌 빌드가 끝나고 위 항목이 *정말 반영됐는지* 검증되기 전에는 이 체크리스트를 지우지 말 것.
+
+---
+
 ## 🧭 빠른 의사결정
 
 **지금 EAS Build 가 필요한가?** → 아래 "🔧 미빌드 네이티브 변경" 표를 본다.
@@ -48,13 +61,13 @@ eas submit:list --limit 3
 
 > 마지막 운영 빌드 이후 *네이티브 모듈/설정* 에 영향을 주는 변경들.
 
-**현재**: 미빌드 네이티브 변경 3건 누적 (iOS analytics 🔴 + remote-config + netinfo). 다음 빌드(2.4.3) 에 포함 예정.
+**현재**: 미빌드 네이티브 변경 **1건** (iOS analytics 🔴). netinfo·remote-config 는 2026-06-25 **2.4.3 빌드에 포함되어 작동 확인됨**(아래 ✅).
 
 | 커밋 | 날짜 | 변경 | 영향 | Priority | 상태 |
 |---|---|---|---|---|---|
-| (미커밋) | 2026-06-15 | **iOS Firebase Analytics 활성화** — `GoogleService-Info.plist`의 `IS_ANALYTICS_ENABLED` false→true + app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED:true` | iOS 측정 0건 → 정상 수집. (안드로이드는 처음부터 정상) | 🔴 critical(측정 손실) | ⏳ **iOS 빌드+재출시 대기** |
-| `323cfad`+`4e40683` | 2026-06-14 | `@react-native-firebase/remote-config` — 강제 업데이트 팝업 | 구버전 사용자 스토어 유도. 현재 try-catch로 silent fail (팝업 미작동) | 🟡 medium | ⏳ 2.4.3 빌드 대기 |
-| `(현재)` | 2026-06-26 | `@react-native-community/netinfo` — 오프라인 감지 배너 | 인터넷 끊길 시 상단 배너 표시 | 🟡 medium | ⏳ 2.4.3 빌드 대기 |
+| (미커밋) | 2026-06-15 | **iOS Firebase Analytics 활성화** — `GoogleService-Info.plist`의 `IS_ANALYTICS_ENABLED` false→true + app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED:true` | iOS 측정 0건 → 정상 수집. (안드로이드는 처음부터 정상) | 🔴 critical(측정 손실) | ⏳ **iOS 빌드+재출시 대기 (유일한 미빌드 항목)** |
+| `323cfad`+`4e40683` | 2026-06-14 | `@react-native-firebase/remote-config` — 강제 업데이트 팝업 | 구버전 사용자 스토어 유도 | 🟡 medium | ✅ 2.4.3 빌드(6/25) 포함. 네이티브 모듈 컴파일됨 |
+| `c4193e4` | 2026-06-25 | `@react-native-community/netinfo` — 오프라인 감지 배너 | 인터넷 끊길 시 상단 배너 표시 | 🟡 medium | ✅ 2.4.3 빌드(6/25) 포함(작업폴더 빌드). 배너 동작 확인. iOS 배너 표시버그는 6/26 OTA로 별도 수정 |
 | ~~`5714bdc`~~ | ~~2026-05-20~~ | ~~`@react-native-firebase/analytics@21.14.0` 추가~~ | ~~앱 내 측정 데이터 흐름~~ | ~~🟡 medium~~ | ✅ 5/21 빌드 포함. iOS도 출시됨(2.4.2)이나 plist 플래그로 수집은 꺼져있었음 |
 
 ---
