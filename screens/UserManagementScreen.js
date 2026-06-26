@@ -29,9 +29,11 @@ import { db, storage } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAuth } from "../contexts/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserManagementScreen() {
   const { isAdmin } = useAuth();
+  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -925,7 +927,7 @@ export default function UserManagementScreen() {
             </ScrollView>
 
             {isAdmin() && selectedUser && (
-              <View style={styles.modalButtonRow}>
+              <View style={[styles.modalButtonRow, { paddingBottom: insets.bottom || 16 }]}>
                 <TouchableOpacity
                   style={[styles.modalActionButton, styles.deleteButtonModal]}
                   onPress={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
