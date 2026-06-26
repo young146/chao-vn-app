@@ -330,7 +330,6 @@ export default function App() {
   const [showStartupPopup, setShowStartupPopup] = useState(false);
   const [showForceUpdate, setShowForceUpdate] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
-  const [netDbg, setNetDbg] = useState("init"); // 🚧 임시 진단 — netinfo 실제 값 확인용
   const updatesCheckedRef = useRef(false);
   const popupShownRef = useRef(false);
   const deepLinkHandledRef = useRef(false); // 중복 처리 방지
@@ -610,11 +609,7 @@ export default function App() {
     // !null=true 가 되어 인터넷이 있어도 오프라인으로 오인됨. 그리고 이후
     // 네트워크 변화가 없으면 null 인 채로 멈춰 배너가 계속 떠 있음.
     // → 명시적으로 false 일 때만 오프라인 처리한다 (null/undefined = 오프라인 아님).
-    const handle = (state) => {
-      setIsOffline(state.isConnected === false);
-      // 🚧 임시 진단 — iOS 에서 netinfo 가 실제로 주는 값을 화면에 출력
-      setNetDbg(`type=${state.type} conn=${String(state.isConnected)} reach=${String(state.isInternetReachable)}`);
-    };
+    const handle = (state) => setIsOffline(state.isConnected === false);
     // 시작 시 실제 상태를 1회 직접 조회해 첫 emit 의 null 을 보정
     NetInfo.fetch().then(handle).catch(() => {});
     const unsubscribe = NetInfo.addEventListener(handle);
@@ -915,26 +910,6 @@ export default function App() {
 
         {/* 네트워크 오프라인 배너 — 인터넷 끊길 시 상단 슬라이드인 */}
         <NetworkBanner isOffline={isOffline} />
-
-        {/* 🚧 임시 진단 — netinfo 실제 값 (iOS만, 확인 후 제거) */}
-        {Platform.OS === "ios" && (
-          <Text
-            style={{
-              position: "absolute",
-              bottom: 8,
-              left: 8,
-              right: 8,
-              backgroundColor: "rgba(0,0,0,0.75)",
-              color: "#0f0",
-              fontSize: 11,
-              padding: 6,
-              zIndex: 99999,
-              textAlign: "center",
-            }}
-          >
-            NET: {netDbg}
-          </Text>
-        )}
 
       </SafeAreaProvider>
     </AuthProvider>
