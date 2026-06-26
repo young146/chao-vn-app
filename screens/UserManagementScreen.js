@@ -922,34 +922,35 @@ export default function UserManagementScreen() {
                 </>
               )}
 
-              {isAdmin() && selectedUser && (
-                <View style={styles.modalButtonRow}>
-                  <TouchableOpacity
-                    style={[styles.modalActionButton, styles.deleteButtonModal]}
-                    onPress={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
-                    disabled={deletingUserId === selectedUser.id}
-                  >
-                    {deletingUserId === selectedUser.id ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="trash-outline" size={18} color="#fff" />
-                        <Text style={styles.deleteButtonText}>삭제</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.modalActionButton, styles.banButtonModal]}
-                    onPress={() => handleBanUser(selectedUser.id, selectedUser.name)}
-                    disabled={deletingUserId === selectedUser.id}
-                  >
-                    <Ionicons name="ban" size={18} color="#fff" />
-                    <Text style={styles.deleteButtonText}>영구 제명</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </ScrollView>
+
+            {isAdmin() && selectedUser && (
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.deleteButtonModal]}
+                  onPress={() => handleDeleteUser(selectedUser.id, selectedUser.name)}
+                  disabled={deletingUserId === selectedUser.id}
+                >
+                  {deletingUserId === selectedUser.id ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="trash-outline" size={18} color="#fff" />
+                      <Text style={styles.deleteButtonText}>삭제</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.banButtonModal]}
+                  onPress={() => handleBanUser(selectedUser.id, selectedUser.name)}
+                  disabled={deletingUserId === selectedUser.id}
+                >
+                  <Ionicons name="ban" size={18} color="#fff" />
+                  <Text style={styles.deleteButtonText}>영구 제명</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
