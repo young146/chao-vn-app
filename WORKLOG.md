@@ -38,6 +38,32 @@
 
 ---
 
+## 2026-06-26 — 🔍 교민 통합검색 허브 + 옐로페이지 + 이웃업소 통합 + 자동화 (대규모, 웹)
+
+> 깊은 구조·엔드포인트·재발방지는 [PROGRESS_UNIFIED_SEARCH.md](PROGRESS_UNIFIED_SEARCH.md) 참조.
+
+- **한 일 (요약)**: 흩어진 5개 자산을 한 검색창으로 묶는 통합검색을 만들고 vnkorlife.com을 허브로 전환. 옐로페이지(우리 디지털화 3.7천 + 라이프플라자)와 이웃업소(앱 등록)를 하나로 합쳐, 이웃업소를 *사진+상단 프리미엄*으로 노출. 신청→관리자승인→게재 흐름 + 이메일 알림. 색인 자동갱신(야간 크론 + 승인 즉시)까지 완성.
+  - **검색 두뇌 = daily-news-final**(Neon `SearchIndex` 단일색인 + pg_trgm 한글검색). 화면 = vnkorlife.com이 `NEXT_PUBLIC_SEARCH_API`(기본 daily-news vercel)로 호출.
+  - **색인 5소스**: 뉴스(WP cat31 ~18k) · 매거진(WP 그외 ~7k) · 진출기업(xcd ~5.4k) · 옐로페이지(매거진/라이프플라자 마스터 JSON ~3.7k) · 이웃업소(Firestore, priority 100). 중복 시 사진 있는 이웃업소가 이김.
+  - **옐로 마스터 JSON을 `daily-news-final/data/yellowpage_master.json`에 커밋** → GitHub 백업 + 서버가 직접 읽어 자동 재색인(예전 "로컬 수동" 제약 해소).
+  - **vnkorlife 화면**: `/`(허브 통합검색·지역필터·세션복원) · `/yellowpage`(카테고리·도시/구군 둘러보기) · `/biz/[id]`(내부 상세: 진출기업 전항목·기타박스·인라인지도·관리자수정버튼) · `/biz/[id]/edit`(관리자 수정). 네비 '이웃업소'→'옐로페이지', `/neighborbusiness`→`/yellowpage` 리다이렉트(등록 `/new`은 유지).
+  - **등록 흐름**: `/neighborbusiness/new` = "옐로페이지 상단노출 **신청**"(active:false·pending) → 접수 안내 → 관리자 패널 "✅ 승인"(active·approved) → 색인 즉시 반영. 신청 시 관리자(info@·younghan146@) **SendGrid 이메일 알림**.
+  - **자동화**: 야간 크론 `rebuild-directory`(00:30)·`rebuild-news`(01:00)·`rebuild-magazine`(01:30 UTC) + 승인 즉시 `/api/directory/refresh-neighbor`. 빌더 공용 모듈 `lib/search-index-core.js`(CLI+서버 공용).
+  - **디자인**: 허브 홈 전문 리디자인(히어로·컬러 카드·가독성). 지역을 검색창 바로 아래로(검색조건화). 로고·'홈' 탭·제목 클릭 = 검색 초기화 후 첫 화면(구글식, 수익라인 노출 자리 확보).
+- **배포**: 웹 Vercel **운영 LIVE** — daily-news-final + vnkorlife-web 다수 커밋 push. 색인은 운영 Neon에 적재 완료. (앱 chao-vn-app은 미적용 = 다음 단계)
+- **상태**: ✅ 핵심 완료·운영 검증(검색/옐로/상세/자동갱신 운영 확인) / ⏳ **관리자 수정 저장**(Firebase ID토큰 검증)만 운영 실토큰 테스트 미완 — 실패 시 daily-news Vercel에 `FIREBASE_SERVICE_ACCOUNT_JSON` 추가.
+- **다음 단계**:
+  ① **홈 화면 수익 라인**(제휴 배너 자리) 설계·삽입 — 홈 노출 늘렸으니 적기.
+  ② `/yellowpage`·`/biz` 디자인을 허브와 통일.
+  ③ **앱(chao-vn-app)에 통합검색·옐로페이지 적용**(같은 API 재사용) = Phase 3.
+  ④ 운영에서 관리자 수정 저장 실테스트.
+- **관련 파일/문서**:
+  - daily-news-final: `lib/search-index-core.js`, `scripts/build-search-index.js`, `data/yellowpage_master.json`, `app/api/search/*`, `app/api/directory/*`, `app/api/cron/rebuild-*`, `app/api/notify-application`, `vercel.json`, `prisma/schema.prisma`(SearchIndex·DirectoryEdit)
+  - vnkorlife-web: `app/page.tsx`(허브), `app/yellowpage/page.tsx`, `app/biz/[id]/page.tsx`·`edit`, `src/components/navigation/GlobalNav.tsx`, `app/(tabs)/neighborbusiness/new/page.tsx`·`page.tsx`, `app/admin/page.tsx`(승인+색인반영)
+  - [PROGRESS_UNIFIED_SEARCH.md](PROGRESS_UNIFIED_SEARCH.md)
+
+---
+
 ## 2026-06-26 — 잘못된 App Store ID 전수 수정 + iOS 오프라인 배너 버그 + 업데이트 안내 링크
 
 - **한 일**:
