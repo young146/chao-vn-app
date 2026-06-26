@@ -27,9 +27,11 @@ import { db, storage } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAuth } from "../contexts/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserManagementScreen() {
   const { isAdmin } = useAuth();
+  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -611,7 +613,7 @@ export default function UserManagementScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>회원 상세 정보</Text>
@@ -620,7 +622,7 @@ export default function UserManagementScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 12 }}>
               {selectedUser && (
                 <>
                   <View style={styles.statusBadges}>
@@ -975,6 +977,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   modalBody: {
+    flexShrink: 1,
     padding: 20,
   },
   statusBadges: {
