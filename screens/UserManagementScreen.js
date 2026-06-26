@@ -27,11 +27,9 @@ import { db, storage } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAuth } from "../contexts/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function UserManagementScreen() {
   const { isAdmin } = useAuth();
-  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -613,8 +611,8 @@ export default function UserManagementScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={[styles.modalOverlay, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { justifyContent: "center", alignItems: "center", paddingHorizontal: 16 }]}>
+          <View style={[styles.modalContent, { position: "absolute", top: 90, bottom: 110, left: 16, right: 16, borderRadius: 20, overflow: "hidden" }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>회원 상세 정보</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -622,7 +620,10 @@ export default function UserManagementScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 12 }}>
+            <ScrollView
+              style={[styles.modalBody, { flex: 1 }]}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
               {selectedUser && (
                 <>
                   <View style={styles.statusBadges}>
@@ -961,7 +962,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: "90%",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    maxHeight: "85%",
+    marginBottom: 50,
   },
   modalHeader: {
     flexDirection: "row",
