@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: "90%",
+    height: "90%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1116,6 +1116,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   modalBody: {
+    flex: 1,
     padding: 20,
   },
   statusBadges: {
