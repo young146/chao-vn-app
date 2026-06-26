@@ -93,9 +93,33 @@ export const AuthProvider = ({ children }) => {
     return ADMIN_EMAILS.includes(user.email.toLowerCase());
   };
 
+  // 블랙리스트 확인 (email 또는 kakaoId로 조회)
+  const checkBanned = async (email, kakaoId = null) => {
+    try {
+      if (email) {
+        const q = query(collection(db, "bannedUsers"), where("email", "==", email));
+        const snap = await getDocs(q);
+        if (!snap.empty) return true;
+      }
+      if (kakaoId) {
+        const q = query(collection(db, "bannedUsers"), where("kakaoId", "==", String(kakaoId)));
+        const snap = await getDocs(q);
+        if (!snap.empty) return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const BANNED_MESSAGE = "이 계정은 이용이 영구 제한되었습니다.\n\n사유: 이용 약관 위반\n문의: info@chaovietnam.co.kr";
+
   // 회원가입 (프로필 정보 포함)
   const signup = async (email, password, profileData = {}) => {
     try {
+      const isBanned = await checkBanned(email);
+      if (isBanned) return { success: false, error: BANNED_MESSAGE };
+
       // 1. Firebase Authentication 계정 생성
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -153,6 +177,9 @@ export const AuthProvider = ({ children }) => {
   // 로그인
   const login = async (email, password) => {
     try {
+      const isBanned = await checkBanned(email);
+      if (isBanned) return { success: false, error: BANNED_MESSAGE };
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -234,6 +261,12 @@ export const AuthProvider = ({ children }) => {
       const userCredential = await signInWithCredential(auth, credential);
       const googleUser = userCredential.user;
 
+      const isBanned = await checkBanned(googleUser.email);
+      if (isBanned) {
+        try { await signOut(auth); } catch (_) {}
+        return { success: false, error: BANNED_MESSAGE };
+      }
+
       const userDoc = await getDoc(doc(db, "users", googleUser.uid));
       const isNewSignup = !userDoc.exists();
       if (isNewSignup) {
@@ -287,6 +320,12 @@ export const AuthProvider = ({ children }) => {
 
       const userCredential = await signInWithCredential(auth, credential);
       const appleUser = userCredential.user;
+
+      const isBannedApple = await checkBanned(appleUser.email);
+      if (isBannedApple) {
+        try { await signOut(auth); } catch (_) {}
+        return { success: false, error: BANNED_MESSAGE };
+      }
 
       const userDoc = await getDoc(doc(db, "users", appleUser.uid));
       const isNewSignup = !userDoc.exists();
@@ -348,6 +387,9 @@ export const AuthProvider = ({ children }) => {
       // Firebase Auth 로그인용 이메일/비밀번호 생성
       const kakaoEmail = `kakao_${profile.id}@chaovietnam.co.kr`;
       const kakaoPassword = `kakao_login_sec_${profile.id}`;
+
+      const isBannedKakao = await checkBanned(kakaoEmail, profile.id);
+      if (isBannedKakao) return { success: false, error: BANNED_MESSAGE };
 
       let userCredential;
       let isNewUser = false;
