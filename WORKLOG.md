@@ -52,8 +52,8 @@
   - **검색 = 별도 결과 화면으로 분리(구글식, 피드백 반영)**: 기존엔 검색이 홈을 덮어쓰고 결과가 AsyncStorage로 남아 홈(옐로 진입 등)이 사라짐 → 신규 `screens/SearchResultsScreen.js`(맨 위 고정 검색창+지역+타입칩+결과+페이지). 홈(`HubScreen`)은 '입구'만: 검색 누르면 `검색결과` push, **홈은 항상 그대로**. 홈탭/뒤로 누르면 결과 화면 pop→홈 복원. 결과는 화면 state로만 유지(인앱브라우저는 화면 안 닫힘) → AsyncStorage 세션복원 제거.
   - **검색창 돋보기 아이콘** 3곳(허브·검색결과·옐로) 왼쪽에 추가(Ionicons search, 기존 의존성).
   - **검색결과 정렬 = 카테고리순(피드백 반영)**: 통합(전체) 결과를 **옐로페이지→진출기업→매거진→뉴스** 순으로 묶고 그룹 내 **가나다(프리미엄 우선)**. ⚠️ **검색 API(daily-news-final) 수정 필요**(페이지네이션 때문에 서버 정렬). `sort=category` **옵트인 파라미터** 추가(`app/api/search/route.js`) → 앱만 보냄, 웹 영향 0. 앱 `searchService`·`SearchResultsScreen`이 `sort:'category'` 전달. **별도 배포 필요**: daily-news-final git push→Vercel 자동배포(앱 OTA와 별개). 미배포 시 앱은 기존 순서로 표시(무해).
-- **배포**: ⏳ **미배포** — 코드만 완료. babel 파싱 4파일 OK, 라이브 API(regions·search) 응답 확인. git push + `eas update --channel production` 승인 대기.
-- **상태**: 🟡 코드 완료 / ⏳ 실기기 검증 + 배포 승인 대기
+- **배포**: ✅ **완료** (2026-06-28). 앱 OTA `production` 발행(update group `7b80ca3b`, runtime 2.4.3, iOS+Android, 커밋 `91e39d8`). 검색 API daily-news-final push→Vercel 배포(커밋 `c80e073`), `sort=category` 라이브 검증 완료(옐로→company→magazine→news 그룹화 확인).
+- **상태**: ✅ 배포 완료 / ⏳ 실기기 최종 확인(검색→결과화면→홈복원, 카테고리 정렬) 권장
 - **다음 단계**: ① 실기기에서 시작=허브·검색·지역·바로가기·🏠복귀·매거진탭·옐로 확인 ② 승인 시 OTA 배포 ③ (후속) 상세화면 헤더에도 🏠 추가, 검색결과 네이티브 라우팅, 헤더 그라데이션(빌드 시).
 - **관련 파일**: [services/searchService.js](services/searchService.js), [screens/HubScreen.js](screens/HubScreen.js), [screens/YellowPageScreen.js](screens/YellowPageScreen.js), [App.js](App.js), i18n navigation.json(ko·en·vi)
 
