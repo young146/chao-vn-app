@@ -195,6 +195,9 @@ import AnnouncementsListScreen from "./screens/AnnouncementsListScreen";
 import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
 import MagazineScreen from "./screens/MagazineScreen";
+import HubScreen from "./screens/HubScreen";
+import YellowPageScreen from "./screens/YellowPageScreen";
+import SearchResultsScreen from "./screens/SearchResultsScreen";
 import PostDetailScreen from "./screens/PostDetailScreen";
 import MoreScreen from "./screens/MoreScreen";
 import MyPageScreen from "./screens/MyPageScreen";
@@ -923,6 +926,63 @@ const Tab = createBottomTabNavigator();
 // i18n 훅 사용을 위한 import
 import { useTranslation } from 'react-i18next';
 
+// 🔍 통합검색 허브 스택 — 앱의 중심(시작 화면). 헤더 🏠로 어디서든 복귀.
+function HubStack() {
+  const { t } = useTranslation('navigation');
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="허브메인"
+        component={HubScreen}
+        options={({ navigation }) => ({
+          title: "",
+          headerLeft: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <HamburgerMenuButton navigation={navigation} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("허브메인", { resetSearch: Date.now() })}
+                activeOpacity={0.7}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                  {t('tabs.hub')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ),
+          headerStyle: { backgroundColor: "#FF6B35", height: 70 },
+          headerTintColor: "#fff",
+          headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AdInquiryHeaderButton />
+              <LanguageSwitcher />
+              <UserAvatarButton navigation={navigation} />
+            </View>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="옐로페이지"
+        component={YellowPageScreen}
+        options={({ navigation }) => ({
+          title: "옐로페이지",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        })}
+      />
+      <Stack.Screen
+        name="검색결과"
+        component={SearchResultsScreen}
+        options={{
+          title: "통합검색",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function HomeStack() {
   const { t } = useTranslation(['home', 'common']);
   return (
@@ -1298,7 +1358,7 @@ function MenuStack() {
           headerTintColor: "#fff",
           headerLeft: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate("홈")}
+              onPress={() => navigation.navigate("허브", { screen: "허브메인" })}
               style={{ marginLeft: 12, padding: 4 }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -1540,7 +1600,8 @@ function BottomTabNavigator() {
   });
   // 탭 라벨 번역 맵
   const tabLabels = {
-    "홈": t('tabs.home'),
+    "허브": t('tabs.hub'),
+    "홈": t('tabs.magazine'),
     "뉴스": t('tabs.news'),
     "당근/나눔": t('tabs.danggn'),
     "이웃사업": t('tabs.neighborBusinesses'),
@@ -1551,11 +1612,12 @@ function BottomTabNavigator() {
   return (
     <View style={{ flex: 1 }}>
       <Tab.Navigator
-        initialRouteName="뉴스"
+        initialRouteName="허브"
         screenOptions={({ route }) => {
           // G1 디자인: 라벨 글자수에 비례한 탭 너비 (SYSTEM_OVERVIEW.md §6 참조)
           const tabFlex = {
-            "홈": 0.8,
+            "허브": 0.8,
+            "홈": 1.0,
             "뉴스": 0.8,
             "당근/나눔": 1.05,
             "이웃사업": 1.3,
@@ -1571,7 +1633,8 @@ function BottomTabNavigator() {
             tabBarLabel: tabLabels[route.name] || route.name,
             tabBarIcon: ({ focused, color }) => {
               let iconName;
-              if (route.name === "홈") iconName = focused ? "home" : "home-outline";
+              if (route.name === "허브") iconName = focused ? "home" : "home-outline";
+              else if (route.name === "홈") iconName = focused ? "book" : "book-outline";
               else if (route.name === "뉴스")
                 iconName = focused ? "newspaper" : "newspaper-outline";
               else if (route.name === "당근/나눔")
@@ -1604,6 +1667,19 @@ function BottomTabNavigator() {
           };
         }}
       >
+        {/* 🔍 홈 = 통합검색 허브 (앱 중심·시작 화면) */}
+        <Tab.Screen
+          name="허브"
+          component={HubStack}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              navigation.navigate("허브", {
+                screen: "허브메인",
+                params: { resetSearch: Date.now() },
+              });
+            },
+          })}
+        />
         <Tab.Screen
           name="홈"
           component={HomeStack}
@@ -1643,16 +1719,14 @@ function BottomTabNavigator() {
             },
           })}
         />
+        {/* 이웃사업 = 옐로페이지로 흡수 → 탭바 버튼 숨김. 딥링크·상세·등록·허브 카드로만 진입(스택 유지) */}
         <Tab.Screen
           name="이웃사업"
           component={NeighborBusinessesStack}
-          listeners={({ navigation }) => ({
-            tabPress: (e) => {
-              navigation.navigate("이웃사업", {
-                screen: "이웃사업 메인",
-              });
-            },
-          })}
+          options={{
+            tabBarButton: () => null,
+            tabBarItemStyle: { display: 'none' },
+          }}
         />
         <Tab.Screen
           name="구인구직"

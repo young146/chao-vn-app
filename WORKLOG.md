@@ -38,6 +38,27 @@
 
 ---
 
+## 2026-06-27 — 🔍 앱에 통합검색 허브(홈) 도입 = Phase 3 (코드 완료, 배포 대기)
+
+- **한 일**: 웹(vnkorlife.com)에 만든 통합검색 허브를 **앱에도 동일 구조로** 이식. 같은 검색 두뇌(daily-news `/api/search`) 재사용 → 네이티브 모듈 0개 = **OTA 안전**.
+  - **허브 앤 스포크 구조 확정**: 허브(통합검색) = 앱 시작 화면·중심.
+  - **홈 복귀 = 하단 첫 탭으로 결정(헤더 버튼 폐기)**: 처음엔 헤더에 🏠 버튼을 넣었으나, 실기기에서 헤더(☰+제목+광고문의+언어+아바타)가 너무 빽빽해 인지 안 됨(사용자 피드백). → **`허브`를 보이는 첫 탭 "홈"(집 아이콘)으로 승격**, 헤더 홈버튼 전부 제거. 모바일에서 가장 직관적인 홈 자리.
+  - **하단 탭 6개**: `홈(허브) · 매거진 · 뉴스 · 당근 · 구인구직 · 부동산`. 기존 `홈(매거진홈)`은 라벨·아이콘 **매거진**(book)으로 개명. **이웃사업 탭은 탭바 버튼 숨김**(`tabBarButton:null`) — 웹처럼 옐로페이지로 흡수. 스택·딥링크·등록은 유지(삭제 아님).
+  - **신규**: `services/searchService.js`(searchUnified·getRegions·resolveResultUrl), `screens/HubScreen.js`(검색+지역모달+타입칩+결과+바로가기 6카드+옐로 대표카드+상단노출 신청 CTA), `screens/YellowPageScreen.js`(카테고리·지역 브라우즈, type=yellow).
+  - **검색결과 상세** = 인앱브라우저(`WebBrowser`)로 `vnkorlife.com/biz/{id}`(yellow/company) 또는 원문 url(news/magazine). 웹과 동일 정책.
+  - **App.js 배선**: HubStack 추가 + 보이는 `허브`(홈) 첫 탭 + `initialRouteName="허브"`(시작=허브) + 메뉴 뒤로가기 `홈`→`허브`.
+  - 그라데이션은 `expo-linear-gradient` 미설치(네이티브) → **단색 헤더로 폴백**(빌드 회피). 다음 빌드 때 옵션.
+  - **디자인 보완(피드백 반영)**: ① 바로가기 = 옐로페이지 대표카드 → 매거진·뉴스 2칸 → 당근·구인·부동산 3칸(작게), 하단 광고 높이만큼 동적 스크롤 여백(`AD_CLEARANCE`). ② 검색 플레이스홀더 "베트남의 모든 정보를 씬짜오에서". ③ **바로가기 섹션 배경에 베트남 일몰 사진(사용자 제공, `assets/hub-bg.jpg`)을 `ImageBackground`+`blurRadius:6` + 오버레이 0.3**로 깔고, 흰 카드는 그림자+카테고리 컬러 아이콘 타일로 강조(흰-on-흰 묻힘 해소). 사용자 본인 사진이라 라이선스 무관. ④ 허브 헤더에 "홈" 제목(다른 탭과 동일).
+  - **검색 = 별도 결과 화면으로 분리(구글식, 피드백 반영)**: 기존엔 검색이 홈을 덮어쓰고 결과가 AsyncStorage로 남아 홈(옐로 진입 등)이 사라짐 → 신규 `screens/SearchResultsScreen.js`(맨 위 고정 검색창+지역+타입칩+결과+페이지). 홈(`HubScreen`)은 '입구'만: 검색 누르면 `검색결과` push, **홈은 항상 그대로**. 홈탭/뒤로 누르면 결과 화면 pop→홈 복원. 결과는 화면 state로만 유지(인앱브라우저는 화면 안 닫힘) → AsyncStorage 세션복원 제거.
+  - **검색창 돋보기 아이콘** 3곳(허브·검색결과·옐로) 왼쪽에 추가(Ionicons search, 기존 의존성).
+  - **검색결과 정렬 = 카테고리순(피드백 반영)**: 통합(전체) 결과를 **옐로페이지→진출기업→매거진→뉴스** 순으로 묶고 그룹 내 **가나다(프리미엄 우선)**. ⚠️ **검색 API(daily-news-final) 수정 필요**(페이지네이션 때문에 서버 정렬). `sort=category` **옵트인 파라미터** 추가(`app/api/search/route.js`) → 앱만 보냄, 웹 영향 0. 앱 `searchService`·`SearchResultsScreen`이 `sort:'category'` 전달. **별도 배포 필요**: daily-news-final git push→Vercel 자동배포(앱 OTA와 별개). 미배포 시 앱은 기존 순서로 표시(무해).
+- **배포**: ⏳ **미배포** — 코드만 완료. babel 파싱 4파일 OK, 라이브 API(regions·search) 응답 확인. git push + `eas update --channel production` 승인 대기.
+- **상태**: 🟡 코드 완료 / ⏳ 실기기 검증 + 배포 승인 대기
+- **다음 단계**: ① 실기기에서 시작=허브·검색·지역·바로가기·🏠복귀·매거진탭·옐로 확인 ② 승인 시 OTA 배포 ③ (후속) 상세화면 헤더에도 🏠 추가, 검색결과 네이티브 라우팅, 헤더 그라데이션(빌드 시).
+- **관련 파일**: [services/searchService.js](services/searchService.js), [screens/HubScreen.js](screens/HubScreen.js), [screens/YellowPageScreen.js](screens/YellowPageScreen.js), [App.js](App.js), i18n navigation.json(ko·en·vi)
+
+---
+
 ## 2026-06-27 — 🚫 영구 제명 + 블랙리스트 (서버 강제) 처음부터 재설계·배포
 
 - **한 일**: 어제(6/26) 만들었다 원복한 제명 기능을, 감사(audit)로 구멍을 찾아 **처음부터 서버 강제 방식**으로 재구현. 핵심: **Firestore 보안 규칙으로 차단을 강제** → 앱을 조작(해킹)해도 차단 회원은 글·댓글·채팅 쓰기가 서버에서 거부됨.

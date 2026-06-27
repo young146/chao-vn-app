@@ -1,6 +1,9 @@
 {
   "tabs": {
     "home": "Home",
+    "magazine": "Magazine",
+    "hub": "Home",
+    "yellowpage": "Yellow Pages",
     "news": "News",
     "danggn": "Buy & Sell",
     "neighborBusinesses": "Local Biz",

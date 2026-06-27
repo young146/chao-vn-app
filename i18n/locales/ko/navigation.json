@@ -1,6 +1,9 @@
 {
   "tabs": {
     "home": "홈",
+    "magazine": "매거진",
+    "hub": "홈",
+    "yellowpage": "옐로페이지",
     "news": "뉴스",
     "danggn": "당근",
     "neighborBusinesses": "이웃사업",
