@@ -54,7 +54,10 @@
   - **검색결과 정렬 = 카테고리순(피드백 반영)**: 통합(전체) 결과를 **옐로페이지→진출기업→매거진→뉴스** 순으로 묶고 그룹 내 **가나다(프리미엄 우선)**. ⚠️ **검색 API(daily-news-final) 수정 필요**(페이지네이션 때문에 서버 정렬). `sort=category` **옵트인 파라미터** 추가(`app/api/search/route.js`) → 앱만 보냄, 웹 영향 0. 앱 `searchService`·`SearchResultsScreen`이 `sort:'category'` 전달. **별도 배포 필요**: daily-news-final git push→Vercel 자동배포(앱 OTA와 별개). 미배포 시 앱은 기존 순서로 표시(무해).
 - **배포**: ✅ **완료** (2026-06-28). 앱 OTA `production` 발행(update group `7b80ca3b`, runtime 2.4.3, iOS+Android, 커밋 `91e39d8`). 검색 API daily-news-final push→Vercel 배포(커밋 `c80e073`), `sort=category` 라이브 검증 완료(옐로→company→magazine→news 그룹화 확인).
 - **상태**: ✅ 배포 완료 / ⏳ 실기기 최종 확인(검색→결과화면→홈복원, 카테고리 정렬) 권장
-- **다음 단계**: ① 실기기에서 시작=허브·검색·지역·바로가기·🏠복귀·매거진탭·옐로 확인 ② 승인 시 OTA 배포 ③ (후속) 상세화면 헤더에도 🏠 추가, 검색결과 네이티브 라우팅, 헤더 그라데이션(빌드 시).
+- **다음 단계**:
+  - ⭐ **[웹] 검색결과를 별도 페이지로 분리** (앱과 동일 구조로 통일) — 현재 `vnkorlife-web/app/page.tsx`(허브 홈)는 `searched` 상태로 **같은 화면에 결과를 덮어쓰는** 옛 방식이라, 다른 데 갔다 오면 홈에 결과가 남고 옐로페이지 진입이 막힘(앱에서 고친 그 문제). → 웹도 홈(`/`)은 검색창+바로가기만 두고, 검색 시 별도 `/search` 라우트(맨 위 고정 검색창+결과+타입칩+지역)로 이동. 옵션: 웹도 `sort=category` 적용해 정렬 통일.
+  - (후속) 상세화면 헤더 🏠, 검색결과 인앱브라우저→네이티브 라우팅, 허브 헤더 그라데이션(빌드 시), 순수 가나다 옵션(프리미엄 우선 제거).
+  - ✅ (완료) 앱 실기기 동선 일부 확인(돋보기·검색분리) + OTA·API 배포.
 - **관련 파일**: [services/searchService.js](services/searchService.js), [screens/HubScreen.js](screens/HubScreen.js), [screens/YellowPageScreen.js](screens/YellowPageScreen.js), [App.js](App.js), i18n navigation.json(ko·en·vi)
 
 ---
