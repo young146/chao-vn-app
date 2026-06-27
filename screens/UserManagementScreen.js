@@ -27,14 +27,26 @@ import { db, storage } from "../firebase/config";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  addToBlacklist,
+  removeFromBlacklist,
+  banKeyFromUserDoc,
+  isBanned as checkBanned,
+} from "../lib/blacklist";
 
 export default function UserManagementScreen() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState(null);
+
+  // 영구 제명(블랙리스트)
+  const [selectedUserBanned, setSelectedUserBanned] = useState(false);
+  const [banReasonModalVisible, setBanReasonModalVisible] = useState(false);
+  const [banReason, setBanReason] = useState("");
+  const [banningUser, setBanningUser] = useState(null);
 
   // 검색 & 필터
   const [searchText, setSearchText] = useState("");
@@ -146,9 +158,91 @@ export default function UserManagementScreen() {
     Linking.openURL(`tel:${phone}`);
   };
 
-  const handleUserPress = (user) => {
-    setSelectedUser(user);
+  const handleUserPress = (u) => {
+    setSelectedUser(u);
+    setSelectedUserBanned(false);
     setModalVisible(true);
+    // 이 회원이 이미 블랙리스트에 있는지 확인 (버튼을 제명/해제 중 무엇으로 보일지 결정)
+    checkBanned(banKeyFromUserDoc(u)).then(setSelectedUserBanned).catch(() => {});
+  };
+
+  // 영구 제명 시작 → 사유 입력 모달
+  const handleBanUser = (u) => {
+    setModalVisible(false);
+    setTimeout(() => {
+      setBanningUser(u);
+      setBanReason("");
+      setBanReasonModalVisible(true);
+    }, 300);
+  };
+
+  const confirmBan = () => {
+    if (!banReason.trim()) {
+      Alert.alert("알림", "제명 사유를 입력해주세요.");
+      return;
+    }
+    setBanReasonModalVisible(false);
+    setTimeout(() => {
+      Alert.alert(
+        "⛔ 영구 제명 최종 확인",
+        `${banningUser?.name || "이 회원"}을(를) 영구 제명합니다.\n\n사유: ${banReason}\n\n• 블랙리스트 등록 → 재로그인·재가입·글쓰기 모두 차단\n• 등록한 모든 게시물 삭제\n• 되돌리려면 '차단 해제'`,
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "영구 제명",
+            style: "destructive",
+            onPress: () => banUserCompletely(banningUser),
+          },
+        ]
+      );
+    }, 300);
+  };
+
+  const banUserCompletely = async (u) => {
+    try {
+      setDeletingUserId(u.id);
+      // 1) 블랙리스트 등록 (서버 규칙이 이걸로 차단을 강제)
+      await addToBlacklist(
+        { ...u, uid: u.uid || u.id },
+        banReason,
+        user?.email || "admin"
+      );
+      // 2) 등록한 모든 게시물 삭제 + 계정 문서 삭제 (기존 삭제 로직 재사용)
+      await deleteUserData(u.id, u);
+      setUsers(users.filter((x) => x.id !== u.id));
+      Alert.alert(
+        "✅ 영구 제명 완료",
+        `${u.name || "회원"}이(가) 블랙리스트에 등록되었습니다.\n이 계정·이메일로는 다시 들어올 수 없습니다.`
+      );
+    } catch (error) {
+      console.error("❌ 영구 제명 실패:", error);
+      Alert.alert("오류", `영구 제명에 실패했습니다.\n\n${error.message}`);
+    } finally {
+      setDeletingUserId(null);
+      setBanningUser(null);
+    }
+  };
+
+  const handleUnbanUser = (u) => {
+    Alert.alert(
+      "차단 해제",
+      `${u.name || "이 회원"}을(를) 블랙리스트에서 해제하시겠습니까?\n(다시 로그인·이용 가능해집니다)`,
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "차단 해제",
+          onPress: async () => {
+            try {
+              await removeFromBlacklist(u);
+              setSelectedUserBanned(false);
+              Alert.alert("완료", "차단이 해제되었습니다.");
+            } catch (e) {
+              Alert.alert("오류", `차단 해제 실패\n${e.message}`);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteUser = (userId, userName) => {
@@ -189,60 +283,46 @@ export default function UserManagementScreen() {
     }, 300);
   };
 
+  // 회원 데이터 일괄 삭제 (게시물 전종류 + 사진 + 계정문서). 알림은 호출측에서.
+  const deleteUserData = async (userId, userDoc) => {
+    const cols = [
+      "bookmarks", "comments", "XinChaoDanggn", "Jobs",
+      "RealEstate", "candidates", "Agents", "reviews", "favorites",
+    ];
+    for (const col of cols) {
+      try {
+        const snap = await getDocs(
+          query(collection(db, col), where("userId", "==", userId))
+        );
+        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+      } catch (e) {
+        console.log(`⚠️ ${col} 삭제 실패(계속):`, e?.message);
+      }
+    }
+    // 알림 설정
+    try { await deleteDoc(doc(db, "notificationSettings", userId)); } catch (_) {}
+    // 프로필 사진
+    const photo = userDoc?.profileImage;
+    if (photo) {
+      try {
+        const imagePath = photo.split("/o/")[1]?.split("?")[0];
+        if (imagePath) {
+          await deleteObject(ref(storage, decodeURIComponent(imagePath)));
+        }
+      } catch (_) {
+        console.log("⚠️ 프로필 사진 삭제 실패 (무시)");
+      }
+    }
+    // 계정 문서
+    await deleteDoc(doc(db, "users", userId));
+  };
+
   const deleteUserCompletely = async (userId, userName) => {
     try {
       setDeletingUserId(userId);
-      console.log(`🗑️ 회원 완전 삭제 시작: ${userId}`);
-
-      const bookmarksQuery = query(
-        collection(db, "bookmarks"),
-        where("userId", "==", userId)
-      );
-      const bookmarksSnapshot = await getDocs(bookmarksQuery);
-      const bookmarkDeletePromises = bookmarksSnapshot.docs.map((doc) =>
-        deleteDoc(doc.ref)
-      );
-      await Promise.all(bookmarkDeletePromises);
-
-      const commentsQuery = query(
-        collection(db, "comments"),
-        where("userId", "==", userId)
-      );
-      const commentsSnapshot = await getDocs(commentsQuery);
-      const commentDeletePromises = commentsSnapshot.docs.map((doc) =>
-        deleteDoc(doc.ref)
-      );
-      await Promise.all(commentDeletePromises);
-
-      const itemsQuery = query(
-        collection(db, "XinChaoDanggn"),
-        where("userId", "==", userId)
-      );
-      const itemsSnapshot = await getDocs(itemsQuery);
-      const itemDeletePromises = itemsSnapshot.docs.map((doc) =>
-        deleteDoc(doc.ref)
-      );
-      await Promise.all(itemDeletePromises);
-
       const userDoc = users.find((u) => u.id === userId);
-      if (userDoc?.profileImage) {
-        try {
-          const imageUrl = userDoc.profileImage;
-          const imagePath = imageUrl.split("/o/")[1]?.split("?")[0];
-          if (imagePath) {
-            const decodedPath = decodeURIComponent(imagePath);
-            const imageRef = ref(storage, decodedPath);
-            await deleteObject(imageRef);
-          }
-        } catch (error) {
-          console.log("⚠️ 프로필 사진 삭제 실패 (무시)");
-        }
-      }
-
-      await deleteDoc(doc(db, "users", userId));
-
+      await deleteUserData(userId, userDoc);
       setUsers(users.filter((u) => u.id !== userId));
-
       Alert.alert(
         "✅ 삭제 완료",
         `${userName || "회원"}이(가) 완전히 삭제되었습니다.`
@@ -795,23 +875,86 @@ export default function UserManagementScreen() {
             </ScrollView>
 
             {isAdmin() && selectedUser && (
-              <TouchableOpacity
-                style={styles.deleteButtonModal}
-                onPress={() =>
-                  handleDeleteUser(selectedUser.id, selectedUser.name)
-                }
-                disabled={deletingUserId === selectedUser.id}
-              >
-                {deletingUserId === selectedUser.id ? (
-                  <ActivityIndicator color="#fff" />
+              <View style={styles.footerRow}>
+                <TouchableOpacity
+                  style={[styles.footerBtn, styles.deleteBtn]}
+                  onPress={() =>
+                    handleDeleteUser(selectedUser.id, selectedUser.name)
+                  }
+                  disabled={deletingUserId === selectedUser.id}
+                >
+                  {deletingUserId === selectedUser.id ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="trash-outline" size={18} color="#fff" />
+                      <Text style={styles.footerBtnText}>삭제</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {selectedUserBanned ? (
+                  <TouchableOpacity
+                    style={[styles.footerBtn, styles.unbanBtn]}
+                    onPress={() => handleUnbanUser(selectedUser)}
+                    disabled={deletingUserId === selectedUser.id}
+                  >
+                    <Ionicons name="lock-open-outline" size={18} color="#fff" />
+                    <Text style={styles.footerBtnText}>차단 해제</Text>
+                  </TouchableOpacity>
                 ) : (
-                  <>
-                    <Ionicons name="trash" size={20} color="#fff" />
-                    <Text style={styles.deleteButtonText}>회원 삭제</Text>
-                  </>
+                  <TouchableOpacity
+                    style={[styles.footerBtn, styles.banBtn]}
+                    onPress={() => handleBanUser(selectedUser)}
+                    disabled={deletingUserId === selectedUser.id}
+                  >
+                    <Ionicons name="ban" size={18} color="#fff" />
+                    <Text style={styles.footerBtnText}>영구 제명</Text>
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+              </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* 제명 사유 입력 모달 */}
+      <Modal
+        visible={banReasonModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setBanReasonModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }]}>
+          <View style={styles.banReasonCard}>
+            <View style={styles.banReasonHeader}>
+              <Ionicons name="ban" size={22} color="#8B0000" />
+              <Text style={styles.banReasonTitle}>영구 제명 사유</Text>
+            </View>
+            <Text style={styles.banReasonSub}>
+              {banningUser?.name || "이 회원"} — 사유는 블랙리스트에 기록됩니다.
+            </Text>
+            <TextInput
+              style={styles.banReasonInput}
+              placeholder="예) 사기성 구인공고 반복, 불법 상품 판매..."
+              placeholderTextColor="#aaa"
+              value={banReason}
+              onChangeText={setBanReason}
+              multiline
+              textAlignVertical="top"
+            />
+            <View style={styles.banReasonBtns}>
+              <TouchableOpacity
+                style={styles.banCancelBtn}
+                onPress={() => setBanReasonModalVisible(false)}
+              >
+                <Text style={styles.banCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.banConfirmBtn} onPress={confirmBan}>
+                <Ionicons name="ban" size={16} color="#fff" />
+                <Text style={styles.banConfirmText}>제명 진행</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1040,19 +1183,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-  deleteButtonModal: {
+  footerRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    backgroundColor: "#fff",
+  },
+  footerBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#dc3545",
-    padding: 16,
-    margin: 20,
+    paddingVertical: 14,
     borderRadius: 8,
+    gap: 6,
+  },
+  deleteBtn: { backgroundColor: "#dc3545" },
+  banBtn: { backgroundColor: "#8B0000" },
+  unbanBtn: { backgroundColor: "#2e7d32" },
+  footerBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
+
+  banReasonCard: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 22,
+  },
+  banReasonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
+    marginBottom: 10,
   },
-  deleteButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  banReasonTitle: { fontSize: 18, fontWeight: "bold", color: "#8B0000" },
+  banReasonSub: { fontSize: 13, color: "#555", marginBottom: 14, lineHeight: 19 },
+  banReasonInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: "#333",
+    minHeight: 80,
+    backgroundColor: "#fafafa",
+    marginBottom: 18,
   },
+  banReasonBtns: { flexDirection: "row", gap: 10 },
+  banCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+  },
+  banCancelText: { fontSize: 15, color: "#666", fontWeight: "600" },
+  banConfirmBtn: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    borderRadius: 8,
+    backgroundColor: "#8B0000",
+    gap: 6,
+  },
+  banConfirmText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
 });

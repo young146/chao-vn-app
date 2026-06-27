@@ -10,14 +10,42 @@ service cloud.firestore {
       );
     }
 
+    // 🚫 영구 제명(블랙리스트) 체크 함수
+    // bannedUsers/{이메일} 문서가 존재하면 차단된 회원.
+    // 클라이언트를 조작해도 이 규칙은 서버에서 강제되므로 우회 불가.
+    // (카카오는 합성 이메일 kakao_{id}@chaovietnam.co.kr 이 토큰 이메일)
+    function isBanned() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/bannedUsers/$(request.auth.token.email));
+    }
+
+    // 차단되지 않은 정상 로그인 사용자
+    function isActiveUser() {
+      return request.auth != null && !isBanned();
+    }
+
+    // ========================================
+    // 🚫 bannedUsers (블랙리스트) 컬렉션
+    // - get: 본인 차단여부만 확인 가능 (목록 열람 불가 → 명단 유출 방지)
+    // - list/write: 관리자만
+    // - (규칙 내부 isBanned()의 exists()는 읽기권한과 무관하게 동작)
+    // ========================================
+    match /bannedUsers/{banKey} {
+      // 본인은 자기 차단여부 확인 가능 / 관리자는 누구든 확인·목록·등록·해제 가능
+      allow get: if isAdmin() || (request.auth != null && request.auth.token.email == banKey);
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
     // ========================================
     // 📦 XinChaoDanggn (나눔/당근) 컬렉션
     // ========================================
     match /XinChaoDanggn/{docId} {
       allow read: if true;
-      allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update: if request.auth != null &&
-        (request.auth.uid == resource.data.userId || isAdmin())
+      allow create: if (isActiveUser()) || request.resource.data.source == 'web';
+      allow update: if (request.auth != null && !isBanned() &&
+        (request.auth.uid == resource.data.userId || isAdmin()))
         || resource.data.source == 'web';
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
@@ -28,9 +56,9 @@ service cloud.firestore {
     // ========================================
     match /Jobs/{jobId} {
       allow read: if true;
-      allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update: if request.auth != null &&
-        (request.auth.uid == resource.data.userId || isAdmin())
+      allow create: if (isActiveUser()) || request.resource.data.source == 'web';
+      allow update: if (request.auth != null && !isBanned() &&
+        (request.auth.uid == resource.data.userId || isAdmin()))
         || resource.data.source == 'web';
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
@@ -41,9 +69,9 @@ service cloud.firestore {
     // ========================================
     match /candidates/{docId} {
       allow read: if true;
-      allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update: if request.auth != null &&
-        (request.auth.uid == resource.data.userId || isAdmin())
+      allow create: if (isActiveUser()) || request.resource.data.source == 'web';
+      allow update: if (request.auth != null && !isBanned() &&
+        (request.auth.uid == resource.data.userId || isAdmin()))
         || resource.data.source == 'web';
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
@@ -54,9 +82,9 @@ service cloud.firestore {
     // ========================================
     match /RealEstate/{itemId} {
       allow read: if true;
-      allow create: if request.auth != null || request.resource.data.source == 'web';
-      allow update: if request.auth != null &&
-        (request.auth.uid == resource.data.userId || isAdmin())
+      allow create: if (isActiveUser()) || request.resource.data.source == 'web';
+      allow update: if (request.auth != null && !isBanned() &&
+        (request.auth.uid == resource.data.userId || isAdmin()))
         || resource.data.source == 'web';
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());
@@ -75,7 +103,7 @@ service cloud.firestore {
     // ========================================
     match /reviews/{reviewId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isActiveUser();
     }
 
     // ========================================
@@ -96,10 +124,12 @@ service cloud.firestore {
     // 💬 채팅방 및 메시지
     // ========================================
     match /chatRooms/{roomId} {
-      allow read, write: if request.auth != null;
-      
+      allow read: if request.auth != null;
+      allow write: if isActiveUser();
+
       match /messages/{messageId} {
-        allow read, write: if request.auth != null;
+        allow read: if request.auth != null;
+        allow write: if isActiveUser();
       }
     }
 
@@ -108,9 +138,9 @@ service cloud.firestore {
     // ========================================
     match /comments/{commentId} {
       allow read: if true;
-      allow create: if request.auth != null
+      allow create: if request.auth != null && !isBanned()
         && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null
+      allow update: if request.auth != null && !isBanned()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.articleId == resource.data.articleId
@@ -173,10 +203,10 @@ service cloud.firestore {
     match /Agents/{agentId} {
       // 누구나 열람 가능 (매물 상세에서 표시)
       allow read: if true;
-      // 로그인한 사용자만 등록
-      allow create: if request.auth != null;
+      // 차단되지 않은 로그인 사용자만 등록
+      allow create: if isActiveUser();
       // 본인 또는 관리자만 수정/삭제
-      allow update: if request.auth != null &&
+      allow update: if request.auth != null && !isBanned() &&
         (request.auth.uid == resource.data.userId || isAdmin());
       allow delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || isAdmin());

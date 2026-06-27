@@ -38,6 +38,37 @@
 
 ---
 
+## 2026-06-27 — 🚫 영구 제명 + 블랙리스트 (서버 강제) 처음부터 재설계·배포
+
+- **한 일**: 어제(6/26) 만들었다 원복한 제명 기능을, 감사(audit)로 구멍을 찾아 **처음부터 서버 강제 방식**으로 재구현. 핵심: **Firestore 보안 규칙으로 차단을 강제** → 앱을 조작(해킹)해도 차단 회원은 글·댓글·채팅 쓰기가 서버에서 거부됨.
+  - **식별 키 = 이메일** (uid는 재가입 시 바뀌므로 X). 카카오는 토큰 이메일이 합성값이라 `kakao_{kakaoId}@chaovietnam.co.kr`로 키 생성(규칙·클라 일치 핵심 디테일).
+  - **집행 지점 = `onAuthStateChanged` 한 곳** — 이메일·구글·애플·카카오 모두 이 길목 통과. 차단이면 즉시 signOut+안내. 이미 로그인된 회원도 다음 실행 때 차단 적용.
+  - **서버 규칙**: `bannedUsers/{이메일}` 존재 = 차단. 모든 콘텐츠 쓰기 규칙에 `!isBanned()`/`isActiveUser()` 추가. `bannedUsers`는 본인 것만 `get`(명단 유출 방지), `list`·`write`는 관리자만.
+  - **관리자 UI**: 회원 상세 팝업에 영구제명(사유 입력)/차단해제 버튼. 제명 시 블랙리스트 등록 + 전 게시물 삭제.
+  - **fail-open이지만 안전**: 클라 조회 실패해도 서버 규칙이 최종 방어. isBanned 조회에 4초 타임아웃(스플래시 안 멈춤).
+- **배포**: ✅ **Firestore 규칙 배포 완료**(`firebase deploy --only firestore:rules`, 컴파일 성공·released). 앱 OTA `production` 발행. 비차단 사용자에겐 규칙 동작이 기존과 100% 동일(영향 0).
+- **상태**: ✅ 배포 완료 / ⏳ 실제 제명→재로그인·글쓰기 차단 운영 검증 권장
+- **한계(정직히)**: 클라이언트 SDK는 남의 Firebase Auth 계정을 못 지움(Admin SDK 필요). 그래서 "계정은 남되 못 들어옴" 방식. 애플 이메일 가리기(null)면 이메일 키 차단 불가(엣지).
+- **관련 파일**: [lib/blacklist.js](lib/blacklist.js), [contexts/AuthContext.js](contexts/AuthContext.js), [screens/UserManagementScreen.js](screens/UserManagementScreen.js), [firestore.rules](firestore.rules)
+
+---
+
+## 2026-06-27 — 회원관리 상세 팝업 레이아웃 수정 (삭제 버튼 안 보이던 문제)
+
+- **한 일**: 관리자 "회원관리 → 회원 터치 → 상세 팝업"에서 맨 아래 **"회원 삭제" 버튼이 안드로이드 시스템 내비바에 가려 안 보이던 문제** 수정. 팝업을 하단 시트(박스) 방식에서 **화면 중앙 카드(절대 위치)** 로 변경.
+  - **최종 해법**: `modalContent`를 `position:'absolute', top:90, bottom:110, left:16, right:16` 로 못박음. 내부는 헤더(고정) → `ScrollView flex:1`(카드 안 스크롤) → 삭제 버튼(하단 고정). `bottom:110`이 버튼을 내비바(~48) 위로 확실히 띄움.
+- **⚠️ 삽질 기록 (다음에 같은 실수 반복 금지)**:
+  - `insets.bottom`(useSafeAreaInsets) 은 이 **네이티브 `<Modal>` 안에서 0으로 잡힘** → 짐작으로 쓰지 말 것. 값 확인 없이 6~7번 OTA 날려서 5시간 허비.
+  - `maxHeight` + `flexShrink` 조합은 **ScrollView가 높이를 못 정해 스크롤 안 되고 버튼을 밀어냄**. 스크롤 모달은 반드시 **확정 height + ScrollView `flex:1`** (또는 절대위치).
+  - `marginBottom` 으로 flex-end 시트를 내비바 위로 올리는 건 이 환경에서 **시각적으로 안 먹었음**. 중앙 카드+절대위치가 정답.
+  - StyleSheet 스타일은 핫리로드가 잘 안 먹을 때가 있음 → 검증용 변경은 **인라인 스타일**로.
+- **배포**: 앱 OTA `production` 완료 (커밋 `b0d6876`, update group `cb317bb9`). runtime 2.4.3, iOS+Android.
+- **상태**: ✅ 완료 (개발 앱 실기기에서 버튼 정상 노출 확인 후 OTA)
+- **다음 단계**: **영구 제명 + 블랙리스트 기능**을 이 안정된 상세 팝업 위에 재구현 (오늘 한 번 만들었다가 d7c0aa5로 전체 원복함). 구조 참고: `bannedUsers` 컬렉션(uid/email/kakaoId/phone/사유) + AuthContext 4개 로그인 경로(이메일·구글·애플·카카오)에 `checkBanned` 추가 + UserManagementScreen 제명 버튼·사유입력 모달.
+- **관련 파일**: [screens/UserManagementScreen.js](screens/UserManagementScreen.js) (상세 모달), [contexts/AuthContext.js](contexts/AuthContext.js) (제명 재구현 시)
+
+---
+
 ## 2026-06-26 — 🔍 교민 통합검색 허브 + 옐로페이지 + 이웃업소 통합 + 자동화 (대규모, 웹)
 
 > 깊은 구조·엔드포인트·재발방지는 [PROGRESS_UNIFIED_SEARCH.md](PROGRESS_UNIFIED_SEARCH.md) 참조.

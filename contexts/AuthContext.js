@@ -10,9 +10,11 @@ import {
   signInWithCredential,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { Alert } from "react-native";
 import { auth, db, initializeFirebase } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as KakaoLogin from "@react-native-seoul/kakao-login";
+import { isBanned as checkBanned, banKeyFromAuthUser, BANNED_MESSAGE } from "../lib/blacklist";
 
 const AuthContext = createContext({});
 
@@ -46,37 +48,52 @@ export const AuthProvider = ({ children }) => {
 
       // Firebase Auth 상태 변화 감지
       unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
+        if (!currentUser) {
+          setUser(null);
+          setLoading(false);
+          AsyncStorage.removeItem("@user_id").catch(() => {});
+          setNeedsProfileComplete(false);
+          return;
+        }
+
+        // 스플래시는 즉시 해제 (차단 조회가 지연돼도 화면이 멈추지 않게).
+        // 입장(setUser)은 차단 검사를 통과한 뒤에만 한다.
         setLoading(false);
 
-        if (currentUser) {
-          // 즉시 메인 화면 진입을 위해 비동기 작업은 fire-and-forget으로 처리
+        // 🚫 모든 로그인이 거치는 길목 — 블랙리스트 차단 검사 후에만 입장 허용
+        (async () => {
+          const banned = await checkBanned(banKeyFromAuthUser(currentUser));
+          if (banned) {
+            // 차단 회원: 입장시키지 않고 즉시 로그아웃 + 안내
+            // (signOut 하면 onAuthStateChanged(null)이 다시 돌아 정리됨)
+            try { await signOut(auth); } catch (_) {}
+            Alert.alert("접속 제한", BANNED_MESSAGE);
+            return;
+          }
+
+          // 정상 회원 — 여기서부터 입장
+          setUser(currentUser);
           AsyncStorage.setItem("@user_id", currentUser.uid).catch(() => {});
 
           // 📝 프로필 완성 여부 체크 (백그라운드, 화면 전환 막지 않음)
-          (async () => {
-            try {
-              let userDoc = await getDoc(doc(db, "users", currentUser.uid));
-              // 신규 소셜 로그인: 짧은 재시도 3회 (총 최대 600ms)
-              for (let i = 0; i < 3 && !userDoc.exists(); i++) {
-                await new Promise(res => setTimeout(res, 200));
-                userDoc = await getDoc(doc(db, "users", currentUser.uid));
-              }
-              if (userDoc.exists()) {
-                const data = userDoc.data();
-                const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
-                setNeedsProfileComplete(isIncomplete);
-              } else {
-                setNeedsProfileComplete(true);
-              }
-            } catch (e) {
-              console.log("프로필 체크 실패:", e);
+          try {
+            let userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            // 신규 소셜 로그인: 짧은 재시도 3회 (총 최대 600ms)
+            for (let i = 0; i < 3 && !userDoc.exists(); i++) {
+              await new Promise(res => setTimeout(res, 200));
+              userDoc = await getDoc(doc(db, "users", currentUser.uid));
             }
-          })();
-        } else {
-          AsyncStorage.removeItem("@user_id").catch(() => {});
-          setNeedsProfileComplete(false);
-        }
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              const isIncomplete = !data.city || !data.district || !data.phone || !data.name;
+              setNeedsProfileComplete(isIncomplete);
+            } else {
+              setNeedsProfileComplete(true);
+            }
+          } catch (e) {
+            console.log("프로필 체크 실패:", e);
+          }
+        })();
       });
     };
 
