@@ -198,6 +198,7 @@ import MagazineScreen from "./screens/MagazineScreen";
 import HubScreen from "./screens/HubScreen";
 import YellowPageScreen from "./screens/YellowPageScreen";
 import SearchResultsScreen from "./screens/SearchResultsScreen";
+import AssistantScreen from "./screens/AssistantScreen";
 import PostDetailScreen from "./screens/PostDetailScreen";
 import MoreScreen from "./screens/MoreScreen";
 import MyPageScreen from "./screens/MyPageScreen";
@@ -975,6 +976,15 @@ function HubStack() {
         component={SearchResultsScreen}
         options={{
           title: "통합검색",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="AI도우미"
+        component={AssistantScreen}
+        options={{
+          title: "AI 검색 도우미",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}

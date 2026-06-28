@@ -68,6 +68,38 @@ export async function getRegions() {
   }
 }
 
+// AI 검색 도우미 — 대화형 검색. 백엔드(/api/assistant)의 Claude 가
+//  우리 옐로페이지·기사 + 구글 평점을 함께 뒤져 대화로 안내한다. 순수 fetch = OTA 안전.
+//  messages = [{role:'user'|'assistant', content}] 누적 대화. 반환 { reply, results }.
+export async function askAssistant(messages) {
+  try {
+    const res = await fetch(`${SEARCH_API}/api/assistant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: (messages || []).map((m) => ({ role: m.role, content: m.content })),
+      }),
+    });
+    const json = await res.json();
+    return {
+      reply: (json && json.reply) || '죄송해요, 답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.',
+      results: json && Array.isArray(json.results) ? json.results : [],
+    };
+  } catch (e) {
+    return { reply: '연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', results: [] };
+  }
+}
+
+// 도우미 결과 카드 1건을 눌렀을 때 열 URL — 구글결과=구글맵, 옐로/기업=상세, 뉴스/매거진=원문
+export function resolveAssistantResultUrl(r) {
+  if (!r) return null;
+  if (r.source === 'google') return r.url || null;
+  if (r.type === 'yellow' || r.type === 'company') {
+    return `https://vnkorlife.com/biz/${encodeURIComponent(r.id)}`;
+  }
+  return r.url || null;
+}
+
 // 검색 결과 1건을 눌렀을 때 열 URL 결정 (앱 v1 = 인앱 브라우저)
 //  - 디렉토리(yellow/company)는 항상 우리 사이트 상세페이지(/biz/{id}) — 외부 출처 링크 금지(웹 정책 동일)
 //  - 뉴스/매거진은 원문 url

@@ -104,6 +104,16 @@ export default function HubScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* AI 도우미 입구 — 자연어로 묻고 싶을 때 */}
+          <TouchableOpacity
+            style={styles.aiEntry}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('AI도우미')}
+          >
+            <Text style={styles.aiEntryText}>🤖 AI에게 물어보기</Text>
+            <Text style={styles.aiEntryHint}>“2군 평점 좋은 한식당”처럼 말해보세요</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ===== 본문(항상 홈) — 베트남 풍경 블러 배경 ===== */}
@@ -210,6 +220,9 @@ const styles = StyleSheet.create({
   regionChipText: { color: '#374151', fontSize: 14, fontWeight: '600' },
   searchBtn: { backgroundColor: BLUE, borderRadius: 999, paddingHorizontal: 24, paddingVertical: 11, justifyContent: 'center' },
   searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  aiEntry: { marginTop: 10, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+  aiEntryText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  aiEntryHint: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
 
   body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, overflow: 'hidden' },
   bodyImg: {},
