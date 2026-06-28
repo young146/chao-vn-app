@@ -50,8 +50,10 @@
 - **③검색↔AI 연결 + 뒤로가기 캐시(라이브)**: `/search` 결과없음·결과목록에 "AI에게 물어보기"→`/assistant?q=`(검색어 넘겨 자동질문). `/search` 결과를 sessionStorage에 검색조건별 캐시 → 상세 보고 뒤로가기 시 **재검색 없이 즉시 복원**. push(`121a6ab`).
 - **④악용·비용 방지(라이브)**: 주제 가드레일(베트남 한인 생활정보 외 코딩·숙제·잡담 거절, 비자·병원 등은 범위 안) + IP당 분당 12회 호출제한(429). push(`d82d955`). 라이브 검증 완료. (강한 보호는 Vercel Firewall 엣지 rate limit으로 보강 가능 — Pro 포함, 선택)
 - **⑤앱 채팅 화면(OTA 완료)**: `screens/AssistantScreen.js` 신규(웹과 동일 봇, 같은 `/api/assistant`). 말풍선·예시칩·결과카드(구글 ★평점), 결과 탭=인앱브라우저, 새 채팅+기록(AsyncStorage 기기저장, 헤더 우측 아이콘). `services/searchService`에 `askAssistant`·`resolveAssistantResultUrl` 추가. 허브(`HubScreen`) 검색창 아래 "🤖 AI에게 물어보기" 입구 + `App.js` HubStack에 `AI도우미` 스크린 등록. **네이티브 0개 = OTA 안전**(babel parse 4파일 통과). 배포: git push(`eb89ad3`) → **OTA `production` 발행**(update group `b8a85770`, runtime 2.4.3, iOS+Android).
-- **상태**: ✅ 웹·앱 모두 AI 도우미 라이브. 백엔드(검색개선+봇+구글평점+가드레일) 라이브.
-- **다음 단계**: ⏳ 실기기 OTA 수신 후 앱 도우미 동선 확인(허브 입구→채팅→결과 인앱브라우저→기록/새채팅). (선택) Vercel Firewall, 검색 0건시 앱에서도 도우미 유도, 계정연동 기록(서버저장), 다국어(en/vi) 봇 응답.
+- **⑥앱 UX 마감(OTA 완료)**: ① **검색 화면 하단광고 제거** — `App.js` `NO_AD_ROUTE_NAMES`에 `검색결과`·`AI도우미` 추가(전역 `FixedBottomBanner` 미표시). 입력창이 광고에 가리던 문제 근본 해결(홈·기타 화면 광고 유지=수익 유지). ② **키보드 회피** — 앱 `softwareKeyboardLayoutMode:pan`이라 키보드가 입력창을 가림. `ChatRoomScreen` 검증 패턴 이식(Android=키보드높이만큼 `marginBottom`, iOS=`KeyboardAvoidingView` padding). ③ `persist`/`deleteChat`의 setState 업데이터 내 부수효과 제거(ref로 읽어 밖에서 저장 — "setState in updater" 경고 해소). 개발앱 검증 후 배포: push(`0507dcc`) → OTA `production`(group `518ca624`). ⚠️ Firewall rate-limit 규칙도 daily-news-final에 추가됨(`/api/assistant` IP당 분당 30회).
+- **상태**: ✅ **웹·앱 AI 도우미 + 검색개선 전부 라이브·운영 가능.**
+- **다음 단계**: (선택) 검색 0건시 앱에서도 도우미 유도, 계정연동 기록(서버저장), 다국어(en/vi) 봇 응답, 옐로페이지 등 다른 화면도 광고 제외 여부 결정.
+- **Vercel Firewall 메모**: AI 봇 API는 daily-news-final 프로젝트(웹 화면은 vnkorlife-web). rate-limit 규칙은 **daily-news-final** Firewall에 둠. Places API 키는 별도 Maps 프로젝트(mystic-berm-500814) 서버키 → Vercel `GOOGLE_PLACES_API_KEY`.
 - **관련 파일**: `daily-news-final/app/api/assistant/route.js`, `vnkorlife-web/app/assistant/page.tsx`, `vnkorlife-web/app/page.tsx`
 
 ---
