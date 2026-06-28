@@ -38,6 +38,39 @@
 
 ---
 
+## 2026-06-28 — 🤖 [검색] AI 검색 도우미 봇(대화형) 1단계 두뇌 + 구글 Places 통합 (백엔드 라이브)
+
+- **한 일**: 통합검색 위에 **대화형 AI 도우미** 신설. Claude(tool use)가 자연어를 이해해 우리 인덱스를 조회하고 대화로 안내. 동의어 사전을 손으로 채우는 대신 Claude가 "동우회→동호회", "교민단체→동호회·한인회·주요기관"을 알아서 보정.
+  - **신규 `daily-news-final/app/api/assistant/route.js`**: POST{messages} → Claude(`claude-sonnet-4-6`, 번역기와 동일 SDK·키) + 도구 2개. **도구① `search_directory`**(SearchIndex 직접 조회, 옐로·기업 우선 정렬), **도구② `search_google_places`**(구글 Places API New, 평점·리뷰·주소). 도구 왕복 4회 상한, 메시지 12개·2000자 제한, CORS 허용.
+  - **구글 통합 = 옐로(검증 한인업소·전화) + 구글(평점·리뷰)** 합쳐 추천. `GOOGLE_PLACES_API_KEY` 미설정/미활성이면 **우아하게 폴백**(우리 데이터로만 응답) — 키만 넣으면 자동 활성. (CLAUDE.md의 [[OTA-safe defensive load]] 철학을 외부 API에 적용)
+  - **라이브 검증**: "동우회 찾아줘"→동호회로 보정해 8건+되물음 / "호치민 2군 평점 좋은 한식당"→우리 16건 제시+평점은 구글 안내. 잘 동작.
+- **배포**: ✅ daily-news-final push 3건(`edf1147` 봇, `e789dcd` 구글도구, 프롬프트 튜닝) → Vercel. `/api/assistant` 라이브.
+- **상태**: ✅ 백엔드 완료 + **구글 평점 통합 라이브**(사용자가 서버키 Vercel `GOOGLE_PLACES_API_KEY` 등록 완료, 별도 Maps 프로젝트). 라이브 검증: "호치민 2군 평점좋은 한식당"→괸당집 ★4.9·미나리 ★4.9 등 구글 평점 붙은 16건. / 다음=웹·앱 채팅 UI.
+- **②웹 채팅 UI 완료(라이브)**: `vnkorlife-web/app/assistant/page.tsx` — 자연어 대화창(말풍선·예시칩·결과카드, 구글=★평점). **새 채팅 + 기록(localStorage, 기기저장)**. 레이아웃=화면맞춤 카드(입력창 항상 보임). 홈 "🤖 AI에게 물어보기" 입구.
+- **③검색↔AI 연결 + 뒤로가기 캐시(라이브)**: `/search` 결과없음·결과목록에 "AI에게 물어보기"→`/assistant?q=`(검색어 넘겨 자동질문). `/search` 결과를 sessionStorage에 검색조건별 캐시 → 상세 보고 뒤로가기 시 **재검색 없이 즉시 복원**. push(`121a6ab`).
+- **④악용·비용 방지(라이브)**: 주제 가드레일(베트남 한인 생활정보 외 코딩·숙제·잡담 거절, 비자·병원 등은 범위 안) + IP당 분당 12회 호출제한(429). push(`d82d955`). 라이브 검증 완료. (강한 보호는 Vercel Firewall 엣지 rate limit으로 보강 가능 — Pro 포함, 선택)
+- **⑤앱 채팅 화면(OTA 완료)**: `screens/AssistantScreen.js` 신규(웹과 동일 봇, 같은 `/api/assistant`). 말풍선·예시칩·결과카드(구글 ★평점), 결과 탭=인앱브라우저, 새 채팅+기록(AsyncStorage 기기저장, 헤더 우측 아이콘). `services/searchService`에 `askAssistant`·`resolveAssistantResultUrl` 추가. 허브(`HubScreen`) 검색창 아래 "🤖 AI에게 물어보기" 입구 + `App.js` HubStack에 `AI도우미` 스크린 등록. **네이티브 0개 = OTA 안전**(babel parse 4파일 통과). 배포: git push(`eb89ad3`) → **OTA `production` 발행**(update group `b8a85770`, runtime 2.4.3, iOS+Android).
+- **상태**: ✅ 웹·앱 모두 AI 도우미 라이브. 백엔드(검색개선+봇+구글평점+가드레일) 라이브.
+- **다음 단계**: ⏳ 실기기 OTA 수신 후 앱 도우미 동선 확인(허브 입구→채팅→결과 인앱브라우저→기록/새채팅). (선택) Vercel Firewall, 검색 0건시 앱에서도 도우미 유도, 계정연동 기록(서버저장), 다국어(en/vi) 봇 응답.
+- **관련 파일**: `daily-news-final/app/api/assistant/route.js`, `vnkorlife-web/app/assistant/page.tsx`, `vnkorlife-web/app/page.tsx`
+
+---
+
+## 2026-06-28 — 🔎 [검색] 매거진 본문·카테고리까지 색인 + 최신순 정렬 (20년 콘텐츠 회수율 대폭↑)
+
+- **한 일**: 통합검색이 "초라했던" 3가지 원인을 진단·수정. (검색 두뇌 = `daily-news-final /api/search`, DB는 Vercel과 공유)
+  - **① 정렬이 가나다순 → 최신순**: 앱·웹이 `sort=category`를 보내는데 그룹 내 정렬이 `title ASC`(가나다)뿐이라 최신글이 묻힘. `route.js` orderBy에 `"publishedAt" DESC NULLS LAST` 추가 → 매거진·뉴스는 최신글 먼저, 옐로·진출기업(날짜 null)은 영향 0. **"22년 이후 글이 안 보임"은 수집 문제가 아니라 이 정렬 착시였음**(데이터는 다 있었음).
+  - **② 검색이 제목+요약만 뒤짐 → 본문+카테고리까지 색인**: `search-index-core.js`가 매거진 글마다 **본문 앞 2000자 + 카테고리 이름**을 검색대상에 포함하도록 변경. 결과: "교민" 검색 **475→2,587건**, "베트남" 매거진 3,850→4,899건. 카테고리 컬럼도 채워짐(Han Column·교민단체·INTERVIEW·TRAVEL 등) → 분류 검색 가능.
+  - **③ 크롤러 견고화**: 매 요청 새 연결(LiteSpeed keep-alive 'terminated' 회피), 깨진 유니코드 `\u` 복구 파싱, 안 받아지는 페이지는 건너뛰고 전체 색인 계속(옛 글 1건 때문에 전체 실패하던 문제). **로컬 prisma client가 stale**(searchIndex 모델 없음)이라 `npx prisma generate` 필요했음 — 색인은 그동안 Vercel 크론으로만 빌드됐던 것.
+  - **④ 일일 크론 = 증분으로 전환**: 본문 색인으로 전량 재색인이 ~6분 → Vercel 크론 300초 초과. 크론은 `buildMagazineRecent`(최근 14일 작성·수정분만 upsert)로 교체. **전량 재색인은 CLI 수동**: `node scripts/build-search-index.js magazine`.
+- **⑤ 동의어 사전(검색어↔데이터 표기 불일치 해소)**: "교민단체"로 검색하면 0건이고 기사만 나오던 문제. 원인은 **데이터에 "교민단체"란 단어가 없고** 해당 단체들이 카테고리 "동문·동호회"(203)·"호치민 주요기관"(54)·"종교"(43)로 적혀 있어서. `route.js`에 동의어 맵 추가(교민단체→동호회·주요기관·한인회·협회·종교 등, 맛집→음식점, 병원→의료…) → 검색 시 대체어를 ILIKE OR. 결과: **교민단체 옐로 0→299건**, sort=category라 **단체가 기사보다 먼저** 노출(배드민턴클럽·한국문화원·축구회·순복음교회 등). ⚠️ "동문" 단독은 "자동문" 오매칭이라 제외("동호회"가 카테고리 커버). 쿼리 단계만이라 **재색인 불필요**.
+- **배포**: ✅ daily-news-final git push(`e46b8a2` 색인·정렬, `f7887da` 증분크론, `782d640`+`07be03f` 동의어) → Vercel 자동배포. DB 매거진 색인 **수동 재빌드 완료 = 7,131/7,131 전량**. 정렬·회수율·동의어 라이브 검증 완료.
+- **상태**: ✅ 배포·검증 완료 (매거진 7,131 전량 색인 + 최신순 정렬 + 동의어 검색).
+- **다음 단계**: (선택) 앱·웹 검색 UI에 **매거진/옐로 카테고리 필터칩** 노출(category 컬럼 채워짐). 동의어 사전은 운영하며 자주 찾는 말 추가. 뉴스 본문 색인은 미적용(휘발성).
+- **관련 파일**: `daily-news-final/app/api/search/route.js`, `daily-news-final/lib/search-index-core.js`, `daily-news-final/app/api/cron/rebuild-magazine/route.js`
+
+---
+
 ## 2026-06-28 — 📱 [앱] 허브 검색창을 웹과 동일한 올인원 박스로 개편 (OTA)
 
 - **한 일**: 앱 허브(`screens/HubScreen.js`) 검색창을 웹 홈과 동일하게 통일. 검색버튼·지역필터(칩)를 **검색창 흰 박스 안으로** 넣고 박스를 더 크게. 윗줄=돋보기+입력, 아랫줄=지역칩+검색버튼(모바일 폭 기준 웹 레이아웃과 동일). 지역칩 탭은 기존 도시/구·군 선택 모달 재사용. JS 전용(네이티브 0개) = **OTA 안전**.
