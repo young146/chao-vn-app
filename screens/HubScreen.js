@@ -72,10 +72,11 @@ export default function HubScreen({ navigation, route }) {
           <Text style={styles.heroTitle}>씬짜오 베트남 통합검색</Text>
           <Text style={styles.heroSub}>옐로페이지 · 진출기업 · 뉴스 · 매거진을 한 곳에서</Text>
 
-          {/* 검색창 */}
-          <View style={styles.searchRow}>
-            <View style={styles.searchInputWrap}>
-              <Ionicons name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
+          {/* 검색창 = 입력 · 지역필터(칩) · 검색버튼을 한 박스(흰 pill) 안에 통합 (웹과 동일, 더 크게) */}
+          <View style={styles.searchBox}>
+            {/* 윗줄: 돋보기 + 입력 */}
+            <View style={styles.searchTop}>
+              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
@@ -86,22 +87,22 @@ export default function HubScreen({ navigation, route }) {
                 style={styles.searchInput}
               />
             </View>
-            <TouchableOpacity style={styles.searchBtn} onPress={onSubmit} activeOpacity={0.85}>
-              <Text style={styles.searchBtnText}>검색</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 지역 — 검색 조건 */}
-          <View style={styles.regionRow}>
-            <Text style={styles.regionLabel}>📍 지역</Text>
-            <TouchableOpacity style={styles.regionPick} onPress={() => setPicker('city')} activeOpacity={0.8}>
-              <Text style={styles.regionPickText}>{city || '전체 도시'} ▾</Text>
-            </TouchableOpacity>
-            {city && cityDistricts.length > 0 && (
-              <TouchableOpacity style={styles.regionPick} onPress={() => setPicker('district')} activeOpacity={0.8}>
-                <Text style={styles.regionPickText}>{district || '전체 구·군'} ▾</Text>
+            {/* 아랫줄: 지역 필터(칩) + 검색 버튼 — 모두 검색창 안 */}
+            <View style={styles.searchBottom}>
+              <View style={styles.regionChips}>
+                <TouchableOpacity style={styles.regionChip} onPress={() => setPicker('city')} activeOpacity={0.8}>
+                  <Text style={styles.regionChipText}>📍 {city || '전체 도시'} ▾</Text>
+                </TouchableOpacity>
+                {city && cityDistricts.length > 0 && (
+                  <TouchableOpacity style={styles.regionChip} onPress={() => setPicker('district')} activeOpacity={0.8}>
+                    <Text style={styles.regionChipText}>{district || '전체 구·군'} ▾</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity style={styles.searchBtn} onPress={onSubmit} activeOpacity={0.85}>
+                <Text style={styles.searchBtnText}>검색</Text>
               </TouchableOpacity>
-            )}
+            </View>
           </View>
         </View>
 
@@ -198,16 +199,17 @@ const styles = StyleSheet.create({
   heroBadge: { color: '#FFF7ED', fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   heroTitle: { color: '#fff', fontSize: 24, fontWeight: '800', textAlign: 'center' },
   heroSub: { color: '#FFEEDD', fontSize: 13, textAlign: 'center', marginTop: 6 },
-  searchRow: { flexDirection: 'row', marginTop: 16, gap: 8 },
-  searchInputWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingLeft: 14 },
-  searchIcon: { marginRight: 6 },
-  searchInput: { flex: 1, paddingRight: 14, paddingVertical: Platform.OS === 'ios' ? 13 : 9, fontSize: 16, color: '#111' },
-  searchBtn: { backgroundColor: BLUE, borderRadius: 14, paddingHorizontal: 20, justifyContent: 'center' },
+  // 올인원 검색 박스 (웹과 동일): 흰 pill 안에 입력 + 지역칩 + 검색버튼. 더 크게.
+  searchBox: { marginTop: 18, backgroundColor: '#fff', borderRadius: 22, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  searchTop: { flexDirection: 'row', alignItems: 'center' },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, paddingVertical: Platform.OS === 'ios' ? 12 : 8, fontSize: 17, color: '#111' },
+  searchBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  regionChips: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  regionChip: { backgroundColor: '#F3F4F6', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  regionChipText: { color: '#374151', fontSize: 14, fontWeight: '600' },
+  searchBtn: { backgroundColor: BLUE, borderRadius: 999, paddingHorizontal: 24, paddingVertical: 11, justifyContent: 'center' },
   searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  regionRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12, justifyContent: 'center' },
-  regionLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  regionPick: { backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  regionPickText: { color: '#374151', fontSize: 13, fontWeight: '600' },
 
   body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, overflow: 'hidden' },
   bodyImg: {},
