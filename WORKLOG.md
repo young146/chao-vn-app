@@ -38,6 +38,20 @@
 
 ---
 
+## 2026-06-28 — 🔍 [웹] 통합검색 결과를 별도 `/search` 페이지로 분리 (앱과 구조 통일)
+
+- **한 일**: 어제 앱에서 한 "검색=별도 결과화면" 구조를 **웹(vnkorlife.com)에도 동일 적용**. ⚠️ 분리 대상은 **통합검색(홈 `/`)** 이지 옐로페이지가 아님(`/yellowpage` 무수정).
+  - **홈(`app/page.tsx`)** = 이제 '입구'만: 검색창+지역+바로가기. 검색 상태/결과 렌더/sessionStorage(`xc_hub_search`) **전부 제거**. 검색 누르면 `router.push('/search?q=…&city=…&district=…')`. → 다른 데 갔다 와도 홈에 결과가 안 남아 옐로페이지 진입이 막히던 문제 해소(앱에서 고친 그 버그의 웹판).
+  - **신규 `app/search/page.tsx`** = 구글식 결과 전용: 맨 위 고정 검색바(씬짜오 홈링크+돋보기+검색)+지역+타입칩+결과+페이지네이션. **모든 검색 상태(q·type·city·district·page)를 URL 쿼리에** 담음 → 새로고침·뒤로/앞으로·공유·상세(`/biz/[id]`) 다녀오기까지 **URL 만으로 복원**(세션스토리지 불필요). `useSearchParams`라 `<Suspense>` 경계로 감쌈.
+  - **정렬 = 앱과 통일**: `/search` 가 `sort=category` 전송(옐로→진출기업→매거진→뉴스 + 그룹 내 프리미엄→가나다). API(daily-news)는 어제 이미 `sort=category` 지원하므로 **추가 배포 불필요**.
+  - 검증: `tsc --noEmit` 통과, `eslint` 통과(`<a href="/">`→`<Link>` 교체), `next build` 성공(`/search` 라우트 정상 생성).
+- **배포**: ✅ 웹 git push (커밋 `0cf842e`, `c5ea5bd..0cf842e`) → Vercel 자동배포. (관련 파일만 커밋, `.claude/settings.local.json` 제외)
+- **상태**: ✅ 배포 트리거 완료 / ⏳ Vercel 배포 후 라이브 확인(홈 검색→`/search` 이동, URL 복원, 뒤로가기 시 홈 복원) 권장
+- **다음 단계**: (후속, 낮은 우선순위) 상세화면 헤더 🏠, 검색결과 인앱브라우저→네이티브 라우팅, 허브 헤더 그라데이션(빌드 시), 순수 가나다 옵션(프리미엄 우선 제거).
+- **관련 파일**: `vnkorlife-web/app/page.tsx`, `vnkorlife-web/app/search/page.tsx`
+
+---
+
 ## 2026-06-27 — 🔍 앱에 통합검색 허브(홈) 도입 = Phase 3 (코드 완료, 배포 대기)
 
 - **한 일**: 웹(vnkorlife.com)에 만든 통합검색 허브를 **앱에도 동일 구조로** 이식. 같은 검색 두뇌(daily-news `/api/search`) 재사용 → 네이티브 모듈 0개 = **OTA 안전**.
