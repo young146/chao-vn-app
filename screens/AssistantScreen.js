@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Modal,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Dimensions, Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +14,9 @@ import { askAssistant, resolveAssistantResultUrl, TYPE_LABEL } from '../services
 
 const ORANGE = '#FF6B35';
 const STORE_KEY = 'xc_assistant_history_v1';
+// 모든 화면 하단에 깔리는 전역 고정광고(FixedBottomBanner, 750:250 비율) 높이만큼
+// 입력창을 띄워 가려지지 않게 한다. (HubScreen 의 AD_CLEARANCE 와 동일 계산)
+const AD_CLEARANCE = Math.round(Dimensions.get('window').width * 250 / 750) + 14;
 const EXAMPLES = [
   '교민단체 알려줘',
   '호치민 2군 평점 좋은 한식당',
@@ -63,10 +66,18 @@ export default function AssistantScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [kbOpen, setKbOpen] = useState(false);
   const scrollRef = useRef(null);
   const chatIdRef = useRef('');
   const messagesRef = useRef([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // 키보드가 열리면 광고 여백을 0으로(광고는 키보드에 가려지므로) → 타이핑 시 입력창이 키보드 바로 위에.
+  useEffect(() => {
+    const s = Keyboard.addListener('keyboardDidShow', () => setKbOpen(true));
+    const h = Keyboard.addListener('keyboardDidHide', () => setKbOpen(false));
+    return () => { s.remove(); h.remove(); };
+  }, []);
 
   // 현재 대화를 기기(AsyncStorage)에 저장 — 상위로 끌어올림, 최대 30개
   const persist = useCallback(async (id, msgs) => {
@@ -207,8 +218,8 @@ export default function AssistantScreen({ navigation }) {
         )}
       </ScrollView>
 
-      {/* 입력창 */}
-      <View style={styles.inputBar}>
+      {/* 입력창 — 하단 전역광고에 가리지 않게 광고높이만큼 띄움(키보드 열리면 0) */}
+      <View style={[styles.inputBar, { marginBottom: kbOpen ? 0 : AD_CLEARANCE }]}>
         <TextInput
           value={input}
           onChangeText={setInput}
