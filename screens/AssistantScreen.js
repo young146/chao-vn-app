@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Dimensions, Keyboard,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,9 +14,7 @@ import { askAssistant, resolveAssistantResultUrl, TYPE_LABEL } from '../services
 
 const ORANGE = '#FF6B35';
 const STORE_KEY = 'xc_assistant_history_v1';
-// 모든 화면 하단에 깔리는 전역 고정광고(FixedBottomBanner, 750:250 비율) 높이만큼
-// 입력창을 띄워 가려지지 않게 한다. (HubScreen 의 AD_CLEARANCE 와 동일 계산)
-const AD_CLEARANCE = Math.round(Dimensions.get('window').width * 250 / 750) + 14;
+// (검색·AI 화면은 App.js NO_AD_ROUTE_NAMES 로 하단 전역광고가 표시되지 않음 → 광고 여백 불필요)
 const EXAMPLES = [
   '교민단체 알려줘',
   '호치민 2군 평점 좋은 한식당',
@@ -66,29 +64,35 @@ export default function AssistantScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [kbOpen, setKbOpen] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef(null);
   const chatIdRef = useRef('');
   const messagesRef = useRef([]);
+  const historyRef = useRef([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { historyRef.current = history; }, [history]);
 
-  // 키보드가 열리면 광고 여백을 0으로(광고는 키보드에 가려지므로) → 타이핑 시 입력창이 키보드 바로 위에.
+  // 키보드 높이 추적 — Android(pan 모드)는 입력창을 키보드 높이만큼 직접 올려 가리지 않게 한다
+  // (이 앱의 ChatRoomScreen 과 동일한 검증된 패턴). iOS 는 KeyboardAvoidingView(padding)가 처리.
   useEffect(() => {
-    const s = Keyboard.addListener('keyboardDidShow', () => setKbOpen(true));
-    const h = Keyboard.addListener('keyboardDidHide', () => setKbOpen(false));
+    const s = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e?.endCoordinates?.height || 0);
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    const h = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
     return () => { s.remove(); h.remove(); };
   }, []);
 
-  // 현재 대화를 기기(AsyncStorage)에 저장 — 상위로 끌어올림, 최대 30개
-  const persist = useCallback(async (id, msgs) => {
+  // 현재 대화를 기기(AsyncStorage)에 저장 — 상위로 끌어올림, 최대 30개.
+  // setState 업데이터는 순수해야 하므로(부수효과 금지) ref 로 현재값을 읽어 next 를 만든 뒤
+  // setHistory(next) 와 AsyncStorage 를 업데이터 "밖"에서 호출한다.
+  const persist = useCallback((id, msgs) => {
     if (!msgs.length) return;
     const title = (msgs.find((m) => m.role === 'user')?.content || '새 대화').slice(0, 40);
-    setHistory((prev) => {
-      const rest = prev.filter((c) => c.id !== id);
-      const next = [{ id, title, ts: Date.now(), messages: msgs }, ...rest].slice(0, 30);
-      AsyncStorage.setItem(STORE_KEY, JSON.stringify(next)).catch(() => {});
-      return next;
-    });
+    const rest = historyRef.current.filter((c) => c.id !== id);
+    const next = [{ id, title, ts: Date.now(), messages: msgs }, ...rest].slice(0, 30);
+    setHistory(next);
+    AsyncStorage.setItem(STORE_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
   const send = useCallback(async (text) => {
@@ -146,11 +150,9 @@ export default function AssistantScreen({ navigation }) {
   }, []);
 
   const deleteChat = useCallback((id) => {
-    setHistory((prev) => {
-      const next = prev.filter((c) => c.id !== id);
-      AsyncStorage.setItem(STORE_KEY, JSON.stringify(next)).catch(() => {});
-      return next;
-    });
+    const next = historyRef.current.filter((c) => c.id !== id);
+    setHistory(next);
+    AsyncStorage.setItem(STORE_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
   const openResult = useCallback(async (r) => {
@@ -163,7 +165,7 @@ export default function AssistantScreen({ navigation }) {
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <ScrollView
         ref={scrollRef}
@@ -218,8 +220,9 @@ export default function AssistantScreen({ navigation }) {
         )}
       </ScrollView>
 
-      {/* 입력창 — 하단 전역광고에 가리지 않게 광고높이만큼 띄움(키보드 열리면 0) */}
-      <View style={[styles.inputBar, { marginBottom: kbOpen ? 0 : AD_CLEARANCE }]}>
+      {/* 입력창 — 키보드 열리면 그 높이만큼 올려 가리지 않게(Android pan 모드, 앱 ChatRoom 과 동일).
+          iOS 는 KeyboardAvoidingView(padding)가 처리. 이 화면은 하단광고 없음. */}
+      <View style={[styles.inputBar, keyboardHeight > 0 && Platform.OS === 'android' ? { marginBottom: keyboardHeight - 20 } : null]}>
         <TextInput
           value={input}
           onChangeText={setInput}
