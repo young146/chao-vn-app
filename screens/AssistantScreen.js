@@ -10,7 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { askAssistant, resolveAssistantResultUrl, TYPE_LABEL } from '../services/searchService';
+import { askAssistant, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
+import BizDetailSheet from '../components/BizDetailSheet';
 
 const ORANGE = '#FF6B35';
 const STORE_KEY = 'xc_assistant_history_v1';
@@ -65,6 +66,7 @@ export default function AssistantScreen({ navigation }) {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [bizSeed, setBizSeed] = useState(null); // 진출기업·옐로 상세 팝업 대상(null=닫힘)
   const scrollRef = useRef(null);
   const chatIdRef = useRef('');
   const messagesRef = useRef([]);
@@ -156,6 +158,8 @@ export default function AssistantScreen({ navigation }) {
   }, []);
 
   const openResult = useCallback(async (r) => {
+    // 진출기업·옐로 = 앱 안 팝업. 구글결과·뉴스·매거진 = 인앱브라우저(구글맵/원문).
+    if (isDirectoryResult(r)) { setBizSeed(r); return; }
     const url = resolveAssistantResultUrl(r);
     if (!url) return;
     try { await WebBrowser.openBrowserAsync(url); } catch (e) { /* noop */ }
@@ -274,6 +278,9 @@ export default function AssistantScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* 진출기업·옐로 상세 — 앱 안 팝업 */}
+      <BizDetailSheet visible={bizSeed !== null} seed={bizSeed} onClose={() => setBizSeed(null)} />
     </KeyboardAvoidingView>
   );
 }

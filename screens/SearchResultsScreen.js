@@ -9,7 +9,8 @@ import {
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { searchUnified, getRegions, resolveResultUrl, TYPE_LABEL } from '../services/searchService';
+import { searchUnified, getRegions, resolveResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
+import BizDetailSheet from '../components/BizDetailSheet';
 
 const BRAND = '#FF6B35';
 // 하단 고정 광고 배너(화면폭×250/750) 높이 + 여유 → 마지막 결과가 광고에 안 묻히게
@@ -33,6 +34,7 @@ export default function SearchResultsScreen({ route }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [picker, setPicker] = useState(null);
+  const [bizSeed, setBizSeed] = useState(null); // 진출기업·옐로 상세 팝업 대상(null=닫힘)
   const scrollRef = useRef(null);
 
   useEffect(() => { getRegions().then(setRegions).catch(() => {}); }, []);
@@ -60,6 +62,8 @@ export default function SearchResultsScreen({ route }) {
   const onDistrict = (d) => { setDistrict(d); setPicker(null); search({ q: activeQ, type: typeFilter, city, district: d, page: 1 }); };
   const goPage = (p) => search({ q: activeQ, type: typeFilter, city, district, page: p });
   const openResult = async (r) => {
+    // 진출기업·옐로 = 앱 안 팝업(사이트 안 벗어남). 뉴스·매거진 = 원문 인앱브라우저.
+    if (isDirectoryResult(r)) { setBizSeed(r); return; }
     const url = resolveResultUrl(r);
     if (!url) return;
     try { await WebBrowser.openBrowserAsync(url); } catch (e) { /* noop */ }
@@ -175,6 +179,9 @@ export default function SearchResultsScreen({ route }) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* 진출기업·옐로 상세 — 앱 안 팝업 */}
+      <BizDetailSheet visible={bizSeed !== null} seed={bizSeed} onClose={() => setBizSeed(null)} />
     </View>
   );
 }

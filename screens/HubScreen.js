@@ -105,14 +105,20 @@ export default function HubScreen({ navigation, route }) {
             </View>
           </View>
 
-          {/* AI 도우미 입구 — 자연어로 묻고 싶을 때 */}
+          {/* AI 검색 도우미 입구 — 자연어로 묻고 싶을 때. 보라(AI 연상)+흰글씨로 대비 확보 */}
           <TouchableOpacity
             style={styles.aiEntry}
             activeOpacity={0.85}
             onPress={() => navigation.navigate('AI도우미')}
           >
-            <Text style={styles.aiEntryText}>🤖 AI에게 물어보기</Text>
-            <Text style={styles.aiEntryHint}>“2군 평점 좋은 한식당”처럼 말해보세요</Text>
+            <View style={styles.aiIconBadge}>
+              <Text style={styles.aiIconEmoji}>💁</Text>
+            </View>
+            <View style={styles.aiEntryTextWrap}>
+              <Text style={styles.aiEntryText}>AI 검색 도우미</Text>
+              <Text style={styles.aiEntryHint}>“2군 평점 좋은 한식당”처럼 말해보세요</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.95)" />
           </TouchableOpacity>
         </View>
 
@@ -220,9 +226,13 @@ const styles = StyleSheet.create({
   regionChipText: { color: '#374151', fontSize: 14, fontWeight: '600' },
   searchBtn: { backgroundColor: BLUE, borderRadius: 999, paddingHorizontal: 24, paddingVertical: 11, justifyContent: 'center' },
   searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  aiEntry: { marginTop: 10, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
-  aiEntryText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  aiEntryHint: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
+  // AI 검색 도우미 카드 — 보라 솔리드 배경에 흰 글씨(고대비). 흰 원형 배지 안에 큰 도우미 아이콘.
+  aiEntry: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#7C3AED', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, shadowColor: '#4C1D95', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  aiIconBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  aiIconEmoji: { fontSize: 28, lineHeight: 34 },
+  aiEntryTextWrap: { flex: 1, minWidth: 0 },
+  aiEntryText: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  aiEntryHint: { color: 'rgba(255,255,255,0.9)', fontSize: 12.5, marginTop: 2 },
 
   body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, overflow: 'hidden' },
   bodyImg: {},

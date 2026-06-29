@@ -110,3 +110,23 @@ export function resolveResultUrl(r) {
   }
   return r.url || null;
 }
+
+// 진출기업·옐로 상세 1건 조회 — 앱 내 팝업(BizDetailSheet)용.
+//  웹 /biz/[id] 가 쓰는 바로 그 endpoint. 서버가 진출기업 원본 보강 + 관리자 수정/기타를 이미 병합해서 내려준다.
+//  반환: 상세 item 객체 또는 null(없거나 실패). 순수 fetch = OTA 안전.
+export async function getDirectoryItem(id) {
+  if (!id) return null;
+  try {
+    const res = await fetch(`${SEARCH_API}/api/search/item?id=${encodeURIComponent(id)}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json && json.item) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// 디렉토리 결과인지(=인앱 팝업 대상인지) 판정. 구글결과·뉴스·매거진은 false.
+export function isDirectoryResult(r) {
+  return !!r && r.source !== 'google' && (r.type === 'yellow' || r.type === 'company');
+}
