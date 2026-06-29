@@ -38,6 +38,17 @@
 
 ---
 
+## 2026-06-29 — 📱 [검색] 진출기업·옐로 상세를 앱 내 팝업으로 + 홈 AI도우미 버튼 개선 (OTA 완료)
+
+- **한 일**: ① 검색결과·AI도우미에서 **진출기업·옐로** 항목을 탭하면 사이트로 나가지 않고 **앱 안 바텀시트 팝업**으로 상세 표시. 신규 `components/BizDetailSheet.js`(데이터=`/api/search/item`, 웹 `/biz/[id]`와 동일 endpoint·서버가 진출기업 원본+관리자수정 병합). 전화=`tel:`·이메일=`mailto:`·지도=지도앱·홈페이지=인앱브라우저. 뉴스·매거진·구글결과는 기존 인앱브라우저 유지. `services/searchService`에 `getDirectoryItem`·`isDirectoryResult` 추가, `SearchResultsScreen`·`AssistantScreen` 연결.
+- **UI 마감**: ② 팝업 하단을 **safe-area(시스템 네비바)+하단 광고슬롯(750:250) 높이만큼 항상 예약**(고정 패딩→`useSafeAreaInsets`). ③ 홈 AI 입구: 반투명→**보라 솔리드(고대비)**, "AI에게 물어보기"→**"AI 검색 도우미"**, 아이콘 💁 크게+흰 원형 배지+화살표.
+- **배포**: ✅ git push(`ee29245`) → **OTA `production`**(update group `f37508e4`, runtime 2.4.3, iOS+Android). 순수 JS(네이티브 0개)=OTA 안전. babel parse 통과 + item API 라이브 검증(옐로·진출기업).
+- **상태**: ✅ 완료·라이브.
+- **다음 단계**: (선택) 옐로 데이터에 주소/좌표 보강 시 '지도 보기' 정확도↑. 디렉토리 상세에 하단 광고슬롯 실제 노출 여부 결정. / ⏳ **iOS analytics 미커밋 변경 + 다음 EAS 빌드**는 여전히 대기(이번 OTA와 무관).
+- **관련 파일**: `components/BizDetailSheet.js`, `services/searchService.js`, `screens/SearchResultsScreen.js`, `screens/AssistantScreen.js`, `screens/HubScreen.js`
+
+---
+
 ## 2026-06-28 — 🤖 [검색] AI 검색 도우미 봇(대화형) 1단계 두뇌 + 구글 Places 통합 (백엔드 라이브)
 
 - **한 일**: 통합검색 위에 **대화형 AI 도우미** 신설. Claude(tool use)가 자연어를 이해해 우리 인덱스를 조회하고 대화로 안내. 동의어 사전을 손으로 채우는 대신 Claude가 "동우회→동호회", "교민단체→동호회·한인회·주요기관"을 알아서 보정.
