@@ -16,6 +16,7 @@
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = **`true`**, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = **`true`** 인지 확인. (꺼져 있으면 iOS 사용자 측정이 0건으로 계속 비어감)
 - [ ] 빌드 직전 `git status` 로 위 두 파일이 **커밋/포함된 상태**인지 확인 (미커밋이면 다른 PC 빌드에 안 들어감).
 - [ ] 빌드 후 Firebase Analytics 콘솔에서 **iOS 이벤트가 실제로 들어오는지** 확인 후 이 항목 ✅ 처리.
+- [ ] **② iOS 푸시 알림 이미지 표시 (Notification Service Extension)** 🟡 — 등록: 2026-06-30. 푸시 알림에 이미지를 보내면 **안드로이드는 빅픽처로 즉시 표시되지만 iOS는 텍스트만** 뜬다. iOS가 알림에 사진을 그리려면 네이티브에 **Notification Service Extension**(서버가 보낸 `mutable-content`+이미지 URL을 받아 첨부로 붙이는 작은 타깃)이 빌드돼 있어야 함. 발송 코드(`functions/index.js` `sendMulticastFCM`)는 이미 `apns.fcmOptions.imageUrl` 을 보내고 있으므로 **앱 네이티브 익스텐션만 추가하면 됨**. (expo-notifications 의 NSE 설정 또는 config plugin 사용). 빌드 후 iOS 실기기에서 이미지 첨부 알림 수신 확인되면 ✅.
 
 > 📌 빌드가 끝나고 위 항목이 *정말 반영됐는지* 검증되기 전에는 이 체크리스트를 지우지 말 것.
 
@@ -61,11 +62,12 @@ eas submit:list --limit 3
 
 > 마지막 운영 빌드 이후 *네이티브 모듈/설정* 에 영향을 주는 변경들.
 
-**현재**: 미빌드 네이티브 변경 **1건** (iOS analytics 🔴). netinfo·remote-config 는 2026-06-25 **2.4.3 빌드에 포함되어 작동 확인됨**(아래 ✅).
+**현재**: 미빌드 네이티브 변경 **2건** (iOS analytics 🔴, iOS 푸시 이미지 NSE 🟡). netinfo·remote-config 는 2026-06-25 **2.4.3 빌드에 포함되어 작동 확인됨**(아래 ✅).
 
 | 커밋 | 날짜 | 변경 | 영향 | Priority | 상태 |
 |---|---|---|---|---|---|
-| (미커밋) | 2026-06-15 | **iOS Firebase Analytics 활성화** — `GoogleService-Info.plist`의 `IS_ANALYTICS_ENABLED` false→true + app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED:true` | iOS 측정 0건 → 정상 수집. (안드로이드는 처음부터 정상) | 🔴 critical(측정 손실) | ⏳ **iOS 빌드+재출시 대기 (유일한 미빌드 항목)** |
+| (미커밋) | 2026-06-15 | **iOS Firebase Analytics 활성화** — `GoogleService-Info.plist`의 `IS_ANALYTICS_ENABLED` false→true + app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED:true` | iOS 측정 0건 → 정상 수집. (안드로이드는 처음부터 정상) | 🔴 critical(측정 손실) | ⏳ **iOS 빌드+재출시 대기** |
+| (미작업) | 2026-06-30 | **iOS 푸시 이미지 Notification Service Extension** — 알림 이미지 첨부용 네이티브 타깃 추가. 발송측(`functions/index.js`)은 이미 imageUrl 전송 중 | iOS 푸시 알림에 사진 표시(현재 텍스트만). 안드로이드는 이미 표시됨 | 🟡 medium | ⏳ **iOS 빌드 때 추가 (위 ①과 함께)** |
 | `323cfad`+`4e40683` | 2026-06-14 | `@react-native-firebase/remote-config` — 강제 업데이트 팝업 | 구버전 사용자 스토어 유도 | 🟡 medium | ✅ 2.4.3 빌드(6/25) 포함. 네이티브 모듈 컴파일됨 |
 | `c4193e4` | 2026-06-25 | `@react-native-community/netinfo` — 오프라인 감지 배너 | 인터넷 끊길 시 상단 배너 표시 | 🟡 medium | ✅ 2.4.3 빌드(6/25) 포함(작업폴더 빌드). 배너 동작 확인. iOS 배너 표시버그는 6/26 OTA로 별도 수정 |
 | ~~`5714bdc`~~ | ~~2026-05-20~~ | ~~`@react-native-firebase/analytics@21.14.0` 추가~~ | ~~앱 내 측정 데이터 흐름~~ | ~~🟡 medium~~ | ✅ 5/21 빌드 포함. iOS도 출시됨(2.4.2)이나 plist 플래그로 수집은 꺼져있었음 |

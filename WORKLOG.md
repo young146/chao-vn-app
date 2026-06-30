@@ -38,6 +38,19 @@
 
 ---
 
+## 2026-06-30 — 🔔 [푸시] 알림 내용 150→500자 확대 + iOS 다음 빌드 챙길 것 2건 정리
+
+- **한 일**: 어드민 푸시 알림(`daily-news-final /admin/push-notifications`) 내용 글자수 제한을 **150→500자**로 확대. "그날의 명상·짧은 에피소드"를 알림에 직접 담기 위함. 제한은 ① 화면 입력(`page.js` slice) ② **발송 엔진(Firebase Function `sendCustomPush`)** 두 곳에 있었고 **둘 다** 500으로 올림. (앞서 화면만 고쳤다가 서버 거부 발견 → 함수까지 수정)
+- **배포**: 웹(daily-news-final) push `119510d` → Vercel / Firebase Function `sendCustomPush` **firebase deploy** (chao-vn-app `functions/index.js` 미커밋 — 커밋 여부 사용자 확인 대기).
+- **상태**: ✅ 500자 입력·발송 동작. ⚠️ **푸시 이미지 = 안드로이드만 표시됨**(FCM 빅픽처). **iOS는 텍스트만** — 알림에 사진 그리려면 네이티브 **Notification Service Extension** 필요.
+- **다음 단계 (🔴 다음 iOS EAS 빌드 때 *함께* 챙길 것)**:
+  1. **iOS Firebase Analytics 활성화** (기존 미빌드 항목 — `GoogleService-Info.plist` `IS_ANALYTICS_ENABLED=true`, app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED=true`)
+  2. **iOS 푸시 이미지용 Notification Service Extension 추가** (이거 없으면 iOS 알림에 사진 영영 안 뜸)
+  → 둘 다 [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) 필수 체크리스트에 등재함.
+- **관련 파일**: `daily-news-final/app/admin/push-notifications/page.js`, `daily-news-final/수정작업현황.md`, `functions/index.js`(sendCustomPush), `PROGRESS_BUILD_PENDING.md`
+
+---
+
 ## 2026-06-29 — 📱 [검색] 진출기업·옐로 상세를 앱 내 팝업으로 + 홈 AI도우미 버튼 개선 (OTA 완료)
 
 - **한 일**: ① 검색결과·AI도우미에서 **진출기업·옐로** 항목을 탭하면 사이트로 나가지 않고 **앱 안 바텀시트 팝업**으로 상세 표시. 신규 `components/BizDetailSheet.js`(데이터=`/api/search/item`, 웹 `/biz/[id]`와 동일 endpoint·서버가 진출기업 원본+관리자수정 병합). 전화=`tel:`·이메일=`mailto:`·지도=지도앱·홈페이지=인앱브라우저. 뉴스·매거진·구글결과는 기존 인앱브라우저 유지. `services/searchService`에 `getDirectoryItem`·`isDirectoryResult` 추가, `SearchResultsScreen`·`AssistantScreen` 연결.

@@ -1238,8 +1238,8 @@ exports.sendCustomPush = onRequest(
       res.status(400).json({ success: false, error: "제목은 50자 이하로 입력하세요." });
       return;
     }
-    if (body.length > 150) {
-      res.status(400).json({ success: false, error: "내용은 150자 이하로 입력하세요." });
+    if (body.length > 500) {
+      res.status(400).json({ success: false, error: "내용은 500자 이하로 입력하세요." });
       return;
     }
     if (url && !/^https?:\/\/.+/.test(url)) {
