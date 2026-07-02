@@ -38,6 +38,19 @@
 
 ---
 
+## 2026-07-02 — 🔑 [SEO] 번역 제목에 실제 인기 검색어 자연 반영 (기본풀 + 주간 실측 뼈대)
+
+- **한 일**: 뉴스 번역 시 제목에 **실제 한국 독자 인기 검색어**가 자연스럽게 들어가도록 함. 기존 `seoKeywords`는 **모델이 상상해 만들고 저장도 안 되던** 값이라 헛돌던 걸, **카테고리별 인기검색어 풀**(`lib/popular-keywords.js`)을 만들어 제목번역 3경로(`translateTitle`·`translateAndCategorize`·`translateFullArticle`)에 주입. **자동 발행은 도입 안 함** — 기존 수작업 검수·발행 흐름 그대로 유지(사장님 요구).
+- **설계(2층)**: ① **기본(baseline) 풀** = 손큐레이션 상시 인기검색어(무료·즉시). ② **주간 실측** = `scripts/fetch-popular-keywords.js`(`npm run keywords`)가 네이버 검색광고 API로 실제 검색량 조회→`lib/popular-keywords.generated.js` 갱신. **키 없으면 안전종료**, 기본 풀로 계속 동작. 병합 우선순위 주간→기본→폴백, 중복제거. **가드**: 자연스럽고 사실에 맞을 때만 삽입, 억지·낚시·키워드 스터핑 금지(애드센스 안전).
+- **검증(실 Sonnet API)**: 환율 기사 → "베트남 **동 환율**, 이번 주도 큰 폭 변동" ✅ 자연 삽입 / 부동산·다낭 → 억지 안 되게 정확문구 미강제(가드 정상). 로컬 build 통과, 사이트 200.
+- **기본 풀 보강**: 사장님 현장 검증 키워드 추가(환전·아파트임대·한달살기·과일·메트로·자동차가격·이사/해외이사·거주신고 등) → `09da47a`.
+- **배포**: 웹(daily-news-final) push **`b446658`**+**`09da47a`** → Vercel 자동배포. 백엔드 전용 — **앱 OTA 무관**.
+- **상태**: ✅ 완료·배포. **단, 주간 실측은 아직 꺼짐(기본 풀만 가동 중).**
+- **⏭️ 다음 단계 (해야 함, 명기)**: **네이버 검색광고 API 키 3개**(`NAVER_SEARCHAD_API_KEY` / `NAVER_SEARCHAD_SECRET` / `NAVER_SEARCHAD_CUSTOMER_ID`)를 secrets `.env`(`OneDrive/dev-secrets/daily-news-final/.env`)에 넣고 → `npm run keywords` 1회 실행해 `popular-keywords.generated.js` 생성·커밋 → 이후 **주 1회 실행(수동 또는 cron/Actions 자동화)** 세팅. 이걸 해야 "최신 인기검색어" 반영이 켜짐. (선택) 반영 강도(보수↔적극) 조정.
+- **관련 파일**: `daily-news-final/lib/popular-keywords.js`, `lib/popular-keywords.generated.js`, `scripts/fetch-popular-keywords.js`, `lib/translator.js`
+
+---
+
 ## 2026-07-02 — 🔎 [검색] 카테고리 동의어 — "흔한 말"로 업소 누락 감소
 
 - **한 일**: 통합검색(`daily-news-final/app/api/search/route.js`)에 **카테고리 동의어**(`CAT_SYNONYMS`) 추가. 자유검색이 `searchText`(상호·요약)만 훑어 상호에 그 단어가 없는 업소가 누락되던 문제 해결(예: "미용실"로 검색해도 상호가 "○○Hair"면 못 찾음). 흔한 말→옐로 카테고리 슬러그로 연결해 `category`도 OR 매칭.
