@@ -38,6 +38,21 @@
 
 ---
 
+## 2026-07-02 — 💰 [LLM 비용/안정성] AI 도우미 Haiku 전환 + 번역 JSON 실패 원천 차단
+
+- **한 일**:
+  ① **AI 검색 도우미 모델 Sonnet 4.6 → Haiku 4.5** (`daily-news-final/app/api/assistant/route.js`). 도우미는 도구 라우팅+요약이라 실앱 테스트 결과 품질 차이 없음. 토큰 비용 1/3($3/$15→$1/$5).
+  ② **번역 JSON 파싱 실패 원천 차단** (`daily-news-final/lib/translator.js`). 기사체 큰따옴표(`"…라고 말했다"`)가 JSON 문자열을 깨서 `JSON.parse` 실패→"번역 실패" 사고. **Structured Outputs(`output_config.format` json_schema)** 로 전환해 API가 유효 JSON을 생성단계에서 보장. `callLLM`에 `schema` 파라미터 추가·번역 3함수 연결·OpenAI 폴백도 json_schema.
+  - 실측(실기사 5건 A/B): **Sonnet 성공률 40%→100%**, 재시도 소거로 평균 18~22s→**10s**. 번역 모델은 **Sonnet 유지**(정확도 우선).
+- **배포**: 웹(daily-news-final) push → Vercel 자동배포. ①`f98b9f3` ②`eadb215`. (둘 다 백엔드라 앱 OTA 무관)
+- **상태**: ✅ 완료·배포. 도우미 실앱 확인 완료, 번역 A/B 로컬 검증 완료.
+- **다음 단계**:
+  1. 번역 = 당분간 **Sonnet 유지**. Haiku는 뉴스 금액을 간헐적으로 조작(3회 중 1회 환산값 날조)해 flagship 뉴스엔 리스크 — 비용 급해지면 조작-방지 가드 강화 후 재검토.
+  2. (선택) AI 도우미 시스템 프롬프트를 "평점 추천 상담원" 정체성으로 다듬기 — 통합검색과 역할 차별화.
+- **관련 파일/문서**: `daily-news-final/app/api/assistant/route.js`, `daily-news-final/lib/translator.js`, 메모리 [[project_assistant_model_haiku]]
+
+---
+
 ## 2026-06-30 — 🔔 [푸시] 알림 내용 150→500자 확대 + iOS 다음 빌드 챙길 것 2건 정리
 
 - **한 일**: 어드민 푸시 알림(`daily-news-final /admin/push-notifications`) 내용 글자수 제한을 **150→500자**로 확대. "그날의 명상·짧은 에피소드"를 알림에 직접 담기 위함. 제한은 ① 화면 입력(`page.js` slice) ② **발송 엔진(Firebase Function `sendCustomPush`)** 두 곳에 있었고 **둘 다** 500으로 올림. (앞서 화면만 고쳤다가 서버 거부 발견 → 함수까지 수정)
