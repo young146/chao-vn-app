@@ -38,6 +38,17 @@
 
 ---
 
+## 2026-07-02 — 🤖 [SEO] 주간 인기검색어 수집 GitHub Actions 자동화 완료 (무인 운영)
+
+- **한 일**: 앞 항목의 "주 1회 수동 실행"을 **GitHub Actions로 완전 자동화**. 매주 월요일 09:00 KST(cron `0 0 * * 1`) + 수동실행(workflow_dispatch)으로 `npm run keywords` 실행 → `lib/popular-keywords.generated.js` 갱신 → **변경 시에만 봇이 자동 커밋·푸시 → Vercel 자동배포**. 네이버 키 3개는 저장소 Secrets(`NAVER_SEARCHAD_*`)에 등록(암호화). 첫 수동 실행 **Success(49s)**, 봇 자동커밋 `6c67b21` 생성까지 **전체 파이프라인 검증 완료**.
+- **참고**: 실행로그의 "Node.js 20 deprecated" 경고는 GitHub가 액션 런타임을 Node24로 옮기는 중이라는 **무해한 안내**(에러 아님). checkout/setup-node 차기 메이저 나오면 자연 소멸.
+- **배포**: 웹(daily-news-final) push `d4f171c`(워크플로) + 봇 `6c67b21`(첫 자동갱신). 파일: `.github/workflows/weekly-keywords.yml`.
+- **상태**: ✅ 완료·무인 운영 시작. 사장님 개입 불필요.
+- **다음 단계**: 없음(정상 가동). 실패 시 GitHub이 저장소 주인에게 자동 이메일. 키 교체 시 Secrets만 갱신하면 됨.
+- **관련 파일/문서**: `daily-news-final/.github/workflows/weekly-keywords.yml`, `scripts/fetch-popular-keywords.js`
+
+---
+
 ## 2026-07-02 — 🔑 [SEO] 네이버 검색광고 API 키 연결 완료 — 실측 인기검색어 첫 수집·반영 (보류 해제)
 
 - **한 일**: 앞선 "인기검색어 자연 반영" 항목의 **보류였던 네이버 검색광고 API 키 3개**(`NAVER_SEARCHAD_API_KEY`/`_SECRET`/`_CUSTOMER_ID`)를 daily-news-final 루트 `.env`에 넣고 첫 실측 수집 성공. 진행 중 두 가지 버그를 잡음: ① **CUSTOMER_ID 6→7자리** 오입력(403 auth-failed) ② **`keywordstool` hintKeywords 공백 400**(code 11001) → 스크립트에서 시드 공백 제거(`map(k=>k.replace(/\s+/g,''))`)로 해결. 결과 11개 카테고리 62개 키워드 수집(베트남환율 월 55.5만 등).
