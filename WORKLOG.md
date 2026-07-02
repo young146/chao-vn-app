@@ -38,6 +38,24 @@
 
 ---
 
+## 2026-07-02 — 🗺️ [SEO] chaovietnam.co.kr 사이트맵 freeze 진단·해결 + 감시 자동화 (🔴 내일 SEO 이어가기)
+
+- **한 일**: 매일 발행은 정상인데 **사이트맵이 6/15 이후 멈춰**(Rank Math 내부 캐시 고착) **6/16~오늘 약 2.5주치 기사가 사이트맵에서 누락** → 네이버·구글이 새 기사를 늦게 알던 문제 진단·해결.
+  - **진단 근거**(REST/robots/canonical 다 확인): 발행 OK(오늘 #139061), 새 글 `index,follow`+canonical 정상 → **noindex 설정 문제 아님**. 순수 사이트맵 캐시 freeze.
+  - **1차 조치**: Rank Math Sitemap Settings **저장**하면 캐시가 비워져 재생성됨(6/15→7/2 즉시 복구 확인). 태그 사이트맵은 켜지 말 것(빈용어·과다 → 크롤예산 낭비).
+  - **영구 해결**: mu-plugin `rankmath-sitemap-nocache.php` (`add_filter('rank_math/sitemap/enable_caching','__return_false')`) → 서버 `wp-content/mu-plugins/` 에 **FTP 업로드 완료**. 캐시 자체를 꺼 freeze 원천 차단.
+  - **감시 자동화**: `daily-news-final/.github/workflows/sitemap-monitor.yml`(매일 03:00 UTC) + `scripts/check-sitemap-freshness.js`. WP최신 vs 사이트맵최신 비교, 24h↑ 지연/36h↑ 발행중단 시 job실패→소유자 자동 이메일. **읽기전용(GET)** 이라 Wordfence 안 걸림.
+  - **주의(발견)**: 앱비번 계정은 **새 글 생성=OK, 기존 글 수정=권한없음(rest_cannot_edit)**. 발행은 새 글 생성이라 무관. Rank Math 관리자 REST(`toolsAction`)는 앱비번으로 401(세션필요) → 캐시청소 자동화는 mu-plugin으로 우회함.
+- **배포**: 웹(daily-news-final) push `b46cea4`(감시+mu-plugin 버전관리본) / mu-plugin 서버 FTP 반영. Vercel 무관(WordPress 측).
+- **상태**: ✅ 사이트맵 현재 최신. ⏳ **no-cache 최종 증명은 내일 아침 배치 후 자동확인**(monitor가 판정).
+- **🔴 다음(내일) 이어갈 것**:
+  1. **내일 아침 배치 후** 사이트맵 즉시 최신인지 확인(monitor 자동 or 수동 Run workflow) → no-cache 검증 완료 처리.
+  2. **SEO "Not Set" 대량 개선** — 2.5만 글 대부분 SEO 제목·메타설명 미설정. **수동 불가 → 자동화**: ① 발행 스크립트가 발행 시 Rank Math 메타(rank_math_title/description) 자동 세팅 ② 기존 글 백필. 실제 글 title/description 상태부터 점검 후 처방.
+  3. 구글 서치콘솔·네이버 서치어드바이저 **색인현황** 판독(발견 단계는 뚫렸으니 실제 색인/랭킹 측정).
+- **관련 파일/문서**: `daily-news-final/wordpress-plugin/mu-plugins/rankmath-sitemap-nocache.php`, `.github/workflows/sitemap-monitor.yml`, `scripts/check-sitemap-freshness.js`
+
+---
+
 ## 2026-07-02 — 🤖 [SEO] 주간 인기검색어 수집 GitHub Actions 자동화 완료 (무인 운영)
 
 - **한 일**: 앞 항목의 "주 1회 수동 실행"을 **GitHub Actions로 완전 자동화**. 매주 월요일 09:00 KST(cron `0 0 * * 1`) + 수동실행(workflow_dispatch)으로 `npm run keywords` 실행 → `lib/popular-keywords.generated.js` 갱신 → **변경 시에만 봇이 자동 커밋·푸시 → Vercel 자동배포**. 네이버 키 3개는 저장소 Secrets(`NAVER_SEARCHAD_*`)에 등록(암호화). 첫 수동 실행 **Success(49s)**, 봇 자동커밋 `6c67b21` 생성까지 **전체 파이프라인 검증 완료**.
