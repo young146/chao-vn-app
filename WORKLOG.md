@@ -38,6 +38,16 @@
 
 ---
 
+## 2026-07-02 — 💰 [웹] vnkorlife.com Google AdSense 스니펫 삽입 (사이트 승인/자동광고용)
+
+- **한 일**: vnkorlife-web 루트 `app/layout.tsx` `<head>` 에 AdSense 로더 스크립트(`adsbygoogle.js`, `client=ca-pub-7944314901202352`) 추가. 원본은 순수 HTML `<script async>` 였으나, 기존 GA4 태그와 동일하게 **`next/script` + `strategy="afterInteractive"`** 로 감싸 페이지 속도 영향 최소화. 아직 개별 광고 슬롯(`<ins class="adsbygoogle">`)은 없음 — 승인/자동광고용 기본 코드 단계.
+- **배포**: 웹 Vercel 자동배포 (커밋 `cc84857`, GitHub `young146/vnkorlife-web` main 푸시 완료)
+- **상태**: ⏳ AdSense 콘솔 사이트 승인 심사 대기
+- **다음 단계**: ① Vercel 배포 Ready + 프로덕션에서 `adsbygoogle.js` 로드 확인 ② AdSense 콘솔에서 vnkorlife.com 승인되면 자동광고 ON 또는 원하는 위치(목록 사이·상세페이지)에 개별 광고 단위 삽입
+- **관련 파일/문서**: `vnkorlife-web/app/layout.tsx`
+
+---
+
 ## 2026-07-02 — 🔑 [SEO] 번역 제목에 실제 인기 검색어 자연 반영 (기본풀 + 주간 실측 뼈대)
 
 - **한 일**: 뉴스 번역 시 제목에 **실제 한국 독자 인기 검색어**가 자연스럽게 들어가도록 함. 기존 `seoKeywords`는 **모델이 상상해 만들고 저장도 안 되던** 값이라 헛돌던 걸, **카테고리별 인기검색어 풀**(`lib/popular-keywords.js`)을 만들어 제목번역 3경로(`translateTitle`·`translateAndCategorize`·`translateFullArticle`)에 주입. **자동 발행은 도입 안 함** — 기존 수작업 검수·발행 흐름 그대로 유지(사장님 요구).
