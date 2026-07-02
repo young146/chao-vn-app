@@ -38,6 +38,16 @@
 
 ---
 
+## 2026-07-02 — 🔑 [SEO] 네이버 검색광고 API 키 연결 완료 — 실측 인기검색어 첫 수집·반영 (보류 해제)
+
+- **한 일**: 앞선 "인기검색어 자연 반영" 항목의 **보류였던 네이버 검색광고 API 키 3개**(`NAVER_SEARCHAD_API_KEY`/`_SECRET`/`_CUSTOMER_ID`)를 daily-news-final 루트 `.env`에 넣고 첫 실측 수집 성공. 진행 중 두 가지 버그를 잡음: ① **CUSTOMER_ID 6→7자리** 오입력(403 auth-failed) ② **`keywordstool` hintKeywords 공백 400**(code 11001) → 스크립트에서 시드 공백 제거(`map(k=>k.replace(/\s+/g,''))`)로 해결. 결과 11개 카테고리 62개 키워드 수집(베트남환율 월 55.5만 등).
+- **배포**: 웹(daily-news-final) push **`e3282aa`**(스크립트 공백수정 + `lib/popular-keywords.generated.js` 실측 데이터) → Vercel 자동배포. 백엔드 전용 — 앱 OTA 무관.
+- **상태**: ✅ 완료·배포. 주간 실측 파이프라인 **가동 시작**(기본 풀 → 실측 병합).
+- **다음 단계**: **주 1회** `npm run keywords` 실행 → `generated.js` 커밋 습관화(수동, 또는 cron/Actions 자동화는 선택). API 키는 `.env`에만 있고 gitignore됨 — 다른 PC에선 secrets 마스터(`OneDrive/dev-secrets/daily-news-final/.env`)에서 복사 필요.
+- **관련 파일/문서**: `daily-news-final/scripts/fetch-popular-keywords.js`, `lib/popular-keywords.generated.js`
+
+---
+
 ## 2026-07-02 — 💰 [웹] vnkorlife.com Google AdSense 스니펫 삽입 (사이트 승인/자동광고용)
 
 - **한 일**: vnkorlife-web 루트 `app/layout.tsx` `<head>` 에 AdSense 로더 스크립트(`adsbygoogle.js`, `client=ca-pub-7944314901202352`) 추가. 원본은 순수 HTML `<script async>` 였으나, 기존 GA4 태그와 동일하게 **`next/script` + `strategy="afterInteractive"`** 로 감싸 페이지 속도 영향 최소화. 아직 개별 광고 슬롯(`<ins class="adsbygoogle">`)은 없음 — 승인/자동광고용 기본 코드 단계.
