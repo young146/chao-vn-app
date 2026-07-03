@@ -44,9 +44,10 @@
 - **핵심 발견**: Rank Math 메타가 **WP REST에 미노출** → 발행 코드가 SEO 메타를 직접 못 씀. → 작은 mu-plugin으로 열어줘야 함.
 - **만든 것**: ① `wordpress-plugin/mu-plugins/rankmath-rest-meta.php`(rank_math_title/description/focus_keyword를 REST 노출, edit_posts 제한) ② `lib/publisher.js` 발행 시 **rank_math_description=깔끔요약(~160자)** 세팅(제목은 좋은 템플릿 유지). ③ `scripts/backfill-seo-meta.js` 기존글 백필(재개·청크, `npm run backfill-seo`).
 - **검증**: buildDesc 출처군더더기 제거·길이컷 로컬확인, `npm run build` 통과. **배포 안전성**: mu-plugin 미업로드 시 세팅값 무시(무해)라 코드 선배포 OK.
-- **배포**: 웹(daily-news-final) push **`6e16a12`** → Vercel. 백엔드/스크립트 — 앱 OTA 무관.
-- **상태**: 🟡 코드 배포 완료. **mu-plugin FTP 업로드 대기**(사용자) → 업로드 후 ①1개 글 REST쓰기 검증 ②백필 실행.
-- **다음 단계**: 1) mu-plugin을 서버 `wp-content/mu-plugins/rankmath-rest-meta.php`로 FTP 업로드. 2) 검증 후 `npm run backfill-seo`(청크로). 3) (선택) Rank Math 전역설정(제목템플릿·소셜이미지·Article스키마) WP관리자 점검.
+- **실측 검증(1차 업로드 후)**: rank_math_description → **구글 meta description 반영 확인(센티넬 추적 ✅)**. 단 **og:description(소셜)은 미반영** — Rank Math가 og는 본문 앞에서 자동생성("출처…" 딸림). → mu-plugin v1.1에 `rank_math/opengraph/{facebook,twitter}/description` 필터 추가해 og도 rank_math_description 쓰게 강제. **한 필드로 구글+소셜 동시 해결**(publisher/백필 코드 불변).
+- **배포**: 웹(daily-news-final) push **`6e16a12`**(코어) + **`128cc0d`**(mu-plugin v1.1 og필터) → Vercel. 백엔드/스크립트 — 앱 OTA 무관.
+- **상태**: 🟡 코드 배포 완료. **mu-plugin v1.1 재업로드 대기**(사용자, 파일 1개 덮어쓰기) → 재업로드 후 og 반영 검증 + 백필 실행.
+- **다음 단계**: 1) `rankmath-rest-meta.php`(v1.1) 서버 `wp-content/mu-plugins/`에 **덮어쓰기 FTP**. 2) og:description 깔끔해졌는지 검증 → `npm run backfill-seo`(청크). 3) (선택) Rank Math 전역설정(제목템플릿·소셜이미지·Article스키마) WP관리자 점검.
 - **관련 파일**: `daily-news-final/wordpress-plugin/mu-plugins/rankmath-rest-meta.php`, `lib/publisher.js`, `scripts/backfill-seo-meta.js`
 
 ---
