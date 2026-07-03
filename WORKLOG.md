@@ -38,6 +38,18 @@
 
 ---
 
+## 2026-07-03 — 📊 [측정] 주간 리포트에 구글 검색노출(서치콘솔) 섹션 추가 (🟡 SA 권한부여 대기)
+
+- **한 일**: "일부러 안 찾아도 SEO 상황이 굴러 들어오게" — 이미 매주 월 09:00(VN) 자동발송되는 **주간 측정 이메일**(GA4 트래픽 기반, `weekly-report` 크론)에 **구글 검색노출 섹션**을 얹음. 노출수·클릭·CTR·평균순위(WoW 증감) + 상위 검색어 표.
+- **설계**: `lib/search-console-report.js` — GA4와 **동일 서비스계정**(Firebase Admin, `FIREBASE_SERVICE_ACCOUNT_JSON`) 재사용, 스코프만 `webmasters.readonly`. 접근가능 속성에서 chaovietnam 자동선택. **미연결이면 "연결 대기" 안내로 폴백**(전체 리포트 안 죽음). Search Analytics API 최근7일 vs 이전7일(3일 지연 반영).
+- **검증**: 모듈 우아한 폴백 확인(현재 `sites.list 403`=SA 미등록, 정상 예상), 인증 자체는 성공, `npm run build` 통과.
+- **배포**: 웹(daily-news-final) push **`942796d`** → Vercel. 크론 기존 스케줄 그대로.
+- **상태**: 🟡 코드 배포 완료. **1회 설정 대기(사장님)**: ① 서치콘솔에 서비스계정 추가 ② GCP Search Console API 사용설정.
+- **다음 단계**: 1) 서치콘솔 → 설정 → 사용자 및 권한 → `firebase-adminsdk-fbsvc@chaovietnam-login.iam.gserviceaccount.com` 추가. 2) GCP(chaovietnam-login) "Google Search Console API" Enable. 3) 완료 후 `?test=1` 미리보기로 데이터 확인 → 다음 월요일부터 자동 포함.
+- **관련 파일**: `daily-news-final/lib/search-console-report.js`, `app/api/cron/weekly-report/route.js`
+
+---
+
 ## 2026-07-03 — 🔍 [SEO] 발행 시 Rank Math SEO 설명 자동 세팅 + 기존글 백필 (🟡 mu-plugin FTP 대기)
 
 - **한 일**: WP(chaovietnam.co.kr, Rank Math) 글들의 SEO 설명을 통제·최적화. 실측 결과 Rank Math 폴백은 작동하나 ① SEO 설명이 명시 세팅 안 됨(통제불가) ② **소셜공유(og:description)가 "출처: … 날짜: …"로 시작**해 실제 뉴스가 밀림.
