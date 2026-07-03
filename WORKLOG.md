@@ -38,6 +38,19 @@
 
 ---
 
+## 2026-07-03 — 🔍 [SEO] 발행 시 Rank Math SEO 설명 자동 세팅 + 기존글 백필 (🟡 mu-plugin FTP 대기)
+
+- **한 일**: WP(chaovietnam.co.kr, Rank Math) 글들의 SEO 설명을 통제·최적화. 실측 결과 Rank Math 폴백은 작동하나 ① SEO 설명이 명시 세팅 안 됨(통제불가) ② **소셜공유(og:description)가 "출처: … 날짜: …"로 시작**해 실제 뉴스가 밀림.
+- **핵심 발견**: Rank Math 메타가 **WP REST에 미노출** → 발행 코드가 SEO 메타를 직접 못 씀. → 작은 mu-plugin으로 열어줘야 함.
+- **만든 것**: ① `wordpress-plugin/mu-plugins/rankmath-rest-meta.php`(rank_math_title/description/focus_keyword를 REST 노출, edit_posts 제한) ② `lib/publisher.js` 발행 시 **rank_math_description=깔끔요약(~160자)** 세팅(제목은 좋은 템플릿 유지). ③ `scripts/backfill-seo-meta.js` 기존글 백필(재개·청크, `npm run backfill-seo`).
+- **검증**: buildDesc 출처군더더기 제거·길이컷 로컬확인, `npm run build` 통과. **배포 안전성**: mu-plugin 미업로드 시 세팅값 무시(무해)라 코드 선배포 OK.
+- **배포**: 웹(daily-news-final) push **`6e16a12`** → Vercel. 백엔드/스크립트 — 앱 OTA 무관.
+- **상태**: 🟡 코드 배포 완료. **mu-plugin FTP 업로드 대기**(사용자) → 업로드 후 ①1개 글 REST쓰기 검증 ②백필 실행.
+- **다음 단계**: 1) mu-plugin을 서버 `wp-content/mu-plugins/rankmath-rest-meta.php`로 FTP 업로드. 2) 검증 후 `npm run backfill-seo`(청크로). 3) (선택) Rank Math 전역설정(제목템플릿·소셜이미지·Article스키마) WP관리자 점검.
+- **관련 파일**: `daily-news-final/wordpress-plugin/mu-plugins/rankmath-rest-meta.php`, `lib/publisher.js`, `scripts/backfill-seo-meta.js`
+
+---
+
 ## 2026-07-03 — 🈳 [번역] 본문번역 rate limit 실패 근절 + 27건 복구 + 관리방안
 
 - **한 일**: 크롤 뉴스 본문번역이 DRAFT에 "Translation Failed"로 눌러앉는 문제(165개 중 27개=16%) 근본 해결.
