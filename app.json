@@ -38,6 +38,7 @@
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false,
+        "FIREBASE_ANALYTICS_COLLECTION_ENABLED": true,
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
