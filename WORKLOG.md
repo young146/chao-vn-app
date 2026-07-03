@@ -38,6 +38,20 @@
 
 ---
 
+## 2026-07-03 — 🈳 [번역] 본문번역 rate limit 실패 근절 + 27건 복구 + 관리방안
+
+- **한 일**: 크롤 뉴스 본문번역이 DRAFT에 "Translation Failed"로 눌러앉는 문제(165개 중 27개=16%) 근본 해결.
+- **원인(2단)**: ① 무거운 본문번역을 **10개 동시** 호출 → rate limit(429), 3회 선형 재시도로 못 뚫음. ② 실패를 3필드 채워 "완료"로 저장 → 배치 재번역이 "이미 완료"로 **영구 스킵** → 자동복구 불가로 쌓임.
+- **수정(3층 방어)**: ① **예방** — 동시 10→5, 배치간 200→1000ms, 재시도 3→5회 **지수백오프+지터+429 Retry-After 준수**. ② **자동복구** — 실패는 저장 안 하고 **PENDING 복귀**(다음 번역 때 자동 재시도), 스킵조건서 실패마커 제외. ③ **수동정리** — `npm run retry-failed` 재사용 복구도구.
+- **검증**: 헬퍼 5/5·백오프·눌러앉은 4/4 재번역 성공 로컬확인 → `npm run retry-failed` 실행 **27/27 전부 복구**, 전체 DB 실패 **0건**. `npm run build` 통과.
+- **곁다리 확인**: 사장님 직감으로 점검한 **Structured Outputs(JSON 수정)는 정상 작동 중**(sonnet-4-6도 output_config 강제됨). 이번 실패와는 무관한 별개 문제였음.
+- **배포**: 웹(daily-news-final) push `a4bc7b6`(코어수정)+`531cc1d`(복구도구·문서) → Vercel. **백엔드 전용, 앱 OTA 무관.**
+- **상태**: ✅ 완료·배포·27건 복구 완료.
+- **다음 단계**: (선택) `retry-failed`를 GitHub Actions 주1회 자동화(Secrets에 ANTHROPIC/DATABASE 필요). 하루 뒤 실패율 재확인.
+- **관련 파일/문서**: `daily-news-final/lib/translator.js`, `app/api/batch-translate/route.js`, `app/admin/actions.js`, `scripts/retry-failed-translations.js`, `daily-news-final/docs/번역실패_관리방안.md`
+
+---
+
 ## 2026-07-02 — 🗺️ [SEO] chaovietnam.co.kr 사이트맵 freeze 진단·해결 + 감시 자동화 (🔴 내일 SEO 이어가기)
 
 - **한 일**: 매일 발행은 정상인데 **사이트맵이 6/15 이후 멈춰**(Rank Math 내부 캐시 고착) **6/16~오늘 약 2.5주치 기사가 사이트맵에서 누락** → 네이버·구글이 새 기사를 늦게 알던 문제 진단·해결.
