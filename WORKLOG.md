@@ -46,8 +46,11 @@
 - **검증**: buildDesc 출처군더더기 제거·길이컷 로컬확인, `npm run build` 통과. **배포 안전성**: mu-plugin 미업로드 시 세팅값 무시(무해)라 코드 선배포 OK.
 - **실측 검증(1차 업로드 후)**: rank_math_description → **구글 meta description 반영 확인(센티넬 추적 ✅)**. 단 **og:description(소셜)은 미반영** — Rank Math가 og는 본문 앞에서 자동생성("출처…" 딸림). → mu-plugin v1.1에 `rank_math/opengraph/{facebook,twitter}/description` 필터 추가해 og도 rank_math_description 쓰게 강제. **한 필드로 구글+소셜 동시 해결**(publisher/백필 코드 불변).
 - **배포**: 웹(daily-news-final) push **`6e16a12`**(코어) + **`128cc0d`**(mu-plugin v1.1 og필터) → Vercel. 백엔드/스크립트 — 앱 OTA 무관.
-- **상태**: 🟡 코드 배포 완료. **mu-plugin v1.1 재업로드 대기**(사용자, 파일 1개 덮어쓰기) → 재업로드 후 og 반영 검증 + 백필 실행.
-- **다음 단계**: 1) `rankmath-rest-meta.php`(v1.1) 서버 `wp-content/mu-plugins/`에 **덮어쓰기 FTP**. 2) og:description 깔끔해졌는지 검증 → `npm run backfill-seo`(청크). 3) (선택) Rank Math 전역설정(제목템플릿·소셜이미지·Article스키마) WP관리자 점검.
+- **최종 완료(실측)**: mu-plugin v1.1 업로드됨. og:description → Rank Math 값으로 정리 ✅. **테마 OG 중복** 발견 → Sahifa `Posts Settings → OG Meta = OFF`로 제거(이제 og 1개). **스키마 중복**도 발견 → 테마가 `Article`, Rank Math가 `NewsArticle` 이중출력 → 테마 `Structure Data → Enable = OFF`로 제거(이제 `NewsArticle` 하나). **뉴스 스키마는 Rank Math가 이미 NewsArticle 출력 중이었음**(새로 만들 필요 없었음).
+- **백필**: `npm run backfill-seo` 최신 200개 검증 완료(199 세팅) → 전체(~2.5만) 백그라운드 진행 중.
+- **상태**: ✅ SEO 코어 완료(발행자동화·og·스키마 정리). 🔄 기존글 백필 진행 중.
+- **다음 단계**: 1) 백필 완료 확인(총 처리수). 2) (선택) Rank Math 브레드크럼 스키마 되살리기, 전역 제목템플릿·소셜이미지 점검. 3) 지식창고 [KNOWLEDGE.md](KNOWLEDGE.md)에 SEO/GEO/AEO·스키마 정리해둠.
+- **📚 배운 것**: 「한 기능은 한 소스만」 — og·스키마는 테마+SEO플러그인이 이중출력 쉬움. SEO플러그인에 몰고 테마 쪽 끈다. → KNOWLEDGE.md 참조.
 - **관련 파일**: `daily-news-final/wordpress-plugin/mu-plugins/rankmath-rest-meta.php`, `lib/publisher.js`, `scripts/backfill-seo-meta.js`
 
 ---
