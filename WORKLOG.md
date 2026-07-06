@@ -38,6 +38,17 @@
 
 ---
 
+## 2026-07-06 — 🧹 [저장소] 5개 워크스페이스 git 정리 + 시크릿 규칙 문서화
+
+- **배경**: 사장님 질문 — VSCode 탐색기 폴더 옆 동그란 점이 "git 미반영"인가. 확인 결과 **커밋·푸시는 정상**이었고, `.tmp/`·firebase 캐시·로그·대용량 PDF가 `.gitignore`에 빠져 정크가 영구히 미추적으로 남아 점이 안 사라진 것.
+- **한 일**:
+  - chao-vn-app·vnkorlife-web `.gitignore` 보강(`.tmp/`, `.firebase/*.cache`, `*.local.bak`, 561_yellowpage*.pdf, `.claude/`, `.tmp_dev.log`). 이미 추적 중이던 firebase 캐시는 `git rm --cached`로 추적해제.
+  - 진짜 작업물만 커밋: 옐로페이지 directives·scripts, go/start 리다이렉트(chao-vn-app) / market-size-dryrun(jobs-crm).
+  - **시크릿 규칙 문서화**: CLAUDE·AGENTS·GEMINI.md에 "🔐 Secrets / API Keys" 섹션 추가 — 정본 백업 위치 `OneDrive\dev-secrets\`, 커밋 금지·키 회전 규칙. 모든 AI 숙지 대상.
+- **배포**: push 완료 — chao-vn-app `06fa1c1`, vnkorlife-web `9b8ccd7`(원격 rebase 후), jobs-crm `cb10088`. 5개 폴더 전부 미커밋 0·미푸시 0.
+- **상태**: ✅ 완료
+- **다음 단계**: 없음 (사장님이 새 시크릿 만들 때 dev-secrets 백업 동기화만 유지)
+
 ## 2026-07-03 — 🎯 [뉴스] 크롤 단계 인기검색어 관련도 점수화 + 키워드-포워드 발행
 
 - **배경**: 사장님 문제의식 — "크롤링할 때부터 한국인이 검색하는 키워드 기준으로 뉴스를 우선 선정하면 관심 유도가 커진다". 확인 결과 현재 파이프라인은 *선별 단계가 아예 없었고*(새 기사 전부 번역·저장), 키워드는 번역 시 제목에만 쓰였음. 무거운 본문번역+WP발행은 **편집자가 고른 것만** 도는 구조(선택 관문 존재).
