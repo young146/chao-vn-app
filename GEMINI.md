@@ -108,6 +108,19 @@ Errors are learning opportunities. When something breaks:
 
 **Key principle:** Local files are only for processing. Deliverables live in cloud services (Google Sheets, Slides, etc.) where the user can access them. Everything in `.tmp/` can be deleted and regenerated.
 
+## 🔐 Secrets / API Keys (MANDATORY — 모든 AI 숙지)
+
+**절대 git에 올리면 안 되는 것** (API 키, 토큰, 서비스계정 JSON, `.env` 실값, 비밀번호):
+
+- **정본(master) 백업 위치**: `C:\Users\XINCHAO\OneDrive\dev-secrets\`
+  - 프로젝트별 하위폴더로 정리됨: `chao-vn-app/`, `daily-news-final/`, `vnkorlife-web/`, `xinchao_crm/`
+  - `RESTORE.ps1` — 새 환경에서 각 프로젝트로 시크릿을 복원하는 스크립트
+- **규칙**:
+  1. 시크릿을 새로 만들거나 바꾸면 → 해당 프로젝트 폴더의 `.env`(로컬)와 위 `dev-secrets\<project>\` 백업 **둘 다** 갱신한다.
+  2. 시크릿 파일(`.env`, `*serviceAccount*.json`, `*.pem`, `*credentials*`)은 **반드시 `.gitignore` 에 있어야** 한다. 커밋 전 확인.
+  3. 실수로 커밋된 시크릿을 발견하면 → 즉시 사용자에게 알리고, 키 회전(rotate)을 권고한다. (git 이력에서 지우는 것만으론 노출된 키는 못 되돌림)
+  4. 코드·문서·로그에 실제 키 값을 **평문으로 남기지 않는다**. 참조는 항상 env 변수명(`process.env.XXX`)으로.
+
 ## Deployment Rules (MANDATORY)
 
 ### 앱 배포 워크플로우 (chao-vn-app)

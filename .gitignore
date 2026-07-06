@@ -48,9 +48,18 @@ yarn-error.*
 .cursor/
 .claude/
 .firebase/logs/
+.firebase/*.cache
 diff.txt
 diff2.txt
 diff3.txt
 out.txt
 status.txt
 status2.txt
+
+# intermediates / local junk (CLAUDE.md: .tmp is regenerable)
+.tmp/
+*.local.bak
+RECRAWL_LOG.txt
+
+# large source PDFs — keep local only, don't bloat the repo
+561_yellowpage*.pdf
