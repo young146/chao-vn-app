@@ -38,6 +38,18 @@
 
 ---
 
+## 2026-07-07 — 💰 [제휴] AccessTrade→Involve Asia 피벗 + 제휴 추적/추천 블록 착수·배포
+
+- **배경**: 사장님 "accesstrade.vn에서 Shopee/Lazada 제휴 애드하자". 제휴 수익화(전략문서 [AFFILIATE_REVENUE_STRATEGY.md](marketing/AFFILIATE_REVENUE_STRATEGY.md) 2축) 착수.
+- **AccessTrade 벽**: 개인 publisher 등록은 됐으나 **신원인증(eKYC)이 베트남 CCCD 전용** → 한국인(여권) 통과 불가. 외국인은 VNeID Level2 또는 회사법인 e-ID 필요. → **AccessTrade 보류.**
+- **Involve Asia로 피벗**: 기존 계정(2026-06-07 세팅돼 있던 것) 발견 — **여권 KYC 통과(외국인 OK)** + Shinhan VN 은행 지급. 단 **카탈로그에 Shopee/Lazada "베트남"이 없음**(SG/ID/TH/MY/BR 등 타국만). 승인받은 것: **AliExpress·Taobao·Airalo·Udemy**(4개), 딥링크 검증(af=1089810). Pending: Traveloka VN·Olive Young·iHerb·Airalo Codes.
+- **Shopee VN** = 자체 프로그램 `affiliate.shopee.vn` 등록(검토대기 ≤5일, **CCCD 벽 없이 등록 통과**). Lazada VN도 Involve엔 없음 → 추후 Lazada 자체 포털 검토.
+- **구현·배포(daily-news-final)**: 범용 **`/go/<slug>` 추적 리다이렉트**(우리 링크로 한 겹 감싸 교체·측정 통제) + `lib/affiliate-links.js` 레지스트리 + `lib/affiliate-block.js`(기사 하단 "베트남 생활·쇼핑 추천" 큐레이션 블록, **하드뉴스 정치·국제·경제 제외**, `rel=nofollow sponsored` + 제휴 고지) + `publisher.js` 발행 시 첨부(try/catch). `next build` 통과.
+- **배포**: 웹(daily-news-final) push **`0ba7a52`** → Vercel. **새 기사부터** 관련 카테고리에 추천 블록. 기존 2.5만 기사·앱 OTA 무관.
+- **상태**: ✅ 착수·배포. AliExpress 등 4개 라이브. 수익화 첫 삽.
+- **다음 단계**: ① Shopee VN 승인(younghan146@gmail 통보) → **지급 KYC 외국인 통과 여부** 확인 → 되면 레지스트리 slug 추가. ② Pending(Traveloka VN·Olive Young·iHerb) 승인 시 딥링크 채우기. ③ v2: `/go` 클릭 로깅(affiliate_clicks), 이메일·앱 노출, `chaovietnam.co.kr/go` 커스텀 도메인. ④ AccessTrade는 회사법인/VNeID 정리되면 재개.
+- **관련 파일**: daily-news-final `app/go/[slug]/route.js` · `lib/affiliate-links.js` · `lib/affiliate-block.js` · `lib/publisher.js`
+
 ## 2026-07-07 — 📊 [뉴스] 관리자 알림 전수점검 + 주간리포트 이중화 + SEO 검색어 활용 복구
 
 - **배경**: 사장님 3가지 — ① "관리자 메일로 오기로 한 알림들이 안 온다"(Firebase까지 전수조사 요청) ② "주간 analytics 보고서가 안 온다" ③ "네이버·구글 검색어를 뉴스 제목에 활용하는 게 어떻게 되나".
