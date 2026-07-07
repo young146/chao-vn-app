@@ -6,7 +6,7 @@
 >
 > **쓰기 규칙**: 작업을 완료하거나 중단할 때마다 맨 위에 새 항목을 추가한다. 깊은 기술 추적은 주제별 `PROGRESS_*.md`로 링크하고, 이 파일에는 **"무엇을 · 어디까지 · 다음은"** 요약만 남긴다.
 >
-> 최종 갱신: 2026-06-26
+> 최종 갱신: 2026-07-07
 
 ---
 
@@ -37,6 +37,20 @@
 ```
 
 ---
+
+## 2026-07-07 — 📊 [뉴스] 관리자 알림 전수점검 + 주간리포트 이중화 + SEO 검색어 활용 복구
+
+- **배경**: 사장님 3가지 — ① "관리자 메일로 오기로 한 알림들이 안 온다"(Firebase까지 전수조사 요청) ② "주간 analytics 보고서가 안 온다" ③ "네이버·구글 검색어를 뉴스 제목에 활용하는 게 어떻게 되나".
+- **① 관리자 알림 전수조사(5개 저장소+Firebase)**: 앱/Firebase엔 **이메일 발송 코드가 전무** — 새 당근/구인/부동산 등록은 Cloud Function이 **푸시+앱내알림만**(이메일 아님). 실측 로그: `younghan146@gmail.com`은 정상 도달, `info@chaovietnam.co.kr`은 **앱 로그인 유저문서가 없어** `⚠️ 관리자 계정 없음`으로 아무것도 안 감. 광고문의는 GAS→구글시트만(이메일X, CRM 30초폴링 배너로만 인지). 구직자등록은 관리자알림 자체가 없음. `notifyAdmins`(utils/adminNotify.js)는 **죽은 코드**(호출처 없음). → 이메일로 오는 건 daily-news `notify-application`(옐로신청)·jobs-crm BCC뿐.
+- **② 주간 측정 리포트**: 실은 **Vercel 크론(`0 2 * * 1`)이 정상 작동**했고 사장님이 07-06 메일을 못 본 것(수동 트리거로 발송 확인 `sent:2`). 안정성 위해 **GitHub Action(`weekly-report.yml`)으로 이중화** + Vercel 중복 크론 제거. 숫자 미스터리(07-06 vs 07-07 상이)=집계창이 "최근7일(어제까지)"라 하루 밀리면 데이터 이동 + GSC 지연확정 → 정상.
+- **③ SEO 검색어 활용 복구 (핵심)**: 진단 결과 **제목 생성은 잘 됐으나(키워드-포워드)**, LLM이 만든 `seoKeywords`·포커스키워드가 **발행 때 통째로 버려지고** 있었음. 조치:
+  - **Fix A**: `publisher.js`가 발행 시 `rank_math_focus_keyword = matchedKeyword`(이미 DB에 있던 값) 세팅 → 새 기사부터 RankMath 목표검색어 확보. 스키마 변경 없음.
+  - **Phase C**: 구글 **서치콘솔 실유입 검색어**를 주간 수집→키워드 풀 **최우선**(GSC→네이버→baseline) 반영. `scripts/fetch-gsc-keywords.js` + `weekly-keywords.yml`에 GSC 단계 추가(자격증명 없으면 우아하게 skip). 활성화 위해 GitHub Secret `FIREBASE_SERVICE_ACCOUNT_JSON` 추가 + 서치콘솔 사용자에 서비스계정(이미 됨) — **완료·가동 확인**.
+  - **잡음 필터**: 20년 사이트라 GSC에 "축구·월드컵미국·중국비행기충돌" 등 베트남 무관어가 대량 유입 → `isVietnamRelated` 게이트 추가. 재실행 후 **클린데이터 확인**(교민·한인·비자·부동산 검색어만 남음).
+- **배포**: daily-news-final push — `ded678c`(리포트 이관) · `139c484`(Fix A) · `c814eab`(Phase C) · `0f5b431`(GSC 필터), 봇 자동커밋 `7e41340`(클린 키워드). **웹만, 앱 OTA 무관.** 리포트 워크플로우 #4 Success.
+- **상태**: ✅ 완료·가동. 매주 월요일 네이버+GSC 자동수집→커밋→Vercel배포, 주간리포트 자동발송(GitHub 이중화).
+- **다음 단계**: (2~3주 뒤) 서치콘솔로 Fix A+C 효과 측정 후 **Phase B**(seoKeywords→WP 태그 발행, noindex 정책 결정)  판단. info@ 앱알림 필요하면 ADMIN_EMAILS 단일화 or info@ 앱로그인. 옛 기사가 "축구" 등으로 상위노출되는 SEO 잡음 정리도 백로그.
+- **관련 파일**: `daily-news-final/lib/publisher.js`, `lib/popular-keywords.js`, `scripts/fetch-gsc-keywords.js`, `.github/workflows/weekly-report.yml`·`weekly-keywords.yml`
 
 ## 2026-07-06 — 🧹 [저장소] 5개 워크스페이스 git 정리 + 시크릿 규칙 문서화
 
