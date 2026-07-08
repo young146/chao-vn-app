@@ -38,6 +38,14 @@
 
 ---
 
+## 2026-07-08 — 💰 [제휴] 추천 블록 전체 기사 노출로 확대(2개씩)
+
+- **배경**: 어제 배포한 제휴 블록이 여행·생활·문화 기사엔 붙고 하드뉴스(정치·경제·국제)엔 제외됐음(설계). 확인 결과 정상 작동 중. 사장님 방침 변경 — "기사 하단이라 방해 적고 구매 시에만 수익이니 **모든 기사에 2개씩** 붙이자".
+- **한 일**: `lib/affiliate-block.js` — 하드뉴스 제외 해제(Economy·Politics·International·Korea-Hot도 노출), `MAX_ITEMS=2`로 개수 고정. 카테고리 관련도 매칭은 유지(관련 낮으면 알리·타오바오 범용).
+- **배포**: 웹(daily-news-final) push **`b31c3f9`** → Vercel. **새 발행 기사부터** 전 카테고리 2개씩. 기존 2.5만 기사는 미변경(원하면 backfill 스크립트 별도).
+- **상태**: ✅ 배포. Pending 제휴 승인 대기(그냥 대기 → 승인 시 딥링크 받아 slug 추가). Shopee VN 검토 대기.
+- **다음 단계**: (선택) 기존 기사 backfill, 이메일·앱 노출, /go 클릭 로깅 v2. Pending·Shopee 승인 처리.
+
 ## 2026-07-07 — 💰 [제휴] AccessTrade→Involve Asia 피벗 + 제휴 추적/추천 블록 착수·배포
 
 - **배경**: 사장님 "accesstrade.vn에서 Shopee/Lazada 제휴 애드하자". 제휴 수익화(전략문서 [AFFILIATE_REVENUE_STRATEGY.md](marketing/AFFILIATE_REVENUE_STRATEGY.md) 2축) 착수.
