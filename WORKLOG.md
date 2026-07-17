@@ -55,6 +55,28 @@
 
 ---
 
+## 2026-07-17 (오후) — 📧🔥 [측정] 이메일 유입이 리포트에서 1/10 로 축소돼 보이던 문제 해결 — 범인은 SendGrid
+
+- **한 일**: 주간 리포트가 이메일을 **245 세션/주**로 보고했으나 실제는 **2,611 세션/주(10.7배)**. 그 탓에 최대급 채널인 데일리 뉴스레터가 "기타"에 숨어 *"유입의 66%가 정체불명"* 이라는 잘못된 그림이 나왔다. 원인 2가지:
+  ① **SendGrid 계정 기본값 `ganalytics` 가 우리 UTM 을 덮어씀** — `addUtmToHtml` 이 붙인 `utm_source=email&utm_medium=newsletter` 를 발송 직전 `utm_source=sendgrid.com&utm_medium=email` 로 갈아버림 → GA4 가 뉴스레터를 "sendgrid.com 에서 온 손님"으로 분류.
+  ② `ga4-channels-report.js:11-22` `bucket()` 에 **email/sendgrid 규칙 자체가 없음** → 둘 다 `기타` 로 falls through.
+- **확정 근거 (GA4 실측 28일)**: sendgrid.com 7,861 + email 1,010 세션. medium 이 `referral` 아닌 **`email`** = SendGrid ganalytics 의 서명. **★결정적: 이메일 미발송일인 일요일에 sendgrid 유입만 콕 집어 소멸 — 일요일 평균 11 vs 그 외 329 (30배).** 구글·네이버는 그대로라 교란변수 아님(앞선 "일요일=이메일 증거" 헛발질을 이번엔 변수 분리로 해소). landingPage 도 일치: `/daily-news-terminal` 2,487 · **`/go/app` 1,575** · 개별기사 다수.
+- **수정**: `lib/email-service.js` `sgMail.send()` 에 `trackingSettings` 명시(`ganalytics:false`, `clickTracking:false`) · `lib/ga4-channels-report.js` `bucket()` 에 `이메일` 규칙 추가(google 규칙보다 **먼저**) + 오분류 1건(`google-play` → `구글 검색` 으로 잘못 집계 → `구글플레이(앱)` 분리).
+- **배포**: `daily-news-final` **`b66ad96` push 완료** → Vercel 자동배포. 리포트 실행 경로 = **GitHub Actions `.github/workflows/weekly-report.yml`(월 02:00 UTC) → Vercel `/api/cron/weekly-report` → `fetchChannelBreakdown()`** 이므로 **다음 월요일 리포트부터 반영**. (vercel.json cron 에는 weekly-report 없음 — Actions 가 curl 하는 구조)
+- **검증 (라이브 GA4, 최근 7일 12,421 세션)**: 이메일 **0 → 2,611(21%, 2위 · 구글검색 2,090보다 큼)** · 기타 **3,001 → 390(-87%)** · 구글플레이 0 → 160.
+- **★ 사장님 가설 3개가 전부 데이터로 확인됨 (내가 3번 다 틀림)**:
+  | 사장님 말씀 | 실측 |
+  |---|---|
+  | "이메일은 주로 PC로 연다" | 이메일 유입 **desktop 78.5% / mobile 21.5%** ✅ |
+  | "유입 최대 창구는 이메일" | **주 2,611 = 2위, 구글보다 큼** ✅ |
+  | "카톡이 앱으로 가는 깔때기" | 직접방문 **모바일 13,598 / PC 5,806** (2.3배) — 정황 강함 |
+- **⚠️ 용어 주의**: `deviceCategory=mobile` 은 **"휴대폰"이지 "앱"이 아님**. 앱/웹 구분은 `platform`(web/Android/iOS). 실측: **web×mobile 21,954 세션(폰 브라우저로 웹)** vs **Android(앱) 3,325**. 뉴스 터미널은 `platform=web` **100%**(앱 0).
+- **규모 비교 (28일)**: 웹 뉴스터미널 PC 2,940명 / **모바일 2,641명** vs **앱 뉴스메인 701명**. → 폰으로 *웹* 뉴스 보는 사람이 앱보다 **3.8배**. iOS 는 `platform` 에 행 자체가 없음(측정 꺼짐).
+- **다음 단계**: ① **직접방문 5,489(44%)가 여전히 최대 미스터리** — 모바일 편중이라 카톡 유력. 공유링크 UTM(`deepLinkUtils.js:62-68`)이면 판별됨 ② 뉴스 터미널 레이아웃 개편(모바일 1열 60장 = 22화면 스크롤) ③ `jenny-daily-news.php:2670` **CSS 버그** — `!important` 가 미디어쿼리를 이겨 태블릿 2열 규칙이 죽어있음 ④ 잔여 `기타 390` 중 `juso*.com` 약 240 = 레퍼러 스팸 의심, `chaovietnam.co.kr` 자기출처 57 = 크로스도메인 미설정
+- **관련 파일**: `daily-news-final/lib/email-service.js` · `daily-news-final/lib/ga4-channels-report.js` · `daily-news-final/.github/workflows/weekly-report.yml`
+
+---
+
 ## 2026-07-17 — 📖🔍 [매거진/전략] 홈 섹션 복구 OTA + "앱 전면개편" 근거조사 → 계측 먼저로 방향전환
 
 - **발단**: 앱 전면 디자인 개편(emart 참고) 요청 → emart식 홈 목업 제작 → **"혼잡하고 길을 잃겠다"** 판단. 원인은 6개 서비스를 홈에 동등 나열(= 우선순위 결정 안 함). "사용자가 우리를 찾는 이유"를 근거로 다시 짜기 위해 실측 데이터(GA4 주간리포트·SendGrid·카톡방 인원) + 코드 조사.
