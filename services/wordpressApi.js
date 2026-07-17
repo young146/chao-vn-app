@@ -35,10 +35,13 @@ const HOME_SECTIONS_CONFIG = [
     searchNames: ["Xinchao BIZ", "XINCHO BIZ", "비즈니스", "사회"],
   }, // 기존 ID
   {
-    id: 382,
+    id: 13,
     name: "칼럼&오피니언",
-    searchNames: ["CHAO COLUMN", "컬럼", "칼럼", "COLUMN"],
-  }, // 기존 ID
+    searchNames: ["컬럼", "칼럼", "COLUMN"],
+    // 컬럼(13, 하위 25개 = 1,230편) 이 칼럼 재고의 본체다.
+    // CHAO COLUMN(382, 107편) 은 13 의 자식이 아니라 별개 최상위라 자동 병합되지 않아 함께 지정한다.
+    extraIds: [382],
+  }, // 13 = 컬럼(column-opinion)
   {
     id: 124,
     name: "교육&자녀",
@@ -60,10 +63,10 @@ const HOME_SECTIONS_CONFIG = [
     searchNames: ["GOLF & SPORTS", "GOLF &amp; SPORTS", "골프", "스포츠"],
   }, // 기존 ID
   {
-    id: 29,
+    id: 7,
     name: "라이프&조이&트래블",
-    searchNames: ["TRAVEL", "트래블", "라이프", "LIFE", "조이", "JOY"],
-  }, // TRAVEL
+    searchNames: ["라이프 & 조이 & 트래블", "라이프", "LIFE", "조이", "JOY"],
+  }, // 7 = 라이프&조이&트래블 (부모). 29(TRAVEL, 144편) 은 7 의 자식이라 자동 포함된다.
   {
     id: 456,
     name: "Pet World",
@@ -71,12 +74,8 @@ const HOME_SECTIONS_CONFIG = [
   },
 ];
 
-// 3개월 이내 날짜 계산
-const getThreeMonthsAgoDate = () => {
-  const date = new Date();
-  date.setMonth(date.getMonth() - 3);
-  return date.toISOString().split("T")[0];
-};
+// 카테고리 페이지 안전장치 (무한 루프 방지)
+const MAX_CATEGORY_PAGES = 5;
 
 // 🚀 카테고리 목록 캐시 (한 번만 가져오기)
 let cachedCategories = null;
@@ -94,19 +93,29 @@ const getAllCategories = async () => {
     return categoriesFetchPromise;
   }
 
-  // 새로 가져오기
-  categoriesFetchPromise = api
-    .get(`${MAGAZINE_BASE_URL}/categories`, {
-      params: { per_page: 100 },
-    })
-    .then((response) => {
-      cachedCategories = response.data;
-      categoriesFetchPromise = null;
-      console.log(`📂 카테고리 ${cachedCategories.length}개 로드 완료`);
-      return cachedCategories;
-    })
-    .catch((error) => {
-      categoriesFetchPromise = null;
+  // 새로 가져오기 — WordPress 는 per_page 최대 100 (그 이상은 400 거부).
+  // 카테고리가 100개를 넘으면 뒷 페이지가 통째로 누락되고, 그러면 해당 섹션의
+  // 하위 카테고리를 못 찾아 섹션이 비어 보인다. 반드시 전 페이지를 받는다.
+  categoriesFetchPromise = (async () => {
+    try {
+      const all = [];
+      let page = 1;
+      let totalPages = 1;
+
+      do {
+        const response = await api.get(`${MAGAZINE_BASE_URL}/categories`, {
+          params: { per_page: 100, page },
+        });
+        all.push(...response.data);
+        totalPages =
+          parseInt(response.headers["x-wp-totalpages"], 10) || totalPages;
+        page += 1;
+      } while (page <= totalPages && page <= MAX_CATEGORY_PAGES);
+
+      cachedCategories = all;
+      console.log(`📂 카테고리 ${all.length}개 로드 완료 (${page - 1}페이지)`);
+      return all;
+    } catch (error) {
       console.error(
         "❌ 카테고리 로드 실패:",
         error.response?.status,
@@ -115,7 +124,10 @@ const getAllCategories = async () => {
       // 빈 배열 캐시해서 재시도 방지
       cachedCategories = [];
       return [];
-    });
+    } finally {
+      categoriesFetchPromise = null;
+    }
+  })();
 
   return categoriesFetchPromise;
 };
@@ -160,17 +172,22 @@ const findCategoryWithChildren = (config, allCategories) => {
     }
 
     // 하위 카테고리 찾기 (parent가 현재 카테고리 ID인 것들)
-    const childCategories = allCategories.filter(
-      (cat) => cat.parent === category.id,
-    );
+    const childrenOf = (parentId) =>
+      allCategories.filter((cat) => cat.parent === parentId).map((cat) => cat.id);
 
-    const childIds = childCategories.map((cat) => cat.id);
+    const childIds = childrenOf(category.id);
+
+    // 부모가 다른 최상위 카테고리를 같은 섹션에 합칠 때 (extraIds) — 그 하위까지 포함
+    for (const extraId of config.extraIds || []) {
+      if (!allCategories.some((cat) => cat.id === extraId)) continue;
+      childIds.push(extraId, ...childrenOf(extraId));
+    }
 
     return {
       id: category.id,
       name: config.name,
       displayName: category.name,
-      childIds: childIds,
+      childIds: [...new Set(childIds)],
     };
   } catch (error) {
     console.error(`카테고리 "${config.name}" 조회 실패:`, error);
@@ -187,7 +204,10 @@ const getPostsForSection = async (section) => {
   try {
     const allCategoryIds = [section.id, ...(section.childIds || [])].join(",");
 
-    // 🐾 Pet World 섹션은 시간 제한 없음 (기사가 적은 카테고리)
+    // 날짜 제한 없음 — 매거진은 뉴스가 아니다.
+    // 뉴스는 3개월 지나면 가치가 없지만 칼럼·국제학교·비자·계약 정보는 몇 년 전 글도 그대로 유효하다.
+    // 3개월 창을 걸면 24년치 자산 중 최근 것만 보이고 섹션이 비어 보인다
+    // (예: 칼럼 섹션이 4칸 그리드에 글 1개). 최신순 4개만 뽑으므로 창이 없어도 최신 글이 뜬다.
     const params = {
       categories: allCategoryIds,
       per_page: 4, // 2x2 그리드용
@@ -195,13 +215,6 @@ const getPostsForSection = async (section) => {
       order: "desc",
       _embed: 1,
     };
-
-    // 다른 섹션들은 3개월 이내 기사만 로드 (성능 최적화)
-    if (section.id !== 456) {
-      // 456 = Pet World ID
-      const threeMonthsAgo = getThreeMonthsAgoDate();
-      params.after = `${threeMonthsAgo}T00:00:00`;
-    }
 
     const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
       params,
