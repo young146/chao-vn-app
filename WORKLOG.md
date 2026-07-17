@@ -55,6 +55,29 @@
 
 ---
 
+## 2026-07-17 (밤) — 📋 [측정] 어드민 복사 버튼에 유입 추적 자동 부착 (카톡/페북/Zalo)
+
+- **한 일**: 직원이 매일 어드민에서 URL 을 복사해 **카톡 단톡방 50여 개 + 오픈방 3개 + 페북 + Zalo** 에 붙여넣는데, 복사되는 링크에 이름표가 없어 GA4 가 전부 **'직접 방문'(주 5,489세션 = 44%)** 으로 쓸어담고 있었다. → 복사 시점에 목적지 이름표가 자동으로 붙게 함.
+- **복사 지점 4곳 전수 조사 후 3곳 수정** (전부 맨 URL 복사 중이었음):
+  | 파일 | 버튼 | 처리 |
+  |---|---|---|
+  | `app/admin/card-news/CardNewsPreviewMars.js:396` | "📮 최종적으로 이 URL을 복사하여…" (**카드 게시 후 메인 흐름**) | 목적지별 3종으로 교체 |
+  | `app/admin/card-news/CardNewsSimple.js:565` | "📋 뉴스 URL 복사" | 목적지별 3버튼 |
+  | `app/admin/published-news/published-news-list.js:923` | "📤 SNS용 URL 복사" (터미널 URL 하드코딩) | 목적지별 3버튼 |
+  | `app/admin/published-news/published-news-list.js:674` | "📋 링크 복사" | **대상 아님** — `facebookPermalink`(외부 facebook.com). `withShareUtm` 도 외부 호스트는 손대지 않음 |
+- **신규 `lib/share-utm.js`**: `SHARE_TARGETS`(kakao/facebook/zalo) + `withShareUtm()`. 캠페인 ID = `daily_news_YYYYMMDD` (이메일·카톡 모듈과 동일 포맷 → "같은 날 발행분이 채널별로 얼마나 왔나" 한 줄 비교 가능). 우리 도메인에만 부착, 기존 utm 있으면 존중.
+- **⚠️ utm_source 를 'kakao' 가 아닌 'kakaotalk' 으로 쓴 이유**: 'kakao' 면 `ga4-channels-report.js` `bucket()` 의 daum/kakao 규칙에 걸려 **다음/카카오 *검색* 유입과 한 덩어리**가 된다. 앱(`deepLinkUtils.js`)과 값을 일치시켜 합산되게 함.
+- **★ 사장님 정보로 설계 정정**: 카톡 게시는 오픈방 3개뿐 아니라 **단톡방 50여 개**에도 올림 → `utm_medium=openchat` 은 틀린 이름표 → **`social` 로 정정**(`75dd61d`). 방별 구분은 불가능하고 불필요("카카오톡이면 충분"). **단톡방 50개는 몰랐던 사실 — 카톡 규모가 오픈방 990명보다 훨씬 클 수 있음.**
+- **Zalo 포함 이유**: `CardNewsPreviewMars` 안내문에 *"Facebook, 카카오톡, Zalo 모두 이 URL 사용"* 이라 적혀 있었음. 빼면 Zalo 유입이 계속 '직접 방문'에 묻힘.
+- **검증 (사장님 요청으로 실제 테스트)**: `next build` **✓ Compiled successfully (exit 0)** · dev 서버 기동 후 `/admin/card-news` **HTTP 200** · **클라이언트 번들에 '카톡용'·'페북용'·'Zalo용'·`kakaotalk` 전부 포함 확인** (버튼은 카드 생성 후 나타나는 조건부 UI라 초기 HTML 에는 없는 게 정상) · **직원이 붙여넣을 실제 URL → HTTP 200** · **그 페이지 GA4 가 `page_location: window.location.href` 사용 → 쿼리(UTM)가 GA4 로 전달됨 확인** · **카톡 미리보기 OG 살아있음**(og:title/og:image 정상)
+- **⚠️ 검증의 한계**: curl 은 JS 를 실행하지 않으므로 "실제 클릭 → GA4 기록"까지는 확인 못 함. **사장님이 카톡용 복사 → 붙여넣기 → 클릭 후 GA4 실시간 보고서에서 `kakaotalk` 이 뜨는지 봐주시면 최종 확정.**
+- **배포**: `daily-news-final` **`f20e777`** + **`75dd61d`** → Vercel 자동배포
+- **곁가지 발견**: 뉴스 터미널에 **GA4 태그가 2개** 박혀 있음 — `G-QTCWJ6GGH0`(우리 것) + **`G-6K2SPGVPL1`(정체불명)**. 우리 리포트는 앞의 것만 보므로 숫자 왜곡은 없으나 확인 필요.
+- **다음 단계**: ① 1주 뒤 리포트에서 **'직접 방문 44%'가 줄고 '카톡 공유'가 뜨는지** — 카톡 가설 최종 판정 ② `lib/kakao-broadcast.js` 는 **죽은 코드**(안 쓰이는 `scripts/send-daily-email.js` 만 import) — 삭제 여부 결정 필요 ③ 웹 공유(`vnkorlife-web` `ShareSection.tsx`)는 아직 UTM 미부착 (일반 방문자용, 우선순위 낮음)
+- **관련 파일**: `daily-news-final/lib/share-utm.js` · `app/admin/card-news/*` · `app/admin/published-news/published-news-list.js`
+
+---
+
 ## 2026-07-17 (저녁) — 🔗 [측정] 공유 링크에 UTM 부착 — 카톡/페북/Zalo 등 SNS별 유입 구분
 
 - **한 일**: 유입의 **44%(주 5,489세션)가 "직접 방문"** 으로 잡혀 정체불명. 모바일이 PC의 2.3배(13,598 vs 5,806)라 **카톡 공유가 유력**하나 공유 링크에 이름표가 없어 증명 불가였다. 사장님이 카톡 외 페북 등에도 게시하시므로 **플랫폼별로 구분**되게 부착.
