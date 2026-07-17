@@ -199,7 +199,7 @@ eas update:list --branch production --limit 5  # 어떤 rv 로 OTA 가 나가고
 
 **관련 문서:**
 - [WORKLOG.md](WORKLOG.md) — 작업 현황 + **맨 위: 미빌드 네이티브 추적**
-- [PROGRESS_MARKETING_FUNNEL.md](../../daily-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기 진행
+- [PROGRESS_MARKETING_FUNNEL.md](../../xinchao-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기 진행
 
 ## Summary
 

@@ -174,4 +174,4 @@
 **관련 문서:**
 - 마케팅 전략: [씬짜오 디지털 마케팅 활성화 방안.md](../씬짜오%20디지털%20마케팅%20활성화%20방안.md) — 액션 11
 - 측정 인프라: [PROGRESS_MEASUREMENT_INFRA.md](../PROGRESS_MEASUREMENT_INFRA.md) — 데이터 흐름 원천
-- 깔때기 진행: [PROGRESS_MARKETING_FUNNEL.md](../../../daily-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 메인 라인 보강 상태
+- 깔때기 진행: [PROGRESS_MARKETING_FUNNEL.md](../../../xinchao-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 메인 라인 보강 상태
