@@ -171,7 +171,7 @@ eas update --channel production --message "변경 내용 설명"
 **모호한 경우 — 다음을 따른다:**
 1. 새 패키지 추가 시 → `node_modules/<pkg>/ios/` 또는 `android/` 디렉토리가 있는지 확인. 있으면 *네이티브*. 빌드 필요.
 2. *지금 빌드 안 하고 OTA만 보내고 싶다면*: 해당 변경을 [[OTA-safe defensive load]] 패턴으로 감싼다. `lib/analytics.js` 가 모범 예시.
-3. 매 네이티브 변경 시 `PROGRESS_BUILD_PENDING.md` 갱신. 다음 빌드 시점 결정에 사용.
+3. 매 네이티브 변경 시 [WORKLOG.md](WORKLOG.md) **맨 위 "⏳ 다음 EAS Build 에 반드시 포함할 것"** 블록에 추가. 다음 빌드 시점 결정에 사용. (빌드 후 *실물 확인*되면 삭제 — 빌드만 됐다고 지우지 말 것)
 
 **OTA-safe defensive load 패턴 (재사용 가능):**
 네이티브 모듈을 추가했지만 *당장* 빌드 못 할 때 — JS 가 모듈 부재를 *우아하게 처리*하도록 한다:
@@ -182,13 +182,23 @@ try { mod = require('<native-package>').default; } catch (_) {}
 ```
 빌드 후에도 코드 변경 없이 자동으로 동작 시작. **이 패턴은 *유지하는 게 안전*. 빌드되었다고 제거하지 말 것.**
 
+이 패턴이 성립하려면 아래 둘도 지켜야 한다:
+- **새 모듈의 사용처는 *모두* 단일 wrapper 파일을 거치게** — 화면에서 직접 `import '@react-native-firebase/...'` 하지 말 것. 한 군데라도 직접 import 하면 그 화면이 구버전 앱에서 crash 한다.
+- **앱 부팅 경로에 새 모듈 의존성 추가 시 *각별히 주의*** — 부팅 실패는 일부 화면이 아니라 **모든 사용자 crash** 다.
+
 **OTA 발송 전 자가 점검:**
-1. `PROGRESS_BUILD_PENDING.md` 의 미빌드 항목들이 *모두 defensive load 되어있는가*? → 안 되어 있으면 OTA 전에 먼저 박는다.
-2. 마지막 빌드 commit (`eas build:list` 로 확인) 이후 *순수 JS 변경만* 묶어서 보내는가? → 그래야 안전.
+1. [WORKLOG.md](WORKLOG.md) 맨 위 미빌드 항목들이 *모두 defensive load 되어있는가*? → 안 되어 있으면 OTA 전에 먼저 박는다.
+2. 마지막 빌드 commit (`eas build:list` 로 확인) 이후 *순수 JS 변경만* 묶어서 보내는가? → 그래야 안전. (`package.json` 이 안 바뀌었으면 새 의존성 없음)
 3. `runtimeVersion` 이 마지막 빌드와 일치하는가? → 다르면 OTA 안 통한다 (의도적이라면 OK).
 
+**⚠️ 빌드·런타임 현황은 문서에서 읽지 말고 항상 실물에 물어라.** 손으로 베낀 표는 반드시 어긋난다 (2026-07-17에 실제로 어긋나 멀쩡한 OTA를 취소할 뻔함):
+```bash
+eas build:list --status finished --limit 5     # 무엇이 빌드/출시됐나
+eas update:list --branch production --limit 5  # 어떤 rv 로 OTA 가 나가고 있나
+```
+
 **관련 문서:**
-- [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) — 미빌드 네이티브 변경 추적표
+- [WORKLOG.md](WORKLOG.md) — 작업 현황 + **맨 위: 미빌드 네이티브 추적**
 - [PROGRESS_MARKETING_FUNNEL.md](../../daily-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기 진행
 
 ## Summary

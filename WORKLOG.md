@@ -10,14 +10,31 @@
 
 ---
 
+## ⏳ 다음 EAS Build 에 반드시 포함할 것
+
+> ⚠️ **이 구역만은 시간순 기록이 아니라 "지금 참인 상태"다. 밑에 쌓지 말고 *제자리에서 고쳐 쓴다*.**
+> 네이티브 변경(새 `react-native-*`/`expo-*` 모듈, `app.json` 의 plugins·infoPlist·permissions, `ios/`·`android/`)을 만들면 → **여기 추가**.
+> 빌드 후 **실물로 확인**되면 → 항목 삭제. (빌드 됐다고 지우지 말 것. *확인* 됐을 때 지운다)
+>
+> 📌 **빌드/런타임 현황은 여기 적지 않는다.** 손으로 베낀 표는 반드시 어긋난다 (2026-07-17에 실제로 어긋나 멀쩡한 OTA를 취소할 뻔함).
+> → 항상 `eas build:list --status finished --limit 5` / `eas update:list --branch production` 이 정답.
+>
+> 🚨 2026-06-25 2.4.3 빌드에서 아래 ①이 **누락된 채 나가 iOS 측정이 지금까지 0건**인 사고 있었음. 재발 금지.
+
+- [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
+- [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
+
+**지금 빌드해야 하나?** → 🔴 이 있으면 즉시 / 🟡 만 3개 이상이면 모아서 / 비었으면 불필요(OTA로 충분). 신규 유입 캠페인 직전이면 빌드 우선(신규 사용자는 *현재* 빌드를 받으므로 측정 인프라가 빌드돼 있어야 함).
+
+---
+
 ## 📂 문서 지도 — 이어가기는 **여기(WORKLOG)** 하나로 시작한다
 
 > 새 세션/작업자는 **이 파일만 열면 된다.** 아래 주제별 문서는 *깊은 내용이 필요할 때만* 들어간다.
 
 | 문서 | 무엇 | 언제 보나 | 상태 |
 |---|---|---|---|
-| **(이 파일) WORKLOG.md** | 모든 작업의 시간순 현황·다음단계 | **항상 여기부터** | 🟢 활성 |
-| [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) | 스토어 빌드에 아직 안 들어간 네이티브 변경 | "지금 EAS 빌드 해야 하나?" 판단 시 | 🟢 활성 |
+| **(이 파일) WORKLOG.md** | 맨 위 = 미빌드 네이티브 현황(제자리 갱신) · 아래 = 시간순 작업 기록 | **항상 여기부터** | 🟢 활성 |
 | [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) | 채팅·등록채널 구조와 함정 | 채팅/등록 오류 재발 시 | 🟢 참조 |
 | [directives/ROADMAP.md](directives/ROADMAP.md) | 개선 백로그(ASO·로그인전환·푸시 등) | "다음에 뭘 만들지" 정할 때 | 🟡 백로그 |
 | [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) | GA4/측정 셋업 진행 | 측정 작업 재개 시 | 🟡 정체(5/25) |
@@ -47,13 +64,13 @@
   ③ **3개월 필터가 매거진에도 적용** — 뉴스 코드 상속. 칼럼/국제학교/비자/계약 정보는 수년 전 글도 유효. 24년 자산이 3개월 창으로만 보이던 원인.
   → 라이브 API 검증: **9개 섹션 전부 4/4 충족**(기존 칼럼1·골프1·F&R3 미달). 칼럼 우물 **107→1,275편**.
 - **배포**: 앱 **OTA 완료** — `production` 채널 / rv **2.4.3** / iOS+Android / 커밋 **`e18fcaf`** / update group `1fd3b52a`. (OTA 자가점검 3항목 통과: 새 의존성 0, package.json 무변경, rv 일치)
-- **⚠️ PROGRESS_BUILD_PENDING.md 가 낡음**: "마지막 운영빌드 2.4.2(5/21)"로 적혀 있으나 **실제로는 2.4.3 production 빌드가 iOS(build#74)·Android(#108) 양쪽 2026-06-25 완료**, production OTA도 계속 rv2.4.3 로 나가는 중. → **표 갱신 필요**.
+- **🗂️ PROGRESS_BUILD_PENDING.md 삭제 → 이 파일 맨 위로 흡수**: 그 파일이 "마지막 운영빌드 2.4.2(5/21)"라 적고 있었으나 **실제로는 2.4.3 production 빌드가 iOS(build#74)·Android(#108) 양쪽 2026-06-25 완료**돼 있었고 OTA도 계속 rv2.4.3 로 나가는 중이었음 — **낡은 표를 믿었으면 오늘 멀쩡한 배포를 취소할 뻔함**. 10번이나 갱신했는데도 틀렸다 = 부지런함이 아니라 **구조** 문제. → 기계가 아는 것(빌드 현황표)은 버리고 `eas build:list` 로 대체, 기계가 모르는 것(미빌드 네이티브 2건)만 **맨 위 고정 블록**으로 남김. 168줄 → 12줄. `CLAUDE.md`/`AGENTS.md`/`GEMINI.md` 참조도 수정(+ 사라질 뻔한 안전규칙 2개 — "새 모듈은 단일 wrapper 경유", "부팅 경로 주의 = 전 사용자 crash" — 를 CLAUDE.md 로 이관).
 - **🔍 조사 결론 — 개편은 근거 확보 후**: 유입의 **66%(직접 4,705 + 기타 2,692 세션)가 이름표 없이 뭉쳐** 있어 어느 채널이 앱설치를 만드는지 증명 불가. "카톡이 최대 무기" 가설도 "이메일이 주력" 가설도 현 계측으론 판별 못 함. → **계측 복구 먼저**. 상세 계획: `~/.claude/plans/ancient-launching-balloon.md`
 - **확인된 사실**: 웹 8,652 / Android 452 / **iOS 0(측정불가 — 빌드 홀딩, 실제 로그인 ~100명)** · 구글 유입 상위어 = 태풍·날씨·ios 26.5.2·월드컵(교민 아님), 9,134명 중 앱설치 **56명(0.6%)** · **앱 내 매거진열람 514 vs 뉴스읽음 67**(잡지가 뉴스보다 7.7배 읽힘 — 10%만 열어놓고 낸 성적) · SendGrid 클릭 21,866 **> 웹 전체 세션 11,071 = 물리적 불가 → 대부분 보안스캐너 봇** · 카톡방 990명(구인구직470/당근314/부동산206) · 딥링크(App Links/Universal Links) **정상 작동**(`.well-known/*` 200 확인)
 - **반증된 것**(재헛짚 방지): ~~주간리포트 안 돔~~(매주 정상) · ~~카톡 클릭 0~~(유입 있음, UTM 없어 안 보일 뿐) · ~~딥링크 인증파일 부재~~(있고 작동) · ~~일요일 급락=이메일 증거~~(그날 뉴스도 발행 안 함=교란변수) · ~~e-service=별도 발송경로~~(**SendGrid 내부 라벨**, `email-service.js:257`)
 - **다음 단계**: ① **B-1 주간리포트에 `deviceCategory` 추가** ⭐ — "이메일은 PC로 열어 앱 설치 안 함" 관찰의 참·거짓이 다음 월요일 판가름. **앱설치 8,000명 전략의 축.** ② A-3 `ga4-channels-report.js:11-22` bucket()에 **email 규칙 없음**(email→기타로 falls through) ③ B-2 공유링크 UTM(`deepLinkUtils.js:62-68`, 카톡 미리보기 카드 시험 필수) ④ A-4/A-5 모바일 설치버튼이 `&referrer=` 버림 + 2.5초 정지 ⑤ B-4 웹 물품페이지 이벤트 0개(`contact_gate_hit`이 전환의 심장) ⑥ A-6 viewCount가 당근에만 기록(인기매물 푸시가 사실상 당근 전용)
 - **⛔ 손대지 말 것(사업판단 영역)**: 카톡 메시지의 **판매자 전화번호 노출**(`deepLinkUtils.js:167-174`) — 빼면 앱설치엔 유리하나 판매자 거래가 느려져 **990명짜리 유일한 모바일 자산**이 위태로움.
-- **관련 파일/문서**: [services/wordpressApi.js](services/wordpressApi.js) · [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md)(갱신필요) · [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) · `~/.claude/plans/ancient-launching-balloon.md`
+- **관련 파일/문서**: [services/wordpressApi.js](services/wordpressApi.js) · [CLAUDE.md](CLAUDE.md)(빌드/OTA 규칙) · [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) · `~/.claude/plans/ancient-launching-balloon.md`
 
 ---
 
@@ -296,7 +313,7 @@
 - **다음 단계 (🔴 다음 iOS EAS 빌드 때 *함께* 챙길 것)**:
   1. **iOS Firebase Analytics 활성화** (기존 미빌드 항목 — `GoogleService-Info.plist` `IS_ANALYTICS_ENABLED=true`, app.json infoPlist `FIREBASE_ANALYTICS_COLLECTION_ENABLED=true`)
   2. **iOS 푸시 이미지용 Notification Service Extension 추가** (이거 없으면 iOS 알림에 사진 영영 안 뜸)
-  → 둘 다 [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) 필수 체크리스트에 등재함.
+  → 둘 다 `PROGRESS_BUILD_PENDING.md` 필수 체크리스트에 등재함. *(당시 문서. 2026-07-17 이 파일 맨 위로 흡수·삭제됨)*
 - **관련 파일**: `daily-news-final/app/admin/push-notifications/page.js`, `daily-news-final/수정작업현황.md`, `functions/index.js`(sendCustomPush), `PROGRESS_BUILD_PENDING.md`
 
 ---
@@ -474,7 +491,7 @@
   ③ **업데이트 안내용 단일 링크 페이지** `public_html/go/update` 신설 — OS 감지 후 *앱 열기 시도 없이* 곧장 스토어로. (기존 `/go/app`은 deeplink로 구앱을 열어버려 업데이트용으로 부적합)
 - **배포**: 앱 OTA 3건(`production`, runtime 2.4.3, iOS+Android) — ID수정·진단·배너수정. Firebase Hosting 배포(`/go/update`). 커밋 `16245fd`·`126d777`·`6f7bc75`(진단,제거됨)·`d7c0aa5`.
 - **상태**: ✅ 완료 — iOS 실기기 확인(인터넷 끊기면 배너 뜨고, 연결되면 사라짐).
-- **다음 단계**: (선택) 다음 EAS 빌드에 netinfo·딥링크 `associatedDomains`·iOS analytics 반영 → [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md). WP 딥링크 플러그인 FTP는 **불필요**(구버전, 실라우터는 `public_html/app/share/index.php`이며 스토어ID 미사용).
+- **다음 단계**: (선택) 다음 EAS 빌드에 netinfo·딥링크 `associatedDomains`·iOS analytics 반영 → `PROGRESS_BUILD_PENDING.md` *(당시 문서. 2026-07-17 이 파일 맨 위로 흡수·삭제됨)*. WP 딥링크 플러그인 FTP는 **불필요**(구버전, 실라우터는 `public_html/app/share/index.php`이며 스토어ID 미사용).
 - **단일 안내 링크**: `https://chaovietnam-login.web.app/go/update`
 - **관련 파일/문서**: `components/NetworkBanner.js`, `components/ForceUpdateModal.js`, `public_html/go/update/index.html`, `firebase.json`
 
@@ -563,7 +580,7 @@
 ## 📚 주제별 심화 추적 (이 로그에서 갈라지는 문서)
 
 - [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) — 채팅 시스템 / 3채널 등록 구조 / 채팅·광고 오류 재발 참조
-- [PROGRESS_BUILD_PENDING.md](PROGRESS_BUILD_PENDING.md) — 미빌드 네이티브 변경 / 빌드 시점 결정
+- 미빌드 네이티브 변경 / 빌드 시점 결정 → **이 파일 맨 위 「⏳ 다음 EAS Build 에 반드시 포함할 것」** (2026-07-17 `PROGRESS_BUILD_PENDING.md` 흡수·삭제)
 - [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) — 측정 인프라 (Analytics)
 - [PROGRESS_PUSH_SYSTEM.md](PROGRESS_PUSH_SYSTEM.md) — 푸시 알림 시스템
 - [PROGRESS_MARKETING_FUNNEL.md](../../daily-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기
