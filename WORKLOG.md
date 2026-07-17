@@ -55,6 +55,22 @@
 
 ---
 
+## 2026-07-17 (저녁) — 🔗 [측정] 공유 링크에 UTM 부착 — 카톡/페북/Zalo 등 SNS별 유입 구분
+
+- **한 일**: 유입의 **44%(주 5,489세션)가 "직접 방문"** 으로 잡혀 정체불명. 모바일이 PC의 2.3배(13,598 vs 5,806)라 **카톡 공유가 유력**하나 공유 링크에 이름표가 없어 증명 불가였다. 사장님이 카톡 외 페북 등에도 게시하시므로 **플랫폼별로 구분**되게 부착.
+  - `utils/deepLinkUtils.js`: `generateDeepLink(type,id,item,platform)` 에 platform 추가 → `shareItem` 이 이미 알고 있는 platform 을 전달. `utm_source=kakaotalk|facebook|threads|zalo|sms|sharesheet` · `utm_medium=share` · `utm_campaign=danggn|job|realestate|neighbor`. **platform 생략 시 기존과 동일(깨끗한 URL) — 하위호환.**
+  - `daily-news-final/lib/ga4-channels-report.js`: `bucket()` 에 **`카톡 공유`(kakaotalk) / `공유(대상불명)`(sharesheet)** 칸 추가. **daum/kakao 규칙보다 먼저** 둬야 카톡 *공유* 가 다음/카카오 *검색* 과 안 섞임. (그래서 utm_source 를 'kakao' 아닌 **'kakaotalk'** 으로 쓴 것)
+- **⚠️ 왜 이제 안전한가 — 2026-03 에 되돌린 이력이 있음** (`f368fc0` → `22800f1` *"revert share URL query params to fix Kakao preview card"*, 하루 만에 원복. `deepLinkUtils.js:62` 의 "클린 URL … 원복" 주석이 그것): **그때는 구조가 달랐다.** 공유 URL 이 PHP(`chaovietnam.co.kr/app/share`)였고 `title/image/price` 를 **읽어서** OG 를 만들던 탓에 한글 인코딩 파라미터가 카드를 깨뜨림. **지금은 vnkorlife-web 의 `generateMetadata({params})` 가 `[id]` 만 읽고 `searchParams` 는 아예 안 읽는다** → 쿼리를 뭘 붙여도 카드 동일. **UTM 은 시도된 적조차 없었음**(`-S utm_source` 이력 0건).
+- **검증 (실물)**: 실제 물품 `pLbCL2HyXtnJszgGL0HD`("PING 풀셋트 골프채")로 —
+  ① 깨끗한 URL vs UTM URL → **HTTP 200 / og·twitter 태그 11개 전부 동일**, 카드 제목·이미지 살아있음 (facebookexternalhit UA 로 크롤)
+  ② **딥링크 파서 6/6 통과** (`App.js:375` 의 `[^?/\s]+` 가 `?` 앞에서 끊어 UTM 무시) — id 20자 온전, apex/www·`?col=candidates` 병행 모두 정상
+- **⚠️ 함정 회피**: `new URL().searchParams` **쓰면 안 됨** — RN 0.81 의 URL 은 `searchParams` 가 없고 폴리필 미설치(앱 내 사용 전례 **0건**). 썼으면 **조용히 아무것도 안 붙었을 것**. 문자열로 직접 부착함.
+- **배포**: `chao-vn-app` **`454d073`** → **OTA 완료** (production / rv 2.4.3 / update group `b29f65eb`) · `daily-news-final` **`588231e`** → Vercel
+- **다음 단계**: ① **1주 뒤 리포트에서 "직접 방문 44%"가 줄고 "카톡 공유"가 뜨는지 확인** — 사장님 카톡 가설의 최종 판정 ② 웹 공유(`vnkorlife-web/src/components/detail/ShareSection.tsx:32-40` 링크복사/페북/Zalo)에는 **아직 UTM 미부착** — 필요 시 동일 적용 ③ 직원이 카톡에 올릴 때 앱 공유버튼을 써야 이름표가 붙음(웹 관리자에서 복사하면 안 붙음)
+- **관련 파일**: [utils/deepLinkUtils.js](utils/deepLinkUtils.js) · `daily-news-final/lib/ga4-channels-report.js`
+
+---
+
 ## 2026-07-17 (오후) — 📧🔥 [측정] 이메일 유입이 리포트에서 1/10 로 축소돼 보이던 문제 해결 — 범인은 SendGrid
 
 - **한 일**: 주간 리포트가 이메일을 **245 세션/주**로 보고했으나 실제는 **2,611 세션/주(10.7배)**. 그 탓에 최대급 채널인 데일리 뉴스레터가 "기타"에 숨어 *"유입의 66%가 정체불명"* 이라는 잘못된 그림이 나왔다. 원인 2가지:
