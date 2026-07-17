@@ -276,7 +276,7 @@ Phase 1+2에서 누적된 데이터를 **광고주 영업 무기**로 전환.
 
 ### 3-1. 통합 미디어킷 v2 작성
 
-기존 [marketing/MEDIA_KIT_v1.md](../chao-vn-app/marketing/MEDIA_KIT_v1.md) 보강:
+기존 [MEDIA_KIT_v1.md](MEDIA_KIT_v1.md) 보강:
 - 카테고리별 사용자 관심도 (위젯 클릭 데이터 기반)
 - 시간대별 활성도
 - 지역별 분포 (호치민 vs 하노이 vs 기타)

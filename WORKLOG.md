@@ -583,4 +583,4 @@
 - 미빌드 네이티브 변경 / 빌드 시점 결정 → **이 파일 맨 위 「⏳ 다음 EAS Build 에 반드시 포함할 것」** (2026-07-17 `PROGRESS_BUILD_PENDING.md` 흡수·삭제)
 - [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) — 측정 인프라 (Analytics)
 - [PROGRESS_PUSH_SYSTEM.md](PROGRESS_PUSH_SYSTEM.md) — 푸시 알림 시스템
-- [PROGRESS_MARKETING_FUNNEL.md](../../xinchao-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기
+- [PROGRESS_MARKETING_FUNNEL.md](https://github.com/young146/daily-news-final/blob/main/PROGRESS_MARKETING_FUNNEL.md) `daily-news-final` 저장소 — 마케팅 깔때기

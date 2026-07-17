@@ -108,6 +108,18 @@ Errors are learning opportunities. When something breaks:
 
 **Key principle:** Local files are only for processing. Deliverables live in cloud services (Google Sheets, Slides, etc.) where the user can access them. Everything in `.tmp/` can be deleted and regenerated.
 
+### 🔗 다른 저장소를 가리킬 때 — 상대경로 금지 (PC마다 깨진다)
+
+작업 PC마다 **상위 폴더 이름이 다르다.** (예: `daily-news-final` 저장소가 이 PC에선 `c:\xinchao-news-final\daily-news-final\`, 다른 PC에선 다른 곳). 상위 폴더명은 **저장소의 일부가 아니라 그 컴퓨터에서 임의로 정한 이름**이다. 그래서 `../../<폴더>/...` 로 저장소를 건너뛰면 **어느 한 PC에서는 반드시 깨진다.**
+
+- ❌ 링크 대상을 `../../<상위폴더>/<repo>/PROGRESS_X.md` 로 적는 것 — 2026-05-21부터 두 달간 깨져 있었음. 고친다고 이 PC 기준으로 바꾸면 **다른 PC를 깨뜨린다**.
+- ✅ **GitHub URL + 저장소명 병기**: 링크 대상을 `https://github.com/young146/<repo>/blob/main/PROGRESS_X.md` 로 적고, 뒤에 `` `<repo>` 저장소 `` 를 덧붙인다.
+  - URL = 어느 PC·GitHub 웹에서도 동일하게 열림
+  - 저장소명 = 로컬 에이전트가 *자기 작업 폴더 목록에서* 실제 경로를 찾을 수 있게 함
+- 같은 저장소 안에서는 상대경로 OK (`[WORKLOG.md](WORKLOG.md)`).
+
+저장소 목록: `chao-vn-app` · `daily-news-final` · `vnkorlife-web` (전부 `github.com/young146/<repo>`)
+
 ## 🔐 Secrets / API Keys (MANDATORY — 모든 AI 숙지)
 
 **절대 git에 올리면 안 되는 것** (API 키, 토큰, 서비스계정 JSON, `.env` 실값, 비밀번호):
@@ -199,7 +211,7 @@ eas update:list --branch production --limit 5  # 어떤 rv 로 OTA 가 나가고
 
 **관련 문서:**
 - [WORKLOG.md](WORKLOG.md) — 작업 현황 + **맨 위: 미빌드 네이티브 추적**
-- [PROGRESS_MARKETING_FUNNEL.md](../../xinchao-news-final/daily-news-final/PROGRESS_MARKETING_FUNNEL.md) — 마케팅 깔때기 진행
+- [PROGRESS_MARKETING_FUNNEL.md](https://github.com/young146/daily-news-final/blob/main/PROGRESS_MARKETING_FUNNEL.md) `daily-news-final` 저장소 — 마케팅 깔때기 진행
 
 ## Summary
 
