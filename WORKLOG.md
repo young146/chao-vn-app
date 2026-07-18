@@ -66,11 +66,19 @@
   - 실측: `/yellowpage` 544자→**2,784자**, `/biz` 링크 0개→**20개**
 - **⛔ 도중 전제가 틀린 걸 발견 → sitemap `/biz/*` 전량 제출 보류**: SSR 후에도 상세 고유 본문이 **평균 146자**(표본 20개 중 19개가 200자 미만). 3,751건을 제출하면 "얇은 페이지 대량생산"으로 읽혀 **역효과**. 코드에 사유를 주석으로 남김.
 - **2차 배포 (`75cbf71`)** — 지역×업종 목록 페이지 **82개** 생성 (글은 한 줄도 새로 안 씀):
-  - `/yellowpage/호치민` · `/호치민/음식점` · `/호치민/7군` · `/호치민/7군/음식점` — **URL 한글**(검색어와 일치), `dynamicParams=false` 라 미정의 조합은 404
+  - `/yellowpage/hochiminh` · `/hochiminh/food` · `/hochiminh/district-7` · `/hochiminh/district-7/food` — `dynamicParams=false` 라 미정의 조합은 404
   - 페이지마다 업소 최대 60곳 + 같은 지역 다른 업종 + 같은 업종 다른 지역 링크(본문이자 크롤러 통로)
   - 실측: **82개 전부 HTTP 200 · 본문 최소 1,575자 / 평균 4,105자 / 최대 6,913자** (기존 최고였던 `/realestate` 가 4,814자)
   - `daily-news-final`: `/api/search/ids`(`002d023`) · `/api/search/facets`(`36b870e`) 신설 — `/api/search` 는 pageSize 20 고정이라 전량 열거·집계 불가
-- **배포**: `vnkorlife-web` `0df1d90`+`75cbf71`, `daily-news-final` `002d023`+`36b870e` 전부 push+Vercel 반영 확인.
+- **🚨 장애 발생·복구 (`75cbf71` → `08e93b4`, 노출 약 20분)** — **URL 슬러그에 한글을 쓸 수 없다**:
+  - 증상: 배포 직후 `/yellowpage` 하위 **82개 전부 500**. Vercel 런타임 로그 226건 — `TypeError: Invalid character in header content ["x-next-cache-tags"]` (`ERR_INVALID_CHAR`)
+  - 원인: Next.js 가 ISR 캐시 관리용으로 **페이지 경로를 `x-next-cache-tags` HTTP 헤더에 담는데, HTTP 헤더는 latin1 만 허용**한다. URL 이 한글이면 헤더 생성 단계에서 예외.
+  - **⚠️ 로컬에서 82개 전부 200 이었다.** `next start` 는 이 캐시태그 헤더를 만들지 않는다 → **로컬 검증으로는 원리상 못 잡는 종류.** 한글 슬러그를 다시 시도하려면 반드시 *프리뷰 배포*에서 확인할 것. (사유는 `src/lib/yellow.ts` 상단 주석에 박아둠)
+  - 조치: `CITY_SLUG`/`DISTRICT_SLUG` 매핑 신설 → URL 만 ASCII (`호치민`→`hochiminh`, `7군`→`district-7`). **화면·제목·설명은 전부 한글 유지** 라 SEO 영향 없음. 색인 전이라 URL 변경 비용 0.
+  - 복구 확인: sitemap 의 82개 **전수** 재확인 HTTP 200, Vercel 런타임 에러 0건, `/yellowpage` 내부 링크 22개 전부 200, 기존 라우트(`/market`·`/jobs`·`/realestate`·`/biz`·`/`) 회귀 없음
+  - **반성**: 첫 확인 때 `/호치민`(1단계) 하나만 반복 테스트해 200 을 보고 "일시적 현상"으로 두 번 넘겼다. 1단계는 프리렌더 캐시가 살아 있었고 2단계 이상은 죽어 있었다. **표본이 아니라 전수로 볼 것.**
+- **배포**: `vnkorlife-web` `0df1d90`+`75cbf71`+`08e93b4`, `daily-news-final` `002d023`+`36b870e` 전부 push+Vercel 반영 확인.
+- **⚠️ 작업 PC 주의**: NordVPN Threat Protection 이 켜져 있으면 **`npm run build` 가 구글 폰트를 못 받아 실패**한다(Node 는 윈도우 인증서 저장소를 쓰는데 NordVPN 이 HTTPS 를 가로챔. curl 은 자체 저장소라 통과). 아침의 AdSense 미표시와 **같은 원인**. 로컬 빌드 전 꺼야 함. Vercel 빌드는 무관.
 - **⏭️ 다음 단계**:
   1. **Vercel 도메인 리다이렉트 뒤집기(사장님 작업)** — 현재 `vnkorlife.com` → `www` 로 307. 코드·sitemap·og:url 은 전부 non-www 기준이라 어긋나 있음. Vercel 대시보드에서 `www` → non-www 방향으로 변경 필요.
   2. **AdSense 검토 요청은 색인이 잡힌 뒤에** — 82개 페이지가 구글에 색인되려면 1~3주. 지금 누르면 재거절 가능성 높음. Search Console 에서 색인 수 확인 후 판단.
