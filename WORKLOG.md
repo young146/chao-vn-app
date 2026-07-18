@@ -6,7 +6,7 @@
 >
 > **쓰기 규칙**: 작업을 완료하거나 중단할 때마다 맨 위에 새 항목을 추가한다. 깊은 기술 추적은 주제별 `PROGRESS_*.md`로 링크하고, 이 파일에는 **"무엇을 · 어디까지 · 다음은"** 요약만 남긴다.
 >
-> 최종 갱신: 2026-07-18
+> 최종 갱신: 2026-07-19
 
 ---
 
@@ -52,6 +52,67 @@
 - **다음 단계**: 다음 작업자가 이어서 할 일 (없으면 "없음")
 - **관련 파일/문서**: 링크
 ```
+
+---
+
+## 2026-07-19 — ✅ [양 사이트] 색인 인프라 전면 점검·복구 (Search Console 실측 기반)
+
+> 앞 항목(vnkorlife AdSense 대응)에서 이어짐. 서치콘솔 "색인되지 않은 이유" 보고서를 근거로 **추측이 아니라 실측**으로 원인을 잡았다.
+
+### 🔴 최대 성과 — chaovietnam sitemap 이 죽어 있었다 (복구 완료)
+
+- **증상**: `robots.txt` 는 `Sitemap: /sitemap_index.xml` 을 안내하는데 **그 주소가 404**. 후보 6종(`sitemap_index.xml`·`sitemap.xml`·`wp-sitemap.xml`·`sitemap-index.xml`·`post-sitemap.xml`) **전부 404**.
+- **의미**: 매일 뉴스를 내는 사이트인데 **기사 26,400개를 구글에 알릴 통로가 끊겨 있었다.** 링크를 우연히 따라가는 것 외엔 발견 경로가 없었음.
+- **원인**: 고유주소(permalink) 구조 변경 후 rewrite 규칙 미갱신. **플러그인 코드는 무죄** — 3개 저장소를 sitemap·rewrite·404·robots·SEO필터 5개 축으로 전수 검색해 확인(오히려 `rankmath-sitemap-nocache.php` 는 sitemap 을 살리는 코드).
+- **조치**: 사장님이 **WP 관리자 → 설정 → 고유주소 → 변경사항 저장** (아무것도 안 바꾸고 저장만) → **즉시 복구**.
+- **결과**: `/sitemap_index.xml` → **HTTP 200 · 하위 sitemap 132개**(post-sitemap1~132, 각 200개). 서치콘솔 재제출 → **성공 · 24,821개 발견** 확인.
+
+### 🔍 robots 차단 15,252 + 서버오류 187 = **원인 하나였다**
+
+- **정체**: `/magazine_open/?loginSocial=kakao|google&redirect=<기사주소>` → **302 → `accounts.google.com` OAuth 로그인 화면**
+- **메커니즘**: 기사 페이지마다 매거진 열람 로그인 링크가 **2개씩**(카카오·구글) 있고 `redirect=` 에 그 기사 주소가 붙어 **기사 수만큼 고유 URL 생성**. 크롤링된 기사 약 7,600 × 2 = **15,200여 개 ≈ 차단 15,252** (산수 일치).
+- **"robots.txt 차단" 의 주체는 우리가 아니라 `accounts.google.com` 이었다.** 5xx 187개도 같은 URL 패턴(OAuth 세션 생성 간헐 실패).
+- **진짜 피해 = 크롤링 예산 낭비.** 구글봇이 기사 26,400개 대신 로그인 관문 15,000개를 방문하는 데 할당량을 소진.
+- **조치**: Rank Math → robots.txt 편집에 `Disallow: /magazine_open/` 추가. **라이브 반영 실물 확인 완료.**
+  - ⚠️ 주의: Rank Math 편집칸은 **비어 있고 회색 글씨는 미리보기(placeholder)**. 한 줄만 넣으면 Sitemap 줄까지 통째로 대체되므로 **전체를 다시 넣어야 한다.**
+  - 참고: 이 조치로 서치콘솔 차단 *숫자* 가 0 이 되진 않는다(차단 주체만 바뀜). 이득은 **구글봇이 아예 방문하지 않게 되는 것**.
+
+### ✅ vnkorlife — canonical 전역 지정 (`aa53c18`)
+
+- 서치콘솔 실측: `사용자가 선택한 표준 없는 중복 페이지 635개` · `적절한 표준 태그 대체 페이지 111개`
+- 원인: **Next.js 는 canonical 을 자동 생성하지 않는다.** `/yellowpage`·`/biz` 외 전 페이지에 canonical 부재 → 같은 내용이 여러 주소로 보일 때 정본을 알릴 방법이 없어 색인 제외.
+- 조치: `app/layout.tsx` 에 canonical="/" + 목록(`/market`·`/jobs`·`/realestate`) metadata 신설 + 상세 4종 `[id]/layout.tsx` + 정적(`/terms`·`/privacy`·`/download`) + 색인 대상 아닌 `/search`·`/assistant` 는 `robots:{index:false}`
+- ⚠️ **루트 canonical="/" 는 미지정 하위 페이지에 상속된다.** 새 공개 페이지 추가 시 반드시 자기 canonical 이나 noindex 를 함께 넣을 것 (주석으로 박아둠).
+- 검증: 라이브 11개 전수 확인, 불일치 0.
+
+### 🧹 중복 플러그인 파일 제거 (`74eede7`)
+
+- `wp-plugins/chaovn-deeplink-handler.php`(574줄, 미배포) vs `chaovn-deeplink-handler/chaovn-deeplink-handler.php`(719줄, 배포본) — 둘 다 활성화되면 fatal error 위험. 사장님 확인 후 미배포본 제거.
+- ⚠️ **기록해둘 의존성**: 제거한 구버전에만 `.well-known/assetlinks.json`·`apple-app-site-association` 서빙 코드가 있었다(배포본은 grep 0회). 그런데 라이브는 두 파일 모두 200 정상 → **플러그인이 아닌 다른 경로(웹루트 실제 파일 추정)가 담당 중.** 서버 이전·웹루트 정리 시 사라지면 **앱 딥링크가 조용히 깨진다.** 복구 필요 시 `74eede7` 이전 이력에서 PHP 코드 회수 가능.
+
+### ✅ 이상 없음으로 확인된 것 (조사만, 수정 안 함)
+
+| 항목 | 결과 |
+|---|---|
+| `www.chaovietnam.co.kr`, `/wp/` 경로 | 301 → 본 사이트 **정상** |
+| `temp.chaovietnam.co.kr` | **DNS 레코드 자체 없음** — 서브도메인 탈취 위험 없음 |
+| vnkorlife 403 차단 90개 | 후보 10개 전부 200, **재현 안 됨 = 과거 기록** |
+| vnkorlife 404 741개 | sitemap 32개 표본 전부 200 — 팔린 중고글 등 **자연 소멸** |
+
+### 📌 서치콘솔 속성이 6개인 이유 — **정리하지 않기로 결정**
+
+`chaovietnam.co.kr`(도메인) · `https://chaovietnam.co.kr/` · `www` · `www/wp/` · `temp.` · `vnkorlife.com`(도메인)
+사이트 이사 흔적(`/wp/`→루트, `www`→non-www). **속성은 보고서 창구일 뿐 사이트·순위에 영향 0.**
+지우면 얻는 건 목록 깔끔함뿐이고, **잃는 건 과거 데이터**(www 속성은 2025-05 부터, 도메인 속성은 2026-04 부터). → **그대로 둔다.**
+
+**⚠️ 실무 규칙: chaovietnam 상태는 항상 `chaovietnam.co.kr`(도메인 속성) 하나로만 본다.** 속성마다 자기 몫만 보여줘서 숫자가 달라진다 — 2026-07-19 에 실제로 헷갈렸다.
+
+### ⏭️ 다음 단계
+
+1. **1~2주 후 서치콘솔 재확인** — chaovietnam: sitemap 발견 페이지 반영·크롤링 예산 이동 여부 / vnkorlife: `크롤링됨-미색인 4,581` 과 `중복 635` 가 줄었는지
+2. **vnkorlife AdSense 재검토 요청** — 위 숫자가 개선된 뒤에. 지금 누르면 재거절 위험
+3. (보류 중) `/biz/*` 3,751개 sitemap 제출 — 상세 본문이 평균 146자라 실해진 뒤에. `app/sitemap.ts` 주석 참조
+4. (선택) chaovietnam `NOINDEX 12,907` 정밀 확인 — 워드프레스 SEO 플러그인의 정상 동작일 가능성이 높아 **손대지 않았음**
 
 ---
 
