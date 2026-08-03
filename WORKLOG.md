@@ -61,9 +61,11 @@
   - **firestore.rules** (이 저장소): `ads_unified`(read/write true, app_ads 패턴) + `ad_events`(집계용) 규칙 추가 → `firebase deploy --only firestore:rules` 완료. **이게 없으면 콘솔 저장이 권한거부로 실패.**
   - **vnkorlife**: AdBanner 가 `ads_unified` 도 읽어 노출(기존 `ads` 유지). 프로덕션 빌드 통과·배포.
   - 3지면 전부 같은 Firebase(`chaovietnam-login`) 확인 → 앱·웹 직접읽기, 워드프레스만 API 필요.
-- **배포**: firestore rules(배포됨) / vnkorlife Vercel / daily-news Vercel. **앱은 아직**(Phase 2b OTA 예정).
+- **배포**: firestore rules(배포됨) / vnkorlife Vercel / daily-news Vercel.
+  - **앱(Phase 2b) 코드 준비+검증 완료, OTA 대기**: `services/FirebaseAdService.js` 가 app_ads 에 더해 ads_unified(surfaces=app) 병합 로드. **순수 JS·additive·방어적(통합 읽기 실패해도 app_ads 그대로) → OTA-safe.** 문법파싱·데이터경로(write→read(surface=app)→슬롯매핑) 검증 통과. ⚠️ **아직 `eas update --channel production` 안 쏨** — 사용자 확인 후 발송.
 - **상태**: 🟡 진행중. 기존 app_ads/ads/앱 무손상(additive). 라이브 광고 영향은 통합광고 등록+지면연결 후부터.
-- **다음 단계**: Phase 2b(앱 FirebaseAdService 가 ads_unified 읽기 + OTA, app_ads 병행) → Phase 3(공개 API + chaovietnam 워드프레스 조각, 사장님 FTP) → Phase 4(집계·광고주 리포트). **내일 영업부 직원 실물 테스트 예정.**
+- **다음 단계**: (1) 앱 OTA 발송(`eas update --channel production`) — 확인 대기 (2) Phase 3(공개 API + chaovietnam 워드프레스 조각, 사장님 FTP) (3) Phase 4(집계·광고주 리포트). **내일 영업부 직원 실물 테스트 예정.**
+  - ⚠️ 알려진 한계(Phase 4에서 해결): 통합광고의 앱 노출/클릭 집계는 아직 app_ads 문서로 기록 시도 → 무효(조용히 실패). ad_events 도입 시 정상화.
 - **관련 문서**: [PROGRESS_UNIFIED_ADS.md](https://github.com/young146/daily-news-final/blob/main/PROGRESS_UNIFIED_ADS.md) `daily-news-final` 저장소 (전체 설계·스키마·로드맵)
 
 ## 2026-07-19 — 🟡 [광고 수익화] 자체 광고 인프라 실사 + 방향 논의 (착수 전, 설계 정리 단계)

@@ -124,14 +124,51 @@ const persistDocs = (docs, time) => {
   } catch (_) {}
 };
 
+// 통합센터(ads_unified) 문서를 app_ads 와 동일한 형태로 정규화.
+// 앱 콘솔의 position/targetPages 값을 app_ads 와 동일하게 맞춰놨으므로
+// placements.app 을 최상위로 펼치기만 하면 하위 매핑(POSITION_TO_SLOTS 등)이 그대로 동작.
+const normalizeUnifiedForApp = (d) => {
+  const ap = (d.placements && d.placements.app) || {};
+  return {
+    id: d.id,
+    title: d.title,
+    type: d.type,
+    images: d.images,
+    linkUrl: d.linkUrl,
+    priority: d.priority,
+    isActive: true, // 아래에서 isActive=false 는 이미 걸러짐
+    startDate: d.startDate,
+    endDate: d.endDate,
+    position: ap.position,
+    targetPages: ap.targetPages || [],
+    _source: 'unified',
+  };
+};
+
 // 실제 Firestore fetch + 메모리/디스크 캐시 동시 갱신.
+// app_ads(기존) + ads_unified(통합센터, 앱 지면) 을 병합해 하나의 docs 배열로.
+// ⚠️ ads_unified 읽기가 실패해도 app_ads 는 그대로 동작(구버전과 동일). 통합은 순수 추가.
 const fetchAndStoreRawDocs = async () => {
   const db = await getDb();
-  const snapshot = await getDocs(
-    query(collection(db, 'app_ads'), where('isActive', '==', true)),
-  );
+  const [appAdsSnap, unifiedSnap] = await Promise.all([
+    getDocs(query(collection(db, 'app_ads'), where('isActive', '==', true))),
+    getDocs(
+      query(collection(db, 'ads_unified'), where('surfaces', 'array-contains', 'app')),
+    ).catch(() => null), // 통합 읽기 실패는 무시 → app_ads 경로 보존
+  ]);
+
   const docs = [];
-  snapshot.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
+  appAdsSnap.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
+
+  if (unifiedSnap) {
+    unifiedSnap.forEach((docSnap) => {
+      const d = { id: docSnap.id, ...docSnap.data() };
+      if (d.isActive === false) return; // 비활성 제외 (인덱스 회피 위해 클라 필터)
+      if (!d.placements || !d.placements.app || !d.placements.app.position) return; // 앱 위치 없으면 스킵
+      docs.push(normalizeUnifiedForApp(d));
+    });
+  }
+
   rawDocsCache = docs;
   rawDocsStoredAt = Date.now();
   persistDocs(docs, rawDocsStoredAt); // fire-and-forget
