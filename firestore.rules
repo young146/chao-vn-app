@@ -198,6 +198,27 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 🎯 ads_unified (통합 자체광고 — 앱+vnkorlife+chaovietnam)
+    // daily-news-final /admin/ad-center 에서 관리, 3개 지면에서 읽기.
+    // 읽기 공개(광고는 공개 콘텐츠), 쓰기는 app_ads 와 동일 패턴(내부 관리도구).
+    // 상세 설계: daily-news-final/PROGRESS_UNIFIED_ADS.md
+    // ========================================
+    match /ads_unified/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ========================================
+    // 📊 ad_events (광고 노출/클릭 이벤트 로그 — 집계용, Phase 4)
+    // 3개 지면이 노출/클릭 시 1건씩 append. 읽기(리포트)는 관리자만.
+    // ========================================
+    match /ad_events/{docId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // ========================================
     // 🏢 Agents (부동산 중개인) 컬렉션
     // ========================================
     match /Agents/{agentId} {

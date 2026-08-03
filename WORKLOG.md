@@ -55,6 +55,17 @@
 
 ---
 
+## 2026-08-03 — 🟢 [광고 수익화] 통합 자체 광고센터 착수 (Phase 1~2a)
+- **한 일**: 7/19 실사에서 정한 "3지면(앱·vnkorlife·chaovietnam) 통합 광고 관리"를 실제 구축 시작.
+  - **통합 콘솔** 신설: daily-news `/admin/ad-center` → Firestore `ads_unified`. 광고주·지면 체크박스·지면별 위치/페이지 타겟팅.
+  - **firestore.rules** (이 저장소): `ads_unified`(read/write true, app_ads 패턴) + `ad_events`(집계용) 규칙 추가 → `firebase deploy --only firestore:rules` 완료. **이게 없으면 콘솔 저장이 권한거부로 실패.**
+  - **vnkorlife**: AdBanner 가 `ads_unified` 도 읽어 노출(기존 `ads` 유지). 프로덕션 빌드 통과·배포.
+  - 3지면 전부 같은 Firebase(`chaovietnam-login`) 확인 → 앱·웹 직접읽기, 워드프레스만 API 필요.
+- **배포**: firestore rules(배포됨) / vnkorlife Vercel / daily-news Vercel. **앱은 아직**(Phase 2b OTA 예정).
+- **상태**: 🟡 진행중. 기존 app_ads/ads/앱 무손상(additive). 라이브 광고 영향은 통합광고 등록+지면연결 후부터.
+- **다음 단계**: Phase 2b(앱 FirebaseAdService 가 ads_unified 읽기 + OTA, app_ads 병행) → Phase 3(공개 API + chaovietnam 워드프레스 조각, 사장님 FTP) → Phase 4(집계·광고주 리포트). **내일 영업부 직원 실물 테스트 예정.**
+- **관련 문서**: [PROGRESS_UNIFIED_ADS.md](https://github.com/young146/daily-news-final/blob/main/PROGRESS_UNIFIED_ADS.md) `daily-news-final` 저장소 (전체 설계·스키마·로드맵)
+
 ## 2026-07-19 — 🟡 [광고 수익화] 자체 광고 인프라 실사 + 방향 논의 (착수 전, 설계 정리 단계)
 
 > **이어가기 전 이것부터 읽을 것.** 코드 작업은 아직 시작 안 했다. 사장님이 "머리 정리 후 진행" 하기로 하고 중단한 지점.
