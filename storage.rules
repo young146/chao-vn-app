@@ -81,6 +81,12 @@ service firebase.storage {
       allow write: if true;
     }
 
+    // ✅ 통합 광고센터 이미지 (daily-news-final /admin/ad-center 에서 업로드)
+    match /ads_unified/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // 기본 거부
     match /{allPaths=**} {
       allow read, write: if false;

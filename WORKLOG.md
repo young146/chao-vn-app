@@ -59,6 +59,7 @@
 - **한 일**: 7/19 실사에서 정한 "3지면(앱·vnkorlife·chaovietnam) 통합 광고 관리"를 실제 구축 시작.
   - **통합 콘솔** 신설: daily-news `/admin/ad-center` → Firestore `ads_unified`. 광고주·지면 체크박스·지면별 위치/페이지 타겟팅.
   - **firestore.rules** (이 저장소): `ads_unified`(read/write true, app_ads 패턴) + `ad_events`(집계용) 규칙 추가 → `firebase deploy --only firestore:rules` 완료. **이게 없으면 콘솔 저장이 권한거부로 실패.**
+  - **storage.rules** (이 저장소): `ads_unified/` 이미지 업로드 경로 규칙 추가 → `firebase deploy --only storage`. **누락 시 이미지 업로드가 0%에서 멈춰 저장이 완료 안 됨(실물 테스트로 발견·수정).** 실업로드 검증 통과.
   - **vnkorlife**: AdBanner 가 `ads_unified` 도 읽어 노출(기존 `ads` 유지). 프로덕션 빌드 통과·배포.
   - 3지면 전부 같은 Firebase(`chaovietnam-login`) 확인 → 앱·웹 직접읽기, 워드프레스만 API 필요.
 - **배포**: firestore rules(배포됨) / vnkorlife Vercel / daily-news Vercel.
