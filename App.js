@@ -205,6 +205,7 @@ import AnnouncementsListScreen from "./screens/AnnouncementsListScreen";
 import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
 import MagazineScreen from "./screens/MagazineScreen";
+import IssueContentsScreen from "./screens/IssueContentsScreen";
 import HubScreen from "./screens/HubScreen";
 import YellowPageScreen from "./screens/YellowPageScreen";
 import SearchResultsScreen from "./screens/SearchResultsScreen";
@@ -1043,6 +1044,16 @@ function HomeStack() {
             </View>
           ),
         })}
+      />
+      <Stack.Screen
+        name="이번호기사"
+        component={IssueContentsScreen}
+        options={{
+          title: "이번 호 기사",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+          headerBackTitleVisible: false,
+        }}
       />
       <Stack.Screen
         name="카테고리목록"

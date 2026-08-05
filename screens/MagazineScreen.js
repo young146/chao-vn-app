@@ -392,7 +392,7 @@ const HEADLINE_LIMIT = 7;
  *
  * 서버가 호를 아직 지정 안 했으면(currentIssue=null) 이 블록은 그리지 않는다 — 기존 화면 그대로.
  */
-const CurrentIssueBlock = ({ issue, onPressPost }) => {
+const CurrentIssueBlock = ({ issue, onPressPost, onOpenContents }) => {
   if (!issue) return null;
 
   const dateStr = (issue.date || '').replace(/-/g, '.');
@@ -413,15 +413,18 @@ const CurrentIssueBlock = ({ issue, onPressPost }) => {
       </View>
 
       <View style={styles.issueTop}>
-        {issue.coverUrl ? (
-          <Image source={{ uri: issue.coverUrl }} style={styles.issueCover} contentFit="cover" cachePolicy="disk" />
-        ) : (
-          /* 표지를 아직 안 올린 호도 화면이 깨지면 안 된다 — 대체 표지를 그린다 */
-          <View style={[styles.issueCover, styles.issueCoverEmpty]}>
-            <Text style={styles.issueCoverEmptyText}>{label}</Text>
-            {isUpcoming && <Text style={styles.issueCoverEmptySub}>표지 준비 중</Text>}
-          </View>
-        )}
+        {/* 표지를 누르면 그 호 기사 목록으로 — 잡지 앱의 표준 동작 */}
+        <TouchableOpacity onPress={onOpenContents} activeOpacity={0.85}>
+          {issue.coverUrl ? (
+            <Image source={{ uri: issue.coverUrl }} style={styles.issueCover} contentFit="cover" cachePolicy="disk" />
+          ) : (
+            /* 표지를 아직 안 올린 호도 화면이 깨지면 안 된다 — 대체 표지를 그린다 */
+            <View style={[styles.issueCover, styles.issueCoverEmpty]}>
+              <Text style={styles.issueCoverEmptyText}>{label}</Text>
+              {isUpcoming && <Text style={styles.issueCoverEmptySub}>표지 준비 중</Text>}
+            </View>
+          )}
+        </TouchableOpacity>
         <View style={styles.issueInfo}>
           <Text style={styles.issueTitle}>{label}</Text>
           {dateStr ? (
@@ -438,6 +441,13 @@ const CurrentIssueBlock = ({ issue, onPressPost }) => {
           )}
         </View>
       </View>
+
+      {/* 기사가 있으면 "전체 보기" 문을 하나 더 둔다 (표지 탭을 모르는 사람도 있다) */}
+      {articleCount > 0 && (
+        <TouchableOpacity style={styles.issueMoreBtn} onPress={onOpenContents} activeOpacity={0.8}>
+          <Text style={styles.issueMoreText}>이번 호 기사 전체 보기 ›</Text>
+        </TouchableOpacity>
+      )}
 
       {issue.posts?.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.issueList}>
@@ -828,7 +838,13 @@ export default function MagazineScreen({ navigation, route }) {
             {type === 'home' && !searchQuery && (
               <View>
                 {/* 📖 이번 호 — 잡지 탭의 첫 화면은 "이번 호"여야 잡지답다 */}
-                <CurrentIssueBlock issue={currentIssue} onPressPost={handlePostPress} />
+                <CurrentIssueBlock
+                  issue={currentIssue}
+                  onPressPost={handlePostPress}
+                  onOpenContents={() =>
+                    navigation.navigate('이번호기사', { issueNumber: currentIssue?.number || null })
+                  }
+                />
 
                 {slides.length > 0 && (
                   <HomeSlider posts={slides} onPress={handlePostPress} />
@@ -1370,6 +1386,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#868E96',
     marginTop: 2,
+  },
+  issueMoreBtn: {
+    marginTop: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD9C7',
+    borderRadius: 8,
+    backgroundColor: '#FFF8F5',
+  },
+  issueMoreText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#EA580C',
   },
   issueList: {
     paddingTop: 14,

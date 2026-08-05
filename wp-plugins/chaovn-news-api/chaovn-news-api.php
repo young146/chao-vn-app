@@ -82,7 +82,118 @@ add_action('rest_api_init', function () {
         'callback'            => 'chaovn_get_magazine_home',
         'permission_callback' => '__return_true',
     ));
+
+    // 한 호의 전체 기사 (앱 "이번 호 기사" 화면). number 를 안 주면 현재 호.
+    register_rest_route('chaovn/v1', '/magazine-issue', array(
+        'methods'             => 'GET',
+        'callback'            => 'chaovn_get_magazine_issue',
+        'permission_callback' => '__return_true',
+    ));
+
+    // 호 목록 (지난 호 아카이브용)
+    register_rest_route('chaovn/v1', '/magazine-issues', array(
+        'methods'             => 'GET',
+        'callback'            => 'chaovn_get_magazine_issues',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+/**
+ * 한 호의 기사를 꼭지(카테고리)별로 묶어 돌려준다.
+ *
+ * 왜 꼭지별인가: 잡지 목차가 원래 그렇게 생겼다. 날짜순으로 죽 늘어놓으면
+ * "기사 목록"이지 "목차"로 안 읽힌다.
+ *
+ * ⚠️ 완결성을 약속하지 않는다. 잡지에 실린 기사 중 웹에 올라온 것만 여기 나온다.
+ * 그래서 앱도 '목차'가 아니라 '이번 호 기사'라고 부른다. 전 기사가 올라오면
+ * 자연히 진짜 목차가 되고, 그때는 이름만 바꾸면 된다.
+ */
+function chaovn_get_magazine_issue($request) {
+    $number = (int) $request->get_param('number');
+
+    $term_id = 0;
+    if ($number) {
+        foreach (get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false)) as $t) {
+            if ((int) get_term_meta($t->term_id, 'chaovn_issue_number', true) === $number) {
+                $term_id = $t->term_id;
+                break;
+            }
+        }
+    } else {
+        $term_id = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
+    }
+
+    if (!$term_id) {
+        return new WP_REST_Response(array('success' => false, 'error' => '호를 찾을 수 없습니다.'), 404);
+    }
+
+    $issue = chaovn_get_issue_payload($term_id);
+    if (!$issue) {
+        return new WP_REST_Response(array('success' => false, 'error' => '호 정보를 읽을 수 없습니다.'), 404);
+    }
+
+    $q = new WP_Query(array(
+        'post_type'      => 'post',
+        'posts_per_page' => 100, // 한 호는 13~24편. 넉넉히.
+        'post_status'    => 'publish',
+        'orderby'        => 'date',
+        'order'          => 'ASC', // 목차는 실린 순서(먼저 올린 것부터)가 자연스럽다
+        'no_found_rows'  => true,
+        'tax_query'      => array(array(
+            'taxonomy' => CHAOVN_ISSUE_TAX,
+            'field'    => 'term_id',
+            'terms'    => $term_id,
+        )),
+    ));
+
+    // 꼭지별로 묶는다. 순서는 그 꼭지의 첫 기사가 나온 순서를 따른다.
+    $groups = array();
+    while ($q->have_posts()) {
+        $q->the_post();
+        $pid   = get_the_ID();
+        $cats  = get_the_category($pid);
+        $name  = !empty($cats) ? html_entity_decode($cats[0]->name, ENT_QUOTES, 'UTF-8') : '기타';
+        $thumb = get_the_post_thumbnail_url($pid, 'medium_large');
+
+        if (!isset($groups[$name])) $groups[$name] = array();
+        $groups[$name][] = array(
+            'postId'     => $pid,
+            'title'      => array('rendered' => get_the_title($pid)),
+            'date'       => get_the_date('c', $pid),
+            'link'       => get_permalink($pid),
+            'thumbnail'  => $thumb ? $thumb : '',
+            'categories' => wp_get_post_categories($pid),
+        );
+    }
+    wp_reset_postdata();
+
+    $out = array();
+    foreach ($groups as $name => $posts) {
+        $out[] = array('section' => $name, 'posts' => $posts);
+    }
+
+    return new WP_REST_Response(array(
+        'success' => true,
+        'issue'   => $issue,
+        'groups'  => $out,
+        'total'   => array_sum(array_map(function ($g) { return count($g['posts']); }, $out)),
+    ), 200);
+}
+
+/** 호 목록 (최신순). 지난 호 아카이브 화면용. */
+function chaovn_get_magazine_issues($request) {
+    $terms = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
+    if (is_wp_error($terms)) $terms = array();
+
+    $list = array();
+    foreach ($terms as $t) {
+        $payload = chaovn_get_issue_payload($t->term_id);
+        if ($payload && $payload['number']) $list[] = $payload;
+    }
+    usort($list, function ($a, $b) { return $b['number'] - $a['number']; });
+
+    return new WP_REST_Response(array('success' => true, 'issues' => $list), 200);
+}
 
 // ============================================================
 // 매거진 호(號) 체계

@@ -903,6 +903,25 @@ const DEFAULT_SECTIONS = [
  * 섹션 목록 가져오기 (WordPress에서 동적으로 로드, 실패 시 기본값 사용)
  */
 let cachedSections = null;
+/**
+ * 한 호의 전체 기사를 꼭지별로 묶어 받아온다 ("이번 호 기사" 화면).
+ * number 를 안 주면 현재 호. 서버가 이미 묶어 주므로 앱은 그리기만 한다.
+ */
+export const getMagazineIssue = async (number = null) => {
+  try {
+    const q = `?${number ? `number=${number}&` : ""}v=${newsCacheBustValue(false)}`;
+    const res = await api.get(
+      `https://chaovietnam.co.kr/wp-json/chaovn/v1/magazine-issue${q}`,
+      { timeout: HOME_REQUEST_TIMEOUT },
+    );
+    if (!res.data?.success) return null;
+    return res.data; // { issue, groups:[{section, posts:[...]}], total }
+  } catch (error) {
+    console.log("호 기사 조회 실패:", error?.message);
+    return null;
+  }
+};
+
 export const getSectionsList = async () => {
   try {
     // 캐시가 있으면 반환
