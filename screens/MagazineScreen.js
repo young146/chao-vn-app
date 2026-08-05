@@ -392,7 +392,7 @@ const HEADLINE_LIMIT = 7;
  *
  * 서버가 호를 아직 지정 안 했으면(currentIssue=null) 이 블록은 그리지 않는다 — 기존 화면 그대로.
  */
-const CurrentIssueBlock = ({ issue, onPressPost, onOpenContents }) => {
+const CurrentIssueBlock = ({ issue, onPressPost, onOpenContents, onOpenArchive }) => {
   if (!issue) return null;
 
   const dateStr = (issue.date || '').replace(/-/g, '.');
@@ -405,21 +405,37 @@ const CurrentIssueBlock = ({ issue, onPressPost, onOpenContents }) => {
   const publishTs = issue.date ? new Date(`${issue.date}T00:00:00`).getTime() : NaN;
   const isUpcoming = !isNaN(publishTs) && publishTs > Date.now();
 
+  // 표지 높이 = 실제 비율. 서버가 크기를 안 주면 잡지에서 가장 흔한 A4 비율로.
+  const coverW = Math.round(width * 0.34);
+  const ratio =
+    issue.coverWidth && issue.coverHeight ? issue.coverWidth / issue.coverHeight : 1 / 1.414;
+  const coverHeight = Math.round(coverW / ratio);
+
   return (
     <View style={styles.issueBlock}>
       <View style={styles.issueHeader}>
         <Text style={styles.issueBadge}>📖 이번 호</Text>
         {isUpcoming && <Text style={styles.issueUpcomingTag}>발행 예정</Text>}
+        <TouchableOpacity onPress={onOpenArchive} style={styles.issueArchiveLink}>
+          <Text style={styles.issueArchiveText}>지난 호 ›</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.issueTop}>
         {/* 표지를 누르면 그 호 기사 목록으로 — 잡지 앱의 표준 동작 */}
         <TouchableOpacity onPress={onOpenContents} activeOpacity={0.85}>
           {issue.coverUrl ? (
-            <Image source={{ uri: issue.coverUrl }} style={styles.issueCover} contentFit="cover" cachePolicy="disk" />
+            /* 표지 비율은 판형마다 다르다(A4·국배판…). 서버가 실제 크기를 주면 그대로 그려
+               잘리지도 여백이 생기지도 않게 한다 — 담당자가 규격을 맞출 필요가 없다. */
+            <Image
+              source={{ uri: issue.coverUrl }}
+              style={[styles.issueCover, { height: coverHeight }]}
+              contentFit="cover"
+              cachePolicy="disk"
+            />
           ) : (
             /* 표지를 아직 안 올린 호도 화면이 깨지면 안 된다 — 대체 표지를 그린다 */
-            <View style={[styles.issueCover, styles.issueCoverEmpty]}>
+            <View style={[styles.issueCover, styles.issueCoverEmpty, { height: coverHeight }]}>
               <Text style={styles.issueCoverEmptyText}>{label}</Text>
               {isUpcoming && <Text style={styles.issueCoverEmptySub}>표지 준비 중</Text>}
             </View>
@@ -844,6 +860,7 @@ export default function MagazineScreen({ navigation, route }) {
                   onOpenContents={() =>
                     navigation.navigate('이번호기사', { issueNumber: currentIssue?.number || null })
                   }
+                  onOpenArchive={() => navigation.navigate('지난호')}
                 />
 
                 {slides.length > 0 && (
@@ -1324,6 +1341,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#E85A24',
   },
+  issueArchiveLink: { marginLeft: 'auto' },
+  issueArchiveText: { fontSize: 13, fontWeight: '700', color: '#EA580C' },
   issueUpcomingTag: {
     marginLeft: 8,
     fontSize: 11,
@@ -1355,7 +1374,7 @@ const styles = StyleSheet.create({
   // 화면 폭의 34% → 잡지 앱들이 쓰는 비중(35~45%)의 아래쪽. 3:4 비율 유지.
   issueCover: {
     width: Math.round(width * 0.34),
-    height: Math.round(width * 0.34 * 4 / 3),
+    // height 는 표지 실제 비율로 계산해 넘긴다 (CurrentIssueBlock 참고)
     borderRadius: 6,
     backgroundColor: '#F1F3F5',
     marginRight: 14,

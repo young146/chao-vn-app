@@ -922,6 +922,20 @@ export const getMagazineIssue = async (number = null) => {
   }
 };
 
+/** 호 목록 (최신순) — "지난 호" 화면용. 표지·호수·발행일·기사 수. */
+export const getMagazineIssues = async () => {
+  try {
+    const res = await api.get(
+      `https://chaovietnam.co.kr/wp-json/chaovn/v1/magazine-issues?v=${newsCacheBustValue(false)}`,
+      { timeout: HOME_REQUEST_TIMEOUT },
+    );
+    return res.data?.success ? res.data.issues || [] : [];
+  } catch (error) {
+    console.log("호 목록 조회 실패:", error?.message);
+    return [];
+  }
+};
+
 export const getSectionsList = async () => {
   try {
     // 캐시가 있으면 반환

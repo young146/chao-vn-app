@@ -714,14 +714,22 @@ function chaovn_get_issue_payload($term_id) {
     $number   = (int) get_term_meta($term_id, 'chaovn_issue_number', true);
     $date     = get_term_meta($term_id, 'chaovn_issue_date', true);
 
+    // 표지의 실제 가로·세로를 함께 보낸다.
+    // 잡지 판형이 A4(1:1.414)일 수도, 국배판일 수도 있다. 앱이 비율을 고정해 두면
+    // 판형이 다른 표지는 잘리거나 여백이 생긴다 → 실제 비율대로 칸을 그리게 한다.
+    // 그러면 담당자가 "몇 대 몇으로 잘라야 하나"를 신경 쓸 필요가 없다.
+    $cover_src = $cover_id ? wp_get_attachment_image_src($cover_id, 'large') : null;
+
     return array(
-        'id'       => (int) $term_id,
-        'number'   => $number ?: null,
+        'id'          => (int) $term_id,
+        'number'      => $number ?: null,
         // 표지가 없어도 화면이 깨지면 안 된다 — 앱이 대체 표지를 그린다.
-        'coverUrl' => $cover_id ? wp_get_attachment_image_url($cover_id, 'large') : '',
-        'date'     => $date ?: '',
-        'title'    => html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'),
-        'count'    => (int) $term->count,
+        'coverUrl'    => $cover_src ? $cover_src[0] : '',
+        'coverWidth'  => $cover_src ? (int) $cover_src[1] : 0,
+        'coverHeight' => $cover_src ? (int) $cover_src[2] : 0,
+        'date'        => $date ?: '',
+        'title'       => html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'),
+        'count'       => (int) $term->count,
     );
 }
 

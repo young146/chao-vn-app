@@ -206,6 +206,7 @@ import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
 import MagazineScreen from "./screens/MagazineScreen";
 import IssueContentsScreen from "./screens/IssueContentsScreen";
+import IssueArchiveScreen from "./screens/IssueArchiveScreen";
 import HubScreen from "./screens/HubScreen";
 import YellowPageScreen from "./screens/YellowPageScreen";
 import SearchResultsScreen from "./screens/SearchResultsScreen";
@@ -1050,6 +1051,16 @@ function HomeStack() {
         component={IssueContentsScreen}
         options={{
           title: "이번 호 기사",
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="지난호"
+        component={IssueArchiveScreen}
+        options={{
+          title: "지난 호",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
           headerBackTitleVisible: false,
