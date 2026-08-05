@@ -416,7 +416,7 @@ function chaovn_issue_settings_page() {
                             <?php if ($is_issue && !empty($c['number'])): ?>
                                 제<?php echo (int) $c['number']; ?>호
                             <?php else: ?>
-                                <em>호 아님 (상시 콘텐츠)</em>
+                                <em>호 아님 (<?php echo esc_html(!empty($c['reason']) ? $c['reason'] : '상시 콘텐츠'); ?>)</em>
                             <?php endif; ?>
                         </td>
                         <td><?php echo (int) $c['already']; ?>건</td>
@@ -451,6 +451,11 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
     // 상시 콘텐츠(교민소식 등)다. 이걸 한 호로 세면 *그 아래 모든 호수가 한 칸씩 밀린다.*
     // (2026-08-06 사장님이 미리보기에서 발견: 7/22 1건이 호수를 하나 먹고 있었다)
     $MIN_CLUSTER = 5;
+    // 반대쪽 방어선. 하루~이틀에 40건이 넘게 올라왔다면 그건 한 호가 아니라
+    // *여러 호를 한꺼번에 올린 것*(사이트 이전·과거분 일괄 업로드)이다.
+    // 실측: 2025-11-18 하루에 171건. 이걸 한 호로 세면 그 호가 통째로 거짓이 되고,
+    // 그 아래 번호도 전부 밀린다. 그래서 아예 호로 세지 않는다.
+    $MAX_CLUSTER = 40;
 
     $news = get_categories(array('hide_empty' => false, 'child_of' => CHAOVN_NEWS_CAT_ID));
     $news_ids = array(CHAOVN_NEWS_CAT_ID);
@@ -512,9 +517,12 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
     $base = $latest_number ? (int) $latest_number : $suggest;
     $seq  = 0;
     foreach ($clusters as $k => $c) {
-        if ($c['count'] < $MIN_CLUSTER) {
+        if ($c['count'] < $MIN_CLUSTER || $c['count'] > $MAX_CLUSTER) {
             $clusters[$k]['is_issue'] = false;
             $clusters[$k]['number']   = null;
+            $clusters[$k]['reason']   = ($c['count'] > $MAX_CLUSTER)
+                ? '일괄 업로드로 보임 (한 호가 아님)'
+                : '상시 콘텐츠';
         } else {
             $clusters[$k]['is_issue'] = true;
             $clusters[$k]['number']   = $base - $seq;
@@ -559,6 +567,16 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
             $term_id = $term->term_id;
         }
         update_term_meta($term_id, 'chaovn_issue_number', $number);
+
+        // 슬러그를 issue-564 형태로 맞춘다.
+        // 여기서 만든 호는 이름('제564호')에서 슬러그가 자동 생성되므로
+        // %ec%a0%9c564%ed%98%b8 같은 인코딩 주소가 된다(카톡 공유·API 조회에서 말썽).
+        // 이미 영문 슬러그면 사람이 정한 것으로 보고 손대지 않는다.
+        $t_now = get_term($term_id, CHAOVN_ISSUE_TAX);
+        if ($t_now && !is_wp_error($t_now) && !preg_match('/^[a-z0-9\-]+$/', rawurldecode($t_now->slug))) {
+            wp_update_term($term_id, CHAOVN_ISSUE_TAX, array('slug' => 'issue-' . $number));
+        }
+
         // 발행일 = 그 뭉치에서 가장 이른 업로드일 (대개 발행 당일)
         // 다시 붙이기($reset)면 덮어쓴다 — 앞서 잘못 붙었을 때 엉뚱한 날짜가 들어가 있고,
         // "비어있을 때만 채우기"로는 그게 영영 안 고쳐진다.
