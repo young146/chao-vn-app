@@ -27,6 +27,15 @@ define('CHAOVN_WEATHER_TTL',  2 * HOUR_IN_SECONDS);   // 날씨: 2시간
 define('CHAOVN_RATES_TTL',    6 * HOUR_IN_SECONDS);   // 환율: 6시간
 define('CHAOVN_NEWS_CAT_ID',  31);                     // 뉴스/데일리뉴스 카테고리 ID
 
+/**
+ * 섹션 하나에 채울 기사 수 = 대표카드 1 + 제목 리스트 7.
+ *
+ * 웹 뉴스터미널은 11(대표1+제목10)이다. 앱이 더 적은 이유: 웹은 PC 에서 대표카드 옆에
+ * 제목이 2단으로 붙지만, 앱은 세로 한 줄뿐이라 10줄이면 섹션 하나가 화면을 다 먹는다.
+ * (웹의 폰 화면도 같은 이유로 5줄만 보여준다.)
+ */
+define('CHAOVN_SECTION_TARGET', 8);
+
 // ============================================================
 // REST API 엔드포인트 등록
 // ============================================================
@@ -135,8 +144,16 @@ function chaovn_get_news_terminal($request) {
             $target_date = chaovn_get_target_date($now, CHAOVN_NEWS_CAT_ID);
         }
 
+        // 과거 뉴스로 채울지 여부 — 앱이 "오늘의 뉴스"를 볼 때만 1 을 붙인다.
+        // "지난 뉴스 보기"(사용자가 날짜를 고른 경우)에는 그 날짜 지면을 그대로 보여줘야
+        // 하므로 앱이 fill 을 안 붙이고, 여기서도 채우지 않는다.
+        // ⚠️ 날짜 파라미터 유무로는 구분할 수 없다 — 앱은 오늘도 /news-terminal/2026-08-05
+        //    처럼 날짜를 박아 부르기 때문. 그래서 별도 플래그가 필요하다.
+        $do_fill = ('1' === (string) $request->get_param('fill'));
+
         // ── 캐시 확인 ──────────────────────────────────────
-        $cache_key  = CHAOVN_NEWS_CACHE_PREFIX . $target_date;
+        // 채운 지면과 안 채운 지면은 내용이 다르므로 캐시도 따로 둔다(_f).
+        $cache_key  = CHAOVN_NEWS_CACHE_PREFIX . $target_date . ($do_fill ? '_f' : '');
         $is_today   = ($target_date === $now->format('Y-m-d'));
 
         // 오늘 날짜는 항상 DB에서 새로 조회 (발행 중간에 캐시되는 문제 방지)
@@ -178,6 +195,40 @@ function chaovn_get_news_terminal($request) {
             if ($extra_top_count <= 2) continue;
             $sec_key = chaovn_get_section_key($post['category']);
             array_unshift($grouped_posts[$sec_key], $post);
+        }
+
+        // ── 부족한 섹션을 과거 뉴스로 채운다 (fill=1 일 때만) ──────────────
+        // 오늘치만 쓰면 섹션 대부분이 2~4건이라, 앱의 "대표카드 + 제목 7줄" 배치에서
+        // 목록이 한두 줄로 텅 빈다(웹도 같은 이유로 2026-07-17에 채우기를 도입했다).
+        // 한도(경제·사회 2일 / 정치·문화 3일 / 여행·음식 14일)와 실제 조회 쿼리는
+        // jenny 플러그인 것을 그대로 재사용한다 — 같은 규칙을 두 곳에 적으면 반드시 어긋난다.
+        // jenny 가 없으면(구버전) 그냥 건너뛴다 → 채워지지 않을 뿐 API 는 정상 동작.
+        if ($do_fill && function_exists('jenny_backfill_section')) {
+            $exclude = array();
+            foreach ($result['top_news'] as $p) { $exclude[] = $p['post_id']; }
+            foreach ($result['regular'] as $p)  { $exclude[] = $p['post_id']; }
+
+            foreach ($sections_config as $sec_key => $sec_info) {
+                $have = isset($grouped_posts[$sec_key]) ? count($grouped_posts[$sec_key]) : 0;
+                $need = CHAOVN_SECTION_TARGET - $have;
+                if ($need <= 0) continue;
+
+                $filled = jenny_backfill_section(
+                    $sec_key,
+                    $sec_info['keys'],
+                    CHAOVN_NEWS_CAT_ID,
+                    $exclude,
+                    $need,
+                    $target_date
+                );
+                if (empty($filled)) continue;
+
+                if (!isset($grouped_posts[$sec_key])) $grouped_posts[$sec_key] = array();
+                foreach ($filled as $f) {
+                    $grouped_posts[$sec_key][] = $f;
+                    $exclude[] = $f['post_id']; // 다음 섹션에서 같은 글이 또 뽑히지 않게
+                }
+            }
         }
 
         // 섹션 배열 생성
@@ -241,7 +292,9 @@ function chaovn_on_post_published($post_id) {
     $cache_key = CHAOVN_NEWS_CACHE_PREFIX . $date;
 
     // 기존 캐시 삭제 (재생성은 API 호출 시 Lazy Loading 하도록 위임하여 Race Condition 방지)
+    // 채운 지면(_f)도 같이 지운다 — 한쪽만 지우면 앱에 옛 지면이 계속 나간다.
     delete_transient($cache_key);
+    delete_transient($cache_key . '_f');
 
     // WP-Cron 대기 스케줄 제거
     wp_clear_scheduled_hook('chaovn_rebuild_news_cache', array($date));
@@ -266,6 +319,7 @@ function chaovn_do_rebuild_news_cache($date) {
 function chaovn_rebuild_news_cache_endpoint($request) {
     $date = $request->get_param('date') ?: (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d');
     delete_transient(CHAOVN_NEWS_CACHE_PREFIX . $date);
+    delete_transient(CHAOVN_NEWS_CACHE_PREFIX . $date . '_f');
     chaovn_do_rebuild_news_cache($date);
     return array('success' => true, 'rebuilt' => $date);
 }
@@ -550,6 +604,9 @@ function chaovn_format_post($post_data) {
         'source'      => $source,
         'originalUrl' => get_post_meta($post_id, 'news_original_url', true),
         'isTop'       => $post_data['is_top'],
+        // 오늘치가 모자라 과거에서 끌어온 기사 — 앱이 날짜를 붙여 표시한다.
+        // 오늘 것처럼 보이면 안 된다.
+        'isPast'      => !empty($post_data['is_past']),
         'meta'        => array(
             'news_category' => $post_data['category'],
             'is_top_news'   => $post_data['is_top'] ? '1' : '',

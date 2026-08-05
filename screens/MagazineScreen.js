@@ -332,6 +332,57 @@ const MagazineCard = ({ item, onPress, type }) => {
   );
 };
 
+/**
+ * 섹션 제목 리스트 한 줄 — 대표카드 아래로 쌓이는 헤드라인.
+ *
+ * 웹 뉴스터미널(2026-07-17 개편)과 같은 배치를 앱에도 옮긴 것이다.
+ * 이전에는 섹션의 모든 기사를 큰 카드로 뿌려서, 카드 하나가 세로로 300px 넘게 먹는 탓에
+ * 뒤쪽 섹션(여행·음식 등)까지 내려가려면 화면을 스무 번 넘게 넘겨야 했다.
+ * → 섹션당 대표카드 1개 + 이 줄 7개.
+ *
+ * 앞에 사진(64x48)을 붙인다 — 글자만 늘어놓으면 눈이 걸리는 데가 없다.
+ * 과거에서 채운 기사(isPast)에는 날짜를 붙인다 — 오늘 것처럼 보이면 안 된다.
+ */
+const NewsHeadlineRow = ({ item, index, onPress }) => {
+  const thumb = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+  const rawTitle = typeof item.title === 'string' ? item.title : (item.title?.rendered || '');
+
+  // 과거 기사 날짜 배지 (8/3 형태)
+  let pastLabel = '';
+  if (item.isPast && item.date) {
+    const d = new Date(item.date);
+    if (!isNaN(d.getTime())) pastLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.hlRow, index % 2 === 1 && styles.hlRowAlt]}
+      onPress={() => onPress(item)}
+      activeOpacity={0.7}
+    >
+      {thumb ? (
+        <Image
+          source={{ uri: thumb }}
+          style={styles.hlThumb}
+          contentFit="cover"
+          transition={150}
+          cachePolicy="disk"
+        />
+      ) : (
+        /* 사진 없는 기사도 같은 자리를 차지해야 제목 시작선이 들쭉날쭉해지지 않는다 */
+        <View style={[styles.hlThumb, styles.hlThumbEmpty]} />
+      )}
+      <TranslatedText style={styles.hlTitle} numberOfLines={2}>
+        {rawTitle.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
+      </TranslatedText>
+      {pastLabel !== '' && <Text style={styles.hlDate}>{pastLabel}</Text>}
+    </TouchableOpacity>
+  );
+};
+
+// 섹션 하나에 보여줄 제목 줄 수 (대표카드 1개 + 이만큼). 서버(CHAOVN_SECTION_TARGET=8)와 맞춘 값.
+const HEADLINE_LIMIT = 7;
+
 export default function MagazineScreen({ navigation, route }) {
   const { t } = useTranslation('home');
   const { type = 'magazine', categoryId, resetSearch } = route.params || {};
@@ -385,7 +436,9 @@ export default function MagazineScreen({ navigation, route }) {
             targetDate = new Date(); // 오늘 날짜
           }
 
-          let newsData = await getNewsSectionsCached(isRefresh, targetDate);
+          // 3번째 인자 = 과거 뉴스로 채울지. "지난 뉴스 보기"로 날짜를 고른 경우에는
+          // 그 날짜 지면을 그대로 보여줘야 하므로 채우지 않는다.
+          let newsData = await getNewsSectionsCached(isRefresh, targetDate, !isFilteredByDate);
 
           // 오늘 뉴스가 없으면 다음날 뉴스가 올라올 때까지 직전 날짜로 fallback
           // (최대 7일 뒤까지 시도 — 라벨은 "오늘의 뉴스" 그대로 유지)
@@ -393,7 +446,8 @@ export default function MagazineScreen({ navigation, route }) {
             for (let i = 1; i <= 7; i++) {
               const past = new Date();
               past.setDate(past.getDate() - i);
-              const pastData = await getNewsSectionsCached(isRefresh, past);
+              // 여기는 "오늘 뉴스가 아직 없어 어제로 내려가는" 경로 = 여전히 오늘의 뉴스 모드 → 채운다
+              const pastData = await getNewsSectionsCached(isRefresh, past, true);
               if (pastData.newsSections.length > 0) {
                 newsData = pastData;
                 break;
@@ -723,30 +777,69 @@ export default function MagazineScreen({ navigation, route }) {
             {/* 🗞️ 뉴스 탭: 카테고리별 섹션 (WordPress 사이트와 동일) */}
             {type === 'news' && !searchQuery && newsSections.length > 0 && (
               <View>
-                {newsSections.map((section, sectionIndex) => {
-                  return (
-                    <View key={`news-section-${section.categoryKey}`}>
-                      {/* 두 번째 섹션(경제 뉴스)부터 섹션 사이 광고 표시 */}
-                      {sectionIndex > 0 && <HomeSectionAd />}
-                      <View style={styles.homeSection}>
-                        <View style={styles.sectionHeader}>
-                          <Text style={styles.sectionTitle}>{section.name} ({section.posts.length})</Text>
-                        </View>
-                        {/* 모든 뉴스 표시 (제한 없음) */}
-                        {section.posts.map((post, index) => (
-                          <React.Fragment key={`news-${section.categoryKey}-${post.id}-${index}`}>
+                {newsSections.map((section) => {
+                  // 탑뉴스는 웹과 동일하게 큰 카드 그대로 둔다 (2건뿐 — 대표/목록으로 쪼갤 게 없다)
+                  if (section.categoryKey === 'TopNews') {
+                    return (
+                      <View key={`news-section-${section.categoryKey}`}>
+                        <View style={styles.homeSection}>
+                          <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>{section.name}</Text>
+                          </View>
+                          {section.posts.map((post, index) => (
                             <MagazineCard
+                              key={`news-top-${post.id}-${index}`}
                               item={post}
                               onPress={handlePostPress}
                               type="news"
                             />
-                            {/* 3개 기사마다 인라인 광고 삽입 */}
-                            {(index + 1) % 3 === 0 && (
-                              <InlineAdBanner screen="news" />
-                            )}
-                          </React.Fragment>
-                        ))}
+                          ))}
+                        </View>
+                        <HomeSectionAd />
                       </View>
+                    );
+                  }
+
+                  // 대표카드만 덩그러니 있는 섹션은 지면만 먹고 읽을 게 없다 (웹과 같은 규칙)
+                  if (section.posts.length < 2) return null;
+
+                  const lead = section.posts[0];
+                  const headlines = section.posts.slice(1, 1 + HEADLINE_LIMIT);
+
+                  return (
+                    <View key={`news-section-${section.categoryKey}`}>
+                      <View style={styles.homeSection}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>{section.name}</Text>
+                        </View>
+
+                        {/* 대표기사 = 기존 카드 그대로 (사진 + 제목 + 요약) */}
+                        <MagazineCard item={lead} onPress={handlePostPress} type="news" />
+
+                        {/* 제목 리스트 — 리스트만 덩그러니 있으면 "이게 뭔 목록인지" 안 보여 이름표를 얹는다 */}
+                        <View style={styles.hlBox}>
+                          <Text style={styles.hlLabel}>📰 이 시각 주요 뉴스</Text>
+                          {headlines.map((post, index) => (
+                            <NewsHeadlineRow
+                              key={`hl-${section.categoryKey}-${post.id}-${index}`}
+                              item={post}
+                              index={index}
+                              onPress={handlePostPress}
+                            />
+                          ))}
+                        </View>
+
+                        {/* 7줄 뒤로 가는 문 — 이미 있는 섹션 팝업을 연다 (새로 만들지 않는다) */}
+                        <TouchableOpacity
+                          style={styles.hlMoreBtn}
+                          onPress={() => setSelectedSection({ key: section.categoryKey, label: section.name })}
+                        >
+                          <Text style={styles.hlMoreText}>{section.name} 뉴스 더보기 ›</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* 섹션 끝 광고 — 대표카드 → 제목 7줄 → 광고 (웹 지면과 같은 자리) */}
+                      <HomeSectionAd />
                     </View>
                   );
                 })}
@@ -1087,6 +1180,76 @@ const styles = StyleSheet.create({
   },
   homeSection: {
     marginBottom: 30,
+  },
+  // ── 섹션 제목 리스트 (대표카드 아래 7줄) ─────────────────────────────
+  // 대표카드(marginHorizontal 16)와 좌우를 맞춰 한 덩어리로 보이게 한다.
+  hlBox: {
+    marginHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  hlLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E85A24',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFE0D2',
+  },
+  hlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  // 한 줄 건너 바탕색 — 줄 구분선을 대신한다 (선까지 두면 가로줄이 겹쳐 지저분하다)
+  hlRowAlt: {
+    backgroundColor: '#F1F3F5',
+  },
+  hlThumb: {
+    width: 64,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: '#E9ECEF',
+    marginRight: 12,
+  },
+  // 사진 없는 기사 — 깨진 이미지처럼 보이지 않게 옅은 테두리만 준 빈 칸
+  hlThumbEmpty: {
+    borderWidth: 1,
+    borderColor: '#DEE2E6',
+  },
+  hlTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212529',
+    lineHeight: 19,
+  },
+  // 과거 뉴스로 채운 항목의 날짜 — 오늘 것처럼 보이면 안 된다
+  hlDate: {
+    marginLeft: 8,
+    fontSize: 11,
+    color: '#ADB5BD',
+  },
+  hlMoreBtn: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD9C7',
+    borderRadius: 8,
+    backgroundColor: '#FFF8F5',
+  },
+  hlMoreText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#EA580C',
   },
   gridContainer: {
     flexDirection: 'row',

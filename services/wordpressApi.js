@@ -337,20 +337,30 @@ export const hasHomeDataCache = async () => {
 
 // 🗞️ 뉴스 터미널 API (chaovn-news-api 플러그인 사용)
 // V4: content 필드 추가 (본문 포함)
-const NEWS_CACHE_KEY = "NEWS_SECTIONS_CACHE_V4";
+// V5: 과거 뉴스 채움(fill) + isPast 필드 추가 → 캐시 형태가 달라져 키를 올린다.
+const NEWS_CACHE_KEY = "NEWS_SECTIONS_CACHE_V5";
 const NEWS_TERMINAL_API_URL =
   "https://chaovietnam.co.kr/wp-json/chaovn/v1/news-terminal";
 
+/**
+ * @param {boolean} forceRefresh 캐시 무시하고 새로 받기
+ * @param {Date}    targetDate   조회할 날짜
+ * @param {boolean} allowBackfill "오늘의 뉴스"면 true — 섹션이 비면 서버가 과거 기사로 채운다.
+ *   사용자가 날짜를 직접 고른 "지난 뉴스 보기"에서는 false 로 줘야 그 날짜 지면이 그대로 나온다.
+ *   (서버는 날짜 파라미터만으로는 둘을 구분할 수 없다 — 앱이 오늘도 날짜를 박아 부르기 때문)
+ */
 export const getNewsSectionsCached = async (
   forceRefresh = false,
   targetDate = null,
+  allowBackfill = true,
 ) => {
   try {
     const dateStr = targetDate
       ? targetDate.toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0];
 
-    const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}`;
+    // 채운 지면과 안 채운 지면은 내용이 다르므로 캐시도 따로 둔다
+    const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}${allowBackfill ? "_f" : ""}`;
 
     // 1. 캐시 확인
     if (!forceRefresh) {
@@ -369,9 +379,10 @@ export const getNewsSectionsCached = async (
     const startTime = Date.now();
 
     // 2. 새 API 호출 (서버에서 이미 정리된 데이터)
+    const fillQuery = allowBackfill ? "?fill=1" : "";
     const apiUrl = targetDate
-      ? `${NEWS_TERMINAL_API_URL}/${dateStr}`
-      : NEWS_TERMINAL_API_URL;
+      ? `${NEWS_TERMINAL_API_URL}/${dateStr}${fillQuery}`
+      : `${NEWS_TERMINAL_API_URL}${fillQuery}`;
 
     const response = await api.get(apiUrl);
     const apiData = response.data;
@@ -429,6 +440,8 @@ export const getNewsSectionsCached = async (
                   : [],
               },
               meta: post.meta || {},
+              // 오늘치가 모자라 과거에서 끌어온 기사 → 목록에서 날짜를 붙여 구분
+              isPast: !!post.isPast,
             })),
           });
         }
