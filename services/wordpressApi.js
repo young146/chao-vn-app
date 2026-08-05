@@ -343,6 +343,22 @@ const NEWS_TERMINAL_API_URL =
   "https://chaovietnam.co.kr/wp-json/chaovn/v1/news-terminal";
 
 /**
+ * 서버 앞단 캐시(LiteSpeed + 호스팅 CDN)를 건너뛰기 위한 시간 도장.
+ *
+ * 왜 필요한가: 이 REST 주소는 서버 앞단에서 통째로 캐시된다. 그래서 플러그인을 새로
+ * 올려도 PHP 가 아예 실행되지 않고 옛 응답이 계속 나간다 — 2026-08-05 실측:
+ * 워드프레스 캐시를 비운 뒤에도 `x-litespeed-cache: hit` 로 옛 지면이 나왔고,
+ * 주소에 아무 값이나 덧붙이자(= 캐시에 없는 새 주소) 즉시 새 지면이 나왔다.
+ *
+ * 30분 버킷인 이유: 같은 30분 안의 모든 사용자는 *같은 주소*를 부르므로 캐시 이득은
+ * 그대로 두면서(서버 부담 안 늘림) 지연은 최대 30분으로 묶인다.
+ * 당겨서 새로고침(forceRefresh)은 그 순간 시각을 찍어 무조건 새로 받는다.
+ */
+const CACHE_BUST_WINDOW_MS = 30 * 60 * 1000;
+const newsCacheBustValue = (forceRefresh) =>
+  forceRefresh ? Date.now() : Math.floor(Date.now() / CACHE_BUST_WINDOW_MS);
+
+/**
  * @param {boolean} forceRefresh 캐시 무시하고 새로 받기
  * @param {Date}    targetDate   조회할 날짜
  * @param {boolean} allowBackfill "오늘의 뉴스"면 true — 섹션이 비면 서버가 과거 기사로 채운다.
@@ -379,10 +395,11 @@ export const getNewsSectionsCached = async (
     const startTime = Date.now();
 
     // 2. 새 API 호출 (서버에서 이미 정리된 데이터)
-    const fillQuery = allowBackfill ? "?fill=1" : "";
+    //    v = 앞단 캐시 우회용 시간 도장 (newsCacheBustValue 주석 참고)
+    const query = `?${allowBackfill ? "fill=1&" : ""}v=${newsCacheBustValue(forceRefresh)}`;
     const apiUrl = targetDate
-      ? `${NEWS_TERMINAL_API_URL}/${dateStr}${fillQuery}`
-      : `${NEWS_TERMINAL_API_URL}${fillQuery}`;
+      ? `${NEWS_TERMINAL_API_URL}/${dateStr}${query}`
+      : `${NEWS_TERMINAL_API_URL}${query}`;
 
     const response = await api.get(apiUrl);
     const apiData = response.data;
