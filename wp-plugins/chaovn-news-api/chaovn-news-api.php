@@ -104,14 +104,23 @@ define('CHAOVN_CURRENT_ISSUE_OPT', 'chaovn_current_issue');
 add_action('init', 'chaovn_register_issue_taxonomy');
 function chaovn_register_issue_taxonomy() {
     register_taxonomy(CHAOVN_ISSUE_TAX, 'post', array(
+        // 라벨을 다 채운다. 덜 채우면 글쓰기 화면 옆 상자에 "새 카테고리 이름" 같은
+        // 워드프레스 기본 문구가 나와서 직원이 헷갈린다(2026-08-06 사장님 화면에서 확인).
         'labels' => array(
-            'name'          => '매거진 호',
-            'singular_name' => '호',
-            'menu_name'     => '매거진 호',
-            'all_items'     => '모든 호',
-            'add_new_item'  => '새 호 추가',
-            'edit_item'     => '호 편집',
-            'search_items'  => '호 검색',
+            'name'              => '매거진 호',
+            'singular_name'     => '호',
+            'menu_name'         => '매거진 호',
+            'all_items'         => '모든 호',
+            'add_new_item'      => '새 호 추가',
+            'new_item_name'     => '새 호 이름 (예: 제565호)',
+            'edit_item'         => '호 편집',
+            'update_item'       => '호 저장',
+            'view_item'         => '호 보기',
+            'search_items'      => '호 검색',
+            'not_found'         => '등록된 호가 없습니다.',
+            'back_to_items'     => '← 호 목록으로',
+            'parent_item'       => '상위 호',
+            'parent_item_colon' => '상위 호:',
         ),
         // 계층형으로 두는 이유: 글 편집화면에 *체크박스*로 뜬다(태그처럼 직접 타이핑하면
         // '565호' / '제565호' 같은 오타가 반드시 생긴다). 실제 계층은 쓰지 않는다.
@@ -213,6 +222,18 @@ add_action('edited_' . CHAOVN_ISSUE_TAX, 'chaovn_save_issue_meta');
 function chaovn_save_issue_meta($term_id) {
     if (isset($_POST['chaovn_issue_number'])) {
         update_term_meta($term_id, 'chaovn_issue_number', intval($_POST['chaovn_issue_number']));
+    }
+
+    // 글쓰기 화면 옆 상자에서 이름만 만든 경우(호수 입력칸이 없다) 이름에서 숫자를 뽑아 채운다.
+    // 안 그러면 그 호는 앱에서 "제565호" 대신 밋밋하게 보이고 정렬 기준도 없어진다.
+    // "제565호 / 565호 / 565" 처럼 *이름 전체가 호수인 경우에만* 뽑는다.
+    // 아무 숫자나 집으면 "2026년 8월호" 에서 2026 을 호수로 잡는 사고가 난다.
+    if (!get_term_meta($term_id, 'chaovn_issue_number', true)) {
+        $term = get_term($term_id, CHAOVN_ISSUE_TAX);
+        if ($term && !is_wp_error($term)
+            && preg_match('/^제?\s*(\d{1,5})\s*호?$/u', trim($term->name), $m)) {
+            update_term_meta($term_id, 'chaovn_issue_number', intval($m[1]));
+        }
     }
     if (isset($_POST['chaovn_issue_date'])) {
         update_term_meta($term_id, 'chaovn_issue_date', sanitize_text_field($_POST['chaovn_issue_date']));
