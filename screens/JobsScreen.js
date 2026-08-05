@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
+import React, { useState, useCallback, memo, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   StyleSheet,
   View,
@@ -334,14 +335,20 @@ export default function JobsScreen({ navigation }) {
     }
   };
 
-  // 한 번만 실행
-  useEffect(() => {
-    let isMounted = true;
-    if (isMounted) {
+  // ✅ 이 탭을 실제로 열었을 때만 조회한다.
+  //
+  // 예전에는 마운트 시점에 조회했는데, 탭 네비게이터가 lazy:false 라 앱을 켜는 순간
+  // 이 화면도 마운트된다 → 구인구직 탭을 열지도 않았는데 부팅할 때마다
+  // jobs 60건 + candidates 100건을 읽었고, 매거진·뉴스 요청과 대역폭을 나눠 썼다.
+  //
+  // 덤으로 고쳐지는 것: 예전에는 마운트 때 딱 한 번만 읽어서, 공고를 새로 등록하고
+  // 목록으로 돌아와도 방금 올린 글이 안 보였다(앱을 껐다 켜야 보였다).
+  // 이제 목록으로 돌아올 때 다시 읽으므로 바로 보인다. (당근 화면과 같은 규칙)
+  useFocusEffect(
+    useCallback(() => {
       fetchJobs(true);
-    }
-    return () => { isMounted = false; };
-  }, []);
+    }, [])
+  );
 
   const onRefresh = () => {
     fetchJobs(true);

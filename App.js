@@ -114,6 +114,16 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+/**
+ * 스플래시(로고 애니메이션) 최소 노출 시간.
+ *
+ * 준비가 0.2초에 끝나도 이 시간만큼은 애니메이션을 보여준다 — 브랜드 연출.
+ * 다만 이 시간은 *앱을 열 때마다* 사용자가 그냥 기다리는 시간이다.
+ * 예전 값 5000ms 는 하루 5번 열면 25초를 버리는 셈이라 "앱이 느리다"는 인상의 최대 원인이었다.
+ * 2026-08-05 사장님 결정으로 2000ms 로 단축. (업계 통상 1~2초)
+ */
+const SPLASH_MIN_MS = 2000;
+
 // ✅ 네이티브 스플래시를 잠깐만 유지 후 JS 로딩 화면(프로그레스 바) 표시
 SplashScreen.preventAutoHideAsync().catch(() => {
   // 이미 숨겨졌거나 에러 발생 시 무시
@@ -488,7 +498,7 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log("🚀 앱 초기화 시작...");
+        console.log(`🚀 앱 초기화 시작... (스플래시 최소 ${SPLASH_MIN_MS}ms)`);
         const startTime = Date.now();
 
         // 🌐 첫 실행 시 언어 선택 화면 표시
@@ -526,9 +536,9 @@ export default function App() {
 
           if (hasCache) {
             console.log('✅ 캐시 발견! 즉시 진입');
-            // 애니메이션 감상을 위해 무조건 최소 5.0초는 로딩 화면을 보여줌
+            // 스플래시 애니메이션 최소 노출 시간 (SPLASH_MIN_MS)
             const elapsedTime = Date.now() - startTime;
-            const remainingTime = Math.max(0, 5000 - elapsedTime);
+            const remainingTime = Math.max(0, SPLASH_MIN_MS - elapsedTime);
             setTimeout(() => setIsReady(true), remainingTime);
 
             // 백그라운드에서 로그인 필수 항목만 초기화 (사용자는 안 기다림)
@@ -584,7 +594,7 @@ export default function App() {
         }
 
         const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(0, 5000 - elapsedTime);
+        const remainingTime = Math.max(0, SPLASH_MIN_MS - elapsedTime);
         setTimeout(() => setIsReady(true), remainingTime);
       } catch (error) {
         console.log("초기화 에러:", error);

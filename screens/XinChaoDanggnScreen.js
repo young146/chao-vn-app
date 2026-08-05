@@ -243,11 +243,19 @@ export default function XinChaoDanggnScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    fetchItems(true);
-  }, [user]);
-
-  // ✅ 포커스될 때마다 자동 새로고침 (딕렜링크로 앱 열렸을 때도 포함)
+  // ✅ 이 탭을 실제로 열었을 때만 조회한다.
+  //
+  // 예전에는 mount 용 useEffect 와 focus 용 useFocusEffect 가 *둘 다* 조회했다.
+  // 탭 네비게이터가 lazy:false 라 앱을 켜는 순간 이 화면도 마운트되므로,
+  // 당근 탭을 열지도 않았는데 부팅할 때마다 500건을 읽었고(다른 탭 요청들과 대역폭 경합),
+  // 이후 탭을 오갈 때마다 또 500건씩 읽었다(앱 켜고 3번 방문 = 2,000건).
+  //
+  // 지금은 focus 조회만 남긴다(= 탭을 실제로 열 때).
+  //
+  // ⚠️ focus 조회에 "N분 안에는 건너뛰기" 같은 간격 제한을 걸면 안 된다.
+  // 물건을 새로 올리면 상세화면을 거쳐 이 목록으로 돌아오는데, 그때 다시 읽지 않으면
+  // 방금 올린 글이 안 보여서 "글이 안 올라갔나?" 하게 된다. 탭을 열 때마다 읽는 건
+  // 의도된 동작이다. (읽는 양 자체를 줄이는 건 서버 쪽 필터링 과제 — PROGRESS_APP_PERFORMANCE.md Phase 4)
   useFocusEffect(
     useCallback(() => {
       fetchItems(true);

@@ -408,6 +408,12 @@ export default function NeighborBusinessesScreen() {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
               }
+              /* 목록이 길어지면 화면 밖 카드까지 전부 그려두느라 스크롤이 버벅인다.
+                 다른 목록 화면(당근·구인구직·부동산)에는 이미 들어가 있던 설정. */
+              windowSize={10}
+              maxToRenderPerBatch={8}
+              initialNumToRender={8}
+              removeClippedSubviews={true}
             />
           )}
 
