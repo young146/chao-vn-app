@@ -22,6 +22,23 @@ const api = axios.create({
  */
 const HOME_REQUEST_TIMEOUT = 12000;
 
+/**
+ * 서버 앞단 캐시(LiteSpeed + 호스팅 CDN)를 건너뛰기 위한 시간 도장.
+ *
+ * 왜 필요한가: 이 REST 주소는 서버 앞단에서 통째로 캐시된다. 그래서 플러그인을 새로
+ * 올려도 PHP 가 아예 실행되지 않고 옛 응답이 계속 나간다 — 2026-08-05 실측:
+ * 워드프레스 캐시를 비운 뒤에도 `x-litespeed-cache: hit` 로 옛 지면이 나왔고,
+ * 주소에 아무 값이나 덧붙이자(= 캐시에 없는 새 주소) 즉시 새 지면이 나왔다.
+ *
+ * 30분 버킷인 이유: 같은 30분 안의 모든 사용자는 *같은 주소*를 부르므로 캐시 이득은
+ * 그대로 두면서(서버 부담 안 늘림) 지연은 최대 30분으로 묶인다.
+ * 당겨서 새로고침(forceRefresh)은 그 순간 시각을 찍어 무조건 새로 받는다.
+ */
+const CACHE_BUST_WINDOW_MS = 30 * 60 * 1000;
+const newsCacheBustValue = (forceRefresh) =>
+  forceRefresh ? Date.now() : Math.floor(Date.now() / CACHE_BUST_WINDOW_MS);
+
+
 // 뉴스 카테고리 섹션 정의 (WordPress 사이트와 동일한 순서)
 const NEWS_SECTIONS_CONFIG = [
   { id: null, name: "경제", categoryKey: "Economy" },
@@ -246,6 +263,62 @@ const getPostsForSection = async (section) => {
   }
 };
 
+/**
+ * 매거진 홈을 서버가 조립해 준 API 로 한 번에 받아온다.
+ *
+ * 이게 없던 시절에는 앱이 직접 11번 불렀다 — 카테고리 목록 2페이지(순차)를 받아
+ * 섹션별 하위 카테고리를 찾아낸 뒤, 섹션 9개를 병렬로 조회(실측 3.3초).
+ * 서버는 그 일을 30분 캐시로 한 번만 하면 된다(뉴스탭이 이미 그렇게 돌고 있다).
+ *
+ * @returns {object|null} 성공하면 {homeSections, slideshowPosts}, 실패하면 null(→ 기존 방식으로 폴백)
+ */
+const MAGAZINE_HOME_API_URL =
+  "https://chaovietnam.co.kr/wp-json/chaovn/v1/magazine-home";
+
+const fetchMagazineHomeAssembled = async (forceRefresh = false) => {
+  try {
+    // v = 앞단 캐시(LiteSpeed/CDN) 우회용 시간 도장 — 뉴스 API 와 같은 이유
+    const url = `${MAGAZINE_HOME_API_URL}?v=${newsCacheBustValue(forceRefresh)}`;
+    const res = await api.get(url, { timeout: HOME_REQUEST_TIMEOUT });
+    const data = res.data;
+    if (!data?.success || !Array.isArray(data.sections)) return null;
+
+    const homeSections = data.sections.map((section) => ({
+      id: section.id,
+      name: section.name,
+      childIds: [],
+      posts: (section.posts || []).map((post, idx) => ({
+        // 화면 목록 key 용 id (기존 형식 유지) + 원본 글번호 보관
+        id: `sec-${section.id}-${post.postId}-${idx}`,
+        postId: post.postId,
+        title: post.title,
+        date: post.date,
+        link: post.link,
+        categories: post.categories || [],
+        _embedded: {
+          "wp:featuredmedia": [{ source_url: post.thumbnail || undefined }],
+        },
+      })),
+    }));
+
+    // 기사가 하나도 없으면 실패로 취급 — 빈 화면을 캐시하지 않는다
+    if (!homeSections.some((s) => s.posts.length > 0)) return null;
+
+    const slideshowPosts = homeSections
+      .filter((s) => s.posts.length > 0)
+      .slice(0, 10)
+      .map((s) => s.posts[0])
+      .filter(Boolean)
+      .map((post, idx) => ({ ...post, id: `slide-${idx}-${post.id}` }));
+
+    return { homeSections, slideshowPosts };
+  } catch (error) {
+    // 플러그인이 아직 안 올라갔거나 서버 오류 → 조용히 기존 방식으로 폴백
+    console.log("매거진 홈 조립 API 미사용:", error?.message);
+    return null;
+  }
+};
+
 // 🚀 최적화된 홈 데이터 로드 함수 (캐시 + 동적 카테고리 로드 + 병렬 처리)
 export const getHomeDataCached = async (forceRefresh = false) => {
   try {
@@ -273,6 +346,19 @@ export const getHomeDataCached = async (forceRefresh = false) => {
 
     console.log("🌐 API 호출 시작...");
     const startTime = Date.now();
+
+    // 2-0. 🚀 서버가 조립해 주는 매거진 홈 API 를 먼저 시도한다 (호출 11번 → 1번).
+    //      실패하면(플러그인 미설치·서버 오류) 아래 기존 방식으로 그대로 내려간다.
+    //      그래서 이 코드는 플러그인이 올라가기 전에 배포돼도 안전하다.
+    const assembled = await fetchMagazineHomeAssembled(forceRefresh);
+    if (assembled) {
+      console.log(`✅ 매거진 홈(서버 조립) 로드: ${Date.now() - startTime}ms`);
+      await AsyncStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ data: assembled, timestamp: Date.now() }),
+      );
+      return assembled;
+    }
 
     // 2. 🚀 카테고리 목록을 한 번만 가져오기 (9번 → 1번으로 최적화!)
     const allCategories = await getAllCategories();
@@ -401,25 +487,10 @@ export const hasHomeDataCache = async () => {
 // 🗞️ 뉴스 터미널 API (chaovn-news-api 플러그인 사용)
 // V4: content 필드 추가 (본문 포함)
 // V5: 과거 뉴스 채움(fill) + isPast 필드 추가 → 캐시 형태가 달라져 키를 올린다.
-const NEWS_CACHE_KEY = "NEWS_SECTIONS_CACHE_V5";
+// V6: 목록에서 본문 제거(light=1) + postId 보존 → 다시 형태가 달라진다.
+const NEWS_CACHE_KEY = "NEWS_SECTIONS_CACHE_V6";
 const NEWS_TERMINAL_API_URL =
   "https://chaovietnam.co.kr/wp-json/chaovn/v1/news-terminal";
-
-/**
- * 서버 앞단 캐시(LiteSpeed + 호스팅 CDN)를 건너뛰기 위한 시간 도장.
- *
- * 왜 필요한가: 이 REST 주소는 서버 앞단에서 통째로 캐시된다. 그래서 플러그인을 새로
- * 올려도 PHP 가 아예 실행되지 않고 옛 응답이 계속 나간다 — 2026-08-05 실측:
- * 워드프레스 캐시를 비운 뒤에도 `x-litespeed-cache: hit` 로 옛 지면이 나왔고,
- * 주소에 아무 값이나 덧붙이자(= 캐시에 없는 새 주소) 즉시 새 지면이 나왔다.
- *
- * 30분 버킷인 이유: 같은 30분 안의 모든 사용자는 *같은 주소*를 부르므로 캐시 이득은
- * 그대로 두면서(서버 부담 안 늘림) 지연은 최대 30분으로 묶인다.
- * 당겨서 새로고침(forceRefresh)은 그 순간 시각을 찍어 무조건 새로 받는다.
- */
-const CACHE_BUST_WINDOW_MS = 30 * 60 * 1000;
-const newsCacheBustValue = (forceRefresh) =>
-  forceRefresh ? Date.now() : Math.floor(Date.now() / CACHE_BUST_WINDOW_MS);
 
 /**
  * @param {boolean} forceRefresh 캐시 무시하고 새로 받기
@@ -458,8 +529,10 @@ export const getNewsSectionsCached = async (
     const startTime = Date.now();
 
     // 2. 새 API 호출 (서버에서 이미 정리된 데이터)
-    //    v = 앞단 캐시 우회용 시간 도장 (newsCacheBustValue 주석 참고)
-    const query = `?${allowBackfill ? "fill=1&" : ""}v=${newsCacheBustValue(forceRefresh)}`;
+    //    v     = 앞단 캐시 우회용 시간 도장 (newsCacheBustValue 주석 참고)
+    //    light = 목록에 안 쓰는 기사 본문을 빼고 받는다(응답의 78%가 본문이었다).
+    //            본문은 기사를 열 때 PostDetailScreen 이 그 한 건만 받아온다.
+    const query = `?${allowBackfill ? "fill=1&" : ""}light=1&v=${newsCacheBustValue(forceRefresh)}`;
     const apiUrl = targetDate
       ? `${NEWS_TERMINAL_API_URL}/${dateStr}${query}`
       : `${NEWS_TERMINAL_API_URL}${query}`;
@@ -485,6 +558,9 @@ export const getNewsSectionsCached = async (
         categoryKey: "TopNews",
         posts: apiData.topNews.map((post, idx) => ({
           id: `news-TopNews-${post.id}-${idx}`,
+          // id 는 화면 목록의 key 용이라 원본 글번호를 따로 보관한다 —
+          // 상세화면이 본문을 받아올 때 필요하다(light=1 로 본문이 안 오므로).
+          postId: post.id,
           title: post.title,
           content: post.content || { rendered: "" },
           excerpt: post.excerpt,
@@ -509,6 +585,7 @@ export const getNewsSectionsCached = async (
             categoryKey: section.categoryKey || section.key,
             posts: section.posts.map((post, idx) => ({
               id: `news-${section.key}-${post.id}-${idx}`,
+              postId: post.id, // 상세화면 본문 조회용 (위 탑뉴스 주석 참고)
               title: post.title,
               content: post.content || { rendered: "" },
               excerpt: post.excerpt,

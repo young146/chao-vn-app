@@ -75,7 +75,126 @@ add_action('rest_api_init', function () {
         'callback'            => 'chaovn_debug_posts',
         'permission_callback' => '__return_true',
     ));
+
+    // 매거진 홈 (앱 "매거진" 탭) — 섹션 9개를 서버가 조립해서 한 번에 준다
+    register_rest_route('chaovn/v1', '/magazine-home', array(
+        'methods'             => 'GET',
+        'callback'            => 'chaovn_get_magazine_home',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+// ============================================================
+// 매거진 홈 API
+// ------------------------------------------------------------
+// 왜 만드는가 (2026-08-05 앱 전면 감사):
+//   앱이 이 화면을 그리려고 WordPress 를 11번 불렀다 —
+//   카테고리 목록 2페이지(순차, 0.95초) → 섹션 9개(병렬, 2.3초) = 3.3초.
+//   뉴스탭이 빠른 이유는 서버가 조립해 주기 때문이다(1번, 0.4초). 같은 방식으로 옮긴다.
+// 캐시: 매거진은 격주 발행이라 30분 캐시로 충분하다. 캐시가 있으면 DB 조회 0회.
+// ============================================================
+define('CHAOVN_MAGAZINE_CACHE_KEY', 'chaovn_magazine_home_v1');
+define('CHAOVN_MAGAZINE_TTL', 30 * MINUTE_IN_SECONDS);
+
+/**
+ * 매거진 홈 섹션 정의.
+ *
+ * ⚠️ 앱의 HOME_SECTIONS_CONFIG(services/wordpressApi.js)와 *이름이 정확히 같아야* 한다.
+ * 화면에 그대로 찍히는 문자열이다. 카테고리 ID 도 그 파일에서 가져왔다.
+ * WP_Query 의 'cat' 은 하위 카테고리를 자동 포함하므로 자식 ID 를 따로 나열하지 않는다
+ * (앱은 자식을 직접 찾아 나열했는데, 그것 때문에 카테고리 목록 2페이지를 먼저 받아야 했다).
+ */
+function chaovn_magazine_home_sections() {
+    return array(
+        array('id' => 32,  'name' => '교민소식',            'cats' => array(32)),
+        array('id' => 445, 'name' => '비즈니스&사회',        'cats' => array(445)),
+        // 칼럼: 13(컬럼) 과 382(CHAO COLUMN) 는 부모-자식이 아니라 별개 최상위라 함께 지정
+        array('id' => 13,  'name' => '칼럼&오피니언',        'cats' => array(13, 382)),
+        array('id' => 124, 'name' => '교육&자녀',            'cats' => array(124)),
+        array('id' => 427, 'name' => 'F&R',                 'cats' => array(427)),
+        array('id' => 453, 'name' => 'Health Section',      'cats' => array(453)),
+        array('id' => 413, 'name' => '골프&스포츠',          'cats' => array(413)),
+        array('id' => 7,   'name' => '라이프&조이&트래블',    'cats' => array(7)),
+        array('id' => 456, 'name' => 'Pet World',           'cats' => array(456)),
+    );
+}
+
+function chaovn_get_magazine_home($request) {
+    $force = ('1' === (string) $request->get_param('refresh'));
+
+    if (!$force) {
+        $cached = get_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+        if ($cached !== false) {
+            $cached['_cache'] = 'hit';
+            return new WP_REST_Response($cached, 200);
+        }
+    }
+
+    $sections = array();
+    foreach (chaovn_magazine_home_sections() as $sec) {
+        $q = new WP_Query(array(
+            'post_type'      => 'post',
+            'posts_per_page' => 4, // 앱 홈은 2x2 그리드
+            'cat'            => implode(',', $sec['cats']),
+            'post_status'    => 'publish',
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'no_found_rows'  => true,
+            // 날짜 제한 없음 — 매거진은 뉴스가 아니다. 몇 년 전 칼럼도 그대로 유효하다.
+        ));
+
+        $posts = array();
+        if ($q->have_posts()) {
+            while ($q->have_posts()) {
+                $q->the_post();
+                $pid   = get_the_ID();
+                $thumb = get_the_post_thumbnail_url($pid, 'medium_large');
+                $posts[] = array(
+                    'postId'    => $pid,
+                    'title'     => array('rendered' => get_the_title($pid)),
+                    'date'      => get_the_date('c', $pid),
+                    'link'      => get_permalink($pid),
+                    'thumbnail' => $thumb ? $thumb : '',
+                    // 상세화면이 뉴스/매거진을 구분하는 데 쓴다
+                    'categories' => wp_get_post_categories($pid),
+                );
+            }
+        }
+        wp_reset_postdata();
+
+        // 기사가 없는 섹션도 그대로 내려준다 — 앱이 빈 칸을 그려 레이아웃을 유지한다.
+        $sections[] = array(
+            'id'    => $sec['id'],
+            'name'  => $sec['name'],
+            'posts' => $posts,
+        );
+    }
+
+    $data = array(
+        'success'  => true,
+        'sections' => $sections,
+        '_cache'   => 'miss',
+    );
+
+    // 한 섹션이라도 내용이 있어야 캐시한다 — 빈 결과를 캐시하면 30분 동안 빈 화면이 된다.
+    $has_content = false;
+    foreach ($sections as $s) {
+        if (!empty($s['posts'])) { $has_content = true; break; }
+    }
+    if ($has_content) {
+        set_transient(CHAOVN_MAGAZINE_CACHE_KEY, $data, CHAOVN_MAGAZINE_TTL);
+    }
+
+    return new WP_REST_Response($data, 200);
+}
+
+// 매거진 글이 새로 발행되면 캐시를 지운다 (30분을 기다리지 않게)
+add_action('publish_post', 'chaovn_purge_magazine_cache');
+function chaovn_purge_magazine_cache($post_id) {
+    // 뉴스(카테고리 31)는 매거진 홈에 안 들어가므로 무시
+    if (chaovn_is_news_post($post_id)) return;
+    delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+}
 
 function chaovn_debug_posts($request) {
     $tz   = new DateTimeZone('Asia/Ho_Chi_Minh');
@@ -151,9 +270,20 @@ function chaovn_get_news_terminal($request) {
         //    처럼 날짜를 박아 부르기 때문. 그래서 별도 플래그가 필요하다.
         $do_fill = ('1' === (string) $request->get_param('fill'));
 
+        // 본문(content)까지 실어 보낼지 여부. 앱이 light=1 을 붙이면 뺀다.
+        //
+        // 이 응답의 78%(285KB/366KB)가 기사 본문인데, 목록 화면은 제목·썸네일·요약만 쓴다.
+        // 즉 "읽지도 않을 기사 95건의 본문"을 매번 내려보내고 앱은 그걸 캐시에까지 저장했다.
+        //
+        // ⚠️ 그런데 '빼기'를 기본값으로 하면 안 된다. OTA 는 즉시 전파되지 않는다 —
+        // 아직 구버전 JS 로 도는 앱은 *목록에서 받은 본문*으로 상세화면을 그리므로,
+        // 서버가 일방적으로 본문을 빼면 그 사용자들은 기사 본문 대신 요약만 보게 된다.
+        // 그래서 새 앱만 light=1 을 붙이고, 그 앱은 기사를 열 때 본문을 따로 받아온다.
+        $light = ('1' === (string) $request->get_param('light'));
+
         // ── 캐시 확인 ──────────────────────────────────────
-        // 채운 지면과 안 채운 지면은 내용이 다르므로 캐시도 따로 둔다(_f).
-        $cache_key  = CHAOVN_NEWS_CACHE_PREFIX . $target_date . ($do_fill ? '_f' : '');
+        // 채운 지면(_f) / 본문 뺀 지면(_l) 은 내용이 다르므로 캐시도 따로 둔다.
+        $cache_key  = CHAOVN_NEWS_CACHE_PREFIX . $target_date . ($do_fill ? '_f' : '') . ($light ? '_l' : '');
         $is_today   = ($target_date === $now->format('Y-m-d'));
 
         // 오늘 날짜는 항상 DB에서 새로 조회 (발행 중간에 캐시되는 문제 방지)
@@ -177,7 +307,7 @@ function chaovn_get_news_terminal($request) {
         $top_count = 0;
         foreach ($result['top_news'] as $post) {
             if ($top_count >= 2) break;
-            $top_news[] = chaovn_format_post($post);
+            $top_news[] = chaovn_format_post($post, $light);
             $top_count++;
         }
 
@@ -237,7 +367,7 @@ function chaovn_get_news_terminal($request) {
             if (!empty($grouped_posts[$sec_key])) {
                 $posts = array();
                 foreach ($grouped_posts[$sec_key] as $post) {
-                    $posts[] = chaovn_format_post($post);
+                    $posts[] = chaovn_format_post($post, $light);
                 }
                 $news_sections[] = array(
                     'key'         => $sec_key,
@@ -292,9 +422,10 @@ function chaovn_on_post_published($post_id) {
     $cache_key = CHAOVN_NEWS_CACHE_PREFIX . $date;
 
     // 기존 캐시 삭제 (재생성은 API 호출 시 Lazy Loading 하도록 위임하여 Race Condition 방지)
-    // 채운 지면(_f)도 같이 지운다 — 한쪽만 지우면 앱에 옛 지면이 계속 나간다.
-    delete_transient($cache_key);
-    delete_transient($cache_key . '_f');
+    // 변형이 4가지다(기본 / 채움_f / 본문뺌_l / 둘 다). 하나라도 남기면 앱에 옛 지면이 계속 나간다.
+    foreach (array('', '_f', '_l', '_f_l') as $suffix) {
+        delete_transient($cache_key . $suffix);
+    }
 
     // WP-Cron 대기 스케줄 제거
     wp_clear_scheduled_hook('chaovn_rebuild_news_cache', array($date));
@@ -318,8 +449,9 @@ function chaovn_do_rebuild_news_cache($date) {
 // 관리자 수동 갱신 엔드포인트
 function chaovn_rebuild_news_cache_endpoint($request) {
     $date = $request->get_param('date') ?: (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d');
-    delete_transient(CHAOVN_NEWS_CACHE_PREFIX . $date);
-    delete_transient(CHAOVN_NEWS_CACHE_PREFIX . $date . '_f');
+    foreach (array('', '_f', '_l', '_f_l') as $suffix) {
+        delete_transient(CHAOVN_NEWS_CACHE_PREFIX . $date . $suffix);
+    }
     chaovn_do_rebuild_news_cache($date);
     return array('success' => true, 'rebuilt' => $date);
 }
@@ -563,7 +695,7 @@ function chaovn_get_posts_by_date($date, $category_id) {
     );
 }
 
-function chaovn_format_post($post_data) {
+function chaovn_format_post($post_data, $light = false) {
     $post_id  = $post_data['post_id'];
     $post_obj = get_post($post_id);
 
@@ -585,8 +717,10 @@ function chaovn_format_post($post_data) {
 
     $category_display = chaovn_get_category_display_name($post_data['category']);
 
+    // 본문 렌더링은 비싸다 — the_content 필터가 글마다 돌면서 숏코드·임베드를 처리한다.
+    // light 모드에서는 아예 만들지 않는다(전송량뿐 아니라 서버 시간도 아낀다).
     $content_html = '';
-    if (!empty($post_obj->post_content)) {
+    if (!$light && !empty($post_obj->post_content)) {
         $content_html = apply_filters('the_content', $post_obj->post_content);
     }
 
