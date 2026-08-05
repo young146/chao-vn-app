@@ -426,6 +426,20 @@ export default function MagazineScreen({ navigation, route }) {
           setSlides(homeData.slideshowPosts || []);
           setHomeSections(homeData.homeSections || []);
           setLoading(false);
+
+          // 캐시가 만료된 상태였다면(_stale) 옛 목록을 이미 화면에 띄운 뒤
+          // 뒤에서 조용히 갱신한다 — 사용자는 기다리지 않는다.
+          // 갱신에 실패하면 아무것도 하지 않는다(옛 목록이 그대로 남는 게 빈 화면보다 낫다).
+          if (homeData._stale) {
+            getHomeDataCached(true)
+              .then((fresh) => {
+                if (fresh?.homeSections?.length) {
+                  setSlides(fresh.slideshowPosts || []);
+                  setHomeSections(fresh.homeSections);
+                }
+              })
+              .catch(() => { });
+          }
           return;
         }
 

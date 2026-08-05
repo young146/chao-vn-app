@@ -48,6 +48,9 @@ export default function PostDetailScreen({ route, navigation }) {
 
   const [translatedContent, setTranslatedContent] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
+  // 목록이 본문을 안 실어 보낸 경우(매거진 홈) 이 화면에서 그 기사 하나만 받아온다.
+  const [fetchedHtml, setFetchedHtml] = useState('');
+  const [isLoadingBody, setIsLoadingBody] = useState(false);
   const [showPopup, setShowPopup] = useState(true); // 🎯 상세 진입 시 바로 팝업 표시
   const [isImageViewVisible, setIsImageViewVisible] = useState(false); // 🔍 이미지 확대 뷰어
 
@@ -141,9 +144,36 @@ export default function PostDetailScreen({ route, navigation }) {
     console.log('Date parse error:', e);
   }
 
+  // 📄 본문 확보
+  // 매거진 목록(홈 섹션)은 데이터를 가볍게 유지하려고 본문을 빼고 받는다 — 안 그러면
+  // 읽지도 않을 기사 36건의 본문 전체를 매번 미리 받게 된다(1.3MB, 캐시 0.78MB).
+  // 그래서 본문이 없으면 여기서 그 기사 하나만 받아온다. 뉴스처럼 목록이 본문을 이미
+  // 실어 보낸 경우에는 네트워크를 타지 않는다.
+  useEffect(() => {
+    if (post.content?.rendered) return;
+    // 목록에서 id 는 화면용 키로 덮어써져 있다("sec-32-12345-0") → 원본 번호는 postId
+    const wpId = post.postId || (typeof post.id === 'number' ? post.id : null);
+    if (!wpId) return;
+
+    let alive = true;
+    setIsLoadingBody(true);
+    const base = route.params?.baseUrl || 'https://chaovietnam.co.kr/wp-json/wp/v2';
+    fetch(`${base}/posts/${wpId}?_fields=content`)
+      .then((r) => r.json())
+      .then((d) => { if (alive) setFetchedHtml(d?.content?.rendered || ''); })
+      .catch((e) => { console.log('본문 로드 실패:', e?.message); })
+      .finally(() => { if (alive) setIsLoadingBody(false); });
+
+    return () => { alive = false; };
+  }, [post?.postId, post?.id]);
+
+  // excerpt 는 WordPress 에서 {rendered} 객체로 온다 — 문자열로 확정해 둔다.
+  // (객체가 그대로 흘러가면 아래 .trim() 에서 터진다)
+  const excerptHtml =
+    post.excerpt?.rendered || (typeof post.excerpt === 'string' ? post.excerpt : '');
+
   // 🔧 본문에서 첫 번째 이미지 제거 (featuredImage와 중복 방지)
-  // 안전하게 content 필드 확인
-  let originalContentHtml = post.content?.rendered || post.excerpt || '';
+  let originalContentHtml = post.content?.rendered || fetchedHtml || excerptHtml || '';
   if (featuredImage && originalContentHtml) {
     // 본문 맨 앞의 공백 제거 후 <img> 또는 <figure> 태그 제거
     originalContentHtml = originalContentHtml.trim()
@@ -267,6 +297,14 @@ export default function PostDetailScreen({ route, navigation }) {
         )}
 
         <View style={styles.content}>
+          {isLoadingBody && (
+            <View style={styles.translatingContainer}>
+              <ActivityIndicator size="small" color="#FF6B35" />
+              <Text style={styles.translatingText}>
+                {i18n.language === 'ko' ? '본문 불러오는 중...' : 'Loading...'}
+              </Text>
+            </View>
+          )}
           {isTranslating && (
             <View style={styles.translatingContainer}>
               <ActivityIndicator size="small" color="#FF6B35" />

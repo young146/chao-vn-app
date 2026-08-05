@@ -13,6 +13,15 @@ const api = axios.create({
   timeout: 5000, // 5초 - 느린 네트워크에서 빠른 캐시 폴백
 });
 
+/**
+ * 매거진 홈(섹션 9개) 전용 타임아웃.
+ *
+ * 왜 따로 두나: 이 화면만 요청이 11번(카테고리 2 + 섹션 9)이고 앱 시작 시 다른 6개 탭과
+ * 동시에 나간다(lazy:false). 실측 2.8초(유선) → 베트남 모바일이면 6~9초라 5초에 자주 걸린다.
+ * 그리고 여기서 한 번 실패하면 홈이 통째로 비어 보이므로, 조금 더 기다리는 편이 낫다.
+ */
+const HOME_REQUEST_TIMEOUT = 12000;
+
 // 뉴스 카테고리 섹션 정의 (WordPress 사이트와 동일한 순서)
 const NEWS_SECTIONS_CONFIG = [
   { id: null, name: "경제", categoryKey: "Economy" },
@@ -105,6 +114,7 @@ const getAllCategories = async () => {
       do {
         const response = await api.get(`${MAGAZINE_BASE_URL}/categories`, {
           params: { per_page: 100, page },
+          timeout: HOME_REQUEST_TIMEOUT,
         });
         all.push(...response.data);
         totalPages =
@@ -121,8 +131,10 @@ const getAllCategories = async () => {
         error.response?.status,
         error.message,
       );
-      // 빈 배열 캐시해서 재시도 방지
-      cachedCategories = [];
+      // ⚠️ 실패를 캐시하면 안 된다. 예전엔 여기서 cachedCategories = [] 로 "재시도 방지"를
+      // 했는데, 이 변수는 앱이 살아있는 동안 계속 남는다 → 네트워크가 한 번 삐끗해 실패하면
+      // 홈의 9개 섹션이 전부 "카테고리 못 찾음"이 되어, 앱을 완전히 껐다 켜기 전까지
+      // 매거진 탭이 계속 빈 화면이었다. 실패는 기억하지 않고 다음 호출에서 다시 시도한다.
       return [];
     } finally {
       categoriesFetchPromise = null;
@@ -214,10 +226,17 @@ const getPostsForSection = async (section) => {
       orderby: "date",
       order: "desc",
       _embed: 1,
+      // 본문(content)은 목록에 필요 없다 — 카드가 쓰는 건 제목·썸네일·날짜뿐이다.
+      // 본문까지 받으면 섹션 하나가 167KB(9섹션 = 1.3MB), 저장되는 캐시가 0.78MB 가 되어
+      // 탭을 열 때마다 그걸 읽고 파싱하느라 화면이 멈칫한다. 실측 167KB → 29KB.
+      // 본문은 기사를 실제로 열 때 PostDetailScreen 이 그 한 건만 받아온다.
+      // _links 는 반드시 남겨야 한다 — 이게 없으면 _embed 가 통째로 빠져 썸네일이 사라진다.
+      _fields: "id,title,date,link,excerpt,categories,_links",
     };
 
     const response = await api.get(`${MAGAZINE_BASE_URL}/posts`, {
       params,
+      timeout: HOME_REQUEST_TIMEOUT,
     });
 
     return response.data.slice(0, 4); // 최대 4개
@@ -241,7 +260,14 @@ export const getHomeDataCached = async (forceRefresh = false) => {
           console.log("📦 캐시 사용 (유효)");
           return data;
         }
-        console.log("⏰ 캐시 만료, 새 데이터 로드");
+        // 만료됐어도 *일단 돌려준다*. 예전엔 여기서 곧장 네트워크로 넘어가 3~9초를 기다렸고,
+        // 그 동안 화면은 비어 있었다. 옛 목록이라도 즉시 보여주는 편이 낫다.
+        // _stale 표시를 보고 화면이 뒤에서 조용히 갱신한다(→ MagazineScreen).
+        if (data?.homeSections?.length) {
+          console.log("⏰ 캐시 만료 — 옛 데이터 먼저 표시하고 뒤에서 갱신");
+          return { ...data, _stale: true };
+        }
+        console.log("⏰ 캐시 만료(내용 없음), 새 데이터 로드");
       }
     }
 
@@ -266,9 +292,28 @@ export const getHomeDataCached = async (forceRefresh = false) => {
       getPostsForSection(section)
         .then((posts) => ({
           ...section,
+          // 응답을 통째로 들고 있지 말고 *화면이 실제로 쓰는 것만* 남긴다.
+          // WordPress 응답에는 _links(글마다 수십 개 URL)와 _embedded 안의 부가정보가
+          // 딸려오는데, 이걸 그대로 캐시에 저장하면 316KB → 탭 열 때마다 그 JSON 을
+          // 읽고 파싱하느라 화면이 멈칫한다. 필요한 것만 남기면 29KB.
           posts: posts.map((post, idx) => ({
-            ...post,
+            // id 는 화면 목록의 key 용(중복 방지) — 원본 글 번호는 postId 로 따로 보관한다.
+            // 상세화면이 본문을 받아올 때 이 번호가 필요하다.
             id: `sec-${section.id}-${post.id}-${idx}`,
+            postId: post.id,
+            title: post.title,
+            date: post.date,
+            link: post.link,
+            excerpt: post.excerpt, // 본문 조회 실패 시 대체 표시용
+            categories: post.categories, // 상세화면 측정(뉴스/매거진 구분)에 쓰인다
+            _embedded: {
+              "wp:featuredmedia": [
+                {
+                  source_url:
+                    post._embedded?.["wp:featuredmedia"]?.[0]?.source_url,
+                },
+              ],
+            },
           })),
         }))
         .catch((error) => {
@@ -296,7 +341,25 @@ export const getHomeDataCached = async (forceRefresh = false) => {
 
     const result = { homeSections, slideshowPosts };
 
-    // 5. 캐시 저장
+    // 5. 캐시 저장 — 단, *내용이 있을 때만*.
+    // ⚠️ 예전엔 결과가 비어도 그대로 저장했다. 그래서 네트워크가 한 번 삐끗해 섹션을 0개
+    // 받으면 "빈 화면"이 6시간짜리 캐시로 굳어, 앱을 껐다 켜도 6시간 동안 매거진 탭이
+    // 비어 있었다. 빈 결과는 저장하지 않고, 있던 캐시(옛 목록)를 그대로 돌려준다.
+    const hasContent = homeSections.some((s) => s.posts && s.posts.length > 0);
+    if (!hasContent) {
+      console.warn("⚠️ 홈 데이터가 비어 있음 — 캐시에 저장하지 않고 이전 데이터 유지");
+      try {
+        const prev = await AsyncStorage.getItem(CACHE_KEY);
+        if (prev) {
+          const prevData = JSON.parse(prev).data;
+          if (prevData?.homeSections?.length) return prevData;
+        }
+      } catch (e) {
+        console.error("이전 캐시 읽기 실패:", e);
+      }
+      return result;
+    }
+
     await AsyncStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
