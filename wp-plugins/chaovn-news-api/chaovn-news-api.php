@@ -270,19 +270,48 @@ function chaovn_save_issue_meta($term_id) {
  *  - 이미 호가 지정된 글: 사람이 정한 것을 덮어쓰지 않는다
  *  - "이번 호"가 설정 안 된 경우: 아무것도 하지 않는다(조용히 넘어간다)
  */
-add_action('save_post_post', 'chaovn_auto_assign_issue', 20, 2);
-function chaovn_auto_assign_issue($post_id, $post) {
-    if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) return;
-    if (!$post || $post->post_status !== 'publish') return;
-    if (chaovn_is_news_post($post_id)) return;
+// 두 경로 모두에서 동작해야 한다:
+//  - 블록 편집기(구텐베르크)는 REST 로 저장한다 → 카테고리가 글보다 *나중에* 저장되므로
+//    save_post 시점에는 "이 글이 뉴스인지" 판단할 수 없다. rest_after_insert_post 가 맞다.
+//  - 클래식 편집기·일괄 편집 등은 save_post 로 온다.
+add_action('rest_after_insert_post', 'chaovn_auto_assign_issue_rest', 10, 1);
+add_action('save_post_post', 'chaovn_auto_assign_issue_save', 20, 2);
 
-    $existing = wp_get_object_terms($post_id, CHAOVN_ISSUE_TAX, array('fields' => 'ids'));
+function chaovn_auto_assign_issue_rest($post) { chaovn_auto_assign_issue($post); }
+function chaovn_auto_assign_issue_save($post_id, $post) {
+    // REST 저장이면 rest_after_insert_post 가 처리한다(거기서는 카테고리가 확정돼 있다)
+    if (defined('REST_REQUEST') && REST_REQUEST) return;
+    chaovn_auto_assign_issue($post);
+}
+
+/**
+ * 글을 새로 발행하면 "이번 호"에 자동으로 넣는다 — 직원 작업 0.
+ *
+ * 건드리지 않는 경우:
+ *  - 데일리 뉴스(31): 잡지가 아니다
+ *  - 이미 호가 지정된 글: 사람이 정한 것을 덮어쓰지 않는다
+ *  - "이번 호"가 설정 안 된 경우: 아무것도 하지 않는다
+ *  - ⚠️ 발행일이 오래된 글: **옛 글을 수정만 해도 이번 호로 딸려 들어가는 사고**를 막는다.
+ *    (사장님 질문에서 발견 — 직원이 2년 전 칼럼의 오타를 고치면 그 글이 565호 목차에
+ *     나타나게 된다. 발행 시점 기준으로 최근 글만 자동 부여한다.)
+ */
+function chaovn_auto_assign_issue($post) {
+    if (!$post || $post->post_type !== 'post') return;
+    if (wp_is_post_revision($post->ID) || wp_is_post_autosave($post->ID)) return;
+    if ($post->post_status !== 'publish') return;
+    if (chaovn_is_news_post($post->ID)) return;
+
+    // 발행일이 최근인 글만 (45일 = 호 3개분 여유. 예약발행·날짜 수정도 감안)
+    $age_days = (time() - get_post_time('U', true, $post)) / DAY_IN_SECONDS;
+    if ($age_days > 45) return;
+
+    $existing = wp_get_object_terms($post->ID, CHAOVN_ISSUE_TAX, array('fields' => 'ids'));
     if (!is_wp_error($existing) && !empty($existing)) return;
 
     $current = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
     if (!$current) return;
 
-    wp_set_object_terms($post_id, array($current), CHAOVN_ISSUE_TAX);
+    wp_set_object_terms($post->ID, array($current), CHAOVN_ISSUE_TAX);
     delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
 }
 
