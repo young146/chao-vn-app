@@ -397,11 +397,19 @@ const CurrentIssueBlock = ({ issue, onPressPost }) => {
 
   const dateStr = (issue.date || '').replace(/-/g, '.');
   const label = issue.number ? `제${issue.number}호` : issue.title;
+  const articleCount = issue.posts?.length || 0;
+
+  // 발행일이 아직 안 온 호 = "발행 예정".
+  // 이 상태를 표시하지 않으면 기사도 표지도 없는 빈 칸이 그냥 고장처럼 보인다
+  // (2026-08-06 사장님이 실물에서 지적).
+  const publishTs = issue.date ? new Date(`${issue.date}T00:00:00`).getTime() : NaN;
+  const isUpcoming = !isNaN(publishTs) && publishTs > Date.now();
 
   return (
     <View style={styles.issueBlock}>
       <View style={styles.issueHeader}>
         <Text style={styles.issueBadge}>📖 이번 호</Text>
+        {isUpcoming && <Text style={styles.issueUpcomingTag}>발행 예정</Text>}
       </View>
 
       <View style={styles.issueTop}>
@@ -411,14 +419,23 @@ const CurrentIssueBlock = ({ issue, onPressPost }) => {
           /* 표지를 아직 안 올린 호도 화면이 깨지면 안 된다 — 대체 표지를 그린다 */
           <View style={[styles.issueCover, styles.issueCoverEmpty]}>
             <Text style={styles.issueCoverEmptyText}>{label}</Text>
+            {isUpcoming && <Text style={styles.issueCoverEmptySub}>표지 준비 중</Text>}
           </View>
         )}
         <View style={styles.issueInfo}>
           <Text style={styles.issueTitle}>{label}</Text>
-          {dateStr ? <Text style={styles.issueMeta}>{dateStr} 발행</Text> : null}
-          {issue.posts?.length ? (
-            <Text style={styles.issueMeta}>수록 기사 {issue.count || issue.posts.length}편</Text>
+          {dateStr ? (
+            <Text style={styles.issueMeta}>{dateStr} {isUpcoming ? '발행 예정' : '발행'}</Text>
           ) : null}
+          {articleCount > 0 ? (
+            <Text style={styles.issueMeta}>기사 {issue.count || articleCount}편</Text>
+          ) : (
+            <Text style={styles.issueNotice}>
+              {isUpcoming
+                ? '발행일에 맞춰 기사가 올라옵니다.'
+                : '기사를 준비하고 있습니다.'}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -1282,6 +1299,8 @@ const styles = StyleSheet.create({
     borderColor: '#FFE0D2',
   },
   issueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
   },
   issueBadge: {
@@ -1289,13 +1308,38 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#E85A24',
   },
+  issueUpcomingTag: {
+    marginLeft: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7048E8',
+    backgroundColor: '#F3F0FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  issueNotice: {
+    fontSize: 13,
+    color: '#868E96',
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  issueCoverEmptySub: {
+    fontSize: 11,
+    color: '#C08B6E',
+    marginTop: 4,
+  },
   issueTop: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  // 표지는 잡지 앱의 주인공이다. 84px 은 엄지손톱만 해서 표지 구실을 못 했고
+  // 오른쪽이 텅 비어 보였다(2026-08-06 사장님 지적).
+  // 화면 폭의 34% → 잡지 앱들이 쓰는 비중(35~45%)의 아래쪽. 3:4 비율 유지.
   issueCover: {
-    width: 84,
-    height: 112, // 잡지 표지 비율(3:4)
+    width: Math.round(width * 0.34),
+    height: Math.round(width * 0.34 * 4 / 3),
     borderRadius: 6,
     backgroundColor: '#F1F3F5',
     marginRight: 14,
