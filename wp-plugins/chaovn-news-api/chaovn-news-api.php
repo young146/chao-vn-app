@@ -119,6 +119,113 @@ function chaovn_magazine_home_sections() {
     );
 }
 
+/**
+ * 고정 섹션에 안 잡히는 카테고리를 자동으로 찾아 섹션으로 만든다.
+ *
+ * 왜 필요한가 (2026-08-06 실측):
+ *   잡지는 매호 새 꼭지가 생긴다. 그런데 노출은 "카테고리 9개 화이트리스트"로 굳어 있어서,
+ *   최근 매거진 글 100건 중 **16건(16%)이 앱에서 아예 안 보였다** — 그것도 하필
+ *   INTERVIEW·BUSINESS(피플), DESK TALK, EVENT·MOVIE 같은 간판 꼭지였다.
+ *   새 카테고리(예: Lifestyle Trend)가 생기면 개발자가 코드를 고치기 전엔 영원히 안 보인다.
+ *
+ * 규칙:
+ *   1) 데일리 뉴스(31)와 그 하위는 제외 — 매거진이 아니다. (31 은 '뉴스(6)' 밑에 있어서
+ *      루트째로 묶으면 뉴스가 매거진 탭에 섞인다. 반드시 걸러야 한다.)
+ *   2) 최근 글 중 기존 섹션에 안 잡히는 것을 찾아, 그 글 카테고리의
+ *      "아직 커버 안 된 가장 위쪽 조상"으로 묶는다 → 꼭지 하나하나가 아니라 큰 덩어리로 묶인다.
+ *      (BUSINESS·INTERVIEW → '피플' 하나로)
+ *   3) 글이 MIN_POSTS 건 미만인 것은 섹션으로 만들지 않는다 (일회성 카테고리 방지).
+ *   4) 관리자가 숨기고 싶으면 옵션 chaovn_magazine_hidden_sections 에 카테고리 ID 를 넣는다.
+ *
+ * @return array [['id'=>int,'name'=>string,'cats'=>[int]], ...]
+ */
+function chaovn_magazine_discover_sections($fixed_sections) {
+    $LOOKBACK_MONTHS = 6;
+    $MIN_POSTS       = 2;
+    $SCAN_LIMIT      = 200;
+
+    $all = get_categories(array('hide_empty' => false));
+    if (empty($all)) return array();
+
+    $children = array(); // parent_id => [child_id]
+    $parent   = array(); // id => parent_id
+    foreach ($all as $c) {
+        $children[$c->parent][] = $c->term_id;
+        $parent[$c->term_id]    = (int) $c->parent;
+    }
+    $descendants = function ($id) use (&$descendants, $children) {
+        $out = array($id);
+        if (!empty($children[$id])) {
+            foreach ($children[$id] as $kid) {
+                $out = array_merge($out, $descendants($kid));
+            }
+        }
+        return $out;
+    };
+
+    // 1) 이미 보이는 카테고리 + 제외 카테고리
+    $covered = array();
+    foreach ($fixed_sections as $sec) {
+        foreach ($sec['cats'] as $cid) {
+            $covered = array_merge($covered, $descendants($cid));
+        }
+    }
+    $covered = array_flip($covered);
+    $exclude = array_flip($descendants(CHAOVN_NEWS_CAT_ID));
+
+    // 2) 최근 매거진 글을 훑는다
+    $q = new WP_Query(array(
+        'post_type'      => 'post',
+        'posts_per_page' => $SCAN_LIMIT,
+        'post_status'    => 'publish',
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+        'no_found_rows'  => true,
+        'fields'         => 'ids',
+        'date_query'     => array(array('after' => $LOOKBACK_MONTHS . ' months ago')),
+        'category__not_in' => array_keys($exclude),
+    ));
+
+    $counts = array();
+    foreach ($q->posts as $pid) {
+        $cats = array_diff(wp_get_post_categories($pid), array_keys($exclude));
+        if (empty($cats)) continue;
+
+        // 이미 보이는 글이면 건너뛴다
+        $visible = false;
+        foreach ($cats as $c) { if (isset($covered[$c])) { $visible = true; break; } }
+        if ($visible) continue;
+
+        foreach ($cats as $c) {
+            // 커버 안 된 가장 위쪽 조상까지 올라간다
+            $node = $c;
+            while (!empty($parent[$node]) && !isset($covered[$parent[$node]]) && !isset($exclude[$parent[$node]])) {
+                $node = $parent[$node];
+            }
+            $counts[$node] = isset($counts[$node]) ? $counts[$node] + 1 : 1;
+        }
+    }
+    wp_reset_postdata();
+
+    arsort($counts);
+    $hidden = (array) get_option('chaovn_magazine_hidden_sections', array());
+    $out    = array();
+    foreach ($counts as $cid => $n) {
+        if ($n < $MIN_POSTS) continue;
+        if (in_array((int) $cid, array_map('intval', $hidden), true)) continue;
+        $term = get_term($cid, 'category');
+        if (!$term || is_wp_error($term)) continue;
+        $out[] = array(
+            'id'    => (int) $cid,
+            // 카테고리 이름에 &amp; 같은 엔티티가 들어있다 — 화면에 그대로 찍히면 안 된다
+            'name'  => html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'),
+            'cats'  => array((int) $cid),
+            'auto'  => true,
+        );
+    }
+    return $out;
+}
+
 function chaovn_get_magazine_home($request) {
     $force = ('1' === (string) $request->get_param('refresh'));
 
@@ -130,8 +237,12 @@ function chaovn_get_magazine_home($request) {
         }
     }
 
+    // 고정 9개(이름·순서를 사람이 정한 것) 뒤에, 자동으로 찾아낸 섹션을 붙인다.
+    $fixed    = chaovn_magazine_home_sections();
+    $section_defs = array_merge($fixed, chaovn_magazine_discover_sections($fixed));
+
     $sections = array();
-    foreach (chaovn_magazine_home_sections() as $sec) {
+    foreach ($section_defs as $sec) {
         $q = new WP_Query(array(
             'post_type'      => 'post',
             'posts_per_page' => 4, // 앱 홈은 2x2 그리드
@@ -166,6 +277,7 @@ function chaovn_get_magazine_home($request) {
         $sections[] = array(
             'id'    => $sec['id'],
             'name'  => $sec['name'],
+            'auto'  => !empty($sec['auto']), // 자동으로 찾아낸 섹션인지 (점검·관리용)
             'posts' => $posts,
         );
     }
