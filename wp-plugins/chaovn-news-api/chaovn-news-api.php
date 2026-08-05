@@ -340,8 +340,13 @@ function chaovn_issue_settings_page() {
     // 2) 과거 글 일괄 부여 실행
     if (isset($_POST['chaovn_run_backfill']) && check_admin_referer('chaovn_issue_settings')) {
         $latest = intval($_POST['chaovn_latest_number']);
-        $result = chaovn_backfill_issues($latest, false);
-        $notice = sprintf('%d개 호를 만들고 %d건의 글에 호를 붙였습니다.', $result['issues'], $result['posts']);
+        $reset  = !empty($_POST['chaovn_reset_first']);
+        $result = chaovn_backfill_issues($latest, false, $reset);
+        $notice = sprintf(
+            '%s%d개 호를 만들고 %d건의 글에 호를 붙였습니다.',
+            $reset ? sprintf('기존 지정 %d건을 지운 뒤, ', $result['reset']) : '',
+            $result['issues'], $result['posts']
+        );
         delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
     }
 
@@ -385,26 +390,44 @@ function chaovn_issue_settings_page() {
             <p>
                 가장 최근 뭉치의 호수:
                 <input type="number" name="chaovn_latest_number" value="<?php echo esc_attr($preview['suggest_latest']); ?>" style="width:100px" />
+                <label style="margin-left:14px">
+                    <input type="checkbox" name="chaovn_reset_first" value="1" />
+                    <strong>이미 붙은 호를 지우고 다시 붙이기</strong>
+                </label>
                 <button class="button" name="chaovn_run_backfill" value="1"
                         onclick="return confirm('아래 미리보기대로 호를 만들고 글에 붙입니다. 계속할까요?');">실행</button>
             </p>
+            <p class="description">
+                한 번 잘못 붙였다면 위 체크를 켜고 다시 실행하세요.
+                (체크를 끄면 이미 호가 있는 글은 건드리지 않습니다 — 그래서 그냥 다시 실행해서는 안 고쳐집니다)
+            </p>
 
             <h3>미리보기 (지금은 아무것도 바뀌지 않습니다)</h3>
-            <table class="widefat striped" style="max-width:760px">
+            <table class="widefat striped" style="max-width:820px">
                 <thead><tr><th>업로드 기간</th><th>글 수</th><th>붙일 호수</th><th>이미 호가 있는 글</th></tr></thead>
                 <tbody>
-                <?php foreach ($preview['clusters'] as $i => $c): ?>
-                    <tr>
+                <?php foreach ($preview['clusters'] as $c):
+                    $is_issue = !empty($c['is_issue']);
+                    ?>
+                    <tr<?php echo $is_issue ? '' : ' style="opacity:.55"'; ?>>
                         <td><?php echo esc_html($c['from'] === $c['to'] ? $c['from'] : $c['from'] . ' ~ ' . $c['to']); ?></td>
                         <td><?php echo (int) $c['count']; ?>건</td>
-                        <td>제<?php echo (int) ($preview['suggest_latest'] - $i); ?>호</td>
+                        <td>
+                            <?php if ($is_issue && !empty($c['number'])): ?>
+                                제<?php echo (int) $c['number']; ?>호
+                            <?php else: ?>
+                                <em>호 아님 (상시 콘텐츠)</em>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo (int) $c['already']; ?>건</td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
             <p class="description">
-                ⚠️ 이미 호가 지정된 글은 건드리지 않습니다. 잘못 붙었으면 글 편집화면에서 체크박스로 고치면 됩니다.
+                글이 <?php echo 5; ?>건 미만인 뭉치는 <strong>호로 세지 않습니다</strong> — 잡지 한 호는 13~24건인데,
+                호 사이에 한두 건씩 올라오는 상시 콘텐츠(교민소식 등)를 한 호로 세면
+                <strong>그 아래 모든 호수가 한 칸씩 밀립니다.</strong>
             </p>
         </form>
     </div>
@@ -421,9 +444,13 @@ function chaovn_issue_settings_page() {
  * @param int  $latest_number 가장 최근 뭉치에 부여할 호수
  * @param bool $dry_run       true 면 아무것도 바꾸지 않고 미리보기만 만든다
  */
-function chaovn_backfill_issues($latest_number, $dry_run = true) {
+function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false) {
     $GAP_DAYS   = 3;
     $SCAN_LIMIT = 400;
+    // 잡지 한 호는 13~24건이다(실측). 그보다 훨씬 적은 뭉치는 호 사이에 올라온
+    // 상시 콘텐츠(교민소식 등)다. 이걸 한 호로 세면 *그 아래 모든 호수가 한 칸씩 밀린다.*
+    // (2026-08-06 사장님이 미리보기에서 발견: 7/22 1건이 호수를 하나 먹고 있었다)
+    $MIN_CLUSTER = 5;
 
     $news = get_categories(array('hide_empty' => false, 'child_of' => CHAOVN_NEWS_CAT_ID));
     $news_ids = array(CHAOVN_NEWS_CAT_ID);
@@ -459,24 +486,62 @@ function chaovn_backfill_issues($latest_number, $dry_run = true) {
     if ($cur !== null) $clusters[] = $cur;
     wp_reset_postdata();
 
-    // 미리보기용: 가장 최근 뭉치 호수 추천값 (이미 만들어진 호 중 최대 + 1, 없으면 565)
-    $suggest = 565;
-    $terms = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
-    if (!is_wp_error($terms) && $terms) {
-        $max = 0;
-        foreach ($terms as $t) $max = max($max, (int) get_term_meta($t->term_id, 'chaovn_issue_number', true));
-        if ($max) $suggest = $max;
+    // 작은 뭉치는 "호 아님"으로 표시하고 번호를 소비하지 않는다
+    $seq = 0;
+    foreach ($clusters as $k => $c) {
+        if ($c['count'] < $MIN_CLUSTER) {
+            $clusters[$k]['is_issue'] = false;
+            $clusters[$k]['number']   = null;
+        } else {
+            $clusters[$k]['is_issue'] = true;
+            $clusters[$k]['number']   = $latest_number ? ($latest_number - $seq) : null;
+            $seq++;
+        }
     }
 
+    // 미리보기용 추천값: "이미 발행일이 지난 호 중 가장 큰 호수".
+    // 제565호처럼 발행일이 아직 안 온 호는 지금 올라온 글들의 호가 아니다 —
+    // 그걸 그대로 추천하면 최근 뭉치가 통째로 한 호씩 밀린다(실제로 그렇게 됐다).
+    $suggest = 0;
+    $max_any = 0;
+    $today   = current_time('Y-m-d');
+    $terms   = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
+    if (!is_wp_error($terms) && $terms) {
+        foreach ($terms as $t) {
+            $n = (int) get_term_meta($t->term_id, 'chaovn_issue_number', true);
+            $d = get_term_meta($t->term_id, 'chaovn_issue_date', true);
+            if (!$n) continue;
+            $max_any = max($max_any, $n);
+            if (!$d || $d <= $today) $suggest = max($suggest, $n); // 이미 나온 호
+        }
+    }
+    if (!$suggest) $suggest = $max_any ? $max_any - 1 : 564;
+
     if ($dry_run) {
-        return array('clusters' => $clusters, 'suggest_latest' => $suggest, 'issues' => 0, 'posts' => 0);
+        return array('clusters' => $clusters, 'suggest_latest' => $suggest, 'issues' => 0, 'posts' => 0, 'reset' => 0);
+    }
+
+    // 다시 붙이기: 훑은 글들의 기존 호 지정을 먼저 지운다
+    // (잘못된 번호로 한 번 붙고 나면, 자동 부여는 "이미 있는 글"을 건너뛰므로 재실행으로는 못 고친다)
+    $cleared = 0;
+    if ($reset) {
+        foreach ($clusters as $c) {
+            foreach ($c['ids'] as $pid) {
+                $has = wp_get_object_terms($pid, CHAOVN_ISSUE_TAX, array('fields' => 'ids'));
+                if (!is_wp_error($has) && !empty($has)) {
+                    wp_set_object_terms($pid, array(), CHAOVN_ISSUE_TAX);
+                    $cleared++;
+                }
+            }
+        }
     }
 
     // 실제 부여
     $made = 0; $tagged = 0;
     foreach ($clusters as $i => $c) {
-        $number = $latest_number - $i;
-        if ($number <= 0) break;
+        if (empty($c['is_issue'])) continue;      // 상시 콘텐츠 뭉치는 호를 안 붙인다
+        $number = $c['number'];
+        if (!$number || $number <= 0) continue;
 
         $name = '제' . $number . '호';
         $term = get_term_by('name', $name, CHAOVN_ISSUE_TAX);
@@ -501,7 +566,7 @@ function chaovn_backfill_issues($latest_number, $dry_run = true) {
             $tagged++;
         }
     }
-    return array('clusters' => $clusters, 'suggest_latest' => $latest_number, 'issues' => $made, 'posts' => $tagged);
+    return array('clusters' => $clusters, 'suggest_latest' => $latest_number, 'issues' => $made, 'posts' => $tagged, 'reset' => $cleared);
 }
 
 /** 현재 호 정보를 앱/웹이 쓰기 좋은 형태로 */
