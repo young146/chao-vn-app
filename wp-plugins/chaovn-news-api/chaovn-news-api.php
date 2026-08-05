@@ -85,6 +85,378 @@ add_action('rest_api_init', function () {
 });
 
 // ============================================================
+// 매거진 호(號) 체계
+// ------------------------------------------------------------
+// 왜 만드는가 (2026-08-06):
+//   잡지인데 "몇 호"라는 개념이 데이터에 없었다(태그 0건/100건). 그래서 앱·웹은
+//   "카테고리별 최신 4건"이라는 우회 표현만 했고, 매호 새로 생기는 꼭지는 반영되지 않았다.
+//   호를 붙이면 "이번 호 목차"가 만들어지고, 새 꼭지가 나와도 코드 수정이 영원히 불필요하다.
+//
+// 설계 원칙 — 직원 작업을 늘리지 않는다:
+//   1) 편집 담당이 호마다 딱 한 번 "이번 호"를 지정한다 (호수·발행일·표지).
+//   2) 그 뒤 발행되는 글은 자동으로 그 호에 들어간다. 직원은 아무것도 안 해도 된다.
+//   3) 발행 주기가 불규칙하므로(격주 기본, 3개월에 한 번은 3주) 날짜로 호를 계산하지 않는다.
+//      계산식은 반드시 어긋난다. "지금 몇 호인가"는 사람이 정하고 시스템은 그것만 따른다.
+// ============================================================
+define('CHAOVN_ISSUE_TAX', 'mag_issue');
+define('CHAOVN_CURRENT_ISSUE_OPT', 'chaovn_current_issue');
+
+add_action('init', 'chaovn_register_issue_taxonomy');
+function chaovn_register_issue_taxonomy() {
+    register_taxonomy(CHAOVN_ISSUE_TAX, 'post', array(
+        'labels' => array(
+            'name'          => '매거진 호',
+            'singular_name' => '호',
+            'menu_name'     => '매거진 호',
+            'all_items'     => '모든 호',
+            'add_new_item'  => '새 호 추가',
+            'edit_item'     => '호 편집',
+            'search_items'  => '호 검색',
+        ),
+        // 계층형으로 두는 이유: 글 편집화면에 *체크박스*로 뜬다(태그처럼 직접 타이핑하면
+        // '565호' / '제565호' 같은 오타가 반드시 생긴다). 실제 계층은 쓰지 않는다.
+        'hierarchical'      => true,
+        'public'            => true,
+        'show_ui'           => true,
+        'show_admin_column' => true,
+        'show_in_rest'      => true,
+        'rewrite'           => array('slug' => 'magazine-issue'),
+    ));
+}
+
+/** 호 정보(호수·발행일·표지)를 워드프레스 기본 분류 화면에 붙인다 */
+add_action(CHAOVN_ISSUE_TAX . '_add_form_fields', 'chaovn_issue_add_fields');
+function chaovn_issue_add_fields() {
+    wp_enqueue_media();
+    ?>
+    <div class="form-field">
+        <label for="chaovn_issue_number">호수</label>
+        <input type="number" name="chaovn_issue_number" id="chaovn_issue_number" value="" />
+        <p>숫자만 입력하세요. 예: <code>565</code></p>
+    </div>
+    <div class="form-field">
+        <label for="chaovn_issue_date">발행일</label>
+        <input type="date" name="chaovn_issue_date" id="chaovn_issue_date" value="" />
+    </div>
+    <div class="form-field">
+        <label>표지 이미지</label>
+        <?php chaovn_issue_cover_field(0); ?>
+        <p>issuu 에 올리는 표지 파일을 그대로 쓰시면 됩니다. 호당 1장이면 됩니다.</p>
+    </div>
+    <?php
+}
+
+add_action(CHAOVN_ISSUE_TAX . '_edit_form_fields', 'chaovn_issue_edit_fields');
+function chaovn_issue_edit_fields($term) {
+    wp_enqueue_media();
+    $num   = get_term_meta($term->term_id, 'chaovn_issue_number', true);
+    $date  = get_term_meta($term->term_id, 'chaovn_issue_date', true);
+    $cover = (int) get_term_meta($term->term_id, 'chaovn_issue_cover_id', true);
+    ?>
+    <tr class="form-field">
+        <th><label for="chaovn_issue_number">호수</label></th>
+        <td><input type="number" name="chaovn_issue_number" id="chaovn_issue_number" value="<?php echo esc_attr($num); ?>" /></td>
+    </tr>
+    <tr class="form-field">
+        <th><label for="chaovn_issue_date">발행일</label></th>
+        <td><input type="date" name="chaovn_issue_date" id="chaovn_issue_date" value="<?php echo esc_attr($date); ?>" /></td>
+    </tr>
+    <tr class="form-field">
+        <th><label>표지 이미지</label></th>
+        <td><?php chaovn_issue_cover_field($cover); ?></td>
+    </tr>
+    <?php
+}
+
+/** 표지 선택 필드 (워드프레스 미디어 라이브러리 사용) */
+function chaovn_issue_cover_field($cover_id) {
+    $url = $cover_id ? wp_get_attachment_image_url($cover_id, 'medium') : '';
+    ?>
+    <div class="chaovn-cover-field">
+        <input type="hidden" name="chaovn_issue_cover_id" class="chaovn-cover-id" value="<?php echo esc_attr($cover_id); ?>" />
+        <img class="chaovn-cover-preview" src="<?php echo esc_url($url); ?>"
+             style="max-width:140px;display:<?php echo $url ? 'block' : 'none'; ?>;margin-bottom:6px;" />
+        <button type="button" class="button chaovn-cover-pick">표지 선택</button>
+        <button type="button" class="button chaovn-cover-clear">지우기</button>
+    </div>
+    <script>
+    (function(){
+      var root = document.currentScript.closest('.form-field, td') || document;
+      root.addEventListener('click', function(e){
+        var box = e.target.closest('.chaovn-cover-field');
+        if (!box) return;
+        if (e.target.classList.contains('chaovn-cover-pick')) {
+          e.preventDefault();
+          var frame = wp.media({ title:'표지 이미지 선택', multiple:false, library:{type:'image'} });
+          frame.on('select', function(){
+            var a = frame.state().get('selection').first().toJSON();
+            box.querySelector('.chaovn-cover-id').value = a.id;
+            var img = box.querySelector('.chaovn-cover-preview');
+            img.src = (a.sizes && a.sizes.medium ? a.sizes.medium.url : a.url);
+            img.style.display = 'block';
+          });
+          frame.open();
+        }
+        if (e.target.classList.contains('chaovn-cover-clear')) {
+          e.preventDefault();
+          box.querySelector('.chaovn-cover-id').value = '';
+          box.querySelector('.chaovn-cover-preview').style.display = 'none';
+        }
+      });
+    })();
+    </script>
+    <?php
+}
+
+add_action('created_' . CHAOVN_ISSUE_TAX, 'chaovn_save_issue_meta');
+add_action('edited_' . CHAOVN_ISSUE_TAX, 'chaovn_save_issue_meta');
+function chaovn_save_issue_meta($term_id) {
+    if (isset($_POST['chaovn_issue_number'])) {
+        update_term_meta($term_id, 'chaovn_issue_number', intval($_POST['chaovn_issue_number']));
+    }
+    if (isset($_POST['chaovn_issue_date'])) {
+        update_term_meta($term_id, 'chaovn_issue_date', sanitize_text_field($_POST['chaovn_issue_date']));
+    }
+    if (isset($_POST['chaovn_issue_cover_id'])) {
+        update_term_meta($term_id, 'chaovn_issue_cover_id', intval($_POST['chaovn_issue_cover_id']));
+    }
+    delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+}
+
+/**
+ * 글을 발행하면 "이번 호"에 자동으로 넣는다 — 직원 작업 0.
+ *
+ * 건드리지 않는 경우:
+ *  - 데일리 뉴스(31): 잡지가 아니다
+ *  - 이미 호가 지정된 글: 사람이 정한 것을 덮어쓰지 않는다
+ *  - "이번 호"가 설정 안 된 경우: 아무것도 하지 않는다(조용히 넘어간다)
+ */
+add_action('save_post_post', 'chaovn_auto_assign_issue', 20, 2);
+function chaovn_auto_assign_issue($post_id, $post) {
+    if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) return;
+    if (!$post || $post->post_status !== 'publish') return;
+    if (chaovn_is_news_post($post_id)) return;
+
+    $existing = wp_get_object_terms($post_id, CHAOVN_ISSUE_TAX, array('fields' => 'ids'));
+    if (!is_wp_error($existing) && !empty($existing)) return;
+
+    $current = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
+    if (!$current) return;
+
+    wp_set_object_terms($post_id, array($current), CHAOVN_ISSUE_TAX);
+    delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+}
+
+// ── 관리 화면: "이번 호" 지정 + 과거 글 일괄 부여 ──────────────────
+add_action('admin_menu', 'chaovn_issue_admin_menu');
+function chaovn_issue_admin_menu() {
+    add_submenu_page(
+        'edit.php',                 // 글 메뉴 아래
+        '매거진 호 설정', '매거진 호 설정',
+        'manage_options', 'chaovn-issue-settings', 'chaovn_issue_settings_page'
+    );
+}
+
+function chaovn_issue_settings_page() {
+    if (!current_user_can('manage_options')) return;
+
+    $notice = '';
+
+    // 1) 이번 호 지정
+    if (isset($_POST['chaovn_set_current']) && check_admin_referer('chaovn_issue_settings')) {
+        update_option(CHAOVN_CURRENT_ISSUE_OPT, intval($_POST['chaovn_current_issue']));
+        delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+        $notice = '이번 호를 저장했습니다. 이제 발행하는 글은 자동으로 이 호에 들어갑니다.';
+    }
+
+    // 2) 과거 글 일괄 부여 실행
+    if (isset($_POST['chaovn_run_backfill']) && check_admin_referer('chaovn_issue_settings')) {
+        $latest = intval($_POST['chaovn_latest_number']);
+        $result = chaovn_backfill_issues($latest, false);
+        $notice = sprintf('%d개 호를 만들고 %d건의 글에 호를 붙였습니다.', $result['issues'], $result['posts']);
+        delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+    }
+
+    $current = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
+    $terms   = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
+    $preview = chaovn_backfill_issues(0, true); // 미리보기(아무것도 바꾸지 않음)
+    ?>
+    <div class="wrap">
+        <h1>매거진 호 설정</h1>
+        <?php if ($notice): ?><div class="notice notice-success"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
+
+        <form method="post">
+            <?php wp_nonce_field('chaovn_issue_settings'); ?>
+
+            <h2>1. 이번 호 지정</h2>
+            <p>여기서 고른 호로 <strong>앞으로 발행하는 글이 자동으로 들어갑니다.</strong>
+               직원분들은 글을 쓸 때 호를 신경 쓰지 않아도 됩니다.</p>
+            <p>
+                <select name="chaovn_current_issue">
+                    <option value="0">— 지정 안 함 —</option>
+                    <?php foreach ((array) $terms as $t):
+                        $n = get_term_meta($t->term_id, 'chaovn_issue_number', true);
+                        $d = get_term_meta($t->term_id, 'chaovn_issue_date', true); ?>
+                        <option value="<?php echo (int) $t->term_id; ?>" <?php selected($current, $t->term_id); ?>>
+                            <?php echo esc_html($t->name . ($n ? " (제{$n}호" . ($d ? " · {$d}" : '') . ')' : '')); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <button class="button button-primary" name="chaovn_set_current" value="1">저장</button>
+            </p>
+            <p class="description">
+                새 호는 <a href="<?php echo esc_url(admin_url('edit-tags.php?taxonomy=' . CHAOVN_ISSUE_TAX . '&post_type=post')); ?>">매거진 호 화면</a>
+                에서 만듭니다(호수·발행일·표지 입력).
+            </p>
+
+            <hr />
+
+            <h2>2. 과거 글에 호 붙이기 (최초 1회)</h2>
+            <p>업로드 날짜가 붙어 있는 글 뭉치를 한 호로 봅니다(3일 이상 비면 다른 호).
+               <strong>가장 최근 뭉치가 몇 호인지</strong>만 알려주시면 거기서부터 거꾸로 번호를 매깁니다.</p>
+            <p>
+                가장 최근 뭉치의 호수:
+                <input type="number" name="chaovn_latest_number" value="<?php echo esc_attr($preview['suggest_latest']); ?>" style="width:100px" />
+                <button class="button" name="chaovn_run_backfill" value="1"
+                        onclick="return confirm('아래 미리보기대로 호를 만들고 글에 붙입니다. 계속할까요?');">실행</button>
+            </p>
+
+            <h3>미리보기 (지금은 아무것도 바뀌지 않습니다)</h3>
+            <table class="widefat striped" style="max-width:760px">
+                <thead><tr><th>업로드 기간</th><th>글 수</th><th>붙일 호수</th><th>이미 호가 있는 글</th></tr></thead>
+                <tbody>
+                <?php foreach ($preview['clusters'] as $i => $c): ?>
+                    <tr>
+                        <td><?php echo esc_html($c['from'] === $c['to'] ? $c['from'] : $c['from'] . ' ~ ' . $c['to']); ?></td>
+                        <td><?php echo (int) $c['count']; ?>건</td>
+                        <td>제<?php echo (int) ($preview['suggest_latest'] - $i); ?>호</td>
+                        <td><?php echo (int) $c['already']; ?>건</td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <p class="description">
+                ⚠️ 이미 호가 지정된 글은 건드리지 않습니다. 잘못 붙었으면 글 편집화면에서 체크박스로 고치면 됩니다.
+            </p>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * 과거 글을 업로드 날짜 뭉치로 묶어 호를 부여한다.
+ *
+ * 왜 날짜 계산이 아니라 뭉치인가: 발행 주기가 불규칙하다(격주 기본, 3개월에 한 번은 3주).
+ * 반면 업로드는 발행 즈음 하루이틀에 몰아서 한다(실측: 한 호 17~20건이 이틀에 걸쳐).
+ * 그래서 "3일 이상 비면 다른 호"라는 규칙이 날짜 계산보다 정확하다.
+ *
+ * @param int  $latest_number 가장 최근 뭉치에 부여할 호수
+ * @param bool $dry_run       true 면 아무것도 바꾸지 않고 미리보기만 만든다
+ */
+function chaovn_backfill_issues($latest_number, $dry_run = true) {
+    $GAP_DAYS   = 3;
+    $SCAN_LIMIT = 400;
+
+    $news = get_categories(array('hide_empty' => false, 'child_of' => CHAOVN_NEWS_CAT_ID));
+    $news_ids = array(CHAOVN_NEWS_CAT_ID);
+    foreach ($news as $n) $news_ids[] = (int) $n->term_id;
+
+    $q = new WP_Query(array(
+        'post_type'        => 'post',
+        'posts_per_page'   => $SCAN_LIMIT,
+        'post_status'      => 'publish',
+        'orderby'          => 'date',
+        'order'            => 'DESC',
+        'no_found_rows'    => true,
+        'category__not_in' => $news_ids,
+    ));
+
+    // 날짜 뭉치로 나눈다
+    $clusters = array();
+    $cur = null; $prev_ts = null;
+    foreach ($q->posts as $p) {
+        $ts   = strtotime(get_the_date('Y-m-d', $p));
+        $date = get_the_date('Y-m-d', $p);
+        if ($cur === null || ($prev_ts - $ts) > $GAP_DAYS * DAY_IN_SECONDS) {
+            if ($cur !== null) $clusters[] = $cur;
+            $cur = array('from' => $date, 'to' => $date, 'count' => 0, 'already' => 0, 'ids' => array());
+        }
+        $cur['from']  = $date; // 뒤로 갈수록 과거 → from 이 계속 갱신된다
+        $cur['count']++;
+        $cur['ids'][] = $p->ID;
+        $has = wp_get_object_terms($p->ID, CHAOVN_ISSUE_TAX, array('fields' => 'ids'));
+        if (!is_wp_error($has) && !empty($has)) $cur['already']++;
+        $prev_ts = $ts;
+    }
+    if ($cur !== null) $clusters[] = $cur;
+    wp_reset_postdata();
+
+    // 미리보기용: 가장 최근 뭉치 호수 추천값 (이미 만들어진 호 중 최대 + 1, 없으면 565)
+    $suggest = 565;
+    $terms = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
+    if (!is_wp_error($terms) && $terms) {
+        $max = 0;
+        foreach ($terms as $t) $max = max($max, (int) get_term_meta($t->term_id, 'chaovn_issue_number', true));
+        if ($max) $suggest = $max;
+    }
+
+    if ($dry_run) {
+        return array('clusters' => $clusters, 'suggest_latest' => $suggest, 'issues' => 0, 'posts' => 0);
+    }
+
+    // 실제 부여
+    $made = 0; $tagged = 0;
+    foreach ($clusters as $i => $c) {
+        $number = $latest_number - $i;
+        if ($number <= 0) break;
+
+        $name = '제' . $number . '호';
+        $term = get_term_by('name', $name, CHAOVN_ISSUE_TAX);
+        if (!$term) {
+            $new = wp_insert_term($name, CHAOVN_ISSUE_TAX);
+            if (is_wp_error($new)) continue;
+            $term_id = $new['term_id'];
+            $made++;
+        } else {
+            $term_id = $term->term_id;
+        }
+        update_term_meta($term_id, 'chaovn_issue_number', $number);
+        // 발행일 = 그 뭉치에서 가장 이른 업로드일 (대개 발행 당일)
+        if (!get_term_meta($term_id, 'chaovn_issue_date', true)) {
+            update_term_meta($term_id, 'chaovn_issue_date', $c['from']);
+        }
+
+        foreach ($c['ids'] as $pid) {
+            $has = wp_get_object_terms($pid, CHAOVN_ISSUE_TAX, array('fields' => 'ids'));
+            if (!is_wp_error($has) && !empty($has)) continue; // 사람이 정한 것은 덮지 않는다
+            wp_set_object_terms($pid, array($term_id), CHAOVN_ISSUE_TAX);
+            $tagged++;
+        }
+    }
+    return array('clusters' => $clusters, 'suggest_latest' => $latest_number, 'issues' => $made, 'posts' => $tagged);
+}
+
+/** 현재 호 정보를 앱/웹이 쓰기 좋은 형태로 */
+function chaovn_get_issue_payload($term_id) {
+    $term = get_term($term_id, CHAOVN_ISSUE_TAX);
+    if (!$term || is_wp_error($term)) return null;
+
+    $cover_id = (int) get_term_meta($term_id, 'chaovn_issue_cover_id', true);
+    $number   = (int) get_term_meta($term_id, 'chaovn_issue_number', true);
+    $date     = get_term_meta($term_id, 'chaovn_issue_date', true);
+
+    return array(
+        'id'       => (int) $term_id,
+        'number'   => $number ?: null,
+        // 표지가 없어도 화면이 깨지면 안 된다 — 앱이 대체 표지를 그린다.
+        'coverUrl' => $cover_id ? wp_get_attachment_image_url($cover_id, 'large') : '',
+        'date'     => $date ?: '',
+        'title'    => html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'),
+        'count'    => (int) $term->count,
+    );
+}
+
+// ============================================================
 // 매거진 홈 API
 // ------------------------------------------------------------
 // 왜 만드는가 (2026-08-05 앱 전면 감사):
@@ -282,10 +654,53 @@ function chaovn_get_magazine_home($request) {
         );
     }
 
+    // ── 이번 호 (앱 매거진 탭 맨 위 블록) ──────────────────────────
+    // 표지 + 호수 + 그 호 기사 목록. 호가 아직 지정 안 됐으면 null → 앱은 이 블록을 그리지 않는다.
+    $current_issue = null;
+    $current_id    = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
+    if ($current_id) {
+        $current_issue = chaovn_get_issue_payload($current_id);
+        if ($current_issue) {
+            $iq = new WP_Query(array(
+                'post_type'      => 'post',
+                'posts_per_page' => 12, // 목차 미리보기
+                'post_status'    => 'publish',
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+                'no_found_rows'  => true,
+                'tax_query'      => array(array(
+                    'taxonomy' => CHAOVN_ISSUE_TAX,
+                    'field'    => 'term_id',
+                    'terms'    => $current_id,
+                )),
+            ));
+            $iposts = array();
+            while ($iq->have_posts()) {
+                $iq->the_post();
+                $pid   = get_the_ID();
+                $thumb = get_the_post_thumbnail_url($pid, 'medium_large');
+                $cats  = get_the_category($pid);
+                $iposts[] = array(
+                    'postId'    => $pid,
+                    'title'     => array('rendered' => get_the_title($pid)),
+                    'date'      => get_the_date('c', $pid),
+                    'link'      => get_permalink($pid),
+                    'thumbnail' => $thumb ? $thumb : '',
+                    'categories' => wp_get_post_categories($pid),
+                    // 목차에 꼭지 이름을 같이 보여주면 잡지 목차처럼 읽힌다
+                    'section'   => !empty($cats) ? html_entity_decode($cats[0]->name, ENT_QUOTES, 'UTF-8') : '',
+                );
+            }
+            wp_reset_postdata();
+            $current_issue['posts'] = $iposts;
+        }
+    }
+
     $data = array(
-        'success'  => true,
-        'sections' => $sections,
-        '_cache'   => 'miss',
+        'success'      => true,
+        'currentIssue' => $current_issue,
+        'sections'     => $sections,
+        '_cache'       => 'miss',
     );
 
     // 한 섹션이라도 내용이 있어야 캐시한다 — 빈 결과를 캐시하면 30분 동안 빈 화면이 된다.

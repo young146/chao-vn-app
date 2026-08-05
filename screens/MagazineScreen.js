@@ -383,12 +383,82 @@ const NewsHeadlineRow = ({ item, index, onPress }) => {
 // 섹션 하나에 보여줄 제목 줄 수 (대표카드 1개 + 이만큼). 서버(CHAOVN_SECTION_TARGET=8)와 맞춘 값.
 const HEADLINE_LIMIT = 7;
 
+/**
+ * 매거진 탭 맨 위 "이번 호" 블록 — 표지 + 호수 + 그 호 목차(가로 스크롤).
+ *
+ * 왜 필요한가 (2026-08-06): 격주 발행 잡지인데 앱에는 "몇 호"라는 개념이 없어서,
+ * 카테고리별 최신 4건이 흩어져 보일 뿐 잡지처럼 읽히지 않았다. 매호 새로 생기는 꼭지도
+ * 고정 섹션에 안 잡히면 묻혔다. 호 단위로 묶으면 그 호가 실제로 가진 꼭지가 그대로 나온다.
+ *
+ * 서버가 호를 아직 지정 안 했으면(currentIssue=null) 이 블록은 그리지 않는다 — 기존 화면 그대로.
+ */
+const CurrentIssueBlock = ({ issue, onPressPost }) => {
+  if (!issue) return null;
+
+  const dateStr = (issue.date || '').replace(/-/g, '.');
+  const label = issue.number ? `제${issue.number}호` : issue.title;
+
+  return (
+    <View style={styles.issueBlock}>
+      <View style={styles.issueHeader}>
+        <Text style={styles.issueBadge}>📖 이번 호</Text>
+      </View>
+
+      <View style={styles.issueTop}>
+        {issue.coverUrl ? (
+          <Image source={{ uri: issue.coverUrl }} style={styles.issueCover} contentFit="cover" cachePolicy="disk" />
+        ) : (
+          /* 표지를 아직 안 올린 호도 화면이 깨지면 안 된다 — 대체 표지를 그린다 */
+          <View style={[styles.issueCover, styles.issueCoverEmpty]}>
+            <Text style={styles.issueCoverEmptyText}>{label}</Text>
+          </View>
+        )}
+        <View style={styles.issueInfo}>
+          <Text style={styles.issueTitle}>{label}</Text>
+          {dateStr ? <Text style={styles.issueMeta}>{dateStr} 발행</Text> : null}
+          {issue.posts?.length ? (
+            <Text style={styles.issueMeta}>수록 기사 {issue.count || issue.posts.length}편</Text>
+          ) : null}
+        </View>
+      </View>
+
+      {issue.posts?.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.issueList}>
+          {issue.posts.map((post) => {
+            const thumb = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+            const raw = typeof post.title === 'string' ? post.title : (post.title?.rendered || '');
+            return (
+              <TouchableOpacity
+                key={post.id}
+                style={styles.issueCard}
+                onPress={() => onPressPost(post)}
+                activeOpacity={0.8}
+              >
+                {thumb ? (
+                  <Image source={{ uri: thumb }} style={styles.issueCardImage} contentFit="cover" cachePolicy="disk" />
+                ) : (
+                  <View style={[styles.issueCardImage, styles.issueCoverEmpty]} />
+                )}
+                {post.section ? <Text style={styles.issueCardSection} numberOfLines={1}>{post.section}</Text> : null}
+                <TranslatedText style={styles.issueCardTitle} numberOfLines={2}>
+                  {raw.replace(/&#[0-9]+;/g, (m) => String.fromCharCode(m.match(/[0-9]+/)))}
+                </TranslatedText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+    </View>
+  );
+};
+
 export default function MagazineScreen({ navigation, route }) {
   const { t } = useTranslation('home');
   const { type = 'magazine', categoryId, resetSearch } = route.params || {};
   const [posts, setPosts] = useState([]);
   const [slides, setSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
+  const [currentIssue, setCurrentIssue] = useState(null); // 📖 이번 호 (표지+목차)
   const [newsSections, setNewsSections] = useState([]); // 🗞️ 뉴스 카테고리별 섹션
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -425,6 +495,7 @@ export default function MagazineScreen({ navigation, route }) {
           const homeData = await getHomeDataCached(isRefresh);
           setSlides(homeData.slideshowPosts || []);
           setHomeSections(homeData.homeSections || []);
+          setCurrentIssue(homeData.currentIssue || null);
           setLoading(false);
 
           // 캐시가 만료된 상태였다면(_stale) 옛 목록을 이미 화면에 띄운 뒤
@@ -436,6 +507,7 @@ export default function MagazineScreen({ navigation, route }) {
                 if (fresh?.homeSections?.length) {
                   setSlides(fresh.slideshowPosts || []);
                   setHomeSections(fresh.homeSections);
+                  setCurrentIssue(fresh.currentIssue || null);
                 }
               })
               .catch(() => { });
@@ -738,6 +810,9 @@ export default function MagazineScreen({ navigation, route }) {
 
             {type === 'home' && !searchQuery && (
               <View>
+                {/* 📖 이번 호 — 잡지 탭의 첫 화면은 "이번 호"여야 잡지답다 */}
+                <CurrentIssueBlock issue={currentIssue} onPressPost={handlePostPress} />
+
                 {slides.length > 0 && (
                   <HomeSlider posts={slides} onPress={handlePostPress} />
                 )}
@@ -1194,6 +1269,90 @@ const styles = StyleSheet.create({
   },
   homeSection: {
     marginBottom: 30,
+  },
+  // ── 📖 이번 호 블록 ────────────────────────────────────────
+  issueBlock: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 20,
+    padding: 14,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FFE0D2',
+  },
+  issueHeader: {
+    marginBottom: 10,
+  },
+  issueBadge: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E85A24',
+  },
+  issueTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  issueCover: {
+    width: 84,
+    height: 112, // 잡지 표지 비율(3:4)
+    borderRadius: 6,
+    backgroundColor: '#F1F3F5',
+    marginRight: 14,
+  },
+  issueCoverEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF0E6',
+    borderWidth: 1,
+    borderColor: '#FFD9C7',
+  },
+  issueCoverEmptyText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#E85A24',
+    textAlign: 'center',
+  },
+  issueInfo: {
+    flex: 1,
+  },
+  issueTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#212529',
+    marginBottom: 6,
+  },
+  issueMeta: {
+    fontSize: 13,
+    color: '#868E96',
+    marginTop: 2,
+  },
+  issueList: {
+    paddingTop: 14,
+    paddingRight: 4,
+  },
+  issueCard: {
+    width: 120,
+    marginRight: 10,
+  },
+  issueCardImage: {
+    width: 120,
+    height: 80,
+    borderRadius: 6,
+    backgroundColor: '#F1F3F5',
+    marginBottom: 6,
+  },
+  issueCardSection: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#E85A24',
+    marginBottom: 2,
+  },
+  issueCardTitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#212529',
+    lineHeight: 17,
   },
   // ── 섹션 제목 리스트 (대표카드 아래 7줄) ─────────────────────────────
   // 대표카드(marginHorizontal 16)와 좌우를 맞춰 한 덩어리로 보이게 한다.

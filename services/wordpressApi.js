@@ -311,7 +311,27 @@ const fetchMagazineHomeAssembled = async (forceRefresh = false) => {
       .filter(Boolean)
       .map((post, idx) => ({ ...post, id: `slide-${idx}-${post.id}` }));
 
-    return { homeSections, slideshowPosts };
+    // 이번 호 (표지 + 목차) — 서버가 호를 아직 지정 안 했으면 null
+    const ci = data.currentIssue;
+    const currentIssue = ci
+      ? {
+          ...ci,
+          posts: (ci.posts || []).map((post, idx) => ({
+            id: `issue-${ci.id}-${post.postId}-${idx}`,
+            postId: post.postId,
+            title: post.title,
+            date: post.date,
+            link: post.link,
+            section: post.section || "",
+            categories: post.categories || [],
+            _embedded: {
+              "wp:featuredmedia": [{ source_url: post.thumbnail || undefined }],
+            },
+          })),
+        }
+      : null;
+
+    return { homeSections, slideshowPosts, currentIssue };
   } catch (error) {
     // 플러그인이 아직 안 올라갔거나 서버 오류 → 조용히 기존 방식으로 폴백
     console.log("매거진 홈 조립 API 미사용:", error?.message);
