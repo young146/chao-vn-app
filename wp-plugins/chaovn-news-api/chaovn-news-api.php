@@ -238,6 +238,24 @@ function chaovn_save_issue_meta($term_id) {
     if (isset($_POST['chaovn_issue_date'])) {
         update_term_meta($term_id, 'chaovn_issue_date', sanitize_text_field($_POST['chaovn_issue_date']));
     }
+
+    // 슬러그(주소에 쓰이는 이름)를 영문으로 맞춘다.
+    //
+    // 슬러그를 비워두면 워드프레스가 이름에서 만드는데, '제565호' 는
+    // /magazine-issue/%ec%a0%9c565%ed%98%b8/ 처럼 인코딩된 주소가 된다.
+    // 그런 주소는 카톡·페북 공유 시 깨져 보이고, 앱·API 가 슬러그로 조회할 때도 말썽이다.
+    // 호수를 아는 경우에만, 그리고 사람이 영문 슬러그를 직접 넣지 않은 경우에만 바꾼다.
+    $number = (int) get_term_meta($term_id, 'chaovn_issue_number', true);
+    if ($number) {
+        $term = get_term($term_id, CHAOVN_ISSUE_TAX);
+        if ($term && !is_wp_error($term)) {
+            $slug = rawurldecode($term->slug);
+            // 영문·숫자·하이픈만으로 된 슬러그면 사람이 정한 것으로 보고 손대지 않는다
+            if (!preg_match('/^[a-z0-9\-]+$/', $slug)) {
+                wp_update_term($term_id, CHAOVN_ISSUE_TAX, array('slug' => 'issue-' . $number));
+            }
+        }
+    }
     if (isset($_POST['chaovn_issue_cover_id'])) {
         update_term_meta($term_id, 'chaovn_issue_cover_id', intval($_POST['chaovn_issue_cover_id']));
     }
