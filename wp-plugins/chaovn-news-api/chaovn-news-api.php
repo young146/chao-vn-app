@@ -486,20 +486,11 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
     if ($cur !== null) $clusters[] = $cur;
     wp_reset_postdata();
 
-    // 작은 뭉치는 "호 아님"으로 표시하고 번호를 소비하지 않는다
-    $seq = 0;
-    foreach ($clusters as $k => $c) {
-        if ($c['count'] < $MIN_CLUSTER) {
-            $clusters[$k]['is_issue'] = false;
-            $clusters[$k]['number']   = null;
-        } else {
-            $clusters[$k]['is_issue'] = true;
-            $clusters[$k]['number']   = $latest_number ? ($latest_number - $seq) : null;
-            $seq++;
-        }
-    }
-
-    // 미리보기용 추천값: "이미 발행일이 지난 호 중 가장 큰 호수".
+    // 추천값을 *먼저* 구한다. 번호를 매기려면 기준 호수가 있어야 하는데,
+    // 미리보기는 사용자가 아직 숫자를 안 넣은 상태로 들어온다($latest_number = 0).
+    // (이 순서를 거꾸로 뒀다가 미리보기의 모든 줄이 "호 아님"으로 나왔다 — 2026-08-06)
+    //
+    // 추천 기준: "이미 발행일이 지난 호 중 가장 큰 호수".
     // 제565호처럼 발행일이 아직 안 온 호는 지금 올라온 글들의 호가 아니다 —
     // 그걸 그대로 추천하면 최근 뭉치가 통째로 한 호씩 밀린다(실제로 그렇게 됐다).
     $suggest = 0;
@@ -516,6 +507,20 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
         }
     }
     if (!$suggest) $suggest = $max_any ? $max_any - 1 : 564;
+
+    // 작은 뭉치는 "호 아님"으로 표시하고 번호를 소비하지 않는다
+    $base = $latest_number ? (int) $latest_number : $suggest;
+    $seq  = 0;
+    foreach ($clusters as $k => $c) {
+        if ($c['count'] < $MIN_CLUSTER) {
+            $clusters[$k]['is_issue'] = false;
+            $clusters[$k]['number']   = null;
+        } else {
+            $clusters[$k]['is_issue'] = true;
+            $clusters[$k]['number']   = $base - $seq;
+            $seq++;
+        }
+    }
 
     if ($dry_run) {
         return array('clusters' => $clusters, 'suggest_latest' => $suggest, 'issues' => 0, 'posts' => 0, 'reset' => 0);
@@ -555,7 +560,9 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
         }
         update_term_meta($term_id, 'chaovn_issue_number', $number);
         // 발행일 = 그 뭉치에서 가장 이른 업로드일 (대개 발행 당일)
-        if (!get_term_meta($term_id, 'chaovn_issue_date', true)) {
+        // 다시 붙이기($reset)면 덮어쓴다 — 앞서 잘못 붙었을 때 엉뚱한 날짜가 들어가 있고,
+        // "비어있을 때만 채우기"로는 그게 영영 안 고쳐진다.
+        if ($reset || !get_term_meta($term_id, 'chaovn_issue_date', true)) {
             update_term_meta($term_id, 'chaovn_issue_date', $c['from']);
         }
 
