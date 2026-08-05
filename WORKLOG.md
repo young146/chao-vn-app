@@ -55,6 +55,19 @@
 
 ---
 
+## 2026-08-05 — 🟡 [뉴스 지면] 웹 뉴스터미널 배치를 앱에도 적용 (썸네일 목록)
+- **한 일**:
+  - **웹**(`daily-news-final` 저장소, `wordpress-plugin/jenny-daily-news.php`): 제목 리스트 각 줄 앞에 썸네일 52x36 추가. 사진 없는 기사는 같은 크기 빈 칸(제목 시작선 유지), `▸` 점은 사진이 대신하므로 제거. 크기는 임의값이 아니라 **대표카드 높이에서 역산**(줄 46px × 10줄 + 이름표 ≈ 대표카드) — 키우려면 여백을 같이 줄여야 7/18에 고친 "아귀 안 맞음"이 재발하지 않는다. 커밋 `8456189`. **사장님 FTP 업로드 + 실물 확인 완료 ✅**
+  - **앱**(이 저장소): 뉴스탭이 아직 **웹 개편 전 배치**(섹션의 모든 기사를 큰 카드)였던 것을 웹과 같은 배치로. 섹션 = 대표카드 1 + 썸네일 제목 **7줄** + "○○ 뉴스 더보기"(기존 `SectionNewsModal` 재사용) + **섹션 끝 광고 1개**. 3기사마다 넣던 InlineAdBanner 는 카드가 1개로 줄어 성립하지 않아 제거.
+  - **앱 API**(`wp-plugins/chaovn-news-api`): 오늘치만 주던 것을 **과거 뉴스로 8건까지 채움**(`?fill=1` 일 때만). 한도·쿼리는 jenny 플러그인 함수를 그대로 재사용 — 규칙을 두 곳에 적으면 어긋난다. "지난 뉴스 보기"는 fill 없이 호출해 그 날짜 지면 그대로.
+- **배포**: 웹 = FTP 완료 ✅ / **앱 = 미배포** (커밋 `45f4d75` push 만).
+  - ⏳ 남은 것: ① 플러그인 `chaovn-news-api.php` **FTP 업로드** ② `eas update --channel production` OTA. **순서: FTP 먼저 → API 확인 → OTA.** (OTA 가 먼저 나가도 앱은 안 깨짐 — 라이브 API 에 `?fill=1` 호출해 200 확인함. 목록이 짧을 뿐)
+- **상태**: 🟡 웹 완료 · 앱 코드 완료 / 배포 대기
+- **다음 단계**: 위 ①②. 배포 후 실기기에서 (a) 목록 7줄이 채워지는지 (여행·음식·건강·한-베 섹션은 오늘치가 0이라 **채움이 있어야 비로소 등장**) (b) 사진 크기·줄 간격 (c) 섹션 끝 광고 노출 확인.
+- **관련 파일**: [screens/MagazineScreen.js](screens/MagazineScreen.js) · [services/wordpressApi.js](services/wordpressApi.js) · [wp-plugins/chaovn-news-api/chaovn-news-api.php](wp-plugins/chaovn-news-api/chaovn-news-api.php) · 웹은 https://github.com/young146/daily-news-final/blob/main/wordpress-plugin/jenny-daily-news.php (`daily-news-final` 저장소)
+
+---
+
 ## 2026-08-03 — 🟢 [광고 수익화] 통합 자체 광고센터 착수 (Phase 1~2a)
 - **한 일**: 7/19 실사에서 정한 "3지면(앱·vnkorlife·chaovietnam) 통합 광고 관리"를 실제 구축 시작.
   - **통합 콘솔** 신설: daily-news `/admin/ad-center` → Firestore `ads_unified`. 광고주·지면 체크박스·지면별 위치/페이지 타겟팅.
