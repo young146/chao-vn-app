@@ -7,6 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -118,6 +119,36 @@ export default function NotificationsScreen({ navigation }) {
           return result;
         };
 
+        // 신고 알림(report_*) — 신고된 글로 바로 이동해서 바로 조치할 수 있게 한다.
+        // 대상 종류가 type 에 실려 있다(서버 onReportCreated 가 넣는다).
+        if (type?.startsWith("report_")) {
+          const kind = type.slice("report_".length);
+          const route = {
+            item: { col: "XinChaoDanggn", screen: "당근/나눔 상세", param: "item" },
+            job: { col: "Jobs", screen: "구인구직 상세", param: "job" },
+            realestate: { col: "RealEstate", screen: "부동산 상세", param: "item" },
+            candidate: { col: "candidates", screen: "구직자 상세", param: "candidate" },
+          }[kind];
+
+          if (!route) {
+            // 댓글·채팅 신고는 열어 볼 전용 화면이 없다. 알림 내용만으로 판단하고
+            // 조치는 Firebase 콘솔에서 한다 — 없는 화면으로 보내 앱이 죽는 것보다 낫다.
+            Alert.alert("신고 접수", notification.message || "신고가 접수되었습니다.");
+            return;
+          }
+
+          const snap = await getDocs(
+            query(collection(db, route.col), where("__name__", "==", notification.itemId))
+          );
+          if (snap.empty) {
+            Alert.alert("신고된 글을 찾을 수 없습니다", "이미 삭제되었을 수 있습니다.");
+            return;
+          }
+          const d = serializeTimestamps(snap.docs[0].data());
+          navigation.navigate(route.screen, { [route.param]: { id: snap.docs[0].id, ...d } });
+          return;
+        }
+
         if (type === "new_item_job") {
           const snap = await getDocs(query(collection(db, "Jobs"), where("__name__", "==", notification.itemId)));
           if (!snap.empty) {
@@ -219,6 +250,7 @@ export default function NotificationsScreen({ navigation }) {
               {item.type === "new_item_job" && <Text>💼 구인구직 새 등록</Text>}
               {item.type === "new_item_realestate" && <Text>🏠 부동산 새 등록</Text>}
               {item.type === "item_rejected" && <Text>🚫 {t('itemRejected')}</Text>}
+              {item.type?.startsWith("report_") && <Text>🚨 신고 접수</Text>}
             </Text>
             {/* ✅ 메시지 (numberOfLines 제거!) */}
             <Text style={styles.message}>{item.message}</Text>

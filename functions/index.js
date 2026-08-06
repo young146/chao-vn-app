@@ -681,6 +681,74 @@ async function sendAdminPush(title, body, data = {}, extra = {}) {
 }
 
 // ============================================================
+// 🚨 신고 접수 → 관리자에게 즉시 알림
+// ------------------------------------------------------------
+// 왜 필요한가 (2026-08-06):
+//   애플이 UGC 앱에 요구하는 것은 신고 *버튼*이 아니라 "신고에 대한 시의적절한 대응"이다.
+//   신고가 Firestore 에만 쌓이고 아무도 모르면 기능이 있으나 마나다.
+//
+// 대상 정보(제목·작성자)는 **서버에서 직접 조회**한다.
+//   앱이 보내준 값을 믿으면 신고자가 아무 제목이나 넣어 관리자를 속일 수 있다.
+// ============================================================
+const REPORT_TARGETS = {
+  item:       { col: "XinChaoDanggn", label: "당근/나눔" },
+  job:        { col: "Jobs",          label: "구인구직" },
+  candidate:  { col: "candidates",    label: "구직자" },
+  realestate: { col: "RealEstate",    label: "부동산" },
+  comment:    { col: "comments",      label: "댓글" },
+  chat:       { col: "chatRooms",     label: "채팅" },
+};
+
+const REPORT_REASON_LABELS = {
+  spam: "스팸·광고", fraud: "사기 의심", abuse: "욕설·혐오",
+  sexual: "음란물", privacy: "개인정보 노출", other: "기타",
+};
+
+exports.onReportCreated = onDocumentCreated("reports/{reportId}", async (event) => {
+  const r = event.data?.data();
+  if (!r) return;
+
+  const meta = REPORT_TARGETS[r.targetType] || { col: null, label: r.targetType || "콘텐츠" };
+  const reasonLabel = REPORT_REASON_LABELS[r.reason] || r.reason || "기타";
+
+  // 무엇이 신고됐는지 관리자가 알아야 조치할 수 있다. 못 읽어도 알림은 보낸다.
+  let targetTitle = "";
+  let targetImage = "";
+  let authorNote = "";
+  if (meta.col && r.targetId) {
+    try {
+      const snap = await db.collection(meta.col).doc(String(r.targetId)).get();
+      if (snap.exists) {
+        const d = snap.data() || {};
+        targetTitle = d.title || d.content || d.name || "";
+        targetImage = (Array.isArray(d.images) && d.images[0]) || d.imageUrl || "";
+        const author = d.userName || d.name || "";
+        if (author) authorNote = ` · 작성자 ${author}`;
+      } else {
+        targetTitle = "(이미 삭제된 글)";
+      }
+    } catch (e) {
+      console.error("❌ 신고 대상 조회 실패:", e.message);
+    }
+  }
+
+  const shortTitle = targetTitle.length > 40 ? targetTitle.slice(0, 40) + "…" : targetTitle;
+  const body = `[${meta.label}] ${reasonLabel}${shortTitle ? ` — ${shortTitle}` : ""}${authorNote}`
+    + (r.detail ? `\n"${String(r.detail).slice(0, 80)}"` : "");
+
+  // type 에 대상 종류를 실어 보낸다. sendAdminPush 는 정해진 필드만 알림 문서에 남기므로,
+  // 이렇게 해야 앱의 알림함에서 탭했을 때 어느 화면으로 갈지 알 수 있다.
+  await sendAdminPush(
+    "🚨 신고가 접수되었습니다",
+    body,
+    { type: `report_${r.targetType || "other"}`, itemId: String(r.targetId || "") },
+    { itemTitle: targetTitle, itemImage: targetImage }
+  );
+
+  console.log(`🚨 신고 알림 발송: ${meta.label}/${r.targetId} (${reasonLabel})`);
+});
+
+// ============================================================
 // 📦 공통 유틸: 같은 도시 유저 FCM 토큰 수집
 // ============================================================
 async function getUserTokensByCity(city, excludeUserId, notificationKey) {
