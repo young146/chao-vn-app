@@ -89,10 +89,11 @@
   - **신고 접수 → 관리자 즉시 알림** (`functions/index.js` `onReportCreated`). 애플이 요구하는 건 신고 *버튼*이 아니라 **"신고에 대한 시의적절한 대응"** 이다 — 신고가 Firestore 에만 쌓이고 아무도 모르면 있으나 마나. **기존 `sendAdminPush` 를 그대로 재사용**해 푸시 + 앱 알림함 기록이 한 번에 된다. 대상 제목·작성자는 **서버가 직접 조회**한다(앱이 보낸 값을 믿으면 신고자가 아무 제목이나 넣어 관리자를 속일 수 있다). 알림을 탭하면 신고된 글로 바로 이동.
 - **배포**: 앱 OTA `b65730a8` → 크래시수정 `4ad3ded6` → 신고알림 `e2c86e45` (production, rv 2.4.3) · 커밋 `743eebd`·`385cc54`·`802c932`
 - **🔴 사고 1건 (같은 날 자체 수정)**: `useMemo` 의존성에 `blockedVersion` 을 넣고 **선언을 빠뜨려** 당근·구인구직·부동산 3개 탭이 즉시 크래시. **문법 검사와 번들 생성이 둘 다 통과했다** — 선언 없는 참조는 실행해야만 드러나기 때문. 재발 방지로 **AST 로 "어디에도 선언이 없는 식별자"를 찾는 검사**를 만들어 이후 작업에 상시 적용(바로 다음 작업에서 `Alert` import 누락을 이 검사가 잡았다). → **앞으로 화면 코드 변경 보고에는 문법·번들에 더해 이 검사 결과를 반드시 포함할 것.**
-- **상태**: 🟡 **앱은 배포완료, 서버 2건 배포 대기** — 사장님 실행 필요:
-  1. `firebase deploy --only firestore:rules` → 신고 저장 (✅ 2026-08-06 완료 확인, `reports` 문서 생성됨)
-  2. `firebase deploy --only functions:onReportCreated` → **관리자 알림. 아직 미배포**
-- **다음 단계**: Cloud Function 배포 후 신고 1건 테스트 → 관리자 폰에 푸시 + 알림함 확인. 신고 목록을 앱에서 훑는 관리자 화면은 아직 없다(현재는 알림함 + Firebase 콘솔). 신고가 쌓이면 회원관리에 붙인다 — OTA 로 가능.
+- **상태**: ✅ **전부 배포완료** (2026-08-06)
+  1. `firebase deploy --only firestore:rules` → 신고 저장. **완료·검증됨**(`reports` 문서 생성 확인)
+  2. `firebase deploy --only functions:onReportCreated` → 관리자 알림. **완료**(asia-northeast3)
+- **⚠️ 운영상 빈틈 1건**: `functions/index.js` 의 `ADMIN_EMAILS` 는 2개(`younghan146@gmail.com`, `info@chaovietnam.co.kr`)인데, **`info@chaovietnam.co.kr` 는 `users` 문서 자체가 없다**(앱으로 로그인한 적이 없음). 그 계정으로는 푸시도 알림함 기록도 가지 않는다. → 신고 대응을 직원과 나눠 맡으려면 **그 계정으로 앱에 한 번 로그인**해야 토큰이 생긴다. `younghan146@gmail.com` 은 FCM·Expo 토큰 모두 있어 정상 도달.
+- **다음 단계**: 신고 목록을 앱에서 훑는 관리자 화면은 아직 없다(현재는 알림함 + Firebase 콘솔). 신고가 쌓이면 회원관리에 붙인다 — OTA 로 가능.
 - **관련 파일**: [services/moderationService.js](services/moderationService.js) · [firestore.rules](firestore.rules) · [functions/index.js](functions/index.js)
 
 ---
