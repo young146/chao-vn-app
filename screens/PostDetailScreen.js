@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 import CommentsSection from '../components/commentsSection';
 import TranslatedText from '../components/TranslatedText';
 import { translateText } from '../services/TranslationService';
-import { PopupAd } from '../components/AdBanner';
+import { PopupAd, ScrollBottomBanner } from '../components/AdBanner';
 import { logMagazineOpen, logNewsRead, logShareClicked } from '../lib/analytics';
 
 // 뉴스 카테고리 ID (chaovietnam.co.kr WordPress 기준)
@@ -377,6 +377,9 @@ export default function PostDetailScreen({ route, navigation }) {
         </View>
 
         <CommentsSection articleId={post.id} />
+
+        {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+        <ScrollBottomBanner />
       </ScrollView>
 
       {/* 🎯 뉴스 상세 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
@@ -397,7 +400,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 160, // FixedBottomBanner(~125px) + 여유 공간
+    // 예전엔 화면을 덮는 고정 광고배너(~125px) 때문에 160 을 비워 뒀다.
+    // 그 배너를 스크롤 맨 아래로 옮겼으므로(2026-08-06) 보통 여백만 남긴다.
+    paddingBottom: 24,
   },
   title: {
     fontSize: 24,

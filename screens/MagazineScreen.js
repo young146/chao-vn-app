@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached, getSectionsList } from '../services/wordpressApi';
-import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd } from '../components/AdBanner';
+import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd, ScrollBottomBanner } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TranslatedText from '../components/TranslatedText';
 import SectionNewsModal from '../components/SectionNewsModal';
@@ -1012,8 +1012,17 @@ export default function MagazineScreen({ navigation, route }) {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => {
+          // 스크롤 끝에 붙는 것들: (로딩중이면 스피너 | 뉴스탭 마지막 멘트) + 하단 광고.
+          // 광고는 어느 경우에도 맨 끝에 온다 — 예전엔 화면에 고정돼 있던 자리다.
+          const tail = <ScrollBottomBanner />;
+
           if (loadingMore) {
-            return <ActivityIndicator style={{ marginVertical: 20 }} color="#FF6B35" />;
+            return (
+              <View>
+                <ActivityIndicator style={{ marginVertical: 20 }} color="#FF6B35" />
+                {tail}
+              </View>
+            );
           }
           // 뉴스 탭에서 더 이상 뉴스가 없을 때 마지막 멘트 표시
           if (type === 'news' && !hasMore && posts.length > 0) {
@@ -1030,22 +1039,25 @@ export default function MagazineScreen({ navigation, route }) {
             };
 
             return (
-              <View style={styles.endMessageContainer}>
-                <Text style={styles.endMessageText}>
-                  {isToday
-                    ? '✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨'
-                    : `✨ 이상, ${formatDate(selectedDate)} 베트남 뉴스입니다 ✨`
-                  }
-                </Text>
-                {isToday && (
-                  <Text style={styles.endMessageSubText}>
-                    지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
+              <View>
+                <View style={styles.endMessageContainer}>
+                  <Text style={styles.endMessageText}>
+                    {isToday
+                      ? '✨ 이상, 씬짜오베트남에서 뽑은 오늘의 베트남 뉴스입니다 ✨'
+                      : `✨ 이상, ${formatDate(selectedDate)} 베트남 뉴스입니다 ✨`
+                    }
                   </Text>
-                )}
+                  {isToday && (
+                    <Text style={styles.endMessageSubText}>
+                      지난 뉴스는 상단의 '날짜별 뉴스 보기'를 이용해주세요
+                    </Text>
+                  )}
+                </View>
+                {tail}
               </View>
             );
           }
-          return null;
+          return tail;
         }}
         ListEmptyComponent={
           !loading && searchQuery.length > 0 ? (

@@ -16,7 +16,7 @@ import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import AdBanner, { InlineAdBanner, FIXED_BOTTOM_HEIGHT } from '../components/AdBanner';
+import AdBanner, { InlineAdBanner, ScrollBottomBanner } from '../components/AdBanner';
 import {
   fetchActiveBusinesses,
 } from '../services/neighborBusinessService';
@@ -401,6 +401,8 @@ export default function NeighborBusinessesScreen() {
               keyExtractor={(item) => item.id}
               renderItem={renderBusinessCard}
               ListHeaderComponent={<AdBanner screen="neighbor" style={{ marginTop: 8 }} />}
+              /* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */
+              ListFooterComponent={<ScrollBottomBanner />}
               ListEmptyComponent={renderEmptyState}
               contentContainerStyle={
                 businesses.length === 0 ? styles.listEmpty : styles.listContent
@@ -523,7 +525,7 @@ const styles = StyleSheet.create({
 
   listContent: {
     paddingTop: 8,
-    paddingBottom: FIXED_BOTTOM_HEIGHT + 50,
+    paddingBottom: 50,
   },
   listEmpty: {
     flexGrow: 1,

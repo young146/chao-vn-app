@@ -11,11 +11,13 @@ import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { searchUnified, getRegions, resolveResultUrl, CAT_LABEL } from '../services/searchService';
+import { ScrollBottomBanner } from '../components/AdBanner';
 
 const BRAND = '#FF6B35';
 const PURPLE = '#7C3AED';
-// 하단 고정 광고 배너(화면폭×250/750) 높이 + 여유 → 마지막 항목이 광고에 안 묻히게
-const AD_CLEARANCE = Math.round(Dimensions.get('window').width * 250 / 750) + 40;
+// 스크롤 바닥 여백. 예전엔 화면을 덮는 고정 광고배너 높이만큼(약 165) 비워 뒀는데,
+// 그 배너를 스크롤 맨 아래로 옮겼으므로(2026-08-06) 보통 여백만 남긴다.
+const AD_CLEARANCE = 24;
 
 export default function YellowPageScreen({ navigation }) {
   const [regions, setRegions] = useState({ cities: [], districtsByCity: {}, categoriesByType: {} });
@@ -144,6 +146,9 @@ export default function YellowPageScreen({ navigation }) {
         ) : (
           <Text style={styles.emptyText}>해당 조건의 업소가 없습니다.</Text>
         )}
+
+        {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+        <ScrollBottomBanner />
       </ScrollView>
 
       {/* 지역 선택 모달 */}

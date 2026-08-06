@@ -13,8 +13,10 @@ import { searchUnified, getRegions, resolveResultUrl, isDirectoryResult, TYPE_LA
 import BizDetailSheet from '../components/BizDetailSheet';
 
 const BRAND = '#FF6B35';
-// 하단 고정 광고 배너(화면폭×250/750) 높이 + 여유 → 마지막 결과가 광고에 안 묻히게
-const AD_CLEARANCE = Math.round(Dimensions.get('window').width * 250 / 750) + 40;
+// 스크롤 바닥 여백. 예전엔 화면을 덮는 고정 광고배너 높이만큼(약 165) 비워 뒀는데,
+// 그 배너를 없앴으므로(2026-08-06) 보통 여백만 남긴다.
+// ※ 이 화면은 원래 그 배너가 제외된 곳이라 광고를 새로 넣지 않는다.
+const AD_CLEARANCE = 40;
 
 const TYPE_BADGE = {
   yellow: { bg: '#F3E8FF', fg: '#7C3AED' },

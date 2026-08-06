@@ -34,7 +34,7 @@ import {
   getDistrictsByCity,
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
-import AdBanner, { InlineAdBanner, DetailAdBanner } from "../components/AdBanner";
+import AdBanner, { InlineAdBanner, DetailAdBanner, ScrollBottomBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice } from "../utils/priceFormatter";
 import { translateCity, translateOther } from "../utils/vietnamLocations";
@@ -404,14 +404,17 @@ export default function XinChaoDanggnScreen({ navigation }) {
     );
   }, [handleItemPress, formatPriceLocal, getStatusColor]);
 
-  const renderFooter = useCallback(() => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.loaderFooter}>
-        <ActivityIndicator size="small" color="#FF6B35" />
-      </View>
-    );
-  }, [loadingMore]);
+  const renderFooter = useCallback(() => (
+    <View>
+      {loadingMore && (
+        <View style={styles.loaderFooter}>
+          <ActivityIndicator size="small" color="#FF6B35" />
+        </View>
+      )}
+      {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+      <ScrollBottomBanner />
+    </View>
+  ), [loadingMore]);
 
   // 헤더 구성 요소들을 각각 memoize 하여 불필요한 재렌더링 방지
   const headerBanners = useMemo(() => (

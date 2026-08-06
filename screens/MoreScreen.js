@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES, changeLanguage } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
 import { useRequireAuth } from "../hooks/useRequireAuth";
-import { FIXED_BOTTOM_HEIGHT } from "../components/AdBanner";
+import { ScrollBottomBanner } from "../components/AdBanner";
 import * as Updates from "expo-updates";
 import Constants from "expo-constants";
 // RNRestart는 Expo Updates 루프 문제로 제거 (Updates.reloadAsync() 사용)
@@ -172,7 +172,7 @@ export default function MoreScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: FIXED_BOTTOM_HEIGHT }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
       {/* 사용자 정보 - 누르면 프로필로 이동 */}
       <TouchableOpacity
         style={styles.userSection}
@@ -347,6 +347,9 @@ export default function MoreScreen({ navigation }) {
           </Text>
         )}
       </View>
+
+      {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+      <ScrollBottomBanner />
     </ScrollView>
   );
 }

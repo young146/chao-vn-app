@@ -195,7 +195,7 @@ const setupNotificationChannels = async () => {
 setupNotificationChannels();
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { PopupAd, FixedBottomBanner } from "./components/AdBanner";
+import { PopupAd } from "./components/AdBanner";
 import { prefetchAppAds } from "./services/FirebaseAdService";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
@@ -1625,21 +1625,10 @@ function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
 
-  // 🚫 상세 페이지 + 관리자 화면 + 채팅방에서는 고정 하단 배너 숨김
-  //    - 상세: 전화/채팅/후기 버튼이 가려지는 문제
-  //    - 관리자 페이지/회원관리: 운영 작업 화면(목록 영역 확보 우선, 광고 노출 가치 없음)
-  //    - ChatRoom/알림 대화창: 배너가 메시지 입력창·전송 버튼을 덮어 채팅 기능 마비
-  //      (채팅목록→채팅방 경로는 스택에 '상세'가 없어 별도로 명시해야 숨겨짐)
-  const NO_AD_ROUTE_NAMES = new Set(['관리자 페이지', '회원관리', '알림 대화창', 'ChatRoom', '검색결과', 'AI도우미']);
-  const isDetailPage = require('@react-navigation/native').useNavigationState(state => {
-    if (!state) return false;
-    const checkRoute = (route) => {
-      if (route.name && (route.name.includes('상세') || NO_AD_ROUTE_NAMES.has(route.name))) return true;
-      if (route.state?.routes) return route.state.routes.some(r => checkRoute(r));
-      return false;
-    };
-    return state.routes?.some(r => checkRoute(r)) || false;
-  });
+  // 2026-08-06: 화면을 덮던 고정 하단 배너를 없앴다(각 화면 스크롤 맨 아래로 이동).
+  //   배너가 아무것도 덮지 않으므로 "어느 화면에서 숨길지" 판단이 통째로 불필요해졌다.
+  //   여기 있던 useNavigationState 감시(상세·관리자·채팅방 예외 목록)도 함께 제거 —
+  //   화면을 옮길 때마다 최상위가 다시 그려지던 비용도 같이 사라진다.
   // 탭 라벨 번역 맵
   const tabLabels = {
     "허브": t('tabs.hub'),
@@ -1802,9 +1791,7 @@ function BottomTabNavigator() {
           }}
         />
       </Tab.Navigator>
-
-      {/* 📢 고정 하단 배너 - 탭바 바로 위에 위치 (상세 페이지에서는 숨김) */}
-      {!isDetailPage && <FixedBottomBanner screen="all" />}
+      {/* 하단 배너는 여기 없다 — 각 화면의 스크롤 맨 아래(ScrollBottomBanner)로 옮겼다. */}
     </View>
   );
 }

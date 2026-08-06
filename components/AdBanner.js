@@ -807,48 +807,55 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
 }
 
 // ============================================
-// 📌 고정 하단 배너 (전역 화면 항상 표시)
+// 📌 하단 배너 (스크롤 맨 아래에서 보인다)
 // ============================================
-
-// 화면 콘텐츠가 배너 뒤에 가려지지 않도록 패딩에 사용할 높이 값
-export const FIXED_BOTTOM_HEIGHT = 125; // 하단 고정 배너 높이 (750:250 비율, 평균 125px)
+//
+// 2026-08-06 변경: 화면에 '고정(sticky)'이던 것을 스크롤 콘텐츠 안으로 옮겼다.
+//   왜: 폰 화면은 세로가 귀한데 이 배너가 화면 높이의 15% 안팎을 항상 차지했다.
+//       콘텐츠가 그만큼 좁아 보이고, 가리지 않으려고 모든 화면이 바닥에
+//       빈 여백(AD_CLEARANCE)까지 두고 있었다 — 광고 자리에 두 번 값을 치른 셈.
+//   ⚠️ 되돌리지 말 것. 되돌리려면 사장님 확인이 필요하다(2026-08-06 지시).
 
 /**
- * 고정 하단 배너 (750x250 비율) - 앱 전쭔 화면 항상 표시
- * ⚠️ App.js의 <SafeAreaProvider> 바로 안에 위치시켜야 합니다.
- * @param {string} screen - 화면 타입 (all, home, news...)
+ * 하단 배너 (750x250 비율) — 스크롤 콘텐츠의 맨 끝에 놓는다.
+ *
+ * 쓰는 곳: 리스트 화면은 ListFooterComponent, ScrollView 화면은 마지막 자식.
+ * 광고가 없으면 null 을 돌려주므로 빈 회색 칸이 남지 않는다.
+ *
+ * @param {string} screen - 화면 타입 (all, home, news...). 기존 고정배너와 같은
+ *                          fixed_bottom 슬롯을 쓰므로 'all' 이 기본이다.
  */
-export function FixedBottomBanner({ screen = 'all', intervalMs = 5000 }) {
-  const [adList, setAdList] = useState([]);
-  const insets = require('react-native-safe-area-context').useSafeAreaInsets();
+export function ScrollBottomBanner({ screen = 'all', style, intervalMs = 5000 }) {
+  const cacheKey = `bottom:${screen}`;
+  // 이전에 해석해둔 광고로 초기화 → 탭을 옮겨 다녀도 회색 빈 칸 없이 즉시 표시.
+  const [adList, setAdList] = useState(() => resolvedAdsCache[cacheKey] || []);
 
-  // 탭바 높이: 56px(탭바 기본) + safe area bottom (0이면 8px 패딩)
-  const tabBarHeight = 56 + (insets.bottom > 0 ? insets.bottom : 8);
   // 750:250 비율로 정확한 높이 계산
   const bannerHeight = Math.round(Dimensions.get('window').width * 250 / 750);
 
   useEffect(() => {
+    let cancelled = false;
     const loadAd = async () => {
       const ads = await fetchAdConfig(screen);
       const bottomAds = (ads?.fixed_bottom || []).filter(a => a?.imageUrl || a?.videoUrl);
       bottomAds.sort((a, b) => (a.priority || 10) - (b.priority || 10));
-      setAdList(bottomAds);
+      if (cancelled) return;
+      // 빈 응답(네트워크 오류 등)으로 보여주던 광고를 지우지 않는다 — 헤더 배너와 같은 규칙.
+      if (bottomAds.length > 0) {
+        resolvedAdsCache[cacheKey] = bottomAds;
+        setAdList(bottomAds);
+      }
     };
     loadAd();
-  }, [screen]);
+    return () => { cancelled = true; };
+  }, [screen, cacheKey]);
 
   if (adList.length === 0) return null;
 
   return (
     <AdSlider
       ads={adList}
-      containerStyle={[
-        styles.fixedBottom,
-        {
-          height: bannerHeight,
-          bottom: tabBarHeight,     // 탭바 바로 위에 위치
-        },
-      ]}
+      containerStyle={[styles.scrollBottom, { height: bannerHeight }, style]}
       thumbnailKey="inline"
       intervalMs={intervalMs}
       showIndicator={false}  // 하단 배너에는 점 표시 안 함
@@ -891,20 +898,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 8,
   },
-  fixedBottom: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 999,
+  // ── 하단 배너 (스크롤 콘텐츠 안. 절대위치 아님) ──
+  // 그림자를 주지 않는다 — 떠 있는 것이 아니라 콘텐츠의 일부이기 때문.
+  scrollBottom: {
     width: '100%',
-    // height와 bottom은 FixedBottomBanner에서 동적으로 계산하여 containerStyle로 주입
+    // height 는 ScrollBottomBanner 에서 화면폭 기준으로 계산해 주입
     backgroundColor: '#f0f0f0',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 8,
   },
   // 슬라이더 인디케이터
   indicatorRow: {

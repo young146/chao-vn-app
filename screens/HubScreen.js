@@ -8,12 +8,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getRegions } from '../services/searchService';
+import { ScrollBottomBanner } from '../components/AdBanner';
 
 const BRAND = '#FF6B35';
 const BLUE = '#1e3a8a';
-// 하단 고정 광고 배너(AdBanner.js: 화면폭×250/750)가 스크롤 하단을 덮으므로,
-// 그 높이 + 여유만큼 ScrollView 바닥 여백을 줘서 마지막 카드까지 광고 위로 스크롤되게 한다.
-const AD_CLEARANCE = Math.round(Dimensions.get('window').width * 250 / 750) + 40;
+// 스크롤 바닥 여백. 예전엔 화면을 덮는 고정 광고배너 높이만큼(약 165) 비워 뒀는데,
+// 그 배너를 스크롤 맨 아래로 옮겼으므로(2026-08-06) 보통 여백만 남긴다.
+const AD_CLEARANCE = 24;
 
 // 바로가기 — 콘텐츠 2칸(매거진·뉴스, 큰 카드). color = 아이콘 타일 강조색
 const GUIDE_TOP = [
@@ -180,6 +181,9 @@ export default function HubScreen({ navigation, route }) {
             ))}
           </View>
         </ImageBackground>
+
+        {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+        <ScrollBottomBanner />
       </ScrollView>
 
       {/* 지역 선택 모달 */}

@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { searchCompanies, listCompanies } from '../lib/companyDirectoryApi';
 import { logEvent } from '../lib/analytics';
-import { FIXED_BOTTOM_HEIGHT } from '../components/AdBanner';
+import { ScrollBottomBanner } from '../components/AdBanner';
 
 // ============================================================
 // 지역 필터 칩 목록
@@ -390,14 +390,17 @@ export default function CompanyDirectoryScreen() {
     <CompanyCard item={item} onPress={handleCardPress} />
   ), [handleCardPress]);
 
-  const renderFooter = useCallback(() => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#1565C0" />
-      </View>
-    );
-  }, [loadingMore]);
+  const renderFooter = useCallback(() => (
+    <View>
+      {loadingMore && (
+        <View style={styles.footerLoader}>
+          <ActivityIndicator size="small" color="#1565C0" />
+        </View>
+      )}
+      {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+      <ScrollBottomBanner />
+    </View>
+  ), [loadingMore]);
 
   const renderEmpty = () => {
     if (loading) return null;
@@ -634,7 +637,7 @@ const styles = StyleSheet.create({
   // 리스트
   listContent: {
     paddingTop: 4,
-    paddingBottom: FIXED_BOTTOM_HEIGHT + 60,
+    paddingBottom: 60,
   },
   footerLoader: {
     paddingVertical: 20,

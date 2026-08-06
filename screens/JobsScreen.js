@@ -33,7 +33,7 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
-import AdBanner, { InlineAdBanner, DetailAdBanner } from "../components/AdBanner";
+import AdBanner, { InlineAdBanner, DetailAdBanner, ScrollBottomBanner } from "../components/AdBanner";
 import TranslatedText from "../components/TranslatedText";
 import { translateCity } from "../utils/vietnamLocations";
 import { translateIndustry } from "../utils/optionTranslations";
@@ -418,14 +418,17 @@ export default function JobsScreen({ navigation }) {
     </View>
   ), [handleJobPress, t]);
 
-  const renderFooter = useCallback(() => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.loaderFooter}>
-        <ActivityIndicator size="small" color="#2196F3" />
-      </View>
-    );
-  }, [loadingMore]);
+  const renderFooter = useCallback(() => (
+    <View>
+      {loadingMore && (
+        <View style={styles.loaderFooter}>
+          <ActivityIndicator size="small" color="#2196F3" />
+        </View>
+      )}
+      {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
+      <ScrollBottomBanner />
+    </View>
+  ), [loadingMore]);
 
   // 리스트 헤더 (FlatList 안) — 광고/로그인배너/필터만
   const renderListHeader = () => (
