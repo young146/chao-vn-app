@@ -98,6 +98,7 @@
 - **상태**: ✅ **전부 배포완료** (2026-08-06)
   1. `firebase deploy --only firestore:rules` → 신고 저장. **완료·검증됨**(`reports` 문서 생성 확인)
   2. `firebase deploy --only functions:onReportCreated` → 관리자 알림. **완료**(asia-northeast3)
+  - ✅ **실물 확인 완료**(2026-08-06): 신고 1건 접수 → 관리자 알림 도달 확인. 신고·차단 건 종료.
 - **⚠️ 운영상 빈틈 1건**: `functions/index.js` 의 `ADMIN_EMAILS` 는 2개(`younghan146@gmail.com`, `info@chaovietnam.co.kr`)인데, **`info@chaovietnam.co.kr` 는 `users` 문서 자체가 없다**(앱으로 로그인한 적이 없음). 그 계정으로는 푸시도 알림함 기록도 가지 않는다. → 신고 대응을 직원과 나눠 맡으려면 **그 계정으로 앱에 한 번 로그인**해야 토큰이 생긴다. `younghan146@gmail.com` 은 FCM·Expo 토큰 모두 있어 정상 도달.
 - **다음 단계**: 신고 목록을 앱에서 훑는 관리자 화면은 아직 없다(현재는 알림함 + Firebase 콘솔). 신고가 쌓이면 회원관리에 붙인다 — OTA 로 가능.
 - **관련 파일**: [services/moderationService.js](services/moderationService.js) · [firestore.rules](firestore.rules) · [functions/index.js](functions/index.js)
