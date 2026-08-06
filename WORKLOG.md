@@ -30,6 +30,12 @@
 - [ ] **⓪-e 앱 아이콘 원본 대기** — 사장님이 1024px+ 원본을 찾아주시기로 함(2026-08-06). 받으면 icon / adaptive-icon(안전영역 여백 포함) / splash 를 각각 다시 생성.
 - [ ] **⓪-d 앱 아이콘 해상도** 🟡 — `icon.png`·`adaptive-icon.png`·`splash.png` **셋 다 동일 파일**(해시 일치, 225×225). 런처는 432px, iOS 앱스토어는 1024px 로 그리므로 **최대 4.5배 확대 → 뿌옇다**. 적응형 아이콘은 바깥 33% 가 마스크로 잘리는데 여백 없는 꽉 찬 정사각형이라 **흰 테두리·산봉우리가 잘린다**. 사장님이 원본(1024px+) 찾아주시기로 함(2026-08-06). → 빌드 후 **런처·앱스토어 아이콘이 선명하고 안 잘리면** ✅
 
+- [ ] **⓪-f 딥링크: `www.vnkorlife.com` 검증 실패** 🟡 — Play Console 알림 "딥 링크 7개가 작동하지 않을 수 있음"(2026-08-06). **구글 Digital Asset Links 공식 API로 확정**: 5개 도메인 중 `www.vnkorlife.com` 하나만 실패, 사유 `ERROR_CODE_REDIRECT`. 파일은 멀쩡한데 **Vercel 이 www→apex 로 308 리다이렉트**하고 안드로이드 검증기는 **리다이렉트를 따라가지 않는다**. (iOS `apple-app-site-association` 도 같은 이유로 실패)
+  - 참고: 이 사이트의 정본 주소는 **apex**(`app/layout.tsx` metadataBase, sitemap, robots 전부 `https://vnkorlife.com`). 즉 우리가 뿌리는 링크는 전부 apex 라 **실사용 손실은 작다.** 정책 위반도 아니고 마감도 없다.
+  - **해결책 A (앱 빌드 불필요·즉시)**: Vercel 에서 www 를 리다이렉트 대신 앱을 서빙하게 바꾸고, www→apex 정규화를 Next.js 에서 `/.well-known` 만 제외하고 처리. 지금 나가 있는 2.4.4 바이너리로도 바로 검증이 통과한다.
+  - **해결책 B (다음 빌드에 포함·더 단순)**: `app.json` 의 `intentFilters`·`associatedDomains` 에서 www.vnkorlife.com 4개 경로를 제거. www 링크는 어차피 브라우저에서 apex 로 넘어간다(지금과 동작 동일). SEO 위험 없음.
+  - → 사장님 선택 대기. B 를 고르면 **네이티브 변경이라 빌드 필요**하므로 여기 남겨 둔다.
+
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
