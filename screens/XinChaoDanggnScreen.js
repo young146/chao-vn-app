@@ -35,6 +35,8 @@ import {
   getApartmentsByDistrict,
 } from "../utils/vietnamLocations";
 import AdBanner, { InlineAdBanner, DetailAdBanner, ScrollBottomBanner } from "../components/AdBanner";
+import { isBlockedSync } from "../services/moderationService";
+import { useBlockedVersion } from "../hooks/useBlockedVersion";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice } from "../utils/priceFormatter";
 import { translateCity, translateOther } from "../utils/vietnamLocations";
@@ -273,6 +275,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
   // 필터링 로직에 useMemo 적용 (성능 최적화)
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      // 내가 차단한 사람의 글은 내 화면에서 감춘다 (2026-08-06)
+      if (isBlockedSync(item.userId)) return false;
+
       // ✅ 판매완료된 물품은 리스트에서 제외
       if (item.status === "판매완료") return false;
 
@@ -291,7 +296,7 @@ export default function XinChaoDanggnScreen({ navigation }) {
         matchesApartment
       );
     });
-  }, [items, selectedCategory, selectedCity, selectedDistrict, selectedApartment]);
+  }, [items, selectedCategory, selectedCity, selectedDistrict, selectedApartment, blockedVersion]);
 
   // 아이템을 2개씩 묶어서 행(row) 단위로 변환 + 광고 삽입
   const rowsWithAds = useMemo(() => {

@@ -163,6 +163,15 @@ export default function MoreScreen({ navigation }) {
       screen: "알림 대화창 목록",
       color: "#FF6B35",
     },
+    {
+      // 차단만 되고 푸는 곳이 없으면 실수로 차단했을 때 되돌릴 수 없다 (2026-08-06)
+      id: "blocked",
+      title: "차단 관리",
+      icon: "person-remove",
+      screen: "차단 관리",
+      color: "#78909C",
+      requiresAuth: true,
+    },
   ];
 
   const handleMenuPress = (item) => {

@@ -34,6 +34,8 @@ import {
   doc,
 } from "firebase/firestore";
 import AdBanner, { InlineAdBanner, DetailAdBanner, ScrollBottomBanner } from "../components/AdBanner";
+import { isBlockedSync } from "../services/moderationService";
+import { useBlockedVersion } from "../hooks/useBlockedVersion";
 import TranslatedText from "../components/TranslatedText";
 import { formatRentPrice, formatSalePrice as formatSalePriceUtil } from "../utils/priceFormatter";
 import { translateCity } from "../utils/vietnamLocations";
@@ -296,6 +298,9 @@ export default function RealEstateScreen({ navigation }) {
   // 필터링
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      // 내가 차단한 사람의 글은 내 화면에서 감춘다 (2026-08-06)
+      if (isBlockedSync(item.userId)) return false;
+
       const matchesDealType = selectedDealType === "전체" || item.dealType === selectedDealType;
       const matchesPropertyType = selectedPropertyType === "전체" || item.propertyType === selectedPropertyType;
       const matchesCity = selectedCity === "전체" || item.city === selectedCity;
@@ -307,7 +312,7 @@ export default function RealEstateScreen({ navigation }) {
       if (a.status !== "거래완료" && b.status === "거래완료") return -1;
       return 0;
     });
-  }, [items, selectedDealType, selectedPropertyType, selectedCity]);
+  }, [items, selectedDealType, selectedPropertyType, selectedCity, blockedVersion]);
 
   const handleAddItem = useCallback(() => {
     // 깔때기 단계 2 보강 C 5차: inline Alert → useRequireAuth 통일

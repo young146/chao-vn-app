@@ -13,6 +13,7 @@ import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs
 import { Alert } from "react-native";
 import { auth, db, initializeFirebase } from "../firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getBlockedUsers, clearBlockedCache } from "../services/moderationService";
 import * as KakaoLogin from "@react-native-seoul/kakao-login";
 import { isBanned as checkBanned, banKeyFromAuthUser, BANNED_MESSAGE } from "../lib/blacklist";
 
@@ -53,6 +54,9 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
           AsyncStorage.removeItem("@user_id").catch(() => {});
           setNeedsProfileComplete(false);
+          // 차단 목록은 계정에 딸린 것이다. 안 지우면 다음에 로그인한 사람에게
+          // 이전 사용자의 차단이 그대로 적용된다.
+          clearBlockedCache();
           return;
         }
 
@@ -74,6 +78,10 @@ export const AuthProvider = ({ children }) => {
           // 정상 회원 — 여기서부터 입장
           setUser(currentUser);
           AsyncStorage.setItem("@user_id", currentUser.uid).catch(() => {});
+
+          // 차단 목록 미리 읽기(백그라운드). 목록 화면이 그려지기 전에 준비돼 있어야
+          // 차단한 사람의 글이 잠깐 보였다 사라지는 깜빡임이 없다.
+          getBlockedUsers().catch(() => {});
 
           // 📝 프로필 완성 여부 체크 (백그라운드, 화면 전환 막지 않음)
           try {

@@ -204,6 +204,7 @@ import AnnouncementDetailScreen from "./screens/AnnouncementDetailScreen";
 import AnnouncementsListScreen from "./screens/AnnouncementsListScreen";
 import FindIdScreen from "./screens/FindIdScreen";
 import FindPasswordScreen from "./screens/FindPasswordScreen";
+import BlockedUsersScreen from "./screens/BlockedUsersScreen";
 import MagazineScreen from "./screens/MagazineScreen";
 import IssueContentsScreen from "./screens/IssueContentsScreen";
 import IssueArchiveScreen from "./screens/IssueArchiveScreen";
@@ -1512,6 +1513,15 @@ function MenuStack() {
         component={MyCommentsScreen}
         options={{
           title: t('menu:myReviews'),
+          headerStyle: { backgroundColor: "#FF6B35" },
+          headerTintColor: "#fff",
+        }}
+      />
+      <Stack.Screen
+        name="차단 관리"
+        component={BlockedUsersScreen}
+        options={{
+          title: "차단 관리",
           headerStyle: { backgroundColor: "#FF6B35" },
           headerTintColor: "#fff",
         }}

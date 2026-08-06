@@ -29,11 +29,15 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import ReportBlockSheet from "./ReportBlockSheet";
+import { getBlockedUsers, filterBlocked } from "../services/moderationService";
 
 export default function CommentsSection({ articleId }) {
   const { user } = useAuth();
   const navigation = useNavigation();
   const [comments, setComments] = useState([]);
+  // 댓글마다 시트를 두면 목록이 무거워진다 — 하나만 두고 대상만 바꾼다
+  const [reportTarget, setReportTarget] = useState(null);
   const [newComment, setNewComment] = useState("");
   const [selectedImage, setSelectedDateImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -79,8 +83,12 @@ export default function CommentsSection({ articleId }) {
         return timeA - timeB;
       });
 
-      setComments(commentsData);
-      setFetching(false);
+      // 차단한 사람의 댓글은 내 화면에서 안 보이게 한다.
+      // (상대 댓글을 지우는 게 아니라 내게만 감춘다 — 다른 사람에게는 그대로 보인다)
+      getBlockedUsers().then(() => {
+        setComments(filterBlocked(commentsData));
+        setFetching(false);
+      });
     }, (error) => {
       console.error("댓글 로딩 에러:", error);
       setFetching(false);
@@ -331,7 +339,7 @@ export default function CommentsSection({ articleId }) {
                         transition={200}
                       />
                     )}
-                    {isOwner && (
+                    {isOwner ? (
                       <View style={styles.ownerActions}>
                         <TouchableOpacity onPress={() => startEdit(item)} hitSlop={8}>
                           <Text style={styles.ownerActionText}>수정</Text>
@@ -341,6 +349,14 @@ export default function CommentsSection({ articleId }) {
                           <Text style={[styles.ownerActionText, styles.ownerActionDelete]}>삭제</Text>
                         </TouchableOpacity>
                       </View>
+                    ) : (
+                      user ? (
+                        <View style={styles.ownerActions}>
+                          <TouchableOpacity onPress={() => setReportTarget(item)} hitSlop={8}>
+                            <Text style={styles.reportActionText}>신고 · 차단</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : null
                     )}
                   </>
                 )}
@@ -406,6 +422,17 @@ export default function CommentsSection({ articleId }) {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* 신고·차단 시트 — 댓글마다 두지 않고 하나만 두고 대상만 바꾼다 */}
+      <ReportBlockSheet
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetType="comment"
+        targetId={reportTarget?.id}
+        targetUserId={reportTarget?.userId}
+        targetLabel="이 댓글"
+        onBlocked={() => setComments((prev) => filterBlocked(prev))}
+      />
     </View>
   );
 }
@@ -548,6 +575,12 @@ const styles = StyleSheet.create({
   },
   ownerActionDelete: {
     color: "#e55",
+  },
+  // 신고는 눈에 띄되 주인공이 아니어야 한다 — 수정/삭제와 같은 크기, 더 옅은 색
+  reportActionText: {
+    fontSize: 12,
+    color: "#aaa",
+    paddingVertical: 2,
   },
   ownerActionDivider: {
     fontSize: 12,

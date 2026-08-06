@@ -34,6 +34,8 @@ import {
   doc,
 } from "firebase/firestore";
 import AdBanner, { InlineAdBanner, DetailAdBanner, ScrollBottomBanner } from "../components/AdBanner";
+import { isBlockedSync } from "../services/moderationService";
+import { useBlockedVersion } from "../hooks/useBlockedVersion";
 import TranslatedText from "../components/TranslatedText";
 import { translateCity } from "../utils/vietnamLocations";
 import { translateIndustry } from "../utils/optionTranslations";
@@ -361,6 +363,9 @@ export default function JobsScreen({ navigation }) {
   // 필터링
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
+      // 내가 차단한 사람의 글은 내 화면에서 감춘다 (2026-08-06)
+      if (isBlockedSync(job.userId)) return false;
+
       const matchesJobType = selectedJobType === "전체" || job.jobType === selectedJobType;
       const matchesIndustry = selectedIndustry === "전체" || job.industry === selectedIndustry;
       const matchesCity = selectedCity === "전체" || job.city === selectedCity;
@@ -372,7 +377,7 @@ export default function JobsScreen({ navigation }) {
       if (a.status !== "마감" && b.status === "마감") return -1;
       return 0;
     });
-  }, [jobs, selectedJobType, selectedIndustry, selectedCity]);
+  }, [jobs, selectedJobType, selectedIndustry, selectedCity, blockedVersion]);
 
   const handleAddJob = useCallback(() => {
     // 깔때기 단계 2 보강 C 5차: inline Alert → useRequireAuth 통일

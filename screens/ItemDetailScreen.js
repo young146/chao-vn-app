@@ -39,6 +39,7 @@ import { db, storage } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useRequireAuth } from "../hooks/useRequireAuth";
 import { DetailAdBanner, PopupAd } from "../components/AdBanner";
+import { ReportLink } from "../components/ReportBlockSheet";
 import TranslatedText from "../components/TranslatedText";
 import { formatPrice as formatPriceUtil } from "../utils/priceFormatter";
 import LocationMap from "../components/LocationMap";
@@ -952,6 +953,16 @@ export default function ItemDetailScreen({ route, navigation }) {
         )}
 
         {/* 최하단 광고 */}
+        {/* 신고 · 차단 — 애플은 UGC 앱에 신고 수단과 차단 기능을 요구한다 (2026-08-06) */}
+        <ReportLink
+          hidden={isMyItem}
+          targetType="item"
+          targetId={item?.id}
+          targetUserId={item?.userId}
+          targetLabel="이 게시글"
+          onBlocked={() => navigation.goBack()}
+        />
+
         <DetailAdBanner position="bottom" screen="danggn" style={{ marginTop: 8 }} />
 
         {/* 📤 SNS 공유 섹션 */}

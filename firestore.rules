@@ -285,6 +285,30 @@ service cloud.firestore {
     }
 
     // ========================================
+    // 🚨 reports (부적절한 콘텐츠 신고)
+    //
+    // 왜 필요한가 (2026-08-06): 애플은 이용자 생성 콘텐츠가 있는 앱에
+    // "신고 수단"과 "차단 기능"을 요구한다. 우리 앱에는 둘 다 없었다.
+    //
+    // - create: 로그인 사용자가 *자기 이름으로만* 신고할 수 있다
+    //           (reporterId 를 남의 uid 로 위조하는 것을 서버에서 막는다)
+    // - read/list: 관리자만. 신고 내역은 신고자 신원이 드러나므로 공개하면 안 된다
+    // - update/delete: 관리자만 (처리 상태 변경)
+    //
+    // ※ 차단(blockedUsers)은 users/{uid} 문서에 저장하므로 별도 규칙이 필요 없다
+    //   — 기존 "본인 문서는 본인만 쓰기" 규칙이 그대로 적용된다.
+    // ========================================
+    match /reports/{reportId} {
+      allow create: if request.auth != null
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.targetType is string
+        && request.resource.data.reason is string
+        && (!('detail' in request.resource.data) || request.resource.data.detail.size() <= 500);
+      allow get, list: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ========================================
     // 🚫 기본 거부 (위에서 정의되지 않은 모든 문서)
     // ========================================
     match /{document=**} {

@@ -22,6 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { getColors } from "../utils/colors";
 import { db, auth, storage } from "../firebase/config";
+import ReportBlockSheet from "../components/ReportBlockSheet";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -79,6 +80,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [selectedImage, setSelectedImage] = useState(null); // 이미지 뷰어용 상태
   const [previewImage, setPreviewImage] = useState(null); // 전송 전 이미지 미리보기 상태
   const [isUploading, setIsUploading] = useState(false); // 업로드 중 상태
+  const [showReport, setShowReport] = useState(false); // 상대방 신고·차단 시트
   const currentUserId = auth.currentUser?.uid;
   const currentUserName = auth.currentUser?.email?.split("@")[0] || t('chatRoom.user');
   const flatListRef = useRef(null);
@@ -479,7 +481,27 @@ export default function ChatRoomScreen({ route, navigation }) {
             {t('chatRoom.me')}: {currentUserName} ↔ {t('chatRoom.other')}: {otherUserName}
           </Text>
         </View>
+
+        {/* 대화 상대 신고·차단. 1:1 대화는 신고 수단이 가장 절실한 곳이라
+            상세화면처럼 맨 아래가 아니라 헤더에 상시 노출한다. */}
+        <TouchableOpacity
+          onPress={() => setShowReport(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{ paddingHorizontal: 6 }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#888" />
+        </TouchableOpacity>
       </View>
+
+      <ReportBlockSheet
+        visible={showReport}
+        onClose={() => setShowReport(false)}
+        targetType="chat"
+        targetId={chatRoomId}
+        targetUserId={otherUserId}
+        targetLabel={`${otherUserName || '상대방'}님과의 대화`}
+        onBlocked={() => navigation.goBack()}
+      />
 
       <FlatList
         ref={flatListRef}
