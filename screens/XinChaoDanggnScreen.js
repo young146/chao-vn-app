@@ -272,6 +272,9 @@ export default function XinChaoDanggnScreen({ navigation }) {
     fetchItems(false);
   };
 
+  // 차단 목록이 도착하거나 바뀌면 아래 필터가 다시 돌게 하는 값
+  const blockedVersion = useBlockedVersion();
+
   // 필터링 로직에 useMemo 적용 (성능 최적화)
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

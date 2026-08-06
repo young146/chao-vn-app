@@ -361,6 +361,9 @@ export default function JobsScreen({ navigation }) {
   };
 
   // 필터링
+  // 차단 목록이 도착하거나 바뀌면 아래 필터가 다시 돌게 하는 값
+  const blockedVersion = useBlockedVersion();
+
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       // 내가 차단한 사람의 글은 내 화면에서 감춘다 (2026-08-06)
