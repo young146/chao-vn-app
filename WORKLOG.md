@@ -21,10 +21,26 @@
 >
 > 🚨 2026-06-25 2.4.3 빌드에서 아래 ①이 **누락된 채 나가 iOS 측정이 지금까지 0건**인 사고 있었음. 재발 금지.
 
+- [ ] **⓪ Android targetSdk 36 (Android 16)** 🔴🔴 **마감 2026-08-31** — 그날부터 Google Play 는 API 36 미만 타겟의 **업데이트 제출을 거부**한다(기존 앱은 살아있음. 11/1 까지 연장 신청은 가능). `app.json` 의 expo-build-properties 가 `targetSdkVersion: 35` 로 **명시 고정**돼 있었다 — SDK 54(RN 0.81)는 이미 Android 16 대응이므로 핀만 올리면 된다. **딸림 변화**: API 36 은 최소폭 600dp 이상(태블릿·폴더블 펼침·크롬북)에서 세로고정을 무시한다 → 사장님 결정으로 **세로 유지**(`android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY=true`, application 레벨). ⚠️ 이 opt-out 은 **API 37 에서는 안 통한다** — 다음 사이클에 태블릿 대응이 숙제. → 빌드 후 **폰 세로 정상 + 태블릿에서 세로 유지** 확인되면 ✅
+- [ ] **⓪-b Android 푸시 알림 아이콘** 🔴 — `app.json` 의 expo-notifications 플러그인이 아이콘으로 `./assets/icon.png` 를 가리키고 있었다. 이 파일은 **알파 채널이 아예 없는 불투명 이미지**(PNG 청크 확인: PLTE 만, tRNS 없음). 안드로이드는 상태표시줄 아이콘을 **알파로 실루엣을 떠서** 그리므로 → **흰 사각형 덩어리**가 된다. 제대로 만든 `notification_icon.png`(96×96 RGBA)가 이미 있는데 옛 `notification` 항목에만 걸려 있었고, 플러그인 소스상 **플러그인 설정이 우선**(`icon = icon || getNotificationIcon(config)`). → 빌드 후 **실기기 푸시 알림에 로고 실루엣이 뜨면** ✅
+- [ ] **⓪-c AsyncStorage 메이저 불일치 — ⛔ 이번 빌드에서 *의도적으로 제외*** 🟡 — 설치 `1.23.1` ↔ SDK 54 요구 `2.2.0`. `expo-doctor` 가 매번 경고하지만 **고치려 들지 말 것.**
+  - **왜 그대로 두는가**: 2026-01-18 커밋 `e3bc46c` 가 **iOS 시작 즉시 크래시**(`RCTThirdPartyComponentsProvider.mm` 의 Fabric 등록 중 nil) 때문에 2.2.0 → 1.23.1 로 **일부러 내린 것**이다. `package.json` 의 `overrides` 3개도 그때 같이 박혔다(firebase·@firebase/auth 가 각자 다른 버전을 끌어오는 것을 막기 위해). 이후 **7개월간 운영에서 안정적**.
+  - **왜 지금 올리면 안 되는가**: 시작 크래시는 **OTA 로 못 고친다** — 앱이 업데이트를 받기 전에 죽는다. iOS 는 스토어 재심사까지 며칠. 날짜 마감(⓪)이 걸린 빌드에 크래시 전력이 있는 변경을 섞는 것은 나쁜 거래다.
+  - **언제 하나**: 마감 빌드가 스토어에 안착한 뒤, **개발빌드(`--profile development`)로 iOS 실기기 부팅 확인**을 거쳐 따로 올린다. 참고로 `@firebase/auth` 1.12.0 은 `^2.2.0` 을 원하지만 `optional` 이라 경고일 뿐 설치는 정상이다.
+- [ ] **⓪-e 앱 아이콘 원본 대기** — 사장님이 1024px+ 원본을 찾아주시기로 함(2026-08-06). 받으면 icon / adaptive-icon(안전영역 여백 포함) / splash 를 각각 다시 생성.
+- [ ] **⓪-d 앱 아이콘 해상도** 🟡 — `icon.png`·`adaptive-icon.png`·`splash.png` **셋 다 동일 파일**(해시 일치, 225×225). 런처는 432px, iOS 앱스토어는 1024px 로 그리므로 **최대 4.5배 확대 → 뿌옇다**. 적응형 아이콘은 바깥 33% 가 마스크로 잘리는데 여백 없는 꽉 찬 정사각형이라 **흰 테두리·산봉우리가 잘린다**. 사장님이 원본(1024px+) 찾아주시기로 함(2026-08-06). → 빌드 후 **런처·앱스토어 아이콘이 선명하고 안 잘리면** ✅
+
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
 **지금 빌드해야 하나?** → 🔴 이 있으면 즉시 / 🟡 만 3개 이상이면 모아서 / 비었으면 불필요(OTA로 충분). 신규 유입 캠페인 직전이면 빌드 우선(신규 사용자는 *현재* 빌드를 받으므로 측정 인프라가 빌드돼 있어야 함).
+→ **2026-08-06 판정: 즉시 빌드.** ⓪ 이 날짜 마감(8/31)이라 선택지가 없다.
+
+**문제 없음이 확인된 것** (다시 조사하지 말 것):
+- **16KB 페이지 크기**(2025-11-01 시행) — RN 0.81 이 대응하고, 2026-06-25 빌드가 이미 Play 심사를 통과했다.
+- **edge-to-edge** — 이미 켜져 있음(`edgeToEdgeEnabled: true`).
+- **AdMob** — `package.json`·`node_modules` 양쪽에서 완전히 사라진 것 확인. (단 `app.plugin.js` 에 AdMob 처리 단계가 죽은 코드로 남아 있음 — `existsSync` 가드가 있어 무해)
+- **New Architecture** — `newArchEnabled: false` 유지. `react-native-restart` 가 미검증이라 지금 켜면 위험. **단 Expo SDK 55 에서 구 아키텍처가 사라질 예정** → 다음 사이클 숙제.
 
 ---
 
@@ -52,6 +68,22 @@
 - **다음 단계**: 다음 작업자가 이어서 할 일 (없으면 "없음")
 - **관련 파일/문서**: 링크
 ```
+
+---
+
+## 2026-08-06 — 🟡 [빌드] Phase 3 준비 — Android 감사 + 마감 대응, **빌드 승인 대기**
+- **한 일**: "빌드는 iOS 만인가, 안드로이드 개선점도 찾아달라"는 사장님 요청으로 Android 전면 점검. **날짜 마감이 걸린 문제**를 발견 → 맨 위 미빌드 블록 ⓪ 참조.
+  - `targetSdk/compileSdk 35 → 36`, `buildTools 36.0.0` (**Google Play 마감 2026-08-31**)
+  - Android 16 세로고정 opt-out property 를 `app.plugin.js` 매니페스트 단계에 추가 (사장님 결정: 세로 유지)
+  - 푸시 알림 아이콘 `icon.png`(불투명) → `notification_icon.png`(96×96 RGBA)
+  - 의존성 패치 11개 정합 (`expo` 54.0.31→54.0.36 등). **AsyncStorage 는 의도적으로 1.23.1 유지** — 이유는 ⓪-c
+  - 이미지 자산 **2,607KB → 173KB**: `og_jobs_seeker` PNG→JPEG 1200폭(1351→94KB, 사진을 PNG 로 두면 무손실이라 최악), `hub-bg` 2250×4000→720×1280(883→79KB, 화면에서 blur 6px 을 먹이므로 원본 해상도가 무의미), `og_jobs.png` **참조 0건 확인 후 삭제**(373KB)
+  - **측정 결함 4-F 수정**: 뉴스/매거진 구분을 글 데이터로 추측하지 않고 **띄운 화면이 알려주도록**(`contentType`) 바꾸고, 집계 id 를 화면용 키가 아닌 **실제 글 번호**로. 글 번호를 모르면 아예 기록하지 않는다(오염된 지표는 없는 것보다 나쁘다).
+  - iOS Analytics 플래그 2개 **실물 확인 완료** — 값도 맞고 git 에 커밋돼 있어 clean checkout 빌드에 포함된다.
+  - `version` 2.4.3 → **2.4.4**. `runtimeVersion` 은 **2.4.3 그대로 둔다** — 새 네이티브 모듈이 없어 신·구 빌드가 같은 JS 를 돌릴 수 있고, 그래야 스토어 업데이트가 느린 사용자에게도 **OTA 한 번으로 전부 도달**한다. (versionCode·buildNumber 는 `eas.json` 의 autoIncrement 가 처리)
+- **검증**: `expo export` 번들 생성 성공 · `expo-doctor` 잔여 경고는 위 3건(전부 의도적) · 파싱 8개 파일 통과
+- **배포**: 커밋 `(아래)` · **EAS Build 는 사장님 승인 후**
+- **다음 단계**: ① 아이콘 원본 받으면 교체 → ② `eas build --profile production --platform all` → ③ 스토어 제출 → ④ 실물 확인 후 ⓪ 항목들 체크 해제
 
 ---
 

@@ -123,8 +123,32 @@ module.exports = function withCustomConfig(config) {
         });
         console.log('✅ kakao AuthCodeHandlerActivity 추가됨');
       }
+
+      // targetSdk 36(Android 16) 에서 세로 고정을 유지하기 위한 opt-out.
+      //
+      // 왜 필요한가: API 36 부터 안드로이드는 최소폭 600dp 이상 화면(태블릿·폴더블
+      // 펼침·크롬북)에서 app.json 의 orientation:"portrait" 를 *무시*한다. 그대로 두면
+      // 그런 기기에서 가로로 돌아가는데, 우리 화면들은 가로 레이아웃을 검증한 적이 없다.
+      // 일반 폰(600dp 미만)은 애초에 영향이 없다.
+      //
+      // ⚠️ 이 opt-out 은 임시다 — **API 37 에서는 통하지 않는다.**
+      //    다음 빌드 사이클에 태블릿 가로 레이아웃을 제대로 대응해야 한다.
+      // 문서: https://developer.android.com/about/versions/16/behavior-changes-16
+      const ORIENTATION_OPT_OUT = 'android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY';
+      if (!mainApplication.property) {
+        mainApplication.property = [];
+      }
+      const hasOptOut = mainApplication.property.some(
+        (p) => p.$?.['android:name'] === ORIENTATION_OPT_OUT
+      );
+      if (!hasOptOut) {
+        mainApplication.property.push({
+          $: { 'android:name': ORIENTATION_OPT_OUT, 'android:value': 'true' },
+        });
+        console.log('✅ Android 16 세로고정 유지 property 추가됨');
+      }
     }
-    
+
     return config;
   });
 

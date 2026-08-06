@@ -77,6 +77,7 @@ const SectionNewsModal = ({ isVisible, onClose, sectionKey, sectionTitle, catego
       navigation.navigate('PostDetail', {
         post,
         baseUrl: wordpressApi.MAGAZINE_BASE_URL,
+        contentType: 'news', // 이 모달은 뉴스 섹션 전용 (측정 결함 4-F)
       });
     } catch (error) {
       console.error('Failed to open news detail:', error);

@@ -732,7 +732,10 @@ export default function MagazineScreen({ navigation, route }) {
   const handlePostPress = (post) => {
     navigation.navigate('PostDetail', {
       post,
-      baseUrl: type === 'board' ? BOARD_BASE_URL : MAGAZINE_BASE_URL
+      baseUrl: type === 'board' ? BOARD_BASE_URL : MAGAZINE_BASE_URL,
+      // 뉴스인지 매거진인지는 *이 화면이 안다*. 상세화면이 글 데이터로 추측하게 두면
+      // 목록 응답에 카테고리가 없는 뉴스가 전부 매거진으로 집계된다(측정 결함 4-F).
+      contentType: type === 'news' ? 'news' : 'magazine',
     });
   };
 

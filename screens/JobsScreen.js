@@ -89,7 +89,7 @@ const JobCard = memo(({ item, onPress, index, t }) => {
           />
         ) : (
           <Image
-            source={require('../assets/og_jobs_seeker.png')}
+            source={require('../assets/og_jobs_seeker.jpg')}
             style={styles.jobImage}
             contentFit="cover"
           />

@@ -329,7 +329,7 @@ export default function CandidateDetailScreen({ route, navigation }) {
         ) : (
           <View style={styles.bannerContainer}>
             <Image
-              source={require("../assets/og_jobs_seeker.png")}
+              source={require("../assets/og_jobs_seeker.jpg")}
               style={{ width: "100%", height: 200 }}
               contentFit="cover"
             />

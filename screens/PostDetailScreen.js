@@ -33,18 +33,33 @@ export default function PostDetailScreen({ route, navigation }) {
   const { post } = route.params;
   const { width } = useWindowDimensions();
 
-  // 🔍 [측정 인프라] 진입 시 한 번만 이벤트 발생 (post.id 변경 시 재발생)
+  // 🔍 [측정 인프라] 진입 시 한 번만 이벤트 발생 (글이 바뀌면 재발생)
+  //
+  // 2026-08-06 수정 (측정 결함 4-F). 두 가지가 틀려 있었다:
+  //  ① 뉴스/매거진 구분을 post.categories 로 추측했는데, **뉴스 목록 응답에는
+  //     categories 가 없다** → 항상 빈 배열 → 뉴스 열람이 전부 '매거진 열람'으로 찍혔다.
+  //     추측 대신 **띄운 쪽이 알려준다**(contentType). 목록 화면은 자기가 뉴스인지 안다.
+  //  ② 집계 id 로 post.id 를 썼는데 뉴스에서는 그게 화면용 키('news-economy-12345-0')라
+  //     글 단위 집계가 불가능했다 → 실제 글 번호(postId)를 쓴다.
   useEffect(() => {
-    if (!post?.id) return;
+    // 글 번호를 모르면 아예 안 찍는다. 화면용 키로 찍으면 지표가 오염되고,
+    // 오염된 지표는 없는 것보다 나쁘다(있는 줄 알고 판단하게 되므로).
+    const wpId = post?.postId ?? (typeof post?.id === 'number' ? post.id : null);
+    if (!wpId) return;
+
     const title = post.title?.rendered?.replace(/<[^>]+>/g, '') ?? '';
-    const categories = Array.isArray(post.categories) ? post.categories : [];
-    const isNews = categories.includes(NEWS_CATEGORY_ID);
+    const declared = route.params?.contentType; // 'news' | 'magazine'
+    const isNews = declared
+      ? declared === 'news'
+      // 구버전 화면에서 넘어온 경우의 대비책(예전 방식)
+      : (Array.isArray(post.categories) ? post.categories : []).includes(NEWS_CATEGORY_ID);
+
     if (isNews) {
-      logNewsRead(post.id, title, 'app');
+      logNewsRead(wpId, title, 'app');
     } else {
-      logMagazineOpen(post.id, title);
+      logMagazineOpen(wpId, title);
     }
-  }, [post?.id]);
+  }, [post?.postId, post?.id, route.params?.contentType]);
 
   const [translatedContent, setTranslatedContent] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);

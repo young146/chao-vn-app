@@ -61,6 +61,7 @@ export default function IssueContentsScreen({ navigation, route }) {
         _embedded: { 'wp:featuredmedia': [{ source_url: post.thumbnail || undefined }] },
       },
       baseUrl: MAGAZINE_BASE_URL,
+      contentType: 'magazine', // 이 화면은 잡지 한 호의 기사 목록 (측정 결함 4-F)
     });
   };
 
