@@ -120,7 +120,7 @@ function chaovn_get_magazine_issue($request) {
             }
         }
     } else {
-        $term_id = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
+        $term_id = chaovn_get_display_issue_id(); // number 생략 = 독자 기준 이번 호
     }
 
     if (!$term_id) {
@@ -185,10 +185,16 @@ function chaovn_get_magazine_issues($request) {
     $terms = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
     if (is_wp_error($terms)) $terms = array();
 
+    // 아직 발행 전인 호는 빼고 내려준다.
+    // 안 빼면 "지난 호" 격자에 아직 나오지도 않은 호가 빈 표지로 끼어든다 (2026-08-06).
+    $today = current_time('Y-m-d');
+
     $list = array();
     foreach ($terms as $t) {
         $payload = chaovn_get_issue_payload($t->term_id);
-        if ($payload && $payload['number']) $list[] = $payload;
+        if (!$payload || !$payload['number']) continue;
+        if ($payload['date'] && $payload['date'] > $today) continue;
+        $list[] = $payload;
     }
     usort($list, function ($a, $b) { return $b['number'] - $a['number']; });
 
@@ -445,7 +451,7 @@ function chaovn_issue_settings_page() {
     if (isset($_POST['chaovn_set_current']) && check_admin_referer('chaovn_issue_settings')) {
         update_option(CHAOVN_CURRENT_ISSUE_OPT, intval($_POST['chaovn_current_issue']));
         delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
-        $notice = '이번 호를 저장했습니다. 이제 발행하는 글은 자동으로 이 호에 들어갑니다.';
+        $notice = '편집 대상 호를 저장했습니다. 이제 발행하는 글은 자동으로 이 호에 들어갑니다.';
     }
 
     // 2) 과거 글 일괄 부여 실행
@@ -472,9 +478,22 @@ function chaovn_issue_settings_page() {
         <form method="post">
             <?php wp_nonce_field('chaovn_issue_settings'); ?>
 
-            <h2>1. 이번 호 지정</h2>
+            <h2>1. 편집 중인 호 지정</h2>
             <p>여기서 고른 호로 <strong>앞으로 발행하는 글이 자동으로 들어갑니다.</strong>
                직원분들은 글을 쓸 때 호를 신경 쓰지 않아도 됩니다.</p>
+            <?php
+            // 편집 대상 호와 독자에게 보이는 호는 다르다. 헷갈리기 쉬우므로 화면에서 바로 보여준다.
+            $display_id = chaovn_get_display_issue_id();
+            $display_no = $display_id ? get_term_meta($display_id, 'chaovn_issue_number', true) : '';
+            $display_dt = $display_id ? get_term_meta($display_id, 'chaovn_issue_date', true) : '';
+            ?>
+            <p class="description">
+                지금 <strong>독자(앱·웹)에게 "이번 호"로 보이는 것</strong>은
+                <strong><?php echo $display_no ? esc_html("제{$display_no}호") . ($display_dt ? ' · ' . esc_html($display_dt) : '') : '없음'; ?></strong>
+                입니다 — <em>발행일이 지난 호 중 가장 최신</em>이 자동으로 선택됩니다.
+                여기서 고르는 호(편집 대상)와 다를 수 있고, 그게 정상입니다.
+                발행일이 되면 사람 손 없이 저절로 넘어갑니다.
+            </p>
             <p>
                 <select name="chaovn_current_issue">
                     <option value="0">— 지정 안 함 —</option>
@@ -703,6 +722,39 @@ function chaovn_backfill_issues($latest_number, $dry_run = true, $reset = false)
         }
     }
     return array('clusters' => $clusters, 'suggest_latest' => $latest_number, 'issues' => $made, 'posts' => $tagged, 'reset' => $cleared);
+}
+
+/**
+ * 독자에게 보여줄 "이번 호" = 발행일이 이미 지난 호 중 가장 최신.
+ *
+ * ⚠️ 옵션(CHAOVN_CURRENT_ISSUE_OPT)을 그대로 쓰면 안 된다 (2026-08-06 사장님 지적으로 수정).
+ *   옵션이 뜻하는 것은 "지금 쓰는 글이 자동으로 들어갈 호" — 편집부는 발행 *전에* 미리 걸어 둔다.
+ *   그걸 화면에도 쓰면 8/6 에 아직 나오지도 않은 565호가 "이번 호"로 뜨고, 정작 나와 있는
+ *   564호는 "지난 호"에 숨는다. 독자 기준 이번 호 = 이미 나온 최신 호.
+ *
+ * 두 개념은 원래 다른 것이므로 값도 따로 구한다:
+ *   편집 대상 호(옵션)  → 글 자동 배정용. 사람이 지정.
+ *   표시용 이번 호(이것) → 발행일로 판정. 발행일이 되면 사람 손 없이 저절로 넘어간다.
+ */
+function chaovn_get_display_issue_id() {
+    $today = current_time('Y-m-d');
+    $terms = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
+    if (is_wp_error($terms)) $terms = array();
+
+    $best = 0;
+    $best_key = '';
+    foreach ($terms as $t) {
+        $date = get_term_meta($t->term_id, 'chaovn_issue_date', true);
+        $num  = (int) get_term_meta($t->term_id, 'chaovn_issue_number', true);
+        if (!$date || $date > $today) continue; // 아직 발행 전인 호는 이번 호가 될 수 없다
+        // 같은 날짜가 겹쳐도 순서가 흔들리지 않게 호수를 뒤에 붙여 비교한다
+        $key = $date . '-' . str_pad((string) $num, 5, '0', STR_PAD_LEFT);
+        if ($key > $best_key) { $best_key = $key; $best = (int) $t->term_id; }
+    }
+
+    // 발행일이 지난 호가 하나도 없으면(발행일 미입력 등) 편집 대상 호라도 보여준다.
+    // 빈 화면보다는 낫다 — 완벽한 입력을 전제하는 시스템은 언젠가 반드시 깨진다.
+    return $best ?: (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
 }
 
 /** 현재 호 정보를 앱/웹이 쓰기 좋은 형태로 */
@@ -934,7 +986,7 @@ function chaovn_get_magazine_home($request) {
     // ── 이번 호 (앱 매거진 탭 맨 위 블록) ──────────────────────────
     // 표지 + 호수 + 그 호 기사 목록. 호가 아직 지정 안 됐으면 null → 앱은 이 블록을 그리지 않는다.
     $current_issue = null;
-    $current_id    = (int) get_option(CHAOVN_CURRENT_ISSUE_OPT, 0);
+    $current_id    = chaovn_get_display_issue_id(); // 편집 대상 호가 아니라 "이미 나온 최신 호"
     if ($current_id) {
         $current_issue = chaovn_get_issue_payload($current_id);
         if ($current_issue) {
