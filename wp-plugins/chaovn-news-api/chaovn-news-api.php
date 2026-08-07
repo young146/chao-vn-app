@@ -250,6 +250,16 @@ function chaovn_register_issue_taxonomy() {
     ));
 }
 
+/**
+ * PDF 링크 안내문 — 추가 화면과 편집 화면 두 곳에 같은 문구가 필요하다.
+ * 두 군데에 따로 적으면 반드시 어긋나므로 한 곳에 둔다.
+ *
+ * 왜 "URL 한 칸"인가 (2026-08-07 실측): 최근 호 PDF 는 워드프레스에 없다.
+ * 미디어 라이브러리에는 555호와 2023년치 9건뿐이고, 최신호는 구글 드라이브·issuu 에 있다.
+ * 특정 서비스를 강제하면 담당자가 쓰는 방식과 어긋난다 → 어디 링크든 받는다.
+ */
+define('CHAOVN_PDF_FIELD_HELP', 'issuu · 구글 드라이브 · 플립북 등 어디 링크든 됩니다. 비워두면 PDF 버튼이 안 나옵니다. (최신호는 비워두고, 1~2주 뒤 채우는 운영을 권합니다)');
+
 /** 호 정보(호수·발행일·표지)를 워드프레스 기본 분류 화면에 붙인다 */
 add_action(CHAOVN_ISSUE_TAX . '_add_form_fields', 'chaovn_issue_add_fields');
 function chaovn_issue_add_fields() {
@@ -269,6 +279,11 @@ function chaovn_issue_add_fields() {
         <?php chaovn_issue_cover_field(0); ?>
         <p>issuu 에 올리는 표지 파일을 그대로 쓰시면 됩니다. 호당 1장이면 됩니다.</p>
     </div>
+    <div class="form-field">
+        <label for="chaovn_issue_pdf_url">PDF 보기 링크 (선택)</label>
+        <input type="url" name="chaovn_issue_pdf_url" id="chaovn_issue_pdf_url" value="" placeholder="https://..." />
+        <p><?php echo esc_html(CHAOVN_PDF_FIELD_HELP); ?></p>
+    </div>
     <?php
 }
 
@@ -278,6 +293,7 @@ function chaovn_issue_edit_fields($term) {
     $num   = get_term_meta($term->term_id, 'chaovn_issue_number', true);
     $date  = get_term_meta($term->term_id, 'chaovn_issue_date', true);
     $cover = (int) get_term_meta($term->term_id, 'chaovn_issue_cover_id', true);
+    $pdf   = get_term_meta($term->term_id, 'chaovn_issue_pdf_url', true);
     ?>
     <tr class="form-field">
         <th><label for="chaovn_issue_number">호수</label></th>
@@ -290,6 +306,14 @@ function chaovn_issue_edit_fields($term) {
     <tr class="form-field">
         <th><label>표지 이미지</label></th>
         <td><?php chaovn_issue_cover_field($cover); ?></td>
+    </tr>
+    <tr class="form-field">
+        <th><label for="chaovn_issue_pdf_url">PDF 보기 링크</label></th>
+        <td>
+            <input type="url" name="chaovn_issue_pdf_url" id="chaovn_issue_pdf_url" style="width:100%;max-width:520px"
+                   value="<?php echo esc_attr($pdf); ?>" placeholder="https://..." />
+            <p class="description"><?php echo esc_html(CHAOVN_PDF_FIELD_HELP); ?></p>
+        </td>
     </tr>
     <?php
 }
@@ -376,7 +400,12 @@ function chaovn_save_issue_meta($term_id) {
     if (isset($_POST['chaovn_issue_cover_id'])) {
         update_term_meta($term_id, 'chaovn_issue_cover_id', intval($_POST['chaovn_issue_cover_id']));
     }
+    if (isset($_POST['chaovn_issue_pdf_url'])) {
+        // esc_url_raw 로 저장한다 — 담당자가 붙여넣는 값이라 javascript: 같은 게 들어올 수 있다
+        update_term_meta($term_id, 'chaovn_issue_pdf_url', esc_url_raw(trim($_POST['chaovn_issue_pdf_url'])));
+    }
     delete_transient(CHAOVN_MAGAZINE_CACHE_KEY);
+    delete_transient(CHAOVN_MAGPAGE_CACHE_KEY);
 }
 
 /**
@@ -782,7 +811,265 @@ function chaovn_get_issue_payload($term_id) {
         'date'        => $date ?: '',
         'title'       => html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'),
         'count'       => (int) $term->count,
+        // PDF 링크. 없으면 빈 문자열 → 화면에서 버튼을 안 그린다.
+        'pdfUrl'      => (string) get_term_meta($term_id, 'chaovn_issue_pdf_url', true),
+        // 웹의 그 호 아카이브 주소 (/magazine-issue/issue-564/)
+        'webUrl'      => (function () use ($term) {
+            $l = get_term_link($term);
+            return is_wp_error($l) ? '' : $l;
+        })(),
     );
+}
+
+// ============================================================
+// 🖥️ 웹 매거진 페이지 — 숏코드 [chaovn_magazine]
+// ------------------------------------------------------------
+// 왜 만드는가 (2026-08-07):
+//   앱에는 "이번 호 / 지난 호"가 생겼는데 웹에는 없었다. 웹 메뉴의 '매거진'이
+//   가리키는 magazine_open 페이지(id 8510)는 **내용이 0자인 빈 페이지**여서
+//   누르면 홈으로 튕기고 있었다.
+//
+// 왜 테마가 아니라 숏코드인가:
+//   테마가 Sahifa(유료)라 커스텀이 불편하고, Elementor Pro 구독도 만료돼 있다.
+//   반면 뉴스터미널이 이미 "빈 페이지 + 숏코드" 로 동작하는 검증된 방식이다.
+//   숏코드는 테마·페이지빌더와 무관하게 돌고, 파일 하나만 FTP 하면 된다.
+//
+// 데이터는 앱과 *같은 함수*를 쓴다(chaovn_get_display_issue_id / _issue_payload).
+// 두 벌로 만들면 다음 호부터 웹과 앱의 목차가 어긋난다.
+// ============================================================
+define('CHAOVN_MAGPAGE_CACHE_KEY', 'chaovn_magazine_page_v1');
+define('CHAOVN_MAGPAGE_TTL', 30 * MINUTE_IN_SECONDS);
+define('CHAOVN_MAGPAGE_BACK_ISSUES', 12); // 지난 호 노출 개수 (2026-08-07 사장님 결정)
+
+add_shortcode('chaovn_magazine', 'chaovn_magazine_shortcode');
+
+function chaovn_magazine_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'back' => CHAOVN_MAGPAGE_BACK_ISSUES,
+    ), $atts, 'chaovn_magazine');
+
+    $back = (int) $atts['back'];
+
+    // 기본 개수일 때만 캐시한다.
+    // 개수를 캐시키에 섞으면 "어떤 키들이 만들어졌는지" 알 수 없어 지울 때 반드시 하나가 남는다
+    // (실제로 그렇게 짰다가 저장 시 지우는 키와 만드는 키가 어긋났다 — 2026-08-07).
+    // 숏코드에 back 을 따로 주는 경우는 드물므로, 그때는 캐시 없이 바로 그린다.
+    $cacheable = ($back === CHAOVN_MAGPAGE_BACK_ISSUES);
+
+    if ($cacheable && !isset($_GET['refresh'])) {
+        $cached = get_transient(CHAOVN_MAGPAGE_CACHE_KEY);
+        if ($cached !== false) return $cached;
+    }
+
+    $html = chaovn_magazine_page_html($back);
+
+    // 빈 결과를 캐시하면 30분 동안 빈 페이지가 된다 — 내용이 있을 때만 저장한다.
+    if ($cacheable && strlen($html) > 200) {
+        set_transient(CHAOVN_MAGPAGE_CACHE_KEY, $html, CHAOVN_MAGPAGE_TTL);
+    }
+    return $html;
+}
+
+/** 호 하나를 표지 카드로. 표지가 없으면 호수 텍스트 카드를 그린다(레이아웃이 안 깨지게). */
+function chaovn_mag_cover_card($issue, $show_pdf) {
+    $url   = $issue['webUrl'] ?: '#';
+    $label = $issue['number'] ? '제' . $issue['number'] . '호' : $issue['title'];
+    $date  = $issue['date'] ? date_i18n('Y.m.d', strtotime($issue['date'])) : '';
+
+    ob_start(); ?>
+    <div class="chaovn-mag-card">
+        <a class="chaovn-mag-cover" href="<?php echo esc_url($url); ?>">
+            <?php if ($issue['coverUrl']): ?>
+                <img src="<?php echo esc_url($issue['coverUrl']); ?>"
+                     alt="<?php echo esc_attr($label . ' 표지'); ?>" loading="lazy" decoding="async" />
+            <?php else: ?>
+                <span class="chaovn-mag-nocover"><?php echo esc_html($label); ?></span>
+            <?php endif; ?>
+        </a>
+        <a class="chaovn-mag-cardlabel" href="<?php echo esc_url($url); ?>">
+            <strong><?php echo esc_html($label); ?></strong>
+            <?php if ($date): ?><em><?php echo esc_html($date); ?></em><?php endif; ?>
+        </a>
+        <?php if ($show_pdf && !empty($issue['pdfUrl'])): ?>
+            <a class="chaovn-mag-pdf" href="<?php echo esc_url($issue['pdfUrl']); ?>"
+               target="_blank" rel="noopener">PDF로 보기</a>
+        <?php endif; ?>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
+function chaovn_magazine_page_html($back_count) {
+    // ── 이번 호 = 앱과 같은 판정(발행일이 지난 호 중 최신) ──
+    $current_id = chaovn_get_display_issue_id();
+    if (!$current_id) {
+        return '<p>준비 중입니다.</p>';
+    }
+    $current = chaovn_get_issue_payload($current_id);
+    if (!$current) {
+        return '<p>준비 중입니다.</p>';
+    }
+
+    // 이번 호 기사 — 꼭지 이름과 함께. 목차처럼 읽히게 한다.
+    $iq = new WP_Query(array(
+        'post_type'      => 'post',
+        'posts_per_page' => 8,
+        'post_status'    => 'publish',
+        'orderby'        => 'date',
+        'order'          => 'ASC',
+        'no_found_rows'  => true,
+        'tax_query'      => array(array(
+            'taxonomy' => CHAOVN_ISSUE_TAX,
+            'field'    => 'term_id',
+            'terms'    => $current_id,
+        )),
+    ));
+
+    // ── 지난 호: 이번 호를 뺀 최근 N개 ──
+    $terms = get_terms(array('taxonomy' => CHAOVN_ISSUE_TAX, 'hide_empty' => false));
+    if (is_wp_error($terms)) $terms = array();
+    $today = current_time('Y-m-d');
+    $back  = array();
+    foreach ($terms as $t) {
+        if ((int) $t->term_id === (int) $current_id) continue;
+        $p = chaovn_get_issue_payload($t->term_id);
+        if (!$p || !$p['number']) continue;
+        if ($p['date'] && $p['date'] > $today) continue; // 아직 안 나온 호는 지난 호가 아니다
+        $back[] = $p;
+    }
+    usort($back, function ($a, $b) { return $b['number'] - $a['number']; });
+    $has_more = count($back) > $back_count;
+    $back = array_slice($back, 0, $back_count);
+
+    $cur_url  = $current['webUrl'] ?: '#';
+    $cur_date = $current['date'] ? date_i18n('Y년 n월 j일', strtotime($current['date'])) : '';
+
+    ob_start();
+    chaovn_magazine_styles();
+    ?>
+    <div class="chaovn-mag">
+
+        <section class="chaovn-mag-current">
+            <h2 class="chaovn-mag-h">📖 이번 호</h2>
+
+            <div class="chaovn-mag-hero">
+                <a class="chaovn-mag-herocover" href="<?php echo esc_url($cur_url); ?>">
+                    <?php if ($current['coverUrl']): ?>
+                        <img src="<?php echo esc_url($current['coverUrl']); ?>"
+                             alt="<?php echo esc_attr('제' . $current['number'] . '호 표지'); ?>" />
+                    <?php else: ?>
+                        <span class="chaovn-mag-nocover">제<?php echo (int) $current['number']; ?>호</span>
+                    <?php endif; ?>
+                </a>
+
+                <div class="chaovn-mag-heroinfo">
+                    <h3>제<?php echo (int) $current['number']; ?>호</h3>
+                    <?php if ($cur_date): ?><p class="chaovn-mag-date"><?php echo esc_html($cur_date); ?> 발행</p><?php endif; ?>
+
+                    <?php if ($iq->have_posts()): ?>
+                        <ul class="chaovn-mag-toc">
+                            <?php while ($iq->have_posts()): $iq->the_post();
+                                $cats = get_the_category(get_the_ID());
+                                $sec  = !empty($cats) ? html_entity_decode($cats[0]->name, ENT_QUOTES, 'UTF-8') : '';
+                                ?>
+                                <li>
+                                    <?php if ($sec): ?><span class="chaovn-mag-sec"><?php echo esc_html($sec); ?></span><?php endif; ?>
+                                    <a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a>
+                                </li>
+                            <?php endwhile; wp_reset_postdata(); ?>
+                        </ul>
+                    <?php else: ?>
+                        <p class="chaovn-mag-empty">기사가 곧 올라옵니다.</p>
+                    <?php endif; ?>
+
+                    <a class="chaovn-mag-btn" href="<?php echo esc_url($cur_url); ?>">이번 호 전체 보기 →</a>
+                </div>
+            </div>
+        </section>
+
+        <?php if ($back): ?>
+        <section class="chaovn-mag-back">
+            <h2 class="chaovn-mag-h">지난 호</h2>
+            <div class="chaovn-mag-grid">
+                <?php foreach ($back as $b) {
+                    // PDF 는 지난 호에만 (2026-08-07 사장님 결정) — 최신호는 기사로 읽게 한다
+                    echo chaovn_mag_cover_card($b, true);
+                } ?>
+            </div>
+            <?php if ($has_more): ?>
+                <p class="chaovn-mag-more">그 이전 호는 기사 검색으로 찾아보실 수 있습니다.</p>
+            <?php endif; ?>
+        </section>
+        <?php endif; ?>
+
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
+/**
+ * 스타일은 이 안에 넣는다 — 테마 CSS 파일을 건드리지 않기 위해서다.
+ * 클래스 이름에 전부 chaovn-mag- 를 붙여 테마와 충돌하지 않게 한다.
+ * 열 개수는 미디어쿼리 대신 auto-fill 로 — 화면 폭에 따라 2~6열이 저절로 잡힌다.
+ */
+function chaovn_magazine_styles() {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    ?>
+    <style>
+    .chaovn-mag{--cv-brand:#FF6B35;max-width:1180px;margin:0 auto;font-size:16px;line-height:1.6}
+    .chaovn-mag-h{font-size:22px;font-weight:800;margin:0 0 16px;padding-bottom:10px;
+        border-bottom:2px solid var(--cv-brand);color:#1a1a1a}
+    .chaovn-mag-current{margin-bottom:46px}
+    .chaovn-mag-hero{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+    .chaovn-mag-herocover{flex:0 0 260px;max-width:260px;display:block;
+        box-shadow:0 6px 22px rgba(0,0,0,.16);border-radius:4px;overflow:hidden;background:#f4f4f5}
+    .chaovn-mag-herocover img{width:100%;height:auto;display:block}
+    .chaovn-mag-heroinfo{flex:1 1 320px;min-width:280px}
+    .chaovn-mag-heroinfo h3{font-size:30px;font-weight:800;margin:0 0 4px;color:#1a1a1a}
+    .chaovn-mag-date{color:#777;margin:0 0 16px;font-size:14.5px}
+    .chaovn-mag-toc{list-style:none;margin:0 0 20px;padding:0;border-top:1px solid #eee}
+    .chaovn-mag-toc li{padding:9px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:10px;align-items:baseline}
+    .chaovn-mag-sec{flex:0 0 auto;font-size:11.5px;font-weight:700;color:var(--cv-brand);
+        letter-spacing:.02em;text-transform:uppercase;min-width:84px}
+    .chaovn-mag-toc a{color:#222;text-decoration:none}
+    .chaovn-mag-toc a:hover{color:var(--cv-brand);text-decoration:underline}
+    .chaovn-mag-empty{color:#888;padding:18px 0}
+    .chaovn-mag-btn{display:inline-block;background:var(--cv-brand);color:#fff!important;
+        padding:11px 22px;border-radius:6px;font-weight:700;text-decoration:none}
+    .chaovn-mag-btn:hover{opacity:.9;color:#fff!important}
+    .chaovn-mag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:22px 18px}
+    .chaovn-mag-card{text-align:center}
+    .chaovn-mag-cover{display:block;background:#f4f4f5;border-radius:3px;overflow:hidden;
+        box-shadow:0 3px 12px rgba(0,0,0,.13);aspect-ratio:1/1.37}
+    .chaovn-mag-cover img{width:100%;height:100%;object-fit:cover;display:block}
+    .chaovn-mag-nocover{display:flex;align-items:center;justify-content:center;width:100%;height:100%;
+        min-height:150px;color:var(--cv-brand);font-weight:700;background:#FFF3EC}
+    .chaovn-mag-cardlabel{display:block;margin-top:9px;text-decoration:none;color:#222}
+    .chaovn-mag-cardlabel strong{display:block;font-size:14.5px;font-weight:700}
+    .chaovn-mag-cardlabel em{display:block;font-style:normal;font-size:12px;color:#999;margin-top:2px}
+    .chaovn-mag-pdf{display:inline-block;margin-top:7px;font-size:12px;color:#666!important;
+        border:1px solid #d8d8d8;border-radius:14px;padding:3px 11px;text-decoration:none}
+    .chaovn-mag-pdf:hover{border-color:var(--cv-brand);color:var(--cv-brand)!important}
+    .chaovn-mag-more{margin-top:18px;color:#888;font-size:13.5px}
+    @media (max-width:600px){
+        .chaovn-mag-hero{gap:20px}
+        .chaovn-mag-herocover{flex:0 0 150px;max-width:150px}
+        .chaovn-mag-heroinfo h3{font-size:24px}
+        .chaovn-mag-sec{min-width:0;display:block;flex-basis:100%}
+        .chaovn-mag-toc li{flex-wrap:wrap;gap:2px}
+        .chaovn-mag-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:18px 14px}
+    }
+    </style>
+    <?php
+}
+
+// 매거진 글이 발행되면 이 페이지 캐시도 같이 지운다(호 목차가 바로 반영되게)
+add_action('publish_post', 'chaovn_purge_magpage_cache');
+function chaovn_purge_magpage_cache($post_id) {
+    if (chaovn_is_news_post($post_id)) return;
+    delete_transient(CHAOVN_MAGPAGE_CACHE_KEY);
 }
 
 // ============================================================
