@@ -40,6 +40,12 @@
   - **왜 카메라·사진은 안 걸렸나**: `@expo/config-plugins` 의 `applyPermissions()` 가 `infoPlist[k] = 플러그인props || app.json값 || 기본값` 순서다. app.json 에 적어둔 3개는 살아남고, **안 적은 마이크만 기본값으로 채워졌다.** → 고치는 법도 같다: **app.json `ios.infoPlist` 에 적으면 이긴다** (플러그인 배열 손댈 필요 없음).
   - **마이크는 실제로 필요하다** — `screens/AddNeighborBusinessScreen.js:201` `recordVideo()` 가 `launchCameraAsync({mediaTypes:['videos']})` 로 **동영상을 촬영**한다. 소리가 같이 녹음되므로 iOS 가 마이크 권한을 요구한다. ⚠️ `microphonePermission: false` 로 키를 빼면 촬영 시 **크래시**한다. 지우지 말 것.
   - 조치: app.json 에 `NSMicrophoneUsageDescription` 추가(용도+구체적 예시 포함). **Info.plist 는 네이티브라 OTA 불가 → 재빌드 필수.** iOS 만 재빌드하면 된다(안드로이드 2.4.4 는 이미 출시 완료, 이 키는 iOS 전용).
+  - **⚠️ 가장 중요한 맥락 — 이 문구는 새로 생긴 게 아니다.** `app.json` 에 이 키가 들어간 커밋은 오늘 `f5b336f` 가 **최초**이고, `expo-image-picker`·`expo-av` 는 작년(`00eb44c`·`cc2bfe6`)부터 있었다 → **지금까지 낸 모든 iOS 빌드에 이 기본 문구가 들어 있었고, 2.4.3 은 6/25 에 그대로 통과했다.**
+    - 실측: 빌드 75 IPA(`expo.dev/artifacts/…`)를 받아 `Payload/app.app/Info.plist` 를 열어 확인 — 카메라·사진·위치는 우리 한글 문구, **마이크만 `"Allow app to access your microphone"`** (애플 인용문과 동일).
+    - **경위**: 2.4.4 는 심사 *승인까지 났다가*, 사장님이 연령등급(social media)을 수정 → **새 제출** → 그 시점의 *강화된* 자동 사전검사가 처음 돌면서 반려. 즉 **문구가 바뀐 게 아니라 애플의 검사가 바뀌었다.** 연령등급을 되돌려도 반려는 안 풀린다(새 바이너리 필요). 어차피 2026-09 부터 연령등급 신고는 의무.
+    - **이 반려는 기계 검사다** — "review cannot proceed" = 사람이 아직 안 봤다. 마이크를 고쳐 올린 뒤 **사람 심사에서 연령등급 건이 따로 나올 수 있다.**
+    - 앱스토어 실측(2026-08-08): 번들ID 조회 → **v2.4.3 · 2026-06-25**. **2.4.4 는 스토어에 도달한 적 없음** (사용자 피해 없음, 출시만 지연).
+  - **교훈 — 자동 삽입되는 권한 문구는 우리 눈에 안 보인다.** `ios/` 없는 prebuild 방식이라 `app.json` 만 봐서는 모른다. 앞으로 심사 전에는 **IPA 의 Info.plist 를 직접 열어 `*UsageDescription` 전부 확인**할 것. (`unzip` → `Payload/*.app/Info.plist` → `plistlib`)
   - → **Apple 심사 통과되면 ✅ 삭제.**
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
