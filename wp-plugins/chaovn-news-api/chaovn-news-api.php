@@ -886,6 +886,54 @@ function chaovn_magazine_shortcode($atts) {
     return $html;
 }
 
+/**
+ * [chaovn_issue_cover] — 이번 호 표지 *하나만*. 홈페이지 상단용.
+ *
+ * 왜 따로 만드나 (2026-08-07 사장님 요청):
+ *   홈에는 목차까지 다 펼치면 기존 구성을 밀어낸다. 표지 한 장만 걸고
+ *   누르면 매거진 페이지로 보내는 것이 홈의 역할에 맞다.
+ *
+ * @param string link  누르면 갈 주소 (기본 /magazine_flip/)
+ * @param string width 표지 폭 (기본 200px)
+ */
+add_shortcode('chaovn_issue_cover', 'chaovn_issue_cover_shortcode');
+function chaovn_issue_cover_shortcode($atts) {
+    $a = shortcode_atts(array(
+        'link'  => '/magazine_flip/',
+        'width' => '200',
+        'title' => '이번 호',
+    ), $atts, 'chaovn_issue_cover');
+
+    $id = chaovn_get_display_issue_id();
+    if (!$id) return '';
+    $issue = chaovn_get_issue_payload($id);
+    if (!$issue || !$issue['coverUrl']) return ''; // 표지가 없으면 아예 안 그린다(빈 칸보다 낫다)
+
+    $href  = (strpos($a['link'], 'http') === 0) ? $a['link'] : home_url($a['link']);
+    $label = $issue['number'] ? '제' . $issue['number'] . '호' : $issue['title'];
+    $date  = $issue['date'] ? date_i18n('Y.m.d', strtotime($issue['date'])) : '';
+    $w     = (int) $a['width'];
+
+    ob_start();
+    chaovn_magazine_styles();
+    ?>
+    <div class="chaovn-mag chaovn-covermini" style="max-width:<?php echo $w; ?>px">
+        <?php if ($a['title']): ?>
+            <div class="chaovn-covermini-h"><?php echo esc_html($a['title']); ?></div>
+        <?php endif; ?>
+        <a class="chaovn-mag-cover" href="<?php echo esc_url($href); ?>">
+            <img src="<?php echo esc_url($issue['coverUrl']); ?>"
+                 alt="<?php echo esc_attr($label . ' 표지'); ?>" loading="lazy" decoding="async" />
+        </a>
+        <a class="chaovn-mag-cardlabel" href="<?php echo esc_url($href); ?>">
+            <strong><?php echo esc_html($label); ?></strong>
+            <?php if ($date): ?><em><?php echo esc_html($date); ?> 발행</em><?php endif; ?>
+        </a>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
 /** 호 하나를 표지 카드로. 표지가 없으면 호수 텍스트 카드를 그린다(레이아웃이 안 깨지게). */
 function chaovn_mag_cover_card($issue, $show_pdf) {
     $url   = $issue['webUrl'] ?: '#';
@@ -985,12 +1033,23 @@ function chaovn_magazine_page_html($back_count) {
                     <?php if ($iq->have_posts()): ?>
                         <ul class="chaovn-mag-toc">
                             <?php while ($iq->have_posts()): $iq->the_post();
-                                $cats = get_the_category(get_the_ID());
+                                $pid  = get_the_ID();
+                                $cats = get_the_category($pid);
                                 $sec  = !empty($cats) ? html_entity_decode($cats[0]->name, ENT_QUOTES, 'UTF-8') : '';
+                                // 목차에도 작은 사진을 붙인다 (2026-08-07 사장님 지적).
+                                // 글자만 있으면 목록이 허술해 보이고, 잡지 목차 느낌이 안 난다.
+                                $th   = get_the_post_thumbnail_url($pid, 'thumbnail');
                                 ?>
                                 <li>
-                                    <?php if ($sec): ?><span class="chaovn-mag-sec"><?php echo esc_html($sec); ?></span><?php endif; ?>
-                                    <a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a>
+                                    <a class="chaovn-mag-tocthumb" href="<?php echo esc_url(get_permalink()); ?>">
+                                        <?php if ($th): ?>
+                                            <img src="<?php echo esc_url($th); ?>" alt="" loading="lazy" decoding="async" />
+                                        <?php endif; ?>
+                                    </a>
+                                    <span class="chaovn-mag-tocbody">
+                                        <?php if ($sec): ?><span class="chaovn-mag-sec"><?php echo esc_html($sec); ?></span><?php endif; ?>
+                                        <a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a>
+                                    </span>
                                 </li>
                             <?php endwhile; wp_reset_postdata(); ?>
                         </ul>
@@ -1057,9 +1116,13 @@ function chaovn_magazine_styles() {
     .chaovn-mag-heroinfo h3{font-size:28px;font-weight:800;margin:0 0 3px;color:#1a1a1a;line-height:1.2}
     .chaovn-mag-date{color:#777;margin:0 0 14px!important;font-size:14px}
     .chaovn-mag-toc{margin:0 0 18px!important;border-top:1px solid #ececec}
-    .chaovn-mag-toc li{padding:7px 0!important;border-bottom:1px solid #f2f2f2;
-        display:flex;gap:10px;align-items:baseline;line-height:1.45}
-    .chaovn-mag-sec{flex:0 0 96px;font-size:11px;font-weight:700;color:var(--cv-brand);
+    .chaovn-mag-toc li{padding:8px 0!important;border-bottom:1px solid #f2f2f2;
+        display:flex;gap:11px;align-items:center;line-height:1.45}
+    .chaovn-mag-tocthumb{flex:0 0 58px;width:58px;height:40px;display:block;overflow:hidden;
+        border-radius:3px;background:#f1f1f3}
+    .chaovn-mag-tocthumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .chaovn-mag-tocbody{flex:1 1 auto;min-width:0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+    .chaovn-mag-sec{flex:0 0 92px;font-size:11px;font-weight:700;color:var(--cv-brand);
         letter-spacing:.02em;text-transform:uppercase;line-height:1.5}
     .chaovn-mag-toc a{color:#222;text-decoration:none;font-size:14.5px}
     .chaovn-mag-toc a:hover{color:var(--cv-brand);text-decoration:underline}
@@ -1082,13 +1145,20 @@ function chaovn_magazine_styles() {
     .chaovn-mag-btn{display:inline-block;background:var(--cv-brand);color:#fff!important;
         padding:11px 22px;border-radius:6px;font-weight:700;text-decoration:none}
     .chaovn-mag-btn:hover{opacity:.9;color:#fff!important}
-    .chaovn-mag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:22px 18px}
+    .chaovn-mag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:22px 18px;
+        align-items:start}
     .chaovn-mag-card{text-align:center}
+    /* 표지는 절대 자르지 않는다 (2026-08-07 사장님 지적: 아래가 잘려 나옴).
+       예전엔 aspect-ratio 로 칸을 고정하고 object-fit:cover 로 채웠는데,
+       칸 비율이 표지와 조금만 어긋나도 아래가 잘린다. 표지는 잡지의 얼굴이라
+       잘리면 안 된다 → 칸을 고정하지 말고 이미지 원래 비율대로 그린다.
+       (표지가 전부 618x845 = 1:1.367 로 같아서 격자는 저절로 가지런하다) */
     .chaovn-mag-cover{display:block;background:#f4f4f5;border-radius:3px;overflow:hidden;
-        box-shadow:0 3px 12px rgba(0,0,0,.13);aspect-ratio:1/1.37}
-    .chaovn-mag-cover img{width:100%;height:100%;object-fit:cover;display:block}
-    .chaovn-mag-nocover{display:flex;align-items:center;justify-content:center;width:100%;height:100%;
-        min-height:150px;color:var(--cv-brand);font-weight:700;background:#FFF3EC}
+        box-shadow:0 3px 12px rgba(0,0,0,.13);line-height:0}
+    .chaovn-mag-cover img{width:100%;height:auto;display:block}
+    .chaovn-mag-nocover{display:flex;align-items:center;justify-content:center;width:100%;
+        aspect-ratio:1/1.367;min-height:150px;color:var(--cv-brand);font-weight:700;background:#FFF3EC;
+        line-height:1.4}
     .chaovn-mag-cardlabel{display:block;margin-top:9px;text-decoration:none;color:#222}
     .chaovn-mag-cardlabel strong{display:block;font-size:14.5px;font-weight:700}
     .chaovn-mag-cardlabel em{display:block;font-style:normal;font-size:12px;color:#999;margin-top:2px}
@@ -1096,6 +1166,12 @@ function chaovn_magazine_styles() {
         border:1px solid #d8d8d8;border-radius:14px;padding:3px 11px;text-decoration:none}
     .chaovn-mag-pdf:hover{border-color:var(--cv-brand);color:var(--cv-brand)!important}
     .chaovn-mag-more{margin-top:18px;color:#888;font-size:13.5px}
+
+    /* ── 홈 상단 표지 한 장 [chaovn_issue_cover] ── */
+    .chaovn-covermini{text-align:center;margin:0 auto 18px}
+    .chaovn-covermini-h{font-size:13px;font-weight:800;color:var(--cv-brand);
+        letter-spacing:.04em;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--cv-brand)}
+    .chaovn-covermini .chaovn-mag-cardlabel em{margin-top:3px}
     @media (max-width:600px){
         .chaovn-mag-hero{gap:20px}
         .chaovn-mag-herocover{flex:0 0 150px;max-width:150px}
