@@ -36,6 +36,11 @@
   - **해결책 B (다음 빌드에 포함·더 단순)**: `app.json` 의 `intentFilters`·`associatedDomains` 에서 www.vnkorlife.com 4개 경로를 제거. www 링크는 어차피 브라우저에서 apex 로 넘어간다(지금과 동작 동일). SEO 위험 없음.
   - → 사장님 선택 대기. B 를 고르면 **네이티브 변경이라 빌드 필요**하므로 여기 남겨 둔다.
 
+- [ ] **⓪-g iOS 심사 반려: 마이크 권한 문구가 기본값이었다** 🔴 (2026-08-08 반려) — Apple 자동검사가 `NSMicrophoneUsageDescription: "Allow app to access your microphone"` 을 **placeholder** 로 판정. **우리가 적은 적이 없는 문구다** — `expo-image-picker`/`expo-av` 의 config plugin 이 자동 삽입한 기본값(`plugin/src/*.ts` 의 `MICROPHONE_USAGE` 상수). `ios/` 폴더가 없는 prebuild 방식이라 눈에 안 보였다.
+  - **왜 카메라·사진은 안 걸렸나**: `@expo/config-plugins` 의 `applyPermissions()` 가 `infoPlist[k] = 플러그인props || app.json값 || 기본값` 순서다. app.json 에 적어둔 3개는 살아남고, **안 적은 마이크만 기본값으로 채워졌다.** → 고치는 법도 같다: **app.json `ios.infoPlist` 에 적으면 이긴다** (플러그인 배열 손댈 필요 없음).
+  - **마이크는 실제로 필요하다** — `screens/AddNeighborBusinessScreen.js:201` `recordVideo()` 가 `launchCameraAsync({mediaTypes:['videos']})` 로 **동영상을 촬영**한다. 소리가 같이 녹음되므로 iOS 가 마이크 권한을 요구한다. ⚠️ `microphonePermission: false` 로 키를 빼면 촬영 시 **크래시**한다. 지우지 말 것.
+  - 조치: app.json 에 `NSMicrophoneUsageDescription` 추가(용도+구체적 예시 포함). **Info.plist 는 네이티브라 OTA 불가 → 재빌드 필수.** iOS 만 재빌드하면 된다(안드로이드 2.4.4 는 이미 출시 완료, 이 키는 iOS 전용).
+  - → **Apple 심사 통과되면 ✅ 삭제.**
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
