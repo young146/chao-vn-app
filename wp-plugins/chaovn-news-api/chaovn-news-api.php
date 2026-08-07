@@ -132,6 +132,25 @@ function chaovn_get_magazine_issue($request) {
         return new WP_REST_Response(array('success' => false, 'error' => '호 정보를 읽을 수 없습니다.'), 404);
     }
 
+    $out = chaovn_issue_groups($term_id);
+
+    return new WP_REST_Response(array(
+        'success' => true,
+        'issue'   => $issue,
+        'groups'  => $out,
+        'total'   => array_sum(array_map(function ($g) { return count($g['posts']); }, $out)),
+    ), 200);
+}
+
+/**
+ * 한 호의 기사를 꼭지(카테고리)별로 묶어 돌려준다. **앱 API 와 웹 화면이 함께 쓴다.**
+ *
+ * 왜 함수로 뺐나 (2026-08-07): 같은 규칙을 두 곳에 적으면 반드시 어긋난다.
+ * 웹 호 페이지를 만들면서 여기서 한 번만 정의하도록 옮겼다.
+ *
+ * @return array [['section'=>'DESK TALK', 'posts'=>[...]], ...]
+ */
+function chaovn_issue_groups($term_id) {
     $q = new WP_Query(array(
         'post_type'      => 'post',
         'posts_per_page' => 100, // 한 호는 13~24편. 넉넉히.
@@ -142,7 +161,7 @@ function chaovn_get_magazine_issue($request) {
         'tax_query'      => array(array(
             'taxonomy' => CHAOVN_ISSUE_TAX,
             'field'    => 'term_id',
-            'terms'    => $term_id,
+            'terms'    => (int) $term_id,
         )),
     ));
 
@@ -162,6 +181,7 @@ function chaovn_get_magazine_issue($request) {
             'date'       => get_the_date('c', $pid),
             'link'       => get_permalink($pid),
             'thumbnail'  => $thumb ? $thumb : '',
+            'excerpt'    => wp_trim_words(strip_tags(get_the_excerpt($pid)), 28, '…'),
             'categories' => wp_get_post_categories($pid),
         );
     }
@@ -171,13 +191,7 @@ function chaovn_get_magazine_issue($request) {
     foreach ($groups as $name => $posts) {
         $out[] = array('section' => $name, 'posts' => $posts);
     }
-
-    return new WP_REST_Response(array(
-        'success' => true,
-        'issue'   => $issue,
-        'groups'  => $out,
-        'total'   => array_sum(array_map(function ($g) { return count($g['posts']); }, $out)),
-    ), 200);
+    return $out;
 }
 
 /** 호 목록 (최신순). 지난 호 아카이브 화면용. */
@@ -839,7 +853,9 @@ function chaovn_get_issue_payload($term_id) {
 // ============================================================
 define('CHAOVN_MAGPAGE_CACHE_KEY', 'chaovn_magazine_page_v1');
 define('CHAOVN_MAGPAGE_TTL', 30 * MINUTE_IN_SECONDS);
-define('CHAOVN_MAGPAGE_BACK_ISSUES', 12); // 지난 호 노출 개수 (2026-08-07 사장님 결정)
+define('CHAOVN_MAGPAGE_BACK_ISSUES', 14); // 지난 호 노출 개수.
+// 처음엔 12였는데 실물에서 한 줄에 7개가 들어가 두 번째 줄이 5개로 비었다
+// (2026-08-07 사장님 확인) → 14 로 맞춰 두 줄을 꽉 채운다.
 
 add_shortcode('chaovn_magazine', 'chaovn_magazine_shortcode');
 
@@ -1018,24 +1034,51 @@ function chaovn_magazine_styles() {
     $done = true;
     ?>
     <style>
-    .chaovn-mag{--cv-brand:#FF6B35;max-width:1180px;margin:0 auto;font-size:16px;line-height:1.6}
-    .chaovn-mag-h{font-size:22px;font-weight:800;margin:0 0 16px;padding-bottom:10px;
-        border-bottom:2px solid var(--cv-brand);color:#1a1a1a}
-    .chaovn-mag-current{margin-bottom:46px}
-    .chaovn-mag-hero{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
-    .chaovn-mag-herocover{flex:0 0 260px;max-width:260px;display:block;
+    /* 테마(Sahifa)가 본문 li·p 에 큰 여백과 자기 글꼴을 걸어서 목차가 성기게 벌어졌다
+       (2026-08-07 실물 확인). 우리 블록 안에서만 그 영향을 끊는다 — 밖은 안 건드린다. */
+    .chaovn-mag,.chaovn-mag *{box-sizing:border-box}
+    .chaovn-mag ul,.chaovn-mag ol,.chaovn-mag li{margin:0!important;padding:0;list-style:none!important;
+        background:none!important;border-left:0!important}
+    .chaovn-mag li:before{content:none!important;display:none!important}
+    .chaovn-mag p{margin:0 0 10px}
+    .chaovn-mag h1,.chaovn-mag h2,.chaovn-mag h3{font-family:inherit;letter-spacing:normal}
+
+    .chaovn-mag{--cv-brand:#FF6B35;max-width:1180px;margin:0 auto;font-size:15.5px;line-height:1.55;
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic','맑은 고딕','Noto Sans KR',sans-serif;
+        letter-spacing:normal;color:#222}
+    .chaovn-mag-h{font-size:20px;font-weight:800;margin:0 0 14px;padding-bottom:9px;
+        border-bottom:2px solid var(--cv-brand);color:#1a1a1a;line-height:1.3}
+    .chaovn-mag-current{margin-bottom:44px}
+    .chaovn-mag-hero{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}
+    .chaovn-mag-herocover{flex:0 0 300px;max-width:300px;display:block;
         box-shadow:0 6px 22px rgba(0,0,0,.16);border-radius:4px;overflow:hidden;background:#f4f4f5}
     .chaovn-mag-herocover img{width:100%;height:auto;display:block}
-    .chaovn-mag-heroinfo{flex:1 1 320px;min-width:280px}
-    .chaovn-mag-heroinfo h3{font-size:30px;font-weight:800;margin:0 0 4px;color:#1a1a1a}
-    .chaovn-mag-date{color:#777;margin:0 0 16px;font-size:14.5px}
-    .chaovn-mag-toc{list-style:none;margin:0 0 20px;padding:0;border-top:1px solid #eee}
-    .chaovn-mag-toc li{padding:9px 0;border-bottom:1px solid #f0f0f0;display:flex;gap:10px;align-items:baseline}
-    .chaovn-mag-sec{flex:0 0 auto;font-size:11.5px;font-weight:700;color:var(--cv-brand);
-        letter-spacing:.02em;text-transform:uppercase;min-width:84px}
-    .chaovn-mag-toc a{color:#222;text-decoration:none}
+    .chaovn-mag-heroinfo{flex:1 1 340px;min-width:280px}
+    .chaovn-mag-heroinfo h3{font-size:28px;font-weight:800;margin:0 0 3px;color:#1a1a1a;line-height:1.2}
+    .chaovn-mag-date{color:#777;margin:0 0 14px!important;font-size:14px}
+    .chaovn-mag-toc{margin:0 0 18px!important;border-top:1px solid #ececec}
+    .chaovn-mag-toc li{padding:7px 0!important;border-bottom:1px solid #f2f2f2;
+        display:flex;gap:10px;align-items:baseline;line-height:1.45}
+    .chaovn-mag-sec{flex:0 0 96px;font-size:11px;font-weight:700;color:var(--cv-brand);
+        letter-spacing:.02em;text-transform:uppercase;line-height:1.5}
+    .chaovn-mag-toc a{color:#222;text-decoration:none;font-size:14.5px}
     .chaovn-mag-toc a:hover{color:var(--cv-brand);text-decoration:underline}
     .chaovn-mag-empty{color:#888;padding:18px 0}
+
+    /* ── 호 페이지(/magazine-issue/issue-NNN/) ── */
+    .chaovn-issue-title{font-size:32px;font-weight:800;margin:0 0 4px!important;line-height:1.2;color:#1a1a1a}
+    .chaovn-issue .chaovn-mag-hero{padding-bottom:26px;margin-bottom:30px;border-bottom:1px solid #eee}
+    .chaovn-issue-group{margin-bottom:34px}
+    .chaovn-issue-item{display:flex;gap:15px;padding:13px 0;border-bottom:1px solid #f2f2f2}
+    .chaovn-issue-thumb{flex:0 0 132px;width:132px;height:88px;display:block;overflow:hidden;
+        border-radius:4px;background:#f1f1f3}
+    .chaovn-issue-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .chaovn-issue-nothumb{display:block;width:100%;height:100%;background:#f1f1f3}
+    .chaovn-issue-text{flex:1 1 auto;min-width:0}
+    .chaovn-issue-text h3{font-size:16.5px;font-weight:700;margin:0 0 5px!important;line-height:1.4}
+    .chaovn-issue-text h3 a{color:#1a1a1a;text-decoration:none}
+    .chaovn-issue-text h3 a:hover{color:var(--cv-brand)}
+    .chaovn-issue-text p{font-size:13.5px;color:#777;margin:0!important;line-height:1.5}
     .chaovn-mag-btn{display:inline-block;background:var(--cv-brand);color:#fff!important;
         padding:11px 22px;border-radius:6px;font-weight:700;text-decoration:none}
     .chaovn-mag-btn:hover{opacity:.9;color:#fff!important}
@@ -1060,9 +1103,113 @@ function chaovn_magazine_styles() {
         .chaovn-mag-sec{min-width:0;display:block;flex-basis:100%}
         .chaovn-mag-toc li{flex-wrap:wrap;gap:2px}
         .chaovn-mag-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:18px 14px}
+        .chaovn-issue-title{font-size:24px}
+        .chaovn-issue-thumb{flex:0 0 96px;width:96px;height:66px}
+        .chaovn-issue-text h3{font-size:15px}
+        .chaovn-issue-text p{display:none}
     }
     </style>
     <?php
+}
+
+// ============================================================
+// 📄 호 페이지 (/magazine-issue/issue-564/) 전용 화면
+// ------------------------------------------------------------
+// 왜 필요한가 (2026-08-07 사장님 지적):
+//   고유주소를 살리니 19개 호 페이지가 생겼는데, Sahifa 기본 아카이브가 그린다.
+//   제목이 "Blog Archives" 로 뜨고, 표지도 호수도 없고, 꼭지 구분 없이
+//   본문 발췌가 죽 늘어선 "블로그 글 목록"이다. 잡지 목차로 안 읽힌다.
+//
+// 방식: template_redirect 에서 우리가 직접 그리고 exit.
+//   테마 껍데기는 get_header()/get_sidebar()/get_footer() 로 그대로 쓴다
+//   → 메뉴·광고·애널리틱스가 전부 살아 있다.
+//   가운데 마크업은 실측한 Sahifa 구조를 그대로 흉내낸다:
+//     #main-content.container > .content + aside.sidebar + .clear
+//   (이 구조를 어기면 사이드바가 아래로 떨어지거나 폭이 틀어진다)
+// ============================================================
+add_action('template_redirect', 'chaovn_issue_archive_render');
+function chaovn_issue_archive_render() {
+    if (!is_tax(CHAOVN_ISSUE_TAX)) return;
+
+    $term = get_queried_object();
+    if (!$term || is_wp_error($term)) return;
+
+    $issue  = chaovn_get_issue_payload($term->term_id);
+    $groups = chaovn_issue_groups($term->term_id);
+    $total  = array_sum(array_map(function ($g) { return count($g['posts']); }, $groups));
+
+    $label = ($issue && $issue['number']) ? '제' . $issue['number'] . '호' : $term->name;
+    $date  = ($issue && $issue['date']) ? date_i18n('Y년 n월 j일', strtotime($issue['date'])) : '';
+
+    get_header();
+    chaovn_magazine_styles();
+    ?>
+    <div id="main-content" class="container">
+        <div class="content">
+
+            <div class="chaovn-mag chaovn-issue">
+
+                <div class="chaovn-mag-hero">
+                    <?php if ($issue && $issue['coverUrl']): ?>
+                        <span class="chaovn-mag-herocover">
+                            <img src="<?php echo esc_url($issue['coverUrl']); ?>"
+                                 alt="<?php echo esc_attr($label . ' 표지'); ?>" />
+                        </span>
+                    <?php endif; ?>
+
+                    <div class="chaovn-mag-heroinfo">
+                        <h1 class="chaovn-issue-title"><?php echo esc_html($label); ?></h1>
+                        <p class="chaovn-mag-date">
+                            <?php if ($date): ?><?php echo esc_html($date); ?> 발행<?php endif; ?>
+                            <?php if ($total): ?> · 기사 <?php echo (int) $total; ?>편<?php endif; ?>
+                        </p>
+                        <?php if ($issue && !empty($issue['pdfUrl'])): ?>
+                            <a class="chaovn-mag-btn" href="<?php echo esc_url($issue['pdfUrl']); ?>"
+                               target="_blank" rel="noopener">PDF로 보기</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php if ($groups): foreach ($groups as $g): ?>
+                    <section class="chaovn-issue-group">
+                        <h2 class="chaovn-mag-h"><?php echo esc_html($g['section']); ?></h2>
+                        <?php foreach ($g['posts'] as $p): ?>
+                            <article class="chaovn-issue-item">
+                                <a class="chaovn-issue-thumb" href="<?php echo esc_url($p['link']); ?>">
+                                    <?php if ($p['thumbnail']): ?>
+                                        <img src="<?php echo esc_url($p['thumbnail']); ?>"
+                                             alt="" loading="lazy" decoding="async" />
+                                    <?php else: ?>
+                                        <span class="chaovn-issue-nothumb"></span>
+                                    <?php endif; ?>
+                                </a>
+                                <div class="chaovn-issue-text">
+                                    <h3><a href="<?php echo esc_url($p['link']); ?>">
+                                        <?php echo esc_html(html_entity_decode($p['title']['rendered'], ENT_QUOTES, 'UTF-8')); ?>
+                                    </a></h3>
+                                    <?php if (!empty($p['excerpt'])): ?>
+                                        <p><?php echo esc_html($p['excerpt']); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </section>
+                <?php endforeach; else: ?>
+                    <p class="chaovn-mag-empty">이 호의 기사가 아직 올라오지 않았습니다.</p>
+                <?php endif; ?>
+
+                <p class="chaovn-mag-more">
+                    <a class="chaovn-mag-btn" href="<?php echo esc_url(home_url('/magazine_flip/')); ?>">← 다른 호 보기</a>
+                </p>
+            </div>
+
+        </div>
+        <?php get_sidebar(); ?>
+        <div class="clear"></div>
+    </div>
+    <?php
+    get_footer();
+    exit;
 }
 
 // 매거진 글이 발행되면 이 페이지 캐시도 같이 지운다(호 목차가 바로 반영되게)
