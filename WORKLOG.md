@@ -45,6 +45,11 @@
     - **경위**: 2.4.4 는 심사 *승인까지 났다가*, 사장님이 연령등급(social media)을 수정 → **새 제출** → 그 시점의 *강화된* 자동 사전검사가 처음 돌면서 반려. 즉 **문구가 바뀐 게 아니라 애플의 검사가 바뀌었다.** 연령등급을 되돌려도 반려는 안 풀린다(새 바이너리 필요). 어차피 2026-09 부터 연령등급 신고는 의무.
     - **이 반려는 기계 검사다** — "review cannot proceed" = 사람이 아직 안 봤다. 마이크를 고쳐 올린 뒤 **사람 심사에서 연령등급 건이 따로 나올 수 있다.**
     - 앱스토어 실측(2026-08-08): 번들ID 조회 → **v2.4.3 · 2026-06-25**. **2.4.4 는 스토어에 도달한 적 없음** (사용자 피해 없음, 출시만 지연).
+  - **외부 근거 (2026-08-08 조사) — 우리만 겪은 일이 아니다.** 애플이 **2026-07-20 무렵부터** 모든 제출물의 Info.plist 를 기계로 읽어 뻔한 권한 문구를 걸러내기 시작했다(가이드라인 5.1.1, iOS·macOS 공통).
+    - **판박이 사례**: 맥 앱 ScreenFloat — 7/16 제출 **당일 승인** → 7/20 출시 → 크래시 **한 줄 수정** 후 재제출 → **동일한 자동 반려**. ([blog.eternalstorms.at/2026/07/21/tales-from-app-review/](https://blog.eternalstorms.at/2026/07/21/tales-from-app-review/) · [blog.despia.com/placeholder-purpose-strings-fix-the-5-1-1-rejection](https://blog.despia.com/placeholder-purpose-strings-fix-the-5-1-1-rejection)) → **"전에 통과했다"는 방패가 안 된다. 재제출하면 그 시점 기준으로 다시 검사받는다.**
+    - **Expo 앱이 특히 취약**: `expo-audio`·`expo-av`·`expo-image-picker` 가 마이크를 안 써도 문구를 자동 주입하는 문제는 **2024-12 부터 미해결**([expo/expo#33761](https://github.com/expo/expo/issues/33761), [#11532](https://github.com/expo/expo/issues/11532), #26730, #11736).
+    - 참고: 7월 피해자들은 **어느 키인지 안 알려줘서** 고생했다(ScreenFloat 은 권한 7개 중 뭔지 몰라 헤맴). 우리 메일은 키+문구를 콕 집어줬다 → 애플이 메시지를 개선한 듯.
+    - ScreenFloat 은 자동 반려를 고친 뒤 **사람 심사에서 또 다른 사유로 반려**됐고, 소명 후 7/22 통과. → **한 번에 안 끝날 수 있다는 전례.**
   - **교훈 — 자동 삽입되는 권한 문구는 우리 눈에 안 보인다.** `ios/` 없는 prebuild 방식이라 `app.json` 만 봐서는 모른다. 앞으로 심사 전에는 **IPA 의 Info.plist 를 직접 열어 `*UsageDescription` 전부 확인**할 것. (`unzip` → `Payload/*.app/Info.plist` → `plistlib`)
   - → **Apple 심사 통과되면 ✅ 삭제.**
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
