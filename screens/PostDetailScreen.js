@@ -282,21 +282,28 @@ export default function PostDetailScreen({ route, navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* 빵조각(탐색경로) — 웹과 같은 자리를 잡아준다.
-            분류를 모르는 글(매거진 등)에서는 아무것도 안 그린다 — 빈 줄이 더 나쁘다. */}
+            분류를 모르는 글(매거진 등)에서는 아무것도 안 그린다 — 빈 줄이 더 나쁘다.
+
+            ⚠️ View 를 flexDirection:'row' + flexWrap 으로 짜지 않는다.
+            처음에 그렇게 만들었더니 **안드로이드에는 나오는데 iOS 에서는 안 보였다**
+            (2026-08-08 사장님 확인). 줄바꿈 계산이 두 플랫폼에서 달라서
+            칸 크기가 0 으로 접힐 수 있다.
+            글자 한 줄은 중첩 <Text> 로 그리는 게 정답이다 — 줄바꿈·정렬을
+            RN 이 아니라 **글자 조판기**가 처리하므로 두 플랫폼이 똑같이 나온다. */}
         {breadcrumb.length > 0 && (
-          <View style={styles.breadcrumb}>
-            {breadcrumb.map((crumb, i) => (
-              <View key={`bc-${i}`} style={styles.breadcrumbItem}>
-                {i > 0 && <Text style={styles.breadcrumbSep}>›</Text>}
-                <Text
-                  style={[styles.breadcrumbText, i === breadcrumb.length - 1 && styles.breadcrumbLast]}
-                  numberOfLines={1}
-                >
-                  {crumb}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.breadcrumb} numberOfLines={1}>
+            {breadcrumb.map((crumb, i) => [
+              i > 0 ? (
+                <Text key={`bcs-${i}`} style={styles.breadcrumbSep}>{'  ›  '}</Text>
+              ) : null,
+              <Text
+                key={`bc-${i}`}
+                style={i === breadcrumb.length - 1 ? styles.breadcrumbLast : styles.breadcrumbText}
+              >
+                {crumb}
+              </Text>,
+            ])}
+          </Text>
         )}
 
         <TranslatedText style={styles.title}>
@@ -452,26 +459,22 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   // 빵조각 — 제목 위 한 줄. 눈에 띄되 제목을 이기지 않게 작고 흐리게.
+  // 바깥이 <Text> 이므로 flex 속성을 쓰지 않는다 (iOS 에서 접히는 원인이었다).
   breadcrumb: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+    fontSize: 12,
+    lineHeight: 18,
     marginBottom: 8,
-  },
-  breadcrumbItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   breadcrumbSep: {
     fontSize: 12,
     color: '#c4c4c4',
-    marginHorizontal: 5,
   },
   breadcrumbText: {
     fontSize: 12,
     color: '#999',
   },
   breadcrumbLast: {
+    fontSize: 12,
     color: '#FF6B35',
     fontWeight: '700',
   },
