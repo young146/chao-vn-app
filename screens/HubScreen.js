@@ -98,7 +98,16 @@ export default function HubScreen({ navigation, route }) {
         {/* ③ 검색창 — 하나 */}
         <View style={styles.searchWrap}>
           <View style={[styles.searchBox, focused && styles.searchBoxOn]}>
-            <Ionicons name="search" size={19} color={MUTE} style={styles.searchIcon} />
+            {/* 돋보기도 누르면 검색된다. 그림만 있으면 눌러도 아무 일이 없어 "고장"으로 보인다. */}
+            <TouchableOpacity
+              onPress={onSubmit}
+              accessibilityRole="button"
+              accessibilityLabel="검색"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 6 }}
+              style={styles.searchIcon}
+            >
+              <Ionicons name="search" size={19} color={query ? BRAND : MUTE} />
+            </TouchableOpacity>
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -110,9 +119,17 @@ export default function HubScreen({ navigation, route }) {
               placeholderTextColor={MUTE}
               style={styles.searchInput}
             />
-            <View style={styles.aiChip}>
-              <Text style={styles.aiChipText}>✦ AI</Text>
-            </View>
+            {/* 오른쪽 칩 = 실제 검색 버튼.
+                'AI' 만 적어 두면 눌러도 되는 것인지 알 수 없다 — 동작을 이름에 적는다. */}
+            <TouchableOpacity
+              style={[styles.aiChip, !query.trim() && styles.aiChipOff]}
+              onPress={onSubmit}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="AI 검색"
+            >
+              <Text style={styles.aiChipText}>✦ AI 검색</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -154,7 +171,8 @@ const styles = StyleSheet.create({
   },
   aiChip: {
     backgroundColor: '#7C3AED', borderRadius: 999,
-    paddingHorizontal: 11, paddingVertical: 6, marginLeft: 8,
+    paddingHorizontal: 13, paddingVertical: 8, marginLeft: 8,
   },
-  aiChipText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  aiChipOff: { backgroundColor: '#B9A7E8' },   // 입력 전에는 눌러도 소용없음을 색으로 알린다
+  aiChipText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
