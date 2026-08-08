@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.0.0');
+define('CHAOVN_SEO_VER', '1.0.1');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -65,9 +65,49 @@ function chaovn_seo_query_vars($vars) {
     return $vars;
 }
 
+/**
+ * 리라이트 규칙을 "필요할 때 딱 한 번" 다시 만든다 — 자가 치유.
+ *
+ * 왜 필요한가 (2026-08-08 실물에서 터짐):
+ *   register_activation_hook 안에서 flush 하는 정석 방식이 이 사이트에서 안 먹었다.
+ *   활성화 요청 시점에는 워드프레스의 주소 해석 단계(init)가 이미 지나간 뒤라,
+ *   방금 include 된 플러그인의 규칙이 표에 반영되지 않는다.
+ *   → 결과: 플러그인은 정상 동작(/?chaovn_news_sitemap=1 = 200)하는데
+ *          /news-sitemap.xml 만 404. 원인 찾기가 유난히 헷갈리는 실패 모양이다.
+ *
+ * 그래서 활성화 훅에 기대지 않고, 부팅 때마다 "내 버전으로 플러시했는가"를 확인한다.
+ * 한 번 하고 나면 옵션에 기록되므로 이후 요청에는 아무 비용도 없다.
+ *
+ * ⚠️ flush_rewrite_rules(false) — hard=false 로 부른다.
+ *    true 면 .htaccess 를 다시 쓰는데, 이 서버 .htaccess 에는 LiteSpeed 규칙이 들어 있다.
+ *    사이트맵 하나 만들자고 캐시 설정을 건드릴 이유가 없다.
+ */
+add_action('init', 'chaovn_seo_maybe_flush', 99);
+function chaovn_seo_maybe_flush() {
+    if (get_option('chaovn_seo_rewrite_ver') === CHAOVN_SEO_VER) return;
+    flush_rewrite_rules(false);
+    update_option('chaovn_seo_rewrite_ver', CHAOVN_SEO_VER, false);
+}
+
+/**
+ * 안전망 — 리라이트 규칙이 없어도 /news-sitemap.xml 이 동작하게 한다.
+ *
+ * 위의 자가 치유가 어떤 이유로든(캐시 플러그인, 다른 플러그인의 규칙 선점 등) 실패해도
+ * 사이트맵은 나와야 한다. 주소를 직접 읽어 처리하므로 워드프레스 규칙표와 무관하다.
+ * 규칙표가 정상이면 이쪽이 먼저 잡고 끝내므로 결과는 같다 — 중복 출력은 없다.
+ */
+add_action('parse_request', 'chaovn_seo_catch_news_sitemap', 0);
+function chaovn_seo_catch_news_sitemap() {
+    if (empty($_SERVER['REQUEST_URI'])) return;
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if (!$path) return;
+    if (strtolower(trim($path, '/')) !== CHAOVN_NEWS_SITEMAP_SLUG) return;
+    chaovn_seo_render_news_sitemap(true);
+}
+
 add_action('template_redirect', 'chaovn_seo_render_news_sitemap');
-function chaovn_seo_render_news_sitemap() {
-    if (!get_query_var('chaovn_news_sitemap')) return;
+function chaovn_seo_render_news_sitemap($forced = false) {
+    if (!$forced && !get_query_var('chaovn_news_sitemap')) return;
 
     $xml = get_transient(CHAOVN_NEWS_SITEMAP_CACHE);
     if ($xml === false) {
@@ -270,11 +310,13 @@ function chaovn_seo_is_news_post($post_id) {
 // 활성화 / 비활성화
 // ============================================================
 register_activation_hook(__FILE__, function () {
-    chaovn_seo_add_rewrite();
-    flush_rewrite_rules(); // 이걸 안 하면 /news-sitemap.xml 이 404 로 남는다
+    // 여기서 flush 해도 이 사이트에서는 반영되지 않았다(위 chaovn_seo_maybe_flush 주석 참고).
+    // 그래서 "아직 안 했음" 표시만 남기고, 실제 작업은 다음 요청의 init 에서 한다.
+    delete_option('chaovn_seo_rewrite_ver');
 });
 
 register_deactivation_hook(__FILE__, function () {
-    flush_rewrite_rules();
+    delete_option('chaovn_seo_rewrite_ver'); // 다시 켤 때 규칙을 새로 만들게
+    flush_rewrite_rules(false);
     delete_transient(CHAOVN_NEWS_SITEMAP_CACHE);
 });
