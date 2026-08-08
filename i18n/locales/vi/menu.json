@@ -15,6 +15,7 @@
   "newUpdateTitle": "Kiểm tra cập nhật",
   "newUpdateMessage": "Có bản cập nhật mới.\nKhởi động lại để áp dụng.",
   "restartNow": "Khởi động lại",
+  "restartManually": "Đã tải xong bản cập nhật.\nVui lòng đóng hẳn ứng dụng rồi mở lại để áp dụng.",
   "appVersion": "XinChao Vietnam v{{version}}",
   "appDescription": "",
   "devMode": "Chế độ phát triển",

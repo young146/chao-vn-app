@@ -86,12 +86,31 @@ export default function MoreScreen({ navigation }) {
             { text: t('common:later'), style: "cancel" },
             {
               text: t('restartNow'),
-              onPress: async () => {
-                try {
-                  await AsyncStorage.setItem('OTA_SKIP_CHECK', '1');
-                  await Updates.reloadAsync();
-                } catch (e) {
-                  console.log("수동 업데이트 적용 실패:", e);
+              // ⚠️ 안드로이드는 **대화상자가 닫힌 뒤에** 재시작해야 한다 (2026-08-08 사장님 확인).
+              //
+              // 왜: reloadAsync 는 JS 를 통째로 새로 띄운다. 그런데 이 onPress 가 불릴 때
+              // 안드로이드의 네이티브 대화상자는 아직 화면에 남아 있고, 그 대화상자가
+              // 지금 없애려는 화면(액티비티)을 붙잡고 있다. 그래서 재시작이 조용히 실패했다.
+              // iOS 는 대화상자 처리 방식이 달라 그냥 됐기 때문에 **안드로이드에서만**
+              // "눌러도 그 자리에 머무는" 증상으로 보였다.
+              onPress: () => {
+                const doReload = async () => {
+                  try {
+                    await AsyncStorage.setItem('OTA_SKIP_CHECK', '1');
+                    await Updates.reloadAsync();
+                  } catch (e) {
+                    console.log("수동 업데이트 적용 실패:", e);
+                    // 조용히 삼키면 사용자는 버튼이 고장난 줄 안다.
+                    // 실패했으면 **무엇을 하면 되는지** 알려준다 — 내려받기는 이미 끝났으므로
+                    // 앱을 껐다 켜기만 하면 새 버전으로 뜬다.
+                    Alert.alert(t('newUpdateTitle'), t('restartManually'));
+                  }
+                };
+                // 대화상자가 닫히는 시간을 준다. iOS 는 필요 없어 0.
+                if (Platform.OS === 'android') {
+                  setTimeout(doReload, 400);
+                } else {
+                  doReload();
                 }
               },
             },
