@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거, (6) 뉴스 섹션 페이지(/news/economy/ 등) 신설.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.1.3
+ * Version: 1.1.4
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.1.3');
+define('CHAOVN_SEO_VER', '1.1.4');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -240,6 +240,8 @@ function chaovn_seo_robots_txt($output, $public) {
 // ============================================================
 
 define('CHAOVN_EDITORIAL_LINE', '씬짜오베트남 편집부 번역·정리');
+// 씬짜오 주홍색. 웹 CSS 와 앱 인라인 스타일이 같은 값을 쓰도록 여기 한 번만 적는다.
+define('CHAOVN_BRAND_COLOR', '#ea580c');
 
 add_filter('the_content', 'chaovn_seo_add_editorial_note', 20);
 function chaovn_seo_add_editorial_note($content) {
@@ -261,8 +263,16 @@ function chaovn_seo_add_editorial_note($content) {
     // 이미 붙어 있으면 두 번 붙이지 않는다 (다른 플러그인이 the_content 를 두 번 돌릴 수 있다)
     if (strpos($content, 'chaovn-editorial-line') !== false) return $content;
 
-    $note = '<div class="news-source-line chaovn-editorial-line">'
-          . '<strong>' . esc_html(CHAOVN_EDITORIAL_LINE) . '</strong>'
+    // 색을 CSS 가 아니라 **태그 안에 직접** 박는다.
+    //
+    // 왜 (2026-08-08 사장님 확인): 웹은 wp_head 의 .chaovn-editorial-line 규칙으로 주홍색이
+    // 되지만, **앱은 그 CSS 를 읽지 않는다** — 본문 HTML 만 받아서 react-native-render-html
+    // 로 그리기 때문이다. 그래서 앱에서만 검정으로 나왔다.
+    // 인라인 style 은 앱의 렌더러도 그대로 적용하므로 웹·앱이 같은 색이 된다.
+    $note = '<div class="news-source-line chaovn-editorial-line"'
+          . ' style="color:' . CHAOVN_BRAND_COLOR . ';margin-bottom:6px">'
+          . '<strong style="color:' . CHAOVN_BRAND_COLOR . '">'
+          . esc_html(CHAOVN_EDITORIAL_LINE) . '</strong>'
           . '</div>';
 
     // (a) 출처 상자가 이미 있는 글 — 그 상자 첫 줄로 얹는다
@@ -302,7 +312,7 @@ add_action('wp_head', 'chaovn_seo_editorial_style', 99);
 function chaovn_seo_editorial_style() {
     if (!is_singular('post')) return;
     echo '<style>'
-       . '.chaovn-editorial-line{color:#ea580c;margin-bottom:6px}'
+       . '.chaovn-editorial-line{color:' . CHAOVN_BRAND_COLOR . ';margin-bottom:6px}'
        . '.news-source-header{margin-bottom:16px;font-size:14px;line-height:1.6}'
        . '.news-source-line{display:block;margin-bottom:4px}'
        . '</style>';
