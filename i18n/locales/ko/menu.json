@@ -163,6 +163,7 @@
     "recentSearches": "최근 검색어"
   },
   "postDetail": {
+    "breadcrumbNews": "뉴스",
     "noDateInfo": "날짜 정보 없음",
     "shareTitle": "이 기사 공유하기",
     "zaloNotInstalled": "Zalo 앱이 설치되어 있지 않습니다.\n일반 공유를 사용해주세요."

@@ -1,3 +1,4 @@
+import { getSectionLabel } from '../lib/newsSections';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
@@ -237,45 +238,15 @@ const MagazineCard = ({ item, onPress, type }) => {
 
   // 카테고리와 출처 추출 (WordPress meta 필드 사용)
   const getCategoryAndSource = () => {
-    // 영어 카테고리 → 번역 키 매핑
-    const categoryKeyMap = {
-      'Society': 'society',
-      'Economy': 'economy',
-      'Culture': 'culture',
-      'Politics': 'politics',
-      'International': 'international',
-      'Korea-Vietnam': 'koreaVietnam',
-      // 한국 국내 뉴스. 이게 없어서 화면에 영문 'Korea-Hot' 이 그대로 찍혔다 (2026-08-08)
-      'Korea-Hot': 'koreaHot',
-      '한국 주요뉴스': 'koreaHot',
-      'Community': 'community',
-      'Travel': 'travel',
-      'Health': 'health',
-      'Food': 'food',
-      'Other': 'other',
-      'Sports': 'sports',
-      'Technology': 'technology',
-      'Education': 'education',
-      'Entertainment': 'entertainment',
-      'Business': 'business',
-      'World': 'world',
-      'Life': 'life',
-      'Pet': 'pet',
-      'Weather': 'weather',
-      'Opinion': 'opinion',
-      'Real Estate': 'realEstate',
-      'Lifestyle': 'lifestyle',
-      'Wellness': 'wellness',
-      'Recipe': 'recipe',
-    };
+    // 분류 → 이름 변환표는 lib/newsSections.js 한 곳에만 둔다.
+    // 여기 안에 박아뒀더니 상세화면이 같은 표를 쓸 수 없었다 (2026-08-08).
 
     // 1. meta 필드에서 카테고리와 출처 가져오기
     const newsCategory = item.meta?.news_category || '';
     const newsSource = item.meta?.news_source || '';
 
-    // 카테고리 번역
-    const categoryKey = categoryKeyMap[newsCategory];
-    const category = categoryKey ? t(`sections.${categoryKey}`) : newsCategory;
+    // 카테고리 번역 (모르는 값이면 원문 그대로 돌려준다)
+    const category = getSectionLabel(newsCategory, t);
 
     // 2. 결과 조합
     if (category && newsSource) {

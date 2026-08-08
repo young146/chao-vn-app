@@ -6,7 +6,7 @@
  *              v2: 날짜별 Transient 캐시, 발행 시 자동 갱신, 날씨/환율 사전 캐시 추가
  *              v2.1: 한국 주요뉴스(Korea-Hot) 섹션 추가 — 그 전까지 '기타'로 떨어지고 화면에 영문이 노출됐다
  *              v2.1.1: 그 키를 Jenny 의 'korea_hot' 에 맞춤 (지어낸 키는 앱 '더보기'를 비운다)
- * Version: 2.1.1
+ * Version: 2.1.2
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  * Text Domain: chaovn-news-api
@@ -2117,14 +2117,9 @@ function chaovn_format_post($post_data, $light = false) {
 }
 
 function chaovn_get_sections_config() {
+    // ⚠️ 이 배열의 **순서가 곧 앱 뉴스탭의 섹션 순서**다(앱은 받은 순서대로 그린다).
+    //    Jenny 의 jenny_get_sections() 순서와 같게 유지한다 — 웹과 앱이 다르면 독자가 헷갈린다.
     return array(
-        'economy'       => array('name' => '경제',     'keys' => array('Economy', '경제')),
-        'society'       => array('name' => '사회',     'keys' => array('Society', '사회')),
-        'culture'       => array('name' => '문화/스포츠', 'keys' => array('Culture', '문화')),
-        'real_estate'   => array('name' => '부동산',   'keys' => array('Real Estate', '부동산')),
-        'politics'      => array('name' => '정치/정책', 'keys' => array('Politics', 'Policy', '정치', '정책')),
-        'international' => array('name' => '국제',     'keys' => array('International', '국제')),
-        'korea_vietnam' => array('name' => '한-베',    'keys' => array('Korea-Vietnam', '한-베', '한베')),
         // 한국 국내 뉴스. 2026-08-08 추가 — 그 전까지 이 표에만 없어서 '기타'로 떨어지고
         // 이름 변환도 안 돼 앱 화면에 영문 'Korea-Hot' 이 그대로 찍혔다.
         //
@@ -2134,6 +2129,13 @@ function chaovn_get_sections_config() {
         //    여기서 다른 이름을 쓰면 **그 화면이 통째로 빈다.**
         //    (실제로 처음에 'korea_news' 라고 지어냈다가 그 사고를 냈다 — 2026-08-08)
         'korea_hot'     => array('name' => '한국 주요뉴스', 'keys' => array('Korea-Hot', '한국 주요뉴스')),
+        'economy'       => array('name' => '경제',     'keys' => array('Economy', '경제')),
+        'society'       => array('name' => '사회',     'keys' => array('Society', '사회')),
+        'culture'       => array('name' => '문화/스포츠', 'keys' => array('Culture', '문화')),
+        'real_estate'   => array('name' => '부동산',   'keys' => array('Real Estate', '부동산')),
+        'politics'      => array('name' => '정치/정책', 'keys' => array('Politics', 'Policy', '정치', '정책')),
+        'international' => array('name' => '국제',     'keys' => array('International', '국제')),
+        'korea_vietnam' => array('name' => '한-베',    'keys' => array('Korea-Vietnam', '한-베', '한베')),
         'community'     => array('name' => '교민소식', 'keys' => array('Community', '교민', '교민소식')),
         'travel'        => array('name' => '여행',     'keys' => array('Travel', '여행')),
         'health'        => array('name' => '건강',     'keys' => array('Health', '건강')),

@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거, (6) 뉴스 섹션 페이지(/news/economy/ 등) 신설.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.1.2
+ * Version: 1.1.3
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.1.2');
+define('CHAOVN_SEO_VER', '1.1.3');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -231,21 +231,29 @@ function chaovn_seo_robots_txt($output, $public) {
 //   파이프라인을 고치면 *앞으로 나올 글*만 바뀐다. 이미 쌓인 19,707건은 그대로다.
 //   위험한 것은 누적된 19,707건 쪽이다. 필터로 처리하면 옛 글까지 한 번에 적용된다.
 //
-// 어디에만 적용하는가 — 웹 기사 본문 화면 하나뿐:
-//   · 앱(REST) 제외  → 앱 화면 배치를 건드리지 않는다
+// 어디에 적용하는가 — 웹 기사 본문 + 앱 기사 본문:
+//   처음엔 웹만 했다(앱 배치를 건드리지 않으려고). 그런데 사장님이 앱에도 보여달라고
+//   하셨다(2026-08-08) — 맞는 말이다. 출처를 밝히는 문장은 구글에게만 하는 말이 아니라
+//   **독자에게 하는 말**이고, 독자의 절반은 앱에 있다.
+//   앱은 react-native-render-html 로 본문을 그리므로 이 <div> 가 그대로 렌더된다.
 //   · 피드/목록 제외 → 요약문에 섞여 들어가지 않는다
-//   구글이 읽는 곳은 웹 기사 페이지이고, 거기만 바꾸면 목적이 달성된다.
-//   (CLAUDE.md 규칙 4 — 요청 범위 밖을 건드리지 않는다)
 // ============================================================
 
 define('CHAOVN_EDITORIAL_LINE', '씬짜오베트남 편집부 번역·정리');
 
 add_filter('the_content', 'chaovn_seo_add_editorial_note', 20);
 function chaovn_seo_add_editorial_note($content) {
-    // REST(앱)·피드·관리화면·목록에서는 손대지 않는다
-    if (defined('REST_REQUEST') && REST_REQUEST) return $content;
-    if (is_admin() || is_feed())                 return $content;
-    if (!is_singular('post') || !in_the_loop() || !is_main_query()) return $content;
+    if (is_admin() || is_feed()) return $content;
+
+    // 앱은 REST 로 본문을 받아간다. 두 경로를 나눠서 판단한다:
+    //  · REST  — 루프 밖에서 도는 경우가 많아 in_the_loop() 을 요구하면 안 붙는다.
+    //            글 번호만 확인하고 붙인다.
+    //  · 웹    — 관련글·위젯 등이 남의 글로 the_content 를 돌릴 수 있으므로
+    //            메인 루프의 단일 글일 때만 붙인다.
+    $is_rest = (defined('REST_REQUEST') && REST_REQUEST);
+    if (!$is_rest && (!is_singular('post') || !in_the_loop() || !is_main_query())) {
+        return $content;
+    }
 
     $pid = get_the_ID();
     if (!$pid || !chaovn_seo_is_news_post($pid)) return $content;

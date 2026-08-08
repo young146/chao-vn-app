@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { getSectionLabel } from '../lib/newsSections';
+import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -30,8 +31,21 @@ const NEWS_CATEGORY_ID = 31;
 
 export default function PostDetailScreen({ route, navigation }) {
   const { t, i18n } = useTranslation('menu');
+  const { t: tHome } = useTranslation('home');
   const { post } = route.params;
   const { width } = useWindowDimensions();
+
+  // 빵조각(탐색경로) — 웹의 「뉴스 > 데일리 뉴스 > 경제」와 같은 줄을 앱에도 보여준다.
+  //
+  // 근거는 목록이 이미 넘겨준 데이터뿐이다(추가 호출 없음):
+  //   post.categoryKey / post.meta.news_category = 'Economy' 같은 분류 값
+  // 매거진 글에는 그 값이 없으므로 아무것도 그리지 않는다 — 없는 경로를 지어내지 않는다.
+  const breadcrumb = useMemo(() => {
+    const raw = post?.categoryKey || post?.meta?.news_category || '';
+    const label = getSectionLabel(raw, tHome);
+    if (!label) return [];
+    return [t('postDetail.breadcrumbNews'), label];
+  }, [post?.categoryKey, post?.meta?.news_category, t, tHome]);
 
   // 🔍 [측정 인프라] 진입 시 한 번만 이벤트 발생 (글이 바뀌면 재발생)
   //
@@ -267,6 +281,24 @@ export default function PostDetailScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* 빵조각(탐색경로) — 웹과 같은 자리를 잡아준다.
+            분류를 모르는 글(매거진 등)에서는 아무것도 안 그린다 — 빈 줄이 더 나쁘다. */}
+        {breadcrumb.length > 0 && (
+          <View style={styles.breadcrumb}>
+            {breadcrumb.map((crumb, i) => (
+              <View key={`bc-${i}`} style={styles.breadcrumbItem}>
+                {i > 0 && <Text style={styles.breadcrumbSep}>›</Text>}
+                <Text
+                  style={[styles.breadcrumbText, i === breadcrumb.length - 1 && styles.breadcrumbLast]}
+                  numberOfLines={1}
+                >
+                  {crumb}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <TranslatedText style={styles.title}>
           {post.title.rendered.replace(/&#[0-9]+;/g, (match) => String.fromCharCode(match.match(/[0-9]+/)))}
         </TranslatedText>
@@ -418,6 +450,30 @@ const styles = StyleSheet.create({
     // 예전엔 화면을 덮는 고정 광고배너(~125px) 때문에 160 을 비워 뒀다.
     // 그 배너를 스크롤 맨 아래로 옮겼으므로(2026-08-06) 보통 여백만 남긴다.
     paddingBottom: 24,
+  },
+  // 빵조각 — 제목 위 한 줄. 눈에 띄되 제목을 이기지 않게 작고 흐리게.
+  breadcrumb: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  breadcrumbItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  breadcrumbSep: {
+    fontSize: 12,
+    color: '#c4c4c4',
+    marginHorizontal: 5,
+  },
+  breadcrumbText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  breadcrumbLast: {
+    color: '#FF6B35',
+    fontWeight: '700',
   },
   title: {
     fontSize: 24,

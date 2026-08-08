@@ -161,6 +161,7 @@
     "recentSearches": "Recent Searches"
   },
   "postDetail": {
+    "breadcrumbNews": "News",
     "noDateInfo": "No date info",
     "shareTitle": "Share this article",
     "zaloNotInstalled": "Zalo is not installed.\nPlease use regular share."
