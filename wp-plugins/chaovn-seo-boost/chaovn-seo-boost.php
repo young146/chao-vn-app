@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.0.1');
+define('CHAOVN_SEO_VER', '1.0.2');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -117,6 +117,18 @@ function chaovn_seo_render_news_sitemap($forced = false) {
             set_transient(CHAOVN_NEWS_SITEMAP_CACHE, $xml, CHAOVN_NEWS_SITEMAP_TTL);
         }
     }
+
+    // LiteSpeed 가 이 주소를 캐시하지 못하게 막는다.
+    //
+    // 왜 (2026-08-08 실물에서 물림): 뉴스 사이트맵은 하루 47건이 들고 나므로 30분만 묵어도
+    // 거짓말이 된다 — '속보 목록'인데 속보가 아니게 된다. 그런데 LiteSpeed 는 이 주소를
+    // 다른 페이지처럼 통째로 캐시하고, 심지어 **플러그인을 켜기 전의 404 응답까지** 붙들고 있었다.
+    // (관리자는 로그인 상태라 캐시를 건너뛰어 정상으로 보이고, 구글봇만 404 를 받는 상태가 됐다)
+    //
+    // 부하 걱정은 없다 — 바로 위 transient 가 10분 캐시를 이미 담당한다.
+    // LiteSpeed 가 없는 환경이면 이 액션은 아무 일도 하지 않는다.
+    do_action('litespeed_control_set_nocache', 'chaovn news sitemap must stay fresh');
+    nocache_headers();
 
     // 브라우저·크롤러가 XML 로 읽게 한다. HTML 로 나가면 구글이 파싱을 포기한다.
     header('Content-Type: application/xml; charset=UTF-8', true, 200);
