@@ -2,9 +2,9 @@
 /**
  * Plugin Name: ChaoVN SEO Boost
  * Plugin URI: https://chaovietnam.co.kr
- * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고.
+ * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.0.3');
+define('CHAOVN_SEO_VER', '1.0.4');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -362,6 +362,84 @@ function chaovn_seo_declare_source($data, $jsonld) {
     }
 
     return $data;
+}
+
+// ============================================================
+// 4) 탐색경로(Breadcrumbs)가 하위 카테고리에서 멈추는 문제
+// ------------------------------------------------------------
+// 증상 (2026-08-08 사장님 확인):
+//   Rank Math 탐색경로를 켰는데  홈 > 뉴스 > (제목)  까지만 나오고
+//   '데일리 뉴스'가 빠진다. "모든 카테고리 표시"를 켜도 그대로다.
+//
+// 원인 — 설정이 아니라 카테고리가 두 개 붙어 있기 때문이다 (실측):
+//   이 기사에 붙은 카테고리:  뉴스(id 6, 부모 없음)  +  데일리 뉴스(id 31, 부모=6)
+//   즉 부모와 자식이 *둘 다* 붙어 있다.
+//   Rank Math 는 '대표 카테고리'가 지정돼 있지 않으면 목록의 첫 번째를 쓰는데,
+//   워드프레스는 카테고리를 id 순으로 돌려주므로 **6(뉴스)** 이 먼저 잡힌다.
+//   6 은 최상위라 조상이 없다 → 거기서 경로가 끝나고, 더 구체적인 31 은 통째로 버려진다.
+//
+//   "모든 카테고리 표시" 가 안 듣는 이유: 그 옵션은 *같은 레벨의 여러 카테고리를 나열*하는
+//   것이지 *계층을 따라 내려가는* 것이 아니다. 애초에 다른 기능이다.
+//
+// 왜 대표 카테고리 지정으로 안 푸는가:
+//   글마다 손으로 지정해야 한다. 뉴스만 19,707건이다. 앞으로 하루 47건씩 더 쌓인다.
+//
+// 무엇을 하는가:
+//   붙어 있는 카테고리 중 **가장 깊은 것**을 고르고, 그 조상 사슬을 전부 펼친다.
+//     홈 > 뉴스 > 데일리 뉴스 > (제목)
+//   뉴스 전용이 아니라 일반 규칙이다 — 매거진도 '피플 > INTERVIEW' 처럼 제대로 나온다.
+//   부모-자식 관계가 없으면(최상위 카테고리 하나뿐이면) 아무것도 건드리지 않는다.
+//
+// 이 필터는 화면과 구조화 데이터(BreadcrumbList) 양쪽에 동시에 반영된다 — Rank Math 공식 동작.
+// ============================================================
+
+add_filter('rank_math/frontend/breadcrumb/items', 'chaovn_seo_deepen_breadcrumb', 20, 2);
+function chaovn_seo_deepen_breadcrumb($crumbs, $class) {
+    if (!is_singular('post'))                  return $crumbs;
+    if (!is_array($crumbs) || count($crumbs) < 2) return $crumbs;
+
+    $pid = get_the_ID();
+    if (!$pid) return $crumbs;
+
+    $cats = get_the_category($pid);
+    if (empty($cats) || count($cats) < 2) return $crumbs; // 하나뿐이면 손댈 이유가 없다
+
+    // 가장 깊은 카테고리 = 조상이 가장 많은 것
+    $deepest = null;
+    $max_depth = -1;
+    foreach ($cats as $cat) {
+        $depth = count(get_ancestors($cat->term_id, 'category', 'taxonomy'));
+        if ($depth > $max_depth) {
+            $max_depth = $depth;
+            $deepest   = $cat;
+        }
+    }
+    // 계층이 없으면(전부 최상위) Rank Math 기본 동작이 이미 옳다 — 건드리지 않는다
+    if (!$deepest || $max_depth < 1) return $crumbs;
+
+    // 조상 → 자신 순서로 사슬을 만든다 (get_ancestors 는 가까운 조상부터 주므로 뒤집는다)
+    $chain = array_reverse(get_ancestors($deepest->term_id, 'category', 'taxonomy'));
+    $chain[] = $deepest->term_id;
+
+    $middle = array();
+    foreach ($chain as $tid) {
+        $term = get_term($tid, 'category');
+        if (!$term || is_wp_error($term)) continue;
+        $link = get_term_link($term);
+        $middle[] = array(
+            // 카테고리 이름에 &amp; 같은 엔티티가 들어있다 — 화면에 그대로 찍히면 안 된다
+            html_entity_decode($term->name, ENT_QUOTES, 'UTF-8'),
+            is_wp_error($link) ? '' : $link,
+        );
+    }
+    if (empty($middle)) return $crumbs; // 만들다 실패하면 원본을 그대로 둔다
+
+    // 첫 항목(홈)과 마지막 항목(글 제목)은 Rank Math 것을 그대로 쓰고, 가운데만 갈아끼운다.
+    // 이렇게 해야 홈 라벨·접두어 설정 등 사용자가 정한 값이 보존된다.
+    $home  = $crumbs[0];
+    $title = $crumbs[count($crumbs) - 1];
+
+    return array_merge(array($home), $middle, array($title));
 }
 
 // ============================================================
