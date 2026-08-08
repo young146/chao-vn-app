@@ -2123,6 +2123,11 @@ function chaovn_get_sections_config() {
         'politics'      => array('name' => '정치/정책', 'keys' => array('Politics', 'Policy', '정치', '정책')),
         'international' => array('name' => '국제',     'keys' => array('International', '국제')),
         'korea_vietnam' => array('name' => '한-베',    'keys' => array('Korea-Vietnam', '한-베', '한베')),
+        // 한국 국내 뉴스(연합뉴스 발). 2026-08-08 신설 —
+        // 그 전까지 'Korea-Hot' 이 어느 섹션에도 안 걸려 '기타'로 떨어졌고,
+        // 이름 변환표에도 없어서 앱·웹 화면에 영문 'Korea-Hot' 이 그대로 찍혔다.
+        // 한-베(양국 관계)와는 다른 주제라 합치지 않고 따로 둔다.
+        'korea_news'    => array('name' => '한국뉴스', 'keys' => array('Korea-Hot', 'Korea', 'Korea-News', '한국', '한국뉴스')),
         'community'     => array('name' => '교민소식', 'keys' => array('Community', '교민', '교민소식')),
         'travel'        => array('name' => '여행',     'keys' => array('Travel', '여행')),
         'health'        => array('name' => '건강',     'keys' => array('Health', '건강')),
@@ -2154,6 +2159,8 @@ function chaovn_get_category_display_name($category) {
         '정치'          => '정치/정책', '정책'    => '정치/정책',
         'International' => '국제',     '국제'     => '국제',
         'Korea-Vietnam' => '한-베',    '한-베'    => '한-베', '한베' => '한-베',
+        'Korea-Hot'     => '한국뉴스', 'Korea'    => '한국뉴스', 'Korea-News' => '한국뉴스',
+        '한국'          => '한국뉴스', '한국뉴스' => '한국뉴스',
         'Community'     => '교민소식', '교민'     => '교민소식', '교민소식' => '교민소식',
         'Travel'        => '여행',     '여행'     => '여행',
         'Health'        => '건강',     '건강'     => '건강',

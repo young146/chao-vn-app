@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거, (6) 뉴스 섹션 페이지(/news/economy/ 등) 신설.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.1.0');
+define('CHAOVN_SEO_VER', '1.1.1');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -532,7 +532,9 @@ function chaovn_seo_clean_headline($data, $jsonld) {
 
 define('CHAOVN_SECTION_TAX', 'news_section');
 define('CHAOVN_SECTION_TERMS_OPT', 'chaovn_seo_section_terms_ver');
-define('CHAOVN_SECTION_TERMS_VER', '1'); // 섹션 목록을 바꾸면 이 숫자를 올린다
+// 섹션 목록을 바꾸면 이 숫자를 올린다 → 다음 요청 때 새 섹션이 만들어진다.
+// 2 : 한국뉴스(korea_news) 추가 (2026-08-08)
+define('CHAOVN_SECTION_TERMS_VER', '2');
 
 /** 섹션 정의. 뉴스 API 플러그인의 것을 그대로 받아 쓴다. */
 function chaovn_seo_sections() {
@@ -709,6 +711,39 @@ function chaovn_seo_sections_page() {
         wp_reset_postdata();
     }
 
+    // ── '기타' 재확인 ──────────────────────────────────────────
+    // 왜 필요한가 (2026-08-08): 분류 규칙에 없던 값은 '기타'로 떨어진다.
+    // 나중에 규칙을 보태면(예: 한국뉴스 신설) 새 글은 제대로 가지만,
+    // **이미 기타에 들어가 앉은 글은 저절로 나오지 못한다** — 위 배정 함수가
+    // "이미 섹션이 있는 글"은 건너뛰기 때문이다. 그래서 되돌리는 통로를 따로 둔다.
+    // 기타만 훑는 이유: 규칙을 보태면 글이 기타에서 *나가지*, 들어오지 않는다.
+    $moved = 0;
+    if (isset($_POST['chaovn_recheck_other']) && check_admin_referer('chaovn_seo_sections')) {
+        $other = get_term_by('slug', 'other', CHAOVN_SECTION_TAX);
+        if ($other && function_exists('chaovn_get_section_key')) {
+            $q = new WP_Query(array(
+                'post_type'      => 'post',
+                'post_status'    => 'publish',
+                'posts_per_page' => CHAOVN_SECTION_BATCH,
+                'fields'         => 'ids',
+                'no_found_rows'  => true,
+                'tax_query'      => array(array(
+                    'taxonomy' => CHAOVN_SECTION_TAX,
+                    'field'    => 'term_id',
+                    'terms'    => (int) $other->term_id,
+                )),
+            ));
+            foreach ($q->posts as $pid) {
+                $raw = trim((string) get_post_meta($pid, 'news_category', true));
+                if ($raw === '') continue;
+                // 지금 규칙으로 다시 계산했을 때도 기타면 진짜 기타다 — 그대로 둔다
+                if (chaovn_seo_section_slug(chaovn_get_section_key($raw)) === 'other') continue;
+                if (chaovn_seo_assign_section($pid, true)) $moved++;
+            }
+            wp_reset_postdata();
+        }
+    }
+
     // 남은 건수
     $left_q = new WP_Query(array(
         'post_type'      => 'post',
@@ -726,6 +761,9 @@ function chaovn_seo_sections_page() {
         <h1>뉴스 섹션 채우기</h1>
         <?php if ($done): ?>
             <div class="notice notice-success"><p><?php echo (int) $done; ?>건에 섹션을 붙였습니다.</p></div>
+        <?php endif; ?>
+        <?php if ($moved): ?>
+            <div class="notice notice-success"><p>기타에 있던 <?php echo (int) $moved; ?>건을 제 섹션으로 옮겼습니다.</p></div>
         <?php endif; ?>
 
         <p>데일리 뉴스 기사에 이미 붙어 있는 분류(경제·사회·부동산…)를 읽어
@@ -750,6 +788,24 @@ function chaovn_seo_sections_page() {
         <?php else: ?>
             <div class="notice notice-success"><p><strong>완료되었습니다.</strong> 앞으로 발행되는 기사는 자동으로 섹션이 붙습니다.</p></div>
         <?php endif; ?>
+
+        <hr />
+        <h2>'기타' 재확인</h2>
+        <p>분류 규칙에 없던 값은 일단 <strong>기타</strong>로 들어갑니다.
+           나중에 규칙을 보태도(예: <strong>한국뉴스</strong> 신설)
+           <strong>이미 기타에 들어간 글은 저절로 나오지 못합니다.</strong> 여기서 되돌립니다.</p>
+        <form method="post">
+            <?php wp_nonce_field('chaovn_seo_sections'); ?>
+            <p>
+                <button class="button" name="chaovn_recheck_other" value="1">
+                    기타 <?php echo CHAOVN_SECTION_BATCH; ?>건 재확인
+                </button>
+            </p>
+            <p class="description">
+                지금 규칙으로 다시 계산해서, <strong>제 섹션이 생긴 글만</strong> 옮깁니다.
+                여전히 기타인 글은 건드리지 않습니다. 옮긴 건수가 0이 될 때까지 누르시면 됩니다.
+            </p>
+        </form>
 
         <hr />
         <h3>섹션 현황</h3>
