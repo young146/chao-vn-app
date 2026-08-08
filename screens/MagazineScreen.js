@@ -245,10 +245,9 @@ const MagazineCard = ({ item, onPress, type }) => {
       'Politics': 'politics',
       'International': 'international',
       'Korea-Vietnam': 'koreaVietnam',
-      // 한국 국내 뉴스(연합뉴스). 이게 없어서 화면에 영문 'Korea-Hot' 이 그대로 찍혔다 (2026-08-08)
-      'Korea-Hot': 'koreaNews',
-      'Korea': 'koreaNews',
-      'Korea-News': 'koreaNews',
+      // 한국 국내 뉴스. 이게 없어서 화면에 영문 'Korea-Hot' 이 그대로 찍혔다 (2026-08-08)
+      'Korea-Hot': 'koreaHot',
+      '한국 주요뉴스': 'koreaHot',
       'Community': 'community',
       'Travel': 'travel',
       'Health': 'health',

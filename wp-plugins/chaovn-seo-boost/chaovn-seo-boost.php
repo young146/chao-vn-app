@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거, (6) 뉴스 섹션 페이지(/news/economy/ 등) 신설.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.1.1');
+define('CHAOVN_SEO_VER', '1.1.2');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -534,7 +534,9 @@ define('CHAOVN_SECTION_TAX', 'news_section');
 define('CHAOVN_SECTION_TERMS_OPT', 'chaovn_seo_section_terms_ver');
 // 섹션 목록을 바꾸면 이 숫자를 올린다 → 다음 요청 때 새 섹션이 만들어진다.
 // 2 : 한국뉴스(korea_news) 추가 (2026-08-08)
-define('CHAOVN_SECTION_TERMS_VER', '2');
+// 3 : korea_news → korea_hot 으로 정정 (2026-08-08). Jenny 가 이미 쓰던 키에 맞춤 —
+//     아래 chaovn_seo_ensure_section_terms() 의 '버려진 섹션 정리' 주석 참고
+define('CHAOVN_SECTION_TERMS_VER', '3');
 
 /** 섹션 정의. 뉴스 API 플러그인의 것을 그대로 받아 쓴다. */
 function chaovn_seo_sections() {
@@ -583,15 +585,47 @@ function chaovn_seo_register_section_tax() {
     chaovn_seo_ensure_section_terms();
 }
 
-/** 섹션 12개를 한 번만 만들어 둔다. 이미 있으면 아무것도 하지 않는다. */
+/**
+ * 섹션을 설정과 일치시킨다. 이미 맞으면 아무것도 하지 않는다.
+ *
+ * 세 가지를 한다:
+ *  1) 없는 섹션 만들기
+ *  2) 이름이 바뀐 섹션 고치기 (슬러그는 그대로 두어 주소가 안 깨지게)
+ *  3) **버려진 섹션 치우기** — 설정에서 빠졌고 글도 0건이면 지운다
+ *
+ * 왜 3)이 필요한가 (2026-08-08 사고):
+ *   Jenny 에 이미 'korea_hot' 이 있는 줄 모르고 'korea_news' 라는 키를 지어냈다.
+ *   앱의 "뉴스 더보기"는 jenny/v1/section-news 를 그 키로 부르므로 **화면이 통째로 비었다.**
+ *   키를 되돌릴 때 쓰다 만 섹션이 빈 껍데기로 남으면 목록만 지저분해지고
+ *   구글에는 빈 페이지가 하나 생긴다. 글이 0건일 때만 지우므로 데이터 손실은 없다.
+ */
 function chaovn_seo_ensure_section_terms() {
     if (get_option(CHAOVN_SECTION_TERMS_OPT) === CHAOVN_SECTION_TERMS_VER) return;
 
+    $wanted = array();
     foreach (chaovn_seo_sections() as $key => $sec) {
         $slug = chaovn_seo_section_slug($key);
-        if (get_term_by('slug', $slug, CHAOVN_SECTION_TAX)) continue;
-        wp_insert_term($sec['name'], CHAOVN_SECTION_TAX, array('slug' => $slug));
+        $wanted[$slug] = $sec['name'];
+
+        $term = get_term_by('slug', $slug, CHAOVN_SECTION_TAX);
+        if (!$term) {
+            wp_insert_term($sec['name'], CHAOVN_SECTION_TAX, array('slug' => $slug));
+        } elseif ($term->name !== $sec['name']) {
+            // 이름만 고친다. 슬러그를 바꾸면 이미 색인된 주소가 깨진다.
+            wp_update_term($term->term_id, CHAOVN_SECTION_TAX, array('name' => $sec['name']));
+        }
     }
+
+    // 설정에서 사라졌고 글도 없는 섹션 정리
+    $all = get_terms(array('taxonomy' => CHAOVN_SECTION_TAX, 'hide_empty' => false));
+    if (!is_wp_error($all)) {
+        foreach ($all as $t) {
+            if (isset($wanted[$t->slug])) continue;   // 지금도 쓰는 섹션
+            if ((int) $t->count > 0) continue;        // 글이 있으면 절대 건드리지 않는다
+            wp_delete_term($t->term_id, CHAOVN_SECTION_TAX);
+        }
+    }
+
     update_option(CHAOVN_SECTION_TERMS_OPT, CHAOVN_SECTION_TERMS_VER, false);
     // 새 분류의 주소 규칙을 등록해야 한다
     delete_option('chaovn_seo_rewrite_ver');

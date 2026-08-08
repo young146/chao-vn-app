@@ -4,8 +4,9 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Jenny Daily News 플러그인의 뉴스 데이터를 REST API로 제공합니다. Jenny 플러그인과 함께 사용해야 합니다.
  *              v2: 날짜별 Transient 캐시, 발행 시 자동 갱신, 날씨/환율 사전 캐시 추가
- *              v2.1: 한국뉴스(Korea-Hot) 섹션 추가 — 그 전까지 '기타'로 떨어지고 화면에 영문이 노출됐다
- * Version: 2.1.0
+ *              v2.1: 한국 주요뉴스(Korea-Hot) 섹션 추가 — 그 전까지 '기타'로 떨어지고 화면에 영문이 노출됐다
+ *              v2.1.1: 그 키를 Jenny 의 'korea_hot' 에 맞춤 (지어낸 키는 앱 '더보기'를 비운다)
+ * Version: 2.1.1
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  * Text Domain: chaovn-news-api
@@ -2124,11 +2125,15 @@ function chaovn_get_sections_config() {
         'politics'      => array('name' => '정치/정책', 'keys' => array('Politics', 'Policy', '정치', '정책')),
         'international' => array('name' => '국제',     'keys' => array('International', '국제')),
         'korea_vietnam' => array('name' => '한-베',    'keys' => array('Korea-Vietnam', '한-베', '한베')),
-        // 한국 국내 뉴스(연합뉴스 발). 2026-08-08 신설 —
-        // 그 전까지 'Korea-Hot' 이 어느 섹션에도 안 걸려 '기타'로 떨어졌고,
-        // 이름 변환표에도 없어서 앱·웹 화면에 영문 'Korea-Hot' 이 그대로 찍혔다.
-        // 한-베(양국 관계)와는 다른 주제라 합치지 않고 따로 둔다.
-        'korea_news'    => array('name' => '한국뉴스', 'keys' => array('Korea-Hot', 'Korea', 'Korea-News', '한국', '한국뉴스')),
+        // 한국 국내 뉴스. 2026-08-08 추가 — 그 전까지 이 표에만 없어서 '기타'로 떨어지고
+        // 이름 변환도 안 돼 앱 화면에 영문 'Korea-Hot' 이 그대로 찍혔다.
+        //
+        // ⚠️ 키·이름을 **Jenny 의 것과 글자 하나까지 똑같이** 맞춘다.
+        //    jenny_get_sections_keys() 의 'korea_hot' => array('Korea-Hot', '한국 주요뉴스')
+        //    앱의 "뉴스 더보기"는 jenny/v1/section-news 를 이 키로 부르므로,
+        //    여기서 다른 이름을 쓰면 **그 화면이 통째로 빈다.**
+        //    (실제로 처음에 'korea_news' 라고 지어냈다가 그 사고를 냈다 — 2026-08-08)
+        'korea_hot'     => array('name' => '한국 주요뉴스', 'keys' => array('Korea-Hot', '한국 주요뉴스')),
         'community'     => array('name' => '교민소식', 'keys' => array('Community', '교민', '교민소식')),
         'travel'        => array('name' => '여행',     'keys' => array('Travel', '여행')),
         'health'        => array('name' => '건강',     'keys' => array('Health', '건강')),
@@ -2160,8 +2165,8 @@ function chaovn_get_category_display_name($category) {
         '정치'          => '정치/정책', '정책'    => '정치/정책',
         'International' => '국제',     '국제'     => '국제',
         'Korea-Vietnam' => '한-베',    '한-베'    => '한-베', '한베' => '한-베',
-        'Korea-Hot'     => '한국뉴스', 'Korea'    => '한국뉴스', 'Korea-News' => '한국뉴스',
-        '한국'          => '한국뉴스', '한국뉴스' => '한국뉴스',
+        // Jenny 의 jenny_get_category_map() 과 동일하게 유지할 것
+        'Korea-Hot'     => '한국 주요뉴스', '한국 주요뉴스' => '한국 주요뉴스',
         'Community'     => '교민소식', '교민'     => '교민소식', '교민소식' => '교민소식',
         'Travel'        => '여행',     '여행'     => '여행',
         'Health'        => '건강',     '건강'     => '건강',
