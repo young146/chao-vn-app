@@ -2,9 +2,9 @@
 /**
  * Plugin Name: ChaoVN SEO Boost
  * Plugin URI: https://chaovietnam.co.kr
- * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게.
+ * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.0.4');
+define('CHAOVN_SEO_VER', '1.0.5');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -440,6 +440,62 @@ function chaovn_seo_deepen_breadcrumb($crumbs, $class) {
     $title = $crumbs[count($crumbs) - 1];
 
     return array_merge(array($home), $middle, array($title));
+}
+
+// ============================================================
+// 5) 구조화 데이터의 headline 에서 사이트명 떼기
+// ------------------------------------------------------------
+// 증상 (2026-08-08 실측):
+//   "headline": "쩐 타인 먼 베트남 국회의장 "외교 성과..." - Xin Chao Vietnam"
+//                                                          ^^^^^^^^^^^^^^^^^^^
+//   Rank Math 는 headline 에 *SEO 제목*을 넣는다. 그런데 SEO 제목 서식이
+//   "%title% %sep% %sitename%" 이라 사이트명이 딸려 들어간다.
+//
+// 왜 문제인가:
+//   · 매체명은 이미 publisher 항목에 따로 들어 있다 — headline 에 또 넣는 건 중복이다.
+//   · 구글은 headline 이 110자를 넘으면 '주요 뉴스' 후보에서 빼는 쪽으로 다룬다.
+//     한국어 제목은 대개 짧지만, 사이트명 18자가 붙으면 긴 제목에서 한도를 넘긴다.
+//   · 그 카드에 제목이 잘려 나오면 클릭률이 떨어진다.
+//
+// 무엇을 하는가:
+//   headline 을 **글 제목 그 자체**로 되돌린다. 110자를 넘으면 잘라낸다.
+//
+// ⚠️ 화면에 보이는 제목도, 브라우저 탭 제목(<title>)도 바뀌지 않는다.
+//    구조화 데이터 안의 값 하나만 바뀐다. Rank Math 의 제목 설정은 손대지 않는다.
+// ============================================================
+
+define('CHAOVN_HEADLINE_MAX', 110); // 구글 권장 한도
+
+add_filter('rank_math/json_ld', 'chaovn_seo_clean_headline', 98, 2);
+function chaovn_seo_clean_headline($data, $jsonld) {
+    if (!is_singular()) return $data;
+
+    $pid = get_the_ID();
+    if (!$pid) return $data;
+
+    // 글 제목 원문. 엔티티(&#8220; 같은 것)는 풀어서 넣는다 —
+    // 구조화 데이터는 사람이 읽는 화면이 아니라 기계가 읽는 값이다.
+    $title = trim(html_entity_decode(get_the_title($pid), ENT_QUOTES, 'UTF-8'));
+    if ($title === '') return $data;
+
+    if (function_exists('mb_strlen') && mb_strlen($title, 'UTF-8') > CHAOVN_HEADLINE_MAX) {
+        $title = mb_substr($title, 0, CHAOVN_HEADLINE_MAX - 1, 'UTF-8') . '…';
+    }
+
+    $article_types = array('NewsArticle', 'Article', 'BlogPosting', 'ReportageNewsArticle');
+
+    foreach ($data as $key => $entity) {
+        if (!is_array($entity) || empty($entity['@type'])) continue;
+        if (!array_intersect((array) $entity['@type'], $article_types)) continue;
+
+        $data[$key]['headline'] = $title;
+        // name 도 같은 값으로 맞춘다. 둘이 다르면 구글이 어느 쪽을 제목으로 볼지 흔들린다.
+        if (isset($data[$key]['name'])) {
+            $data[$key]['name'] = $title;
+        }
+    }
+
+    return $data;
 }
 
 // ============================================================
