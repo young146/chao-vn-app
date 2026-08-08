@@ -88,10 +88,17 @@
   코드로 메울 수 있는 두 구멍에 `chaovn-seo-boost` 플러그인을 신설했다.
 - **배포**: 🚧 **미배포 — FTP 업로드 필요**. 대상 경로 `wp-content/plugins/chaovn-seo-boost/`
   (업로드 후 플러그인 활성화 → LiteSpeed "전체 캐시 갱신" → Search Console 에 뉴스 사이트맵 제출)
-- **상태**: ⏳ 사장님 업로드·확인 대기
+- **상태**: ✅ 서버 배포·작동 확인 완료 (v1.0.2, 2026-08-08). GSC 제출만 남음
+- **⚠️ 하루를 태운 교훈 — 관측점 하나로 전체를 단정하지 말 것**:
+  배포 후 이 PC(curl)에서 `/news-sitemap.xml` 이 계속 404 로 보여 "구글도 404 를 본다"고
+  단정하고 수정을 반복했다(주소 변경 직전까지 감). **틀렸다.** 제3자 검증(WebFetch=미국 회선)
+  결과 미국에서는 XML 정상, 사장님 지역도 정상 — **404 는 이 PC 가 경유하는
+  호스팅어 CDN(hcdn) 도쿄 창고에 남은 옛 사본 하나**였다. 구글봇은 주로 미국에서 긁는다.
+  - WP 의 LiteSpeed 제거 버튼은 **원본 캐시만** 지운다. hcdn 지역 창고는 호스팅어
+    hPanel 의 CDN 캐시 비우기로만 지워지고, 놔둬도 TTL 만료로 저절로 낫는다.
+  - 검증법: 로컬 curl 결과와 WebFetch(다른 대륙 회선) 결과가 **다르면** CDN 지역 캐시를 의심.
 - **다음 단계**:
-  1. FTP 업로드 → 활성화 → `https://chaovietnam.co.kr/news-sitemap.xml` 열어 XML 이 뜨는지 확인
-  2. Search Console → Sitemaps → `news-sitemap.xml` 제출
+  1. Search Console → Sitemaps → `news-sitemap.xml` 제출 (구글의 공식 판정 = 최종 확인)
   3. 사장님 손 작업(관리자 화면): Rank Math **제목 및 메타 → 소셜 미디어 → OpenGraph 썸네일** 지정
      (홈 og:image 없음 = 카톡 공유 시 썸네일 안 뜸), **Breadcrumbs 켜기**, **인스턴트 인덱싱 켜기**,
      사용자 프로필 표시이름 `hanyoungmin` → `씬짜오베트남 편집부`
