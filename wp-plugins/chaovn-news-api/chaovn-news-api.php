@@ -4,7 +4,8 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Jenny Daily News 플러그인의 뉴스 데이터를 REST API로 제공합니다. Jenny 플러그인과 함께 사용해야 합니다.
  *              v2: 날짜별 Transient 캐시, 발행 시 자동 갱신, 날씨/환율 사전 캐시 추가
- * Version: 2.0.0
+ *              v2.1: 한국뉴스(Korea-Hot) 섹션 추가 — 그 전까지 '기타'로 떨어지고 화면에 영문이 노출됐다
+ * Version: 2.1.0
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  * Text Domain: chaovn-news-api
