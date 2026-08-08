@@ -73,17 +73,35 @@ export default function SearchResultsScreen({ route, navigation }) {
     });
   };
 
+  // AI 가 이해한 검색어로 목록을 좁혔을 때 화면에 표시할 말(빈 값이면 원문 그대로 검색한 것)
+  const [aiTerms, setAiTerms] = useState([]);
+
   const askAI = useCallback(async (q) => {
     const text = (q || '').trim();
     if (!text) return;
     const my = ++aiSeq.current;
-    setAiLoading(true); setAiReply(''); setAiResults([]);
-    const { reply, results } = await askAssistant([{ role: 'user', content: text }]);
+    setAiLoading(true); setAiReply(''); setAiResults([]); setAiTerms([]);
+    const { reply, results, terms } = await askAssistant([{ role: 'user', content: text }]);
     if (my !== aiSeq.current) return;   // 늦게 온 예전 답은 버린다
     setAiReply(reply || '');
     setAiResults(Array.isArray(results) ? results : []);
     setAiLoading(false);
-  }, []);
+
+    // ── AI 가 이해한 검색어로 목록을 다시 좁힌다 ──────────────────────────
+    // 왜: 목록 검색은 사용자가 친 **문장 그대로**를 받는다. "베트남 진출을 위한
+    //     컨설팅업체를 소개해줘" 같은 문장에서 '위한' 같은 흔한 낱말이 기사 수천 건을
+    //     끌고 들어온다. 군말 사전으로 걸러내는 건 영원히 완성되지 않는다 —
+    //     새 문장이 오면 새 군말이 나온다.
+    //     자연어를 이해하는 검색이 필요해서 AI 를 쓰는 것이니, **AI 가 정한 검색어**를
+    //     목록에도 그대로 물려준다. 추가 비용·추가 대기 없다(이미 돌린 결과의 부산물).
+    // 흐름: 문장 그대로의 목록이 먼저 뜨고 → AI 가 도착하면 정확한 목록으로 바뀐다.
+    const t = Array.isArray(terms) ? terms.filter(Boolean) : [];
+    if (t.length && t.join(' ') !== text) {
+      setAiTerms(t);
+      search({ q: t.join(' '), type: '', city, district, page: 1 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, city, district]);
 
   useEffect(() => { getRegions().then(setRegions).catch(() => {}); }, []);
 
@@ -255,6 +273,17 @@ export default function SearchResultsScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* AI 가 문장을 이해해 검색어를 좁혔을 때 — 무엇으로 좁혔는지 밝힌다.
+            사용자가 "왜 결과가 바뀌었지?" 하고 의아해하면 안 된다. */}
+        {aiTerms.length > 0 && (
+          <View style={styles.termRow}>
+            <Text style={styles.termLabel}>✦ AI가 이해한 검색어</Text>
+            {aiTerms.map((t) => (
+              <View key={t} style={styles.termChip}><Text style={styles.termChipText}>{t}</Text></View>
+            ))}
+          </View>
+        )}
+
         {/* 타입 필터칩 */}
         {data && data.results.length > 0 && (
           <View style={styles.chipRow}>
@@ -368,6 +397,14 @@ const styles = StyleSheet.create({
   aiLoadingText: { color: '#6B5B8A', fontSize: 13 },
   aiReply: { color: '#1F1B2E', fontSize: 14, lineHeight: 21 },
   aiToggle: { color: '#7C3AED', fontSize: 12.5, fontWeight: '700', marginTop: 6 },
+  // AI 가 이해한 검색어 표시줄
+  termRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  termLabel: { color: '#6D28D9', fontSize: 11.5, fontWeight: '700' },
+  termChip: {
+    backgroundColor: '#F3EEFF', borderWidth: 1, borderColor: '#E4DAFB',
+    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4,
+  },
+  termChipText: { color: '#5B21B6', fontSize: 12, fontWeight: '700' },
   aiItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, marginTop: 8,

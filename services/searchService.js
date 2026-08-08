@@ -84,9 +84,11 @@ export async function askAssistant(messages) {
     return {
       reply: (json && json.reply) || '죄송해요, 답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.',
       results: json && Array.isArray(json.results) ? json.results : [],
+      // AI 가 문장의 뜻을 이해해 뽑아낸 검색어. 이걸로 결과 목록을 다시 좁힌다.
+      terms: json && Array.isArray(json.terms) ? json.terms : [],
     };
   } catch (e) {
-    return { reply: '연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', results: [] };
+    return { reply: '연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', results: [], terms: [] };
   }
 }
 
