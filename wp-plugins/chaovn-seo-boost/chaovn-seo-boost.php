@@ -2,9 +2,9 @@
 /**
  * Plugin Name: ChaoVN SEO Boost
  * Plugin URI: https://chaovietnam.co.kr
- * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기.
+ * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.0.2');
+define('CHAOVN_SEO_VER', '1.0.3');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -298,6 +298,70 @@ function chaovn_seo_editorial_style() {
        . '.news-source-header{margin-bottom:16px;font-size:14px;line-height:1.6}'
        . '.news-source-line{display:block;margin-bottom:4px}'
        . '</style>';
+}
+
+// ============================================================
+// 3) 구조화 데이터에 "원문 출처" 를 기계가 읽는 형태로 선언
+// ------------------------------------------------------------
+// 왜 필요한가:
+//   2)번에서 붙인 "편집부 번역·정리" 는 **사람이 읽는** 근거다. 그런데 구글의
+//   '대규모 콘텐츠 남용' 판정은 상당 부분 자동으로 이뤄진다 — 기계가 읽는 근거도 있어야 한다.
+//
+//   현재 Rank Math 가 내보내는 NewsArticle 에는 출처 선언이 **하나도 없다**(실측:
+//   isBasedOn / citation / sourceOrganization 전부 0회). 본문에는 "출처: Thanh Nien" 이
+//   글자로 적혀 있지만, 그건 구글이 *해석*해야 알 수 있는 것이다.
+//
+//   schema.org 의 isBasedOn 은 "이 저작물은 저 자료에서 파생되었다"를 뜻하는 표준 항목이다.
+//   이걸 붙이면 우리 입장이 "몰래 베낀 것"이 아니라 **"출처를 명시적으로 신고한 번역물"** 이 된다.
+//   숨기지 않는 쪽이 언제나 유리하다 — 어차피 구글은 원문을 이미 알고 있다.
+//
+// ⚠️ 정직하게 말해 두는 것:
+//   이건 순위를 올리는 지렛대가 아니라 **투명성·신뢰(E-E-A-T) 신호**다.
+//   당장 숫자로 확인되는 효과를 약속할 수 없다. 다만 비용이 0 이고, 위험도 없다
+//   (canonical 은 그대로 자기 자신을 가리키므로 색인 구조는 아무것도 안 바뀐다).
+//
+// 근거 데이터는 이미 다 있다 — 실측상 뉴스 46건 전수에 news_original_url 이 채워져 있었다.
+// ============================================================
+
+add_filter('rank_math/json_ld', 'chaovn_seo_declare_source', 99, 2);
+function chaovn_seo_declare_source($data, $jsonld) {
+    if (!is_singular('post')) return $data;
+
+    $pid = get_the_ID();
+    if (!$pid || !chaovn_seo_is_news_post($pid)) return $data;
+
+    $origin = trim((string) get_post_meta($pid, 'news_original_url', true));
+    if ($origin === '' || !filter_var($origin, FILTER_VALIDATE_URL)) return $data;
+    $source = trim((string) get_post_meta($pid, 'news_source', true));
+
+    // Rank Math 는 기사 스키마를 'richSnippet' 키에 담지만, 버전마다 키 이름이 달라질 수 있다.
+    // 그래서 키를 찍지 않고 **@type 을 보고** 찾는다 — 이름이 바뀌어도 계속 동작한다.
+    $article_types = array('NewsArticle', 'Article', 'BlogPosting', 'ReportageNewsArticle');
+
+    foreach ($data as $key => $entity) {
+        if (!is_array($entity) || empty($entity['@type'])) continue;
+        $types = (array) $entity['@type'];
+        if (!array_intersect($types, $article_types)) continue;
+
+        // 이 기사는 저 원문에서 파생되었다 — 표준 항목으로 신고
+        $data[$key]['isBasedOn'] = $origin;
+
+        // 어느 매체인지까지 밝힌다 (Cafef / Thanh Nien / VnExpress / Yonhap ...)
+        if ($source !== '') {
+            $data[$key]['citation'] = array(
+                '@type' => 'CreativeWork',
+                'name'  => $source,
+                'url'   => $origin,
+            );
+        }
+
+        // 한국어 결과물임을 명시. 베트남어 원문과 별개의 저작물이라는 뜻이 된다.
+        if (empty($data[$key]['inLanguage'])) {
+            $data[$key]['inLanguage'] = 'ko-KR';
+        }
+    }
+
+    return $data;
 }
 
 // ============================================================
