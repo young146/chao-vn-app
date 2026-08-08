@@ -167,7 +167,9 @@ export default function SearchResultsScreen({ route, navigation }) {
             {aiLoading ? (
               <View style={styles.aiLoadingRow}>
                 <ActivityIndicator size="small" color="#7C3AED" />
-                <Text style={styles.aiLoadingText}>구글 평점까지 함께 찾고 있어요…</Text>
+                {/* 문구는 중립적으로. "구글 평점까지 함께" 는 식당·병원 질문에만 맞는 말이라
+                    비자·문화 같은 질문에서는 엉뚱해 보였다. 무엇을 찾는지는 답이 나오면 알게 된다. */}
+                <Text style={styles.aiLoadingText}>검색 중…</Text>
               </View>
             ) : (
               <>
