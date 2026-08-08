@@ -4,7 +4,7 @@
  * Plugin URI: https://chaovietnam.co.kr
  * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거, (6) 뉴스 섹션 페이지(/news/economy/ 등) 신설.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.1.4
+ * Version: 1.1.5
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.1.4');
+define('CHAOVN_SEO_VER', '1.1.5');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -301,6 +301,45 @@ function chaovn_seo_add_editorial_note($content) {
     $box .= '</div>';
 
     return $box . $content;
+}
+
+/**
+ * 이미 발행된 기사의 제휴 추천 상자에 class 를 달아 준다.
+ *
+ * 왜 필요한가 (2026-08-08 사장님 지적):
+ *   기사 하단 제휴 상자가 **앱에서는 테두리도 배경도 없이 글자만** 나와 본문으로 오해된다.
+ *   그 상자는 daily-news-final 의 lib/affiliate-block.js 가 발행 시점에 본문에 박아 넣는데,
+ *   **인라인 style 만 있고 class 가 없었다.** 웹 브라우저는 인라인만으로 상자를 그리지만
+ *   앱(react-native-render-html)은 인라인 CSS 를 적용하지 않는다 — 클래스별 스타일
+ *   (classesStyles)로 받아야 한다.
+ *
+ *   파이프라인에는 class 를 넣었지만 그건 *앞으로 나올 기사*만 바뀐다.
+ *   이미 쌓인 19,707건은 본문에 그대로 박혀 있으므로 여기서 출력 시점에 달아 준다.
+ *   (본문 DB 는 고치지 않는다 — 되돌리기 쉬운 쪽을 택한다)
+ *
+ * 판별 근거는 그 생성기가 쓰는 **고유한 인라인 style 문자열**이다. 한 곳에서만 나오는 값이라
+ * 다른 상자를 잘못 집을 일이 없다. 이미 class 가 있으면(새 기사) 건드리지 않는다.
+ */
+add_filter('the_content', 'chaovn_seo_tag_affiliate_box', 21);
+function chaovn_seo_tag_affiliate_box($content) {
+    if (is_admin() || is_feed()) return $content;
+    if (strpos($content, 'chaovn-aff') !== false) return $content; // 이미 달려 있다
+    if (strpos($content, '#fffaf5') === false)    return $content; // 제휴 상자가 없는 글
+
+    // 바깥 상자
+    $content = preg_replace(
+        '#<div style="margin:30px 0 8px;padding:16px 18px;#',
+        '<div class="chaovn-aff" style="margin:30px 0 8px;padding:16px 18px;',
+        $content,
+        1
+    );
+    // 버튼들 (개수 제한 없음 — 기사당 2개)
+    $content = str_replace(
+        '<a href="https://daily-news-final.vercel.app/go/',
+        '<a class="chaovn-aff-btn" href="https://daily-news-final.vercel.app/go/',
+        $content
+    );
+    return $content;
 }
 
 /**

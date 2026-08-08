@@ -261,6 +261,54 @@ export default function PostDetailScreen({ route, navigation }) {
     }
   };
 
+  // 클래스별 스타일 — 본문 HTML 의 class 를 보고 앱이 직접 칠한다.
+  //
+  // 왜 인라인 style 로 안 하나 (2026-08-08 사장님 지적으로 규명):
+  //   본문에는 이미 인라인 style 이 붙어 있는데 **앱에서는 적용되지 않는다**.
+  //   제휴 상자가 테두리·배경 없이 맨글자로 나와 본문으로 오해되고,
+  //   편집부 표기도 주홍색 지정이 무시돼 검정으로 나왔다.
+  //   인라인 style 은 CSS 문자열을 해석해야 하지만, classesStyles 는
+  //   **RN 스타일 객체를 그대로 받으므로** 해석 단계가 없다 — 확실하게 적용된다.
+  //   웹의 인라인 style 은 그대로 두므로 웹 모양은 안 바뀐다.
+  const classesStyles = {
+    // 기사 하단 제휴 추천 상자 — "본문이 아니라 광고"임이 한눈에 보여야 한다
+    'chaovn-aff': {
+      marginTop: 24,
+      marginBottom: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#f0e6da',
+      borderRadius: 12,
+      backgroundColor: '#fffaf5',
+    },
+    'chaovn-aff-title': { fontSize: 15, fontWeight: '700', color: '#c2410c', marginBottom: 3 },
+    'chaovn-aff-sub':   { fontSize: 12, color: '#9ca3af', marginBottom: 11 },
+    'chaovn-aff-note':  { fontSize: 11, color: '#b3b3b3', marginTop: 11 },
+    'chaovn-aff-btn': {
+      color: '#111827',
+      fontSize: 14,
+      fontWeight: '600',
+      textDecorationLine: 'none',
+      backgroundColor: '#ffffff',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      borderRadius: 22,
+      paddingVertical: 9,
+      paddingHorizontal: 15,
+      marginRight: 8,
+      marginVertical: 5,
+    },
+    // 출처 상자 (출처/날짜/원문보기) 와 그 안의 편집부 표기
+    'news-source-header': {
+      marginBottom: 16,
+      paddingBottom: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    'news-source-line': { fontSize: 13, color: '#888', marginBottom: 4 },
+    'chaovn-editorial-line': { color: '#ea580c', fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  };
+
   // iframe 커스텀 렌더러 정의
   const renderers = {
     iframe: (props) => {
@@ -371,6 +419,7 @@ export default function PostDetailScreen({ route, navigation }) {
             contentWidth={width - 32}
             source={source}
             tagsStyles={tagsStyles}
+            classesStyles={classesStyles}
             renderers={renderers}
             enableExperimentalMarginCollapsing={true}
           />
