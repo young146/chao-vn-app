@@ -53,6 +53,25 @@ export default function SearchResultsScreen({ route, navigation }) {
   // 빠르게 다시 검색하면 예전 답이 늦게 도착해 새 답을 덮을 수 있다 → 순번으로 막는다.
   const aiSeq = useRef(0);
 
+  const [followQ, setFollowQ] = useState('');
+
+  // 이어서 묻기 — 지금까지의 문답을 통째로 들고 AI 도우미로 넘어가 대화를 잇는다.
+  // 여기서 바로 대화를 이어가지 않는 이유: 이 화면은 '검색 결과 목록'이고,
+  // 대화는 AI 도우미 화면이 이미 잘 하고 있다(기록 저장·되돌아보기 포함).
+  // 두 벌로 만들면 반드시 어긋나므로, 맥락만 넘겨 자연스럽게 넘어가게 한다.
+  const askFollow = () => {
+    const q = followQ.trim();
+    if (!q || !aiReply) return;
+    setFollowQ('');
+    navigation.navigate('AI도우미', {
+      seed: [
+        { role: 'user', content: activeQ },
+        { role: 'assistant', content: aiReply },
+      ],
+      ask: q,
+    });
+  };
+
   const askAI = useCallback(async (q) => {
     const text = (q || '').trim();
     if (!text) return;
@@ -155,13 +174,11 @@ export default function SearchResultsScreen({ route, navigation }) {
         {/* ── AI 답변 — 목록 위에. 늦게 도착하므로 자리를 먼저 잡아 둔다 ── */}
         {(aiLoading || aiReply) && (
           <View style={styles.aiCard}>
+            {/* 예전엔 여기 오른쪽에 "이어서 물어보기 ›" 링크가 있었다. 답을 다 읽고 나면 눈이
+                이미 아래에 있는데 링크는 위에 있어서, 다시 올려다봐야 보이는 위치였다.
+                → 링크를 없애고 답 아래에 입력창을 뒀다(아래 followRow). */}
             <View style={styles.aiHead}>
               <Text style={styles.aiHeadText}>✦ AI 답변</Text>
-              {!aiLoading && (
-                <TouchableOpacity onPress={() => navigation.navigate('AI도우미', { q: activeQ })} activeOpacity={0.7}>
-                  <Text style={styles.aiMore}>이어서 물어보기 ›</Text>
-                </TouchableOpacity>
-              )}
             </View>
 
             {aiLoading ? (
@@ -197,6 +214,30 @@ export default function SearchResultsScreen({ route, navigation }) {
                     ) : null}
                   </TouchableOpacity>
                 ))}
+
+                {/* 이어서 묻기 — 답 바로 아래, 읽던 자리에서 그대로.
+                    보낸 문답을 함께 넘기므로 "그럼 서류는?" 같은 후속 질문이 이어진다.
+                    (안 넘기면 도우미가 앞 얘기를 몰라 엉뚱한 답을 한다) */}
+                <View style={styles.followRow}>
+                  <TextInput
+                    value={followQ}
+                    onChangeText={setFollowQ}
+                    onSubmitEditing={askFollow}
+                    returnKeyType="send"
+                    placeholder="이어서 물어보세요"
+                    placeholderTextColor="#9B8FB5"
+                    style={styles.followInput}
+                  />
+                  <TouchableOpacity
+                    style={[styles.followBtn, !followQ.trim() && styles.followBtnOff]}
+                    onPress={askFollow}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel="이어서 물어보기"
+                  >
+                    <Ionicons name="arrow-up" size={17} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
@@ -322,6 +363,19 @@ const styles = StyleSheet.create({
   aiItemSub: { color: '#8B8078', fontSize: 11.5, marginTop: 1 },
   aiRating: { color: '#B4540A', fontSize: 12.5, fontWeight: '800' },
   aiRatingCount: { color: '#A99', fontSize: 11, fontWeight: '400' },
+  // 이어서 묻기 입력줄 — 답 바로 아래
+  followRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  followInput: {
+    flex: 1, minWidth: 0, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: '#E4DAFB', borderRadius: 999,
+    paddingHorizontal: 14, paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    fontSize: 13.5, color: '#1F1B2E',
+  },
+  followBtn: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: '#7C3AED',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  followBtnOff: { backgroundColor: '#C3B4E8' },   // 입력 전에는 눌러도 소용없음을 색으로
 
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   searchHeader: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#EEF2F6' },

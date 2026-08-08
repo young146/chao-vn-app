@@ -123,6 +123,24 @@ export default function AssistantScreen({ navigation, route }) {
     setShowHistory(false);
   }, []);
 
+  // 검색결과에서 "이어서 물어보기"로 들어온 경우 — 앞선 문답을 이어받아 대화를 잇는다.
+  //
+  // 왜 필요한가: 앞 대화를 안 넘기면 "그럼 서류는?" 같은 후속 질문이 통째로 헛돈다.
+  //             도우미가 무엇에 대한 '그럼'인지 모르기 때문이다.
+  // ⚠️ send() 는 state 가 아니라 messagesRef 를 기준으로 이어붙인다. setMessages 는 다음
+  //    렌더에야 ref 에 반영되므로, **ref 를 직접 먼저 채운 뒤** send 해야 앞 대화가 붙는다.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (seededRef.current) return;
+    const seed = route?.params?.seed;
+    const ask = route?.params?.ask;
+    if (!Array.isArray(seed) || seed.length === 0) return;
+    seededRef.current = true;
+    messagesRef.current = seed;
+    setMessages(seed);
+    if (ask) send(ask);
+  }, [route?.params?.seed, route?.params?.ask, send]);
+
   // 최초: 기록 로드 + 새 대화 id
   useEffect(() => {
     AsyncStorage.getItem(STORE_KEY)
