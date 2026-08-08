@@ -77,6 +77,51 @@
 
 ---
 
+## 2026-08-08 — 🟢 [앱] 뉴스 섹션 정리 + 빵조각·편집부표기·제휴상자 노출, OTA 5회
+
+> 바로 아래 SEO 감사 작업에서 파생된 앱 쪽 후속. 사장님이 실물로 하나씩 확인해 주셔서 잡혔다.
+
+- **한 일**
+  1. **한국 주요뉴스 섹션** — `Korea-Hot` 이 매핑표에 없어 '기타'로 떨어지고 화면에 영문이
+     그대로 찍히던 것 수정. 섹션 순서도 Jenny 웹과 동일하게 맨 앞으로.
+  2. **앱 기사 상세에 빵조각** 신설 (`뉴스 › 경제`). 목록이 이미 준 값만 써서 추가 호출 0.
+  3. **편집부 번역·정리 표기를 앱에도** 노출 (그전엔 웹만).
+  4. **기사 하단 제휴 상자**가 앱에서 맨글자로 나오던 것 → 상자 모양으로.
+  5. **안드로이드 '지금 재시작'** 이 눌러도 안 되던 것 수정.
+- **배포**: 웹 `chaovn-seo-boost` v1.1.5 · `chaovn-news-api` v2.1.2 (FTP) /
+  앱 OTA 5회 (마지막 `5a429c51-3b73-441e-bdef-97124773576f`, commit `63879ca`) /
+  `daily-news-final` `842ca84`
+- **상태**: ✅ 완료. iOS·안드로이드 양쪽 실물 확인됨
+- **🔑 오늘 세 번 반복해서 걸린 함정 — 앱은 CSS 를 해석하지 않는다**
+  - 외부 CSS(`wp_head` 의 `<style>`)도, **인라인 `style="..."` 도** 앱에 적용되지 않는다.
+    앱은 본문 HTML 만 받아 `react-native-render-html` 로 그리고, CSS 문자열을 해석하지 않는다.
+  - 증거: 제휴 상자는 **내가 손대기 전부터** 인라인 style 이 있었는데 계속 맨글자였다.
+  - **정답은 `classesStyles`** — HTML 에는 class 만 넘기고, 스타일(RN 객체)은 앱이 갖는다.
+    해석 단계가 없으므로 확실하다. 웹의 인라인 style 은 그대로 둬 웹 모양은 안 바뀐다.
+  - 이미 발행된 19,707건은 `the_content` 필터로 출력 시점에 class 를 달아 소급 적용.
+- **🔑 뉴스 섹션 키는 Jenny 가 기준이다 — 새로 지어내지 말 것**
+  `Korea-Hot` 을 추가하며 `korea_news` 라는 키를 지어냈다가 **앱 '뉴스 더보기'가 통째로 비었다.**
+  앱은 `jenny/v1/section-news` 를 그 키로 부르는데 Jenny 는 모르는 키였기 때문.
+  Jenny 에는 `korea_hot` 이 **6곳에 이미 완비**돼 있었다(순서맵·키·이름맵·섹션정의·라벨·백필일수).
+  → 새 섹션이 필요하면 **먼저 `daily-news-final/wordpress-plugin/jenny-daily-news.php` 를 볼 것.**
+- **🔑 한 줄 글자 배치에 `flexWrap` 쓰지 말 것**
+  빵조각을 `View(flexDirection:row + flexWrap)` 로 짰더니 **안드로이드만 보이고 iOS 는 안 보였다.**
+  줄바꿈 계산이 플랫폼마다 달라 칸이 0 으로 접힌다. **중첩 `<Text>`** 가 정답 — 조판기가 처리하므로 동일하다.
+- **🔑 Alert 안에서 곧바로 재시작하지 말 것**
+  `Updates.reloadAsync()` 를 Alert 의 onPress 에서 바로 부르면 **안드로이드는 조용히 실패**한다
+  (대화상자가 없애려는 액티비티를 붙잡고 있다). 400ms 뒤로 미루고, 실패 시 사용자에게 알린다.
+- **다음 단계**
+  - 부팅 시 **자동 OTA 재시작**(`App.js` 의 `RNRestart.Restart()`)은 코드·설치·빌드 포함 모두
+    확인했으나 **실기기 동작은 미확인**. 새 OTA 직후 앱을 완전 종료→실행해 3~10초 뒤 자동
+    재시작되는지 보면 된다. 안 되면 이 경로도 `Updates.reloadAsync()` 로 통일 검토.
+  - 앱 제휴 상자 글자 크기·여백은 웹 값을 옮긴 것이라 조정 여지 있음
+- **관련 파일**: [screens/PostDetailScreen.js](screens/PostDetailScreen.js) ·
+  [screens/MoreScreen.js](screens/MoreScreen.js) · [lib/newsSections.js](lib/newsSections.js) ·
+  [wp-plugins/chaovn-seo-boost/chaovn-seo-boost.php](wp-plugins/chaovn-seo-boost/chaovn-seo-boost.php) ·
+  `daily-news-final` 의 `lib/affiliate-block.js`
+
+---
+
 ## 2026-08-08 — 🟢 [SEO] 전면 감사 + 뉴스 섹션 페이지 신설, 전부 배포 완료
 
 - **한 일**: 사장님 요청으로 구글·네이버 SEO 를 실물 조회로 전면 감사하고, 나온 구멍을 전부 메웠다.
