@@ -119,18 +119,22 @@ export default function HubScreen({ navigation, route }) {
               placeholderTextColor={MUTE}
               style={styles.searchInput}
             />
-            {/* 오른쪽 칩 = 실제 검색 버튼.
-                'AI' 만 적어 두면 눌러도 되는 것인지 알 수 없다 — 동작을 이름에 적는다. */}
+            {/* 검색 버튼은 하나. 'AI 검색'이라고 적으면 다시 두 갈래가 되어버린다 —
+                사용자에게 "지금 검색인가 질문인가"를 묻지 않는 것이 이 화면의 요점이다.
+                ✦ 는 AI가 함께 돈다는 표시일 뿐 별도 모드가 아니다. */}
             <TouchableOpacity
               style={[styles.aiChip, !query.trim() && styles.aiChipOff]}
               onPress={onSubmit}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="AI 검색"
+              accessibilityLabel="검색"
             >
-              <Text style={styles.aiChipText}>✦ AI 검색</Text>
+              <Text style={styles.aiChipText}>✦ 검색</Text>
             </TouchableOpacity>
           </View>
+          <Text style={styles.searchHint}>
+            검색하면 <Text style={{ fontWeight: '700', color: '#7C3AED' }}>AI가 함께</Text> 찾아 드려요
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -174,5 +178,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13, paddingVertical: 8, marginLeft: 8,
   },
   aiChipOff: { backgroundColor: '#B9A7E8' },   // 입력 전에는 눌러도 소용없음을 색으로 알린다
-  aiChipText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  aiChipText: { color: '#fff', fontSize: 12.5, fontWeight: '700' },
+  searchHint: { marginTop: 10, textAlign: 'center', fontSize: 11.5, color: MUTE },
 });

@@ -59,9 +59,11 @@ function ResultCard({ r, onPress }) {
   );
 }
 
-export default function AssistantScreen({ navigation }) {
+export default function AssistantScreen({ navigation, route }) {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  // 검색결과의 "이어서 물어보기"로 들어오면 그 검색어를 입력칸에 채워 둔다.
+  // **보내지는 않는다** — 무엇을 더 물을지는 사용자가 정한다.
+  const [input, setInput] = useState(route?.params?.q || '');
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);

@@ -9,7 +9,10 @@ import {
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { searchUnified, getRegions, resolveResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
+import {
+  searchUnified, getRegions, resolveResultUrl, isDirectoryResult, TYPE_LABEL,
+  askAssistant, resolveAssistantResultUrl,
+} from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 
 const BRAND = '#FF6B35';
@@ -25,7 +28,7 @@ const TYPE_BADGE = {
   magazine: { bg: '#D1FAE5', fg: '#047857' },
 };
 
-export default function SearchResultsScreen({ route }) {
+export default function SearchResultsScreen({ route, navigation }) {
   const initialQ = route?.params?.q || '';
   const [query, setQuery] = useState(initialQ);
   const [activeQ, setActiveQ] = useState(initialQ);
@@ -39,6 +42,29 @@ export default function SearchResultsScreen({ route }) {
   const [bizSeed, setBizSeed] = useState(null); // 진출기업·옐로 상세 팝업 대상(null=닫힘)
   const scrollRef = useRef(null);
 
+  // ── AI 답변 (일반 검색과 **동시에** 돈다) ──────────────────────────
+  // 검색은 하나인데 뒤에서 두 가지가 나란히 움직인다:
+  //   · /api/search    — 우리 색인(옐로페이지·진출기업·매거진·뉴스). 빠르다. 목록으로 나온다.
+  //   · /api/assistant — Claude 가 우리 데이터 + **구글 평점·리뷰**까지 뒤져 문장으로 답한다. 느리다.
+  // 목록을 먼저 띄우고 AI 답이 오면 위에 얹는다 → 사용자는 기다리지 않는다.
+  const [aiReply, setAiReply] = useState('');
+  const [aiResults, setAiResults] = useState([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  // 빠르게 다시 검색하면 예전 답이 늦게 도착해 새 답을 덮을 수 있다 → 순번으로 막는다.
+  const aiSeq = useRef(0);
+
+  const askAI = useCallback(async (q) => {
+    const text = (q || '').trim();
+    if (!text) return;
+    const my = ++aiSeq.current;
+    setAiLoading(true); setAiReply(''); setAiResults([]);
+    const { reply, results } = await askAssistant([{ role: 'user', content: text }]);
+    if (my !== aiSeq.current) return;   // 늦게 온 예전 답은 버린다
+    setAiReply(reply || '');
+    setAiResults(Array.isArray(results) ? results : []);
+    setAiLoading(false);
+  }, []);
+
   useEffect(() => { getRegions().then(setRegions).catch(() => {}); }, []);
 
   const search = useCallback(async (opts) => {
@@ -51,14 +77,21 @@ export default function SearchResultsScreen({ route }) {
     scrollRef.current?.scrollTo?.({ y: 0, animated: true });
   }, []);
 
-  // 진입 시 홈에서 받은 질의로 즉시 검색
+  // 진입 시 홈에서 받은 질의로 즉시 검색 — 목록과 AI 를 동시에 건다
   useEffect(() => {
-    if (initialQ) search({ q: initialQ, type: '', city, district, page: 1 });
+    if (initialQ) { search({ q: initialQ, type: '', city, district, page: 1 }); askAI(initialQ); }
     else setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSubmit = () => { setActiveQ(query); setTypeFilter(''); search({ q: query, type: '', city, district, page: 1 }); };
+  // ⚠️ AI 는 **새 검색어일 때만** 부른다.
+  //    타입칩·지역·페이지는 이미 받은 목록을 걸러내는 동작이라 질문이 달라지지 않는다.
+  //    거기서도 부르면 같은 답을 돈 내고 다시 받는 셈이고, 서버 rate limit 에도 걸린다.
+  const onSubmit = () => {
+    setActiveQ(query); setTypeFilter('');
+    search({ q: query, type: '', city, district, page: 1 });
+    askAI(query);
+  };
   const onChip = (t) => { setTypeFilter(t); search({ q: activeQ, type: t, city, district, page: 1 }); };
   const onCity = (c) => { setCity(c); setDistrict(''); setPicker(null); search({ q: activeQ, type: typeFilter, city: c, district: '', page: 1 }); };
   const onDistrict = (d) => { setDistrict(d); setPicker(null); search({ q: activeQ, type: typeFilter, city, district: d, page: 1 }); };
@@ -67,6 +100,13 @@ export default function SearchResultsScreen({ route }) {
     // 진출기업·옐로 = 앱 안 팝업(사이트 안 벗어남). 뉴스·매거진 = 원문 인앱브라우저.
     if (isDirectoryResult(r)) { setBizSeed(r); return; }
     const url = resolveResultUrl(r);
+    if (!url) return;
+    try { await WebBrowser.openBrowserAsync(url); } catch (e) { /* noop */ }
+  };
+  // AI 카드 안의 결과 — 구글 결과는 구글맵, 우리 업소는 상세 팝업(사이트를 안 벗어난다)
+  const openAiResult = async (r) => {
+    if (isDirectoryResult(r)) { setBizSeed(r); return; }
+    const url = resolveAssistantResultUrl(r);
     if (!url) return;
     try { await WebBrowser.openBrowserAsync(url); } catch (e) { /* noop */ }
   };
@@ -112,6 +152,54 @@ export default function SearchResultsScreen({ route }) {
       </View>
 
       <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: AD_CLEARANCE }}>
+        {/* ── AI 답변 — 목록 위에. 늦게 도착하므로 자리를 먼저 잡아 둔다 ── */}
+        {(aiLoading || aiReply) && (
+          <View style={styles.aiCard}>
+            <View style={styles.aiHead}>
+              <Text style={styles.aiHeadText}>✦ AI 답변</Text>
+              {!aiLoading && (
+                <TouchableOpacity onPress={() => navigation.navigate('AI도우미', { q: activeQ })} activeOpacity={0.7}>
+                  <Text style={styles.aiMore}>이어서 물어보기 ›</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {aiLoading ? (
+              <View style={styles.aiLoadingRow}>
+                <ActivityIndicator size="small" color="#7C3AED" />
+                <Text style={styles.aiLoadingText}>구글 평점까지 함께 찾고 있어요…</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.aiReply}>{aiReply}</Text>
+                {aiResults.slice(0, 4).map((r, i) => (
+                  <TouchableOpacity
+                    key={`ai-${i}`}
+                    style={styles.aiItem}
+                    activeOpacity={0.8}
+                    onPress={() => openAiResult(r)}
+                  >
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.aiItemTitle} numberOfLines={1}>{r.title}</Text>
+                      {(r.address || r.phone) && (
+                        <Text style={styles.aiItemSub} numberOfLines={1}>
+                          {[r.address, r.phone].filter(Boolean).join(' · ')}
+                        </Text>
+                      )}
+                    </View>
+                    {r.rating ? (
+                      <Text style={styles.aiRating}>
+                        ★ {r.rating}
+                        {r.ratingCount ? <Text style={styles.aiRatingCount}> ({r.ratingCount})</Text> : null}
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+          </View>
+        )}
+
         {/* 타입 필터칩 */}
         {data && data.results.length > 0 && (
           <View style={styles.chipRow}>
@@ -212,6 +300,27 @@ function Pagination({ page, totalPages, onGo }) {
 }
 
 const styles = StyleSheet.create({
+  // ── AI 답변 카드 (목록 위) ──
+  // 보라 = AI. 결과 목록(흰 카드)과 확실히 구분돼야 "이건 답변, 저건 목록"이 한눈에 읽힌다.
+  aiCard: {
+    backgroundColor: '#F8F5FF', borderWidth: 1, borderColor: '#E4DAFB',
+    borderRadius: 14, padding: 14, marginBottom: 14,
+  },
+  aiHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  aiHeadText: { color: '#6D28D9', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.3 },
+  aiMore: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
+  aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 4 },
+  aiLoadingText: { color: '#6B5B8A', fontSize: 13 },
+  aiReply: { color: '#1F1B2E', fontSize: 14, lineHeight: 21 },
+  aiItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, marginTop: 8,
+  },
+  aiItemTitle: { color: '#171412', fontSize: 13.5, fontWeight: '700' },
+  aiItemSub: { color: '#8B8078', fontSize: 11.5, marginTop: 1 },
+  aiRating: { color: '#B4540A', fontSize: 12.5, fontWeight: '800' },
+  aiRatingCount: { color: '#A99', fontSize: 11, fontWeight: '400' },
+
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   searchHeader: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#EEF2F6' },
   searchRow: { flexDirection: 'row', gap: 8 },
