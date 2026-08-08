@@ -2,9 +2,9 @@
 /**
  * Plugin Name: ChaoVN SEO Boost
  * Plugin URI: https://chaovietnam.co.kr
- * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거.
+ * Description: Rank Math 가 채우지 못하는 두 구멍을 메운다 — (1) 구글 뉴스 전용 사이트맵, (2) 데일리 뉴스의 "편집부 번역·정리" 표기, (3) 구조화 데이터에 원문 출처 신고, (4) 탐색경로가 하위 카테고리까지 내려가게, (5) headline 에서 사이트명 제거, (6) 뉴스 섹션 페이지(/news/economy/ 등) 신설.
  *              Rank Math 를 대체하지 않는다. Rank Math 가 하는 일(title/description/canonical/구조화데이터)은 건드리지 않는다.
- * Version: 1.0.5
+ * Version: 1.1.0
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  *
@@ -22,7 +22,7 @@ if (!defined('CHAOVN_NEWS_CAT_ID')) {
     define('CHAOVN_NEWS_CAT_ID', 31);
 }
 
-define('CHAOVN_SEO_VER', '1.0.5');
+define('CHAOVN_SEO_VER', '1.1.0');
 
 // ============================================================
 // 1) 구글 뉴스 사이트맵  —  /news-sitemap.xml
@@ -496,6 +496,280 @@ function chaovn_seo_clean_headline($data, $jsonld) {
     }
 
     return $data;
+}
+
+// ============================================================
+// 6) 뉴스 섹션 페이지 신설 — /news/economy/ 같은 주제별 모음
+// ------------------------------------------------------------
+// 왜 만드는가 (2026-08-08 사장님과 함께 규명):
+//   데일리 뉴스에는 분류가 이미 있다 — 경제·사회·부동산·국제… 12개.
+//   그런데 그건 Jenny 플러그인이 쓰는 **post meta(news_category)** 라서
+//   **웹 주소가 없다.** 앱은 API 로 그 꼬리표를 받아 자기가 화면을 그리니 문제없지만,
+//   웹은 주소가 있어야 페이지가 된다.
+//
+//   결과 두 가지:
+//   1) 빵조각(탐색경로)에 '경제'를 넣을 수 없다 — 링크할 곳이 없으니까.
+//      사장님이 "하위 카테고리가 안 나온다"고 하신 것의 진짜 원인이 이것이다.
+//      설정 문제도 Rank Math 문제도 아니었다.
+//   2) 더 큰 손실: 구글 입장에서 이 사이트는 그냥 "베트남 뉴스가 많은 곳"이다.
+//      "베트남 경제 뉴스 전문"도 "베트남 부동산 뉴스 전문"도 아니다.
+//      경제 기사만 연 5,000건씩 쌓이는데 그 주제의 페이지가 웹에 존재하지 않는다.
+//
+// 왜 '워드프레스 정식 분류(taxonomy)'로 만드는가 — 손으로 페이지를 짜지 않는 이유:
+//   분류로 등록하면 주소·페이지넘김·아카이브·사이트맵·빵조각·Rank Math 메타가
+//   **전부 워드프레스와 Rank Math 기본 기능으로 따라온다.** 직접 짜면 그걸 다 만들어야 하고,
+//   만든 만큼 어긋날 구석이 생긴다.
+//
+// ⚠️ 기존 것은 하나도 안 바뀐다:
+//   · 기사 주소(/167908/) 그대로  · 기존 카테고리 그대로  · 앱/API 그대로
+//   · post meta 는 읽기만 한다 — 고치지 않는다
+//   주소를 *더하는* 작업이라 깨질 여지가 구조적으로 없다.
+//
+// ⚠️ 분류 규칙은 새로 만들지 않는다:
+//   chaovn-news-api 의 chaovn_get_sections_config() / chaovn_get_section_key() 를 그대로 쓴다.
+//   같은 규칙을 두 곳에 적으면 반드시 어긋난다. 그 플러그인이 꺼져 있으면 이 기능은 조용히 쉰다.
+// ============================================================
+
+define('CHAOVN_SECTION_TAX', 'news_section');
+define('CHAOVN_SECTION_TERMS_OPT', 'chaovn_seo_section_terms_ver');
+define('CHAOVN_SECTION_TERMS_VER', '1'); // 섹션 목록을 바꾸면 이 숫자를 올린다
+
+/** 섹션 정의. 뉴스 API 플러그인의 것을 그대로 받아 쓴다. */
+function chaovn_seo_sections() {
+    if (!function_exists('chaovn_get_sections_config')) return array();
+    return chaovn_get_sections_config();
+}
+
+/** 'real_estate' → 'real-estate'. 주소에는 밑줄보다 하이픈이 표준이다. */
+function chaovn_seo_section_slug($key) {
+    return str_replace('_', '-', $key);
+}
+
+add_action('init', 'chaovn_seo_register_section_tax', 5);
+function chaovn_seo_register_section_tax() {
+    if (!chaovn_seo_sections()) return; // 뉴스 API 가 없으면 아무것도 하지 않는다
+
+    register_taxonomy(CHAOVN_SECTION_TAX, 'post', array(
+        'labels' => array(
+            'name'          => '뉴스 섹션',
+            'singular_name' => '뉴스 섹션',
+            'menu_name'     => '뉴스 섹션',
+            'all_items'     => '모든 섹션',
+            'search_items'  => '섹션 검색',
+            'not_found'     => '섹션이 없습니다.',
+        ),
+        // 평면 구조로 둔다. 경제/사회/부동산 사이에 상하 관계가 없다.
+        'hierarchical'      => false,
+        'public'            => true,
+        'show_ui'           => true,
+        'show_admin_column' => true,
+        'show_in_rest'      => true,
+        // 직원이 글쓰기 화면에서 실수로 새 섹션을 만들지 못하게 한다.
+        // 섹션은 Jenny 의 분류와 1:1 이어야 하고, 임의로 늘어나면 그 짝이 깨진다.
+        'capabilities'      => array(
+            'manage_terms' => 'manage_options',
+            'edit_terms'   => 'manage_options',
+            'delete_terms' => 'manage_options',
+            'assign_terms' => 'edit_posts',
+        ),
+        'rewrite' => array(
+            'slug'       => 'news',   // → /news/economy/
+            'with_front' => false,
+        ),
+    ));
+
+    chaovn_seo_ensure_section_terms();
+}
+
+/** 섹션 12개를 한 번만 만들어 둔다. 이미 있으면 아무것도 하지 않는다. */
+function chaovn_seo_ensure_section_terms() {
+    if (get_option(CHAOVN_SECTION_TERMS_OPT) === CHAOVN_SECTION_TERMS_VER) return;
+
+    foreach (chaovn_seo_sections() as $key => $sec) {
+        $slug = chaovn_seo_section_slug($key);
+        if (get_term_by('slug', $slug, CHAOVN_SECTION_TAX)) continue;
+        wp_insert_term($sec['name'], CHAOVN_SECTION_TAX, array('slug' => $slug));
+    }
+    update_option(CHAOVN_SECTION_TERMS_OPT, CHAOVN_SECTION_TERMS_VER, false);
+    // 새 분류의 주소 규칙을 등록해야 한다
+    delete_option('chaovn_seo_rewrite_ver');
+}
+
+/** 글 하나에 섹션을 붙인다. 이미 붙어 있으면 건드리지 않는다. */
+function chaovn_seo_assign_section($post_id, $force = false) {
+    if (!function_exists('chaovn_get_section_key')) return false;
+    if (!chaovn_seo_is_news_post($post_id)) return false;
+
+    if (!$force) {
+        $has = wp_get_object_terms($post_id, CHAOVN_SECTION_TAX, array('fields' => 'ids'));
+        if (!is_wp_error($has) && !empty($has)) return false;
+    }
+
+    $raw = trim((string) get_post_meta($post_id, 'news_category', true));
+    if ($raw === '') return false;
+
+    // 판정은 뉴스 API 의 규칙 그대로 — 웹과 앱이 같은 섹션을 가리키게 한다
+    $slug = chaovn_seo_section_slug(chaovn_get_section_key($raw));
+    $term = get_term_by('slug', $slug, CHAOVN_SECTION_TAX);
+    if (!$term) return false;
+
+    wp_set_object_terms($post_id, array((int) $term->term_id), CHAOVN_SECTION_TAX);
+    return true;
+}
+
+// 새로 발행되는 뉴스는 자동으로 섹션이 붙는다 — 직원 작업 0.
+// 블록 편집기는 REST 로 저장하므로 그 경로도 함께 잡는다(카테고리·메타가 그때 확정된다).
+add_action('rest_after_insert_post', function ($post) { chaovn_seo_assign_section($post->ID); }, 20);
+add_action('publish_post', function ($post_id) {
+    if (defined('REST_REQUEST') && REST_REQUEST) return;
+    chaovn_seo_assign_section($post_id);
+}, 20);
+
+// ── 아카이브 화면의 제목·설명 ────────────────────────────────
+// Sahifa 는 분류 아카이브에 "Blog Archives" 같은 밋밋한 제목을 쓴다(매거진 호 페이지에서 확인됨).
+// 검색 결과에 그대로 찍히면 클릭이 안 나오므로 검색어 형태로 바꾼다.
+add_filter('get_the_archive_title', 'chaovn_seo_section_archive_title', 20);
+function chaovn_seo_section_archive_title($title) {
+    if (!is_tax(CHAOVN_SECTION_TAX)) return $title;
+    $t = get_queried_object();
+    return $t && !is_wp_error($t) ? '베트남 ' . $t->name . ' 뉴스' : $title;
+}
+
+// 검색결과에 뜨는 제목. Rank Math 기본값은 "경제 - Xin Chao Vietnam" 이라 약하다.
+add_filter('rank_math/frontend/title', 'chaovn_seo_section_seo_title', 20);
+function chaovn_seo_section_seo_title($title) {
+    if (!is_tax(CHAOVN_SECTION_TAX)) return $title;
+    $t = get_queried_object();
+    if (!$t || is_wp_error($t)) return $title;
+    return '베트남 ' . $t->name . ' 뉴스 | 씬짜오베트남';
+}
+
+add_filter('rank_math/frontend/description', 'chaovn_seo_section_seo_desc', 20);
+function chaovn_seo_section_seo_desc($desc) {
+    if (!is_tax(CHAOVN_SECTION_TAX)) return $desc;
+    $t = get_queried_object();
+    if (!$t || is_wp_error($t)) return $desc;
+    return sprintf(
+        '베트남 %s 뉴스를 매일 전해드립니다. 씬짜오베트남 편집부가 현지 매체 보도를 선별해 한국어로 번역·정리했습니다. 총 %s건.',
+        $t->name,
+        number_format((int) $t->count)
+    );
+}
+
+// ── 빵조각에 섹션을 한 칸 더 ─────────────────────────────────
+// 홈 > 뉴스 > 데일리 뉴스 > 경제 > (제목)
+add_filter('rank_math/frontend/breadcrumb/items', 'chaovn_seo_breadcrumb_add_section', 30, 2);
+function chaovn_seo_breadcrumb_add_section($crumbs, $class) {
+    if (!is_singular('post') || !is_array($crumbs) || count($crumbs) < 2) return $crumbs;
+
+    $pid = get_the_ID();
+    if (!$pid || !chaovn_seo_is_news_post($pid)) return $crumbs;
+
+    $terms = wp_get_object_terms($pid, CHAOVN_SECTION_TAX);
+    if (is_wp_error($terms) || empty($terms)) return $crumbs;
+
+    $link = get_term_link($terms[0]);
+    if (is_wp_error($link)) return $crumbs;
+
+    // 마지막(글 제목) 바로 앞에 끼워 넣는다
+    $title = array_pop($crumbs);
+    $crumbs[] = array(html_entity_decode($terms[0]->name, ENT_QUOTES, 'UTF-8'), $link);
+    $crumbs[] = $title;
+    return $crumbs;
+}
+
+// ── 과거 글에 섹션 붙이기 (관리 화면, 나눠서 실행) ──────────────
+// 19,707건을 한 번에 처리하면 화면이 멈춘다. 눌러서 조금씩 처리한다.
+add_action('admin_menu', function () {
+    if (!chaovn_seo_sections()) return;
+    add_submenu_page('edit.php', '뉴스 섹션 채우기', '뉴스 섹션 채우기',
+        'manage_options', 'chaovn-seo-sections', 'chaovn_seo_sections_page');
+});
+
+define('CHAOVN_SECTION_BATCH', 500);
+
+function chaovn_seo_sections_page() {
+    if (!current_user_can('manage_options')) return;
+
+    $done = 0;
+    if (isset($_POST['chaovn_run_sections']) && check_admin_referer('chaovn_seo_sections')) {
+        $q = new WP_Query(array(
+            'post_type'      => 'post',
+            'post_status'    => 'publish',
+            'posts_per_page' => CHAOVN_SECTION_BATCH,
+            'fields'         => 'ids',
+            'no_found_rows'  => true,
+            'cat'            => CHAOVN_NEWS_CAT_ID,
+            'tax_query'      => array(array('taxonomy' => CHAOVN_SECTION_TAX, 'operator' => 'NOT EXISTS')),
+            'meta_query'     => array(array('key' => 'news_category', 'compare' => 'EXISTS')),
+        ));
+        foreach ($q->posts as $pid) {
+            if (chaovn_seo_assign_section($pid)) $done++;
+        }
+        wp_reset_postdata();
+    }
+
+    // 남은 건수
+    $left_q = new WP_Query(array(
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'fields'         => 'ids',
+        'cat'            => CHAOVN_NEWS_CAT_ID,
+        'tax_query'      => array(array('taxonomy' => CHAOVN_SECTION_TAX, 'operator' => 'NOT EXISTS')),
+        'meta_query'     => array(array('key' => 'news_category', 'compare' => 'EXISTS')),
+    ));
+    $left = (int) $left_q->found_posts;
+    wp_reset_postdata();
+    ?>
+    <div class="wrap">
+        <h1>뉴스 섹션 채우기</h1>
+        <?php if ($done): ?>
+            <div class="notice notice-success"><p><?php echo (int) $done; ?>건에 섹션을 붙였습니다.</p></div>
+        <?php endif; ?>
+
+        <p>데일리 뉴스 기사에 이미 붙어 있는 분류(경제·사회·부동산…)를 읽어
+           <strong>웹 주소가 있는 섹션</strong>으로 옮겨 담습니다.
+           <strong>기사 내용·주소·기존 카테고리는 하나도 바뀌지 않습니다.</strong></p>
+
+        <h2>남은 기사: <?php echo number_format($left); ?>건</h2>
+        <?php if ($left > 0): ?>
+            <form method="post">
+                <?php wp_nonce_field('chaovn_seo_sections'); ?>
+                <p>
+                    <button class="button button-primary button-hero" name="chaovn_run_sections" value="1">
+                        <?php echo number_format(min($left, CHAOVN_SECTION_BATCH)); ?>건 처리
+                    </button>
+                </p>
+                <p class="description">
+                    한 번에 <?php echo CHAOVN_SECTION_BATCH; ?>건씩 처리합니다.
+                    남은 건수가 0이 될 때까지 <strong>버튼을 반복해서 누르시면 됩니다</strong>
+                    (19,707건이면 약 40번). 중간에 그만두셔도 됩니다 — 다음에 이어서 하면 됩니다.
+                </p>
+            </form>
+        <?php else: ?>
+            <div class="notice notice-success"><p><strong>완료되었습니다.</strong> 앞으로 발행되는 기사는 자동으로 섹션이 붙습니다.</p></div>
+        <?php endif; ?>
+
+        <hr />
+        <h3>섹션 현황</h3>
+        <table class="widefat striped" style="max-width:520px">
+            <thead><tr><th>섹션</th><th>기사 수</th><th>주소</th></tr></thead>
+            <tbody>
+            <?php foreach (get_terms(array('taxonomy' => CHAOVN_SECTION_TAX, 'hide_empty' => false)) as $t):
+                $l = get_term_link($t); ?>
+                <tr>
+                    <td><?php echo esc_html($t->name); ?></td>
+                    <td><?php echo number_format($t->count); ?>건</td>
+                    <td><?php if (!is_wp_error($l)): ?>
+                        <a href="<?php echo esc_url($l); ?>" target="_blank"><?php echo esc_html(urldecode($l)); ?></a>
+                    <?php endif; ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
 }
 
 // ============================================================
