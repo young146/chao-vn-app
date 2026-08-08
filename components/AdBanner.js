@@ -237,7 +237,9 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
   );
 };
 
-const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = true }) => {
+// export 는 홈 캐러셀(components/HomeAdCarousel.js)이 같은 렌더러를 쓰기 위한 것.
+// 동작은 그대로 — 기존 호출부에 영향 없음.
+export const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = true }) => {
   if (ad?.videoUrl) {
     const thumbUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey]
       ? ad.thumbnails[thumbnailKey]
@@ -318,7 +320,8 @@ const trackAdClick = async (ad) => {
 /**
  * 광고 클릭 핸들러
  */
-const handleAdPress = async (ad) => {
+// export 는 홈 캐러셀이 같은 클릭 추적·링크 열기를 쓰기 위한 것. 동작 변경 없음.
+export const handleAdPress = async (ad) => {
   if (!ad) return;
 
   // 클릭 추적 (비동기)

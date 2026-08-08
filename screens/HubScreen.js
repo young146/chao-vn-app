@@ -1,272 +1,160 @@
-// 씬짜오 베트남 통합검색 허브 (앱 홈) — 웹 vnkorlife.com 홈의 RN 포팅.
-// 홈은 '입구'만 담당: 검색창 + 지역 + 옐로페이지 대표카드 + 바로가기.
-// 검색을 누르면 별도 '검색결과' 화면이 push 로 열린다(구글식) → 홈은 항상 그대로 유지.
-import React, { useState, useEffect } from 'react';
+// 씬짜오 베트남 통합검색 허브 (앱 홈) — 2026-08-08 리디자인.
+//
+// 설계 원칙: **주인공은 하나.** 예전 홈은 누를 수 있는 것이 22개, 색이 12가지여서
+// 눈이 어디부터 봐야 할지 정하지 못했다. 지금은 셋뿐이다 — 광고 · 로고 · 검색창.
+//
+// 위에서 아래로:
+//   ① 광고 캐러셀  — 헤더 바로 아래. 홈이 비어 보이지 않게 하는 유일한 장치이자 지면 진열대
+//   ② 로고         — assets/icon.png 원본 그대로 (곡진 사각형 테두리선 = 잡지 표지의 정체성)
+//   ③ 검색창       — 하나. 짧게 치면 검색, 문장으로 치면 AI (판단은 결과 화면이 한다)
+//   그 아래는 비운다 — 하단 탭바에 메뉴가 이미 다 있어서 바로가기 카드는 중복이었다.
+//
+// 뺀 것과 그 이유:
+//   · "24년 교민 잡지" 배지 → 2024년으로 읽히고, 매년 고쳐야 하는 문구는 언젠가 반드시 안 고쳐진다.
+//                              대신 로고 아래 SINCE 2001 (연도가 박제되니 안 늙는다)
+//   · AI 도우미 별도 카드   → 검색창과 둘로 나뉘어 있으면 "지금 검색인가 질문인가"를 사용자가
+//                              판단해야 한다. 답할 수 없는 질문이라 둘 다 안 쓰게 된다. 하나로 합쳤다.
+//   · 지역 필터            → 검색하기 *전에* 지역을 고르는 사람은 거의 없다. 결과를 본 다음 좁힌다.
+//                              그래서 검색결과 화면으로 옮겼다 (거기 이미 있다).
+//   · 바로가기 카드 6개    → 바로 아래 탭바와 같은 곳으로 간다. 지워도 잃는 게 없다.
+//   · 배경 사진            → 사진 위에 뭘 올리면 읽기 어려워 그림자·오버레이를 자꾸 덧대게 된다.
+//                              그게 복잡함의 절반이었다.
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
-  Modal, FlatList, Platform, Dimensions, ImageBackground,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getRegions } from '../services/searchService';
-import { ScrollBottomBanner } from '../components/AdBanner';
+import HomeAdCarousel from '../components/HomeAdCarousel';
 
-const BRAND = '#FF6B35';
-const BLUE = '#1e3a8a';
-// 스크롤 바닥 여백. 예전엔 화면을 덮는 고정 광고배너 높이만큼(약 165) 비워 뒀는데,
-// 그 배너를 스크롤 맨 아래로 옮겼으므로(2026-08-06) 보통 여백만 남긴다.
-const AD_CLEARANCE = 24;
+const BRAND = '#E85D04';
+const INK = '#171412';
+const MUTE = '#8B8078';
+const LINE = '#EDE6DD';
+const STRAW = '#A8871C';
 
-// 바로가기 — 콘텐츠 2칸(매거진·뉴스, 큰 카드). color = 아이콘 타일 강조색
-const GUIDE_TOP = [
-  { key: 'magazine', label: '씬짜오 매거진', desc: '24년 교민 잡지', emoji: '📖', color: '#F43F5E', tab: '홈', screen: '홈메인', params: { type: 'home', resetSearch: 'now' } },
-  { key: 'news', label: '데일리 뉴스', desc: '매일 베트남 뉴스', emoji: '📰', color: '#6366F1', tab: '뉴스', screen: '뉴스메인', params: { type: 'news', resetSearch: 'now' } },
+// 검색창 안에서 천천히 바뀌는 예시. "이런 것도 물어봐도 되는구나"를 설명 없이 알려준다.
+const EXAMPLES = [
+  '2군에 평점 좋은 한식당 알려줘',
+  '비자 연장 어떻게 해?',
+  '하노이 국제학교 학비',
+  '냉장고 중고로 팔고 싶어',
+  '타오디엔 2베드 렌트 시세',
 ];
-// 바로가기 — 마켓 3칸(당근·구인·부동산, 가로폭에 맞춰 한 줄)
-const GUIDE_BOTTOM = [
-  { key: 'danggn', label: '당근·나눔', emoji: '🥕', color: '#F97316', tab: '당근/나눔', screen: '당근/나눔 메인' },
-  { key: 'jobs', label: '구인·구직', emoji: '💼', color: '#0EA5E9', tab: '구인구직', screen: '구인구직 메인' },
-  { key: 'realestate', label: '부동산', emoji: '🏠', color: '#14B8A6', tab: '부동산', screen: '부동산 메인' },
-];
+const EXAMPLE_MS = 3400;
 
 export default function HubScreen({ navigation, route }) {
   const [query, setQuery] = useState('');
-  const [city, setCity] = useState('');
-  const [district, setDistrict] = useState('');
-  const [regions, setRegions] = useState({ cities: [], districtsByCity: {}, categoriesByType: {} });
-  const [picker, setPicker] = useState(null); // 'city' | 'district' | null
-
-  // 지역 옵션 로드
-  useEffect(() => {
-    getRegions().then(setRegions).catch(() => {});
-  }, []);
+  const [exIdx, setExIdx] = useState(0);
+  const [focused, setFocused] = useState(false);
 
   // 홈 탭/제목 재탭(resetSearch) 시 입력 초기화 — 홈은 항상 깨끗한 첫 화면
   useEffect(() => {
-    if (route?.params?.resetSearch) {
-      setQuery(''); setCity(''); setDistrict(''); setPicker(null);
-    }
+    if (route?.params?.resetSearch) setQuery('');
   }, [route?.params?.resetSearch]);
 
-  // 검색 = 별도 결과 화면으로 이동 (홈은 그대로 남음)
+  // 예시 문장 회전. 입력 중이거나 글자가 있으면 멈춘다 — 눈앞에서 글씨가 바뀌면 거슬린다.
+  const busy = focused || query.length > 0;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (busyRef.current) return;
+      setExIdx((i) => (i + 1) % EXAMPLES.length);
+    }, EXAMPLE_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  // 검색 = 별도 결과 화면으로 이동 (홈은 그대로 남는다).
+  // 지역은 여기서 안 받는다 — 결과 화면에서 좁힌다.
   const onSubmit = () => {
-    if (!query.trim()) return;
-    navigation.navigate('검색결과', { q: query.trim(), city, district });
+    const q = query.trim();
+    if (!q) return;
+    navigation.navigate('검색결과', { q });
   };
-  const onCity = (c) => { setCity(c); setDistrict(''); setPicker(null); };
-  const onDistrict = (d) => { setDistrict(d); setPicker(null); };
-
-  const goGuide = (g) => {
-    const params = g.params
-      ? { ...g.params, resetSearch: g.params.resetSearch === 'now' ? Date.now() : g.params.resetSearch }
-      : undefined;
-    navigation.navigate(g.tab, params ? { screen: g.screen, params } : { screen: g.screen });
-  };
-
-  const cityDistricts = city ? (regions.districtsByCity[city] || []) : [];
 
   return (
     <View style={styles.container}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: AD_CLEARANCE }}>
-        {/* ===== HERO ===== */}
-        <View style={styles.hero}>
-          <Text style={styles.heroBadge}>⭐ 24년 교민 잡지가 만든 통합검색</Text>
-          <Text style={styles.heroTitle}>씬짜오 베트남 통합검색</Text>
-          <Text style={styles.heroSub}>옐로페이지 · 진출기업 · 뉴스 · 매거진을 한 곳에서</Text>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scroll}
+      >
+        {/* ① 광고 — 헤더 바로 아래 */}
+        <HomeAdCarousel
+          style={styles.carousel}
+          onInquiry={() => navigation.navigate('이웃사업', { screen: '이웃사업 등록' })}
+        />
 
-          {/* 검색창 = 입력 · 지역필터(칩) · 검색버튼을 한 박스(흰 pill) 안에 통합 (웹과 동일, 더 크게) */}
-          <View style={styles.searchBox}>
-            {/* 윗줄: 돋보기 + 입력 */}
-            <View style={styles.searchTop}>
-              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                onSubmitEditing={onSubmit}
-                returnKeyType="search"
-                placeholder="베트남의 모든 정보를 씬짜오에서"
-                placeholderTextColor="#9CA3AF"
-                style={styles.searchInput}
-              />
-            </View>
-            {/* 아랫줄: 지역 필터(칩) + 검색 버튼 — 모두 검색창 안 */}
-            <View style={styles.searchBottom}>
-              <View style={styles.regionChips}>
-                <TouchableOpacity style={styles.regionChip} onPress={() => setPicker('city')} activeOpacity={0.8}>
-                  <Text style={styles.regionChipText}>📍 {city || '전체 도시'} ▾</Text>
-                </TouchableOpacity>
-                {city && cityDistricts.length > 0 && (
-                  <TouchableOpacity style={styles.regionChip} onPress={() => setPicker('district')} activeOpacity={0.8}>
-                    <Text style={styles.regionChipText}>{district || '전체 구·군'} ▾</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <TouchableOpacity style={styles.searchBtn} onPress={onSubmit} activeOpacity={0.85}>
-                <Text style={styles.searchBtnText}>검색</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* AI 검색 도우미 입구 — 자연어로 묻고 싶을 때. 보라(AI 연상)+흰글씨로 대비 확보 */}
-          <TouchableOpacity
-            style={styles.aiEntry}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('AI도우미')}
-          >
-            <View style={styles.aiIconBadge}>
-              <Text style={styles.aiIconEmoji}>💁</Text>
-            </View>
-            <View style={styles.aiEntryTextWrap}>
-              <Text style={styles.aiEntryText}>AI 검색 도우미</Text>
-              <Text style={styles.aiEntryHint}>“2군 평점 좋은 한식당”처럼 말해보세요</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.95)" />
-          </TouchableOpacity>
+        {/* ② 로고 */}
+        <View style={styles.lockup}>
+          <Image
+            source={require('../assets/icon.png')}
+            style={styles.badge}
+            resizeMode="contain"
+          />
+          <Text style={styles.wordmark}>XinChaoVietnam</Text>
+          <Text style={styles.since}>SINCE 2001</Text>
         </View>
 
-        {/* ===== 본문(항상 홈) — 베트남 풍경 블러 배경 ===== */}
-        <ImageBackground
-          source={require('../assets/hub-bg.jpg')}
-          blurRadius={6}
-          style={styles.body}
-          imageStyle={styles.bodyImg}
-        >
-          {/* 가독성 오버레이 — 사진은 은은하게, 카드·글자는 또렷하게 */}
-          <View style={styles.bodyOverlay} pointerEvents="none" />
-
-          {/* 옐로페이지 대표 카드 */}
-          <TouchableOpacity
-            style={styles.featureCard}
-            activeOpacity={0.9}
-            onPress={() => navigation.navigate('옐로페이지')}
-          >
-            <View style={styles.featureLeft}>
-              <Text style={styles.featureEmoji}>📒</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.featureTitle}>옐로페이지</Text>
-                <Text style={styles.featureDesc}>현지 한인 업소 3,700+ · 카테고리·지역으로 찾기</Text>
-              </View>
-              <Text style={styles.featureArrow}>›</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.featureCta}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('이웃사업', { screen: '이웃사업 등록' })}
-            >
-              <Text style={styles.featureCtaText}>⭐ 우리 업소 상단노출 신청</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          <Text style={styles.sectionTitle}>바로가기</Text>
-          {/* 콘텐츠 2칸 */}
-          <View style={styles.grid}>
-            {GUIDE_TOP.map((g) => (
-              <TouchableOpacity key={g.key} style={styles.card} activeOpacity={0.85} onPress={() => goGuide(g)}>
-                <View style={[styles.iconTile, { backgroundColor: g.color + '22' }]}>
-                  <Text style={styles.iconTileEmoji}>{g.emoji}</Text>
-                </View>
-                <Text style={styles.cardLabel}>{g.label}</Text>
-                <Text style={styles.cardDesc}>{g.desc}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {/* 마켓 3칸 — 가로폭에 맞춰 한 줄 */}
-          <View style={styles.gridThree}>
-            {GUIDE_BOTTOM.map((g) => (
-              <TouchableOpacity key={g.key} style={styles.cardSmall} activeOpacity={0.85} onPress={() => goGuide(g)}>
-                <View style={[styles.iconTileSm, { backgroundColor: g.color + '22' }]}>
-                  <Text style={styles.iconTileEmojiSm}>{g.emoji}</Text>
-                </View>
-                <Text style={styles.cardSmallLabel}>{g.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ImageBackground>
-
-        {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
-        <ScrollBottomBanner />
-      </ScrollView>
-
-      {/* 지역 선택 모달 */}
-      <Modal visible={picker !== null} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPicker(null)}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{picker === 'city' ? '도시 선택' : '구·군 선택'}</Text>
-            <FlatList
-              data={picker === 'city'
-                ? [{ key: '', label: '전체 도시' }, ...regions.cities.map((c) => ({ key: c.city, label: `${c.city} (${c.n})` }))]
-                : [{ key: '', label: '전체 구·군' }, ...cityDistricts.map((d) => ({ key: d.district, label: `${d.district} (${d.n})` }))]}
-              keyExtractor={(it) => it.key || 'all'}
-              style={{ maxHeight: 360 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => (picker === 'city' ? onCity(item.key) : onDistrict(item.key))}
-                >
-                  <Text style={styles.modalItemText}>{item.label}</Text>
-                </TouchableOpacity>
-              )}
+        {/* ③ 검색창 — 하나 */}
+        <View style={styles.searchWrap}>
+          <View style={[styles.searchBox, focused && styles.searchBoxOn]}>
+            <Ionicons name="search" size={19} color={MUTE} style={styles.searchIcon} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onSubmitEditing={onSubmit}
+              returnKeyType="search"
+              placeholder={EXAMPLES[exIdx]}
+              placeholderTextColor={MUTE}
+              style={styles.searchInput}
             />
+            <View style={styles.aiChip}>
+              <Text style={styles.aiChipText}>✦ AI</Text>
+            </View>
           </View>
-        </TouchableOpacity>
-      </Modal>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  hero: { backgroundColor: BRAND, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 22, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  heroBadge: { color: '#FFF7ED', fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
-  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '800', textAlign: 'center' },
-  heroSub: { color: '#FFEEDD', fontSize: 13, textAlign: 'center', marginTop: 6 },
-  // 올인원 검색 박스 (웹과 동일): 흰 pill 안에 입력 + 지역칩 + 검색버튼. 더 크게.
-  searchBox: { marginTop: 18, backgroundColor: '#fff', borderRadius: 22, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  searchTop: { flexDirection: 'row', alignItems: 'center' },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, paddingVertical: Platform.OS === 'ios' ? 12 : 8, fontSize: 17, color: '#111' },
-  searchBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  regionChips: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-  regionChip: { backgroundColor: '#F3F4F6', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
-  regionChipText: { color: '#374151', fontSize: 14, fontWeight: '600' },
-  searchBtn: { backgroundColor: BLUE, borderRadius: 999, paddingHorizontal: 24, paddingVertical: 11, justifyContent: 'center' },
-  searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  // AI 검색 도우미 카드 — 보라 솔리드 배경에 흰 글씨(고대비). 흰 원형 배지 안에 큰 도우미 아이콘.
-  aiEntry: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#7C3AED', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, shadowColor: '#4C1D95', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  aiIconBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  aiIconEmoji: { fontSize: 28, lineHeight: 34 },
-  aiEntryTextWrap: { flex: 1, minWidth: 0 },
-  aiEntryText: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  aiEntryHint: { color: 'rgba(255,255,255,0.9)', fontSize: 12.5, marginTop: 2 },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scroll: { paddingBottom: 28 },
 
-  body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, overflow: 'hidden' },
-  bodyImg: {},
-  bodyOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(248,250,252,0.3)' },
+  carousel: { marginTop: 14 },
 
-  featureCard: { backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#F3E8FF', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  featureLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  featureEmoji: { fontSize: 30 },
-  featureTitle: { fontSize: 17, fontWeight: '800', color: '#111' },
-  featureDesc: { fontSize: 12.5, color: '#6B7280', marginTop: 2 },
-  featureArrow: { fontSize: 26, color: '#C4B5FD', fontWeight: '700' },
-  featureCta: { marginTop: 12, backgroundColor: '#7C3AED', borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  featureCtaText: { color: '#fff', fontSize: 13.5, fontWeight: '700' },
+  lockup: { alignItems: 'center', paddingTop: 30, paddingHorizontal: 18 },
+  // 원본 아이콘 그대로. 바깥 모서리만 둥글려 런처·앱스토어에서 보이는 모습과 맞춘다.
+  badge: { width: 63, height: 63, borderRadius: 14 },
+  wordmark: {
+    marginTop: 10, fontSize: 30, fontWeight: '800', color: INK,
+    letterSpacing: -1, textAlign: 'center',
+  },
+  since: {
+    marginTop: 6, fontSize: 9.5, fontWeight: '600', color: STRAW,
+    letterSpacing: 2.6,
+  },
 
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginTop: 22, marginBottom: 12, textShadowColor: 'rgba(255,255,255,0.9)', textShadowRadius: 5 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  iconTile: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  iconTileEmoji: { fontSize: 24 },
-  cardLabel: { fontSize: 15, fontWeight: '700', color: '#111' },
-  cardDesc: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  gridThree: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 },
-  cardSmall: { width: '31.5%', backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  iconTileSm: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  iconTileEmojiSm: { fontSize: 20 },
-  cardSmallLabel: { fontSize: 13, fontWeight: '700', color: '#111', textAlign: 'center' },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', paddingHorizontal: 32 },
-  modalCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16 },
-  modalTitle: { fontSize: 16, fontWeight: '800', color: '#111', marginBottom: 8 },
-  modalItem: { paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  modalItemText: { fontSize: 15, color: '#374151' },
+  searchWrap: { paddingHorizontal: 18, paddingTop: 22 },
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderWidth: 1.5, borderColor: LINE, borderRadius: 999,
+    paddingLeft: 16, paddingRight: 8, paddingVertical: Platform.OS === 'ios' ? 10 : 4,
+    shadowColor: '#3C2612', shadowOpacity: 0.1, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+  },
+  searchBoxOn: { borderColor: BRAND },
+  searchIcon: { marginRight: 9 },
+  searchInput: {
+    flex: 1, minWidth: 0, fontSize: 15, color: INK,
+    paddingVertical: Platform.OS === 'ios' ? 2 : 8,
+  },
+  aiChip: {
+    backgroundColor: '#7C3AED', borderRadius: 999,
+    paddingHorizontal: 11, paddingVertical: 6, marginLeft: 8,
+  },
+  aiChipText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });
