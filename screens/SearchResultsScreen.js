@@ -54,6 +54,7 @@ export default function SearchResultsScreen({ route, navigation }) {
   const aiSeq = useRef(0);
 
   const [followQ, setFollowQ] = useState('');
+  const [aiOpen, setAiOpen] = useState(false);   // AI 답변 펼침 여부(기본: 접힘)
 
   // 이어서 묻기 — 지금까지의 문답을 통째로 들고 AI 도우미로 넘어가 대화를 잇는다.
   // 여기서 바로 대화를 이어가지 않는 이유: 이 화면은 '검색 결과 목록'이고,
@@ -190,7 +191,18 @@ export default function SearchResultsScreen({ route, navigation }) {
               </View>
             ) : (
               <>
-                <Text style={styles.aiReply}>{aiReply}</Text>
+                {/* 답이 길면 접어 둔다.
+                    사장님 화면에서 AI 카드가 **화면을 통째로 덮어** 정작 우리 콘텐츠 목록이
+                    맨 아래로 밀려나 있었다. 우리 24년치 자산이 먼저 보여야 하는데
+                    요약이 그 자리를 뺏으면 안 된다. 요약은 요약답게. */}
+                <Text style={styles.aiReply} numberOfLines={aiOpen ? undefined : 7}>
+                  {aiReply}
+                </Text>
+                {aiReply.length > 180 && (
+                  <TouchableOpacity onPress={() => setAiOpen((v) => !v)} activeOpacity={0.7}>
+                    <Text style={styles.aiToggle}>{aiOpen ? '접기 ▴' : '더보기 ▾'}</Text>
+                  </TouchableOpacity>
+                )}
                 {aiResults.slice(0, 4).map((r, i) => (
                   <TouchableOpacity
                     key={`ai-${i}`}
@@ -355,6 +367,7 @@ const styles = StyleSheet.create({
   aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 4 },
   aiLoadingText: { color: '#6B5B8A', fontSize: 13 },
   aiReply: { color: '#1F1B2E', fontSize: 14, lineHeight: 21 },
+  aiToggle: { color: '#7C3AED', fontSize: 12.5, fontWeight: '700', marginTop: 6 },
   aiItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, marginTop: 8,
