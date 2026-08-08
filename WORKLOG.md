@@ -36,22 +36,6 @@
   - **해결책 B (다음 빌드에 포함·더 단순)**: `app.json` 의 `intentFilters`·`associatedDomains` 에서 www.vnkorlife.com 4개 경로를 제거. www 링크는 어차피 브라우저에서 apex 로 넘어간다(지금과 동작 동일). SEO 위험 없음.
   - → 사장님 선택 대기. B 를 고르면 **네이티브 변경이라 빌드 필요**하므로 여기 남겨 둔다.
 
-- [ ] **⓪-g iOS 심사 반려: 마이크 권한 문구가 기본값이었다** 🔴 (2026-08-08 반려) — Apple 자동검사가 `NSMicrophoneUsageDescription: "Allow app to access your microphone"` 을 **placeholder** 로 판정. **우리가 적은 적이 없는 문구다** — `expo-image-picker`/`expo-av` 의 config plugin 이 자동 삽입한 기본값(`plugin/src/*.ts` 의 `MICROPHONE_USAGE` 상수). `ios/` 폴더가 없는 prebuild 방식이라 눈에 안 보였다.
-  - **왜 카메라·사진은 안 걸렸나**: `@expo/config-plugins` 의 `applyPermissions()` 가 `infoPlist[k] = 플러그인props || app.json값 || 기본값` 순서다. app.json 에 적어둔 3개는 살아남고, **안 적은 마이크만 기본값으로 채워졌다.** → 고치는 법도 같다: **app.json `ios.infoPlist` 에 적으면 이긴다** (플러그인 배열 손댈 필요 없음).
-  - **마이크는 실제로 필요하다** — `screens/AddNeighborBusinessScreen.js:201` `recordVideo()` 가 `launchCameraAsync({mediaTypes:['videos']})` 로 **동영상을 촬영**한다. 소리가 같이 녹음되므로 iOS 가 마이크 권한을 요구한다. ⚠️ `microphonePermission: false` 로 키를 빼면 촬영 시 **크래시**한다. 지우지 말 것.
-  - 조치: app.json 에 `NSMicrophoneUsageDescription` 추가(용도+구체적 예시 포함). **Info.plist 는 네이티브라 OTA 불가 → 재빌드 필수.** iOS 만 재빌드하면 된다(안드로이드 2.4.4 는 이미 출시 완료, 이 키는 iOS 전용).
-  - **⚠️ 가장 중요한 맥락 — 이 문구는 새로 생긴 게 아니다.** `app.json` 에 이 키가 들어간 커밋은 오늘 `f5b336f` 가 **최초**이고, `expo-image-picker`·`expo-av` 는 작년(`00eb44c`·`cc2bfe6`)부터 있었다 → **지금까지 낸 모든 iOS 빌드에 이 기본 문구가 들어 있었고, 2.4.3 은 6/25 에 그대로 통과했다.**
-    - 실측: 빌드 75 IPA(`expo.dev/artifacts/…`)를 받아 `Payload/app.app/Info.plist` 를 열어 확인 — 카메라·사진·위치는 우리 한글 문구, **마이크만 `"Allow app to access your microphone"`** (애플 인용문과 동일).
-    - **경위**: 2.4.4 는 심사 *승인까지 났다가*, 사장님이 연령등급(social media)을 수정 → **새 제출** → 그 시점의 *강화된* 자동 사전검사가 처음 돌면서 반려. 즉 **문구가 바뀐 게 아니라 애플의 검사가 바뀌었다.** 연령등급을 되돌려도 반려는 안 풀린다(새 바이너리 필요). 어차피 2026-09 부터 연령등급 신고는 의무.
-    - **이 반려는 기계 검사다** — "review cannot proceed" = 사람이 아직 안 봤다. 마이크를 고쳐 올린 뒤 **사람 심사에서 연령등급 건이 따로 나올 수 있다.**
-    - 앱스토어 실측(2026-08-08): 번들ID 조회 → **v2.4.3 · 2026-06-25**. **2.4.4 는 스토어에 도달한 적 없음** (사용자 피해 없음, 출시만 지연).
-  - **외부 근거 (2026-08-08 조사) — 우리만 겪은 일이 아니다.** 애플이 **2026-07-20 무렵부터** 모든 제출물의 Info.plist 를 기계로 읽어 뻔한 권한 문구를 걸러내기 시작했다(가이드라인 5.1.1, iOS·macOS 공통).
-    - **판박이 사례**: 맥 앱 ScreenFloat — 7/16 제출 **당일 승인** → 7/20 출시 → 크래시 **한 줄 수정** 후 재제출 → **동일한 자동 반려**. ([blog.eternalstorms.at/2026/07/21/tales-from-app-review/](https://blog.eternalstorms.at/2026/07/21/tales-from-app-review/) · [blog.despia.com/placeholder-purpose-strings-fix-the-5-1-1-rejection](https://blog.despia.com/placeholder-purpose-strings-fix-the-5-1-1-rejection)) → **"전에 통과했다"는 방패가 안 된다. 재제출하면 그 시점 기준으로 다시 검사받는다.**
-    - **Expo 앱이 특히 취약**: `expo-audio`·`expo-av`·`expo-image-picker` 가 마이크를 안 써도 문구를 자동 주입하는 문제는 **2024-12 부터 미해결**([expo/expo#33761](https://github.com/expo/expo/issues/33761), [#11532](https://github.com/expo/expo/issues/11532), #26730, #11736).
-    - 참고: 7월 피해자들은 **어느 키인지 안 알려줘서** 고생했다(ScreenFloat 은 권한 7개 중 뭔지 몰라 헤맴). 우리 메일은 키+문구를 콕 집어줬다 → 애플이 메시지를 개선한 듯.
-    - ScreenFloat 은 자동 반려를 고친 뒤 **사람 심사에서 또 다른 사유로 반려**됐고, 소명 후 7/22 통과. → **한 번에 안 끝날 수 있다는 전례.**
-  - **교훈 — 자동 삽입되는 권한 문구는 우리 눈에 안 보인다.** `ios/` 없는 prebuild 방식이라 `app.json` 만 봐서는 모른다. 앞으로 심사 전에는 **IPA 의 Info.plist 를 직접 열어 `*UsageDescription` 전부 확인**할 것. (`unzip` → `Payload/*.app/Info.plist` → `plistlib`)
-  - → **Apple 심사 통과되면 ✅ 삭제.**
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
@@ -112,6 +96,38 @@
 | 매거진 페이지에만 테마 헤더 없음 | 페이지 템플릿이 `elementor_canvas` | 페이지를 지우고 같은 이름으로 다시 생성(기본 템플릿) |
 | 지난 호 표지 아래가 잘림 | 내가 넣은 `aspect-ratio:1/1.37` + `object-fit:cover` | 고정 박스 제거, `width:100%;height:auto` |
 | 개수를 두 번 잘못 셈(32개·2개) | CSS 블록 안의 클래스 *이름 문자열*까지 grep 에 걸림 | 실제 태그(`<div class=...>`)만 세기 |
+
+---
+
+## 2026-08-08 — ✅ [iOS] 2.4.4 반려 → 원인 규명 → 재빌드 → **심사 승인**
+
+- **한 일**: iOS 2.4.4 가 Apple 자동검사(가이드라인 5.1.1)에 반려 → 원인을 실측으로 확정 → 문구 한 줄 수정 → 빌드 76 재제출 → **승인**.
+- **반려 사유**: `NSMicrophoneUsageDescription` 이 `"Allow app to access your microphone"` (placeholder 판정).
+- **배포**: `f5b336f`(수정) · `c948a79`(buildNumber 76) · iOS 빌드 76 = commit `d5f4deb`.
+- **상태**: ✅ 심사 승인 + **`2.4.4 Ready for Distribution` 확인 (출시 완료)**. 조회 API 는 몇 시간 지연되므로 그것만 보고 판단하지 말 것.
+- **다음 단계**: **Firebase 콘솔 실시간에 iOS 이벤트가 들어오는지 확인** → 맨 위 ① 항목 삭제. (이번 빌드에 `IS_ANALYTICS_ENABLED`·`FIREBASE_ANALYTICS_COLLECTION_ENABLED` 둘 다 들어간 것 커밋 `d5f4deb` 기준으로 확인 완료)
+
+### 🔴 다시 겪지 않으려면 — 이 세 가지만 기억
+
+1. **우리가 안 쓴 권한 문구가 앱에 들어간다.** `expo-image-picker`·`expo-av` 의 config plugin 이 기본값을 자동 주입한다(`plugin/src/*.ts` 의 `MICROPHONE_USAGE`). `ios/` 폴더가 없는 prebuild 방식이라 `app.json` 만 봐서는 **절대 안 보인다.**
+   - 이기는 법: `app.json` 의 `ios.infoPlist` 에 **직접 적으면 된다.** `applyPermissions()` 우선순위가 `플러그인props || app.json값 || 기본값` 이라서. (카메라·사진이 무사했던 이유가 이것)
+   - ⚠️ 마이크는 **실제로 필요**하다 — `screens/AddNeighborBusinessScreen.js` `recordVideo()` 가 동영상을 촬영한다. `microphonePermission: false` 로 키를 빼면 **촬영 시 크래시.**
+2. **"전에 통과했다"는 방패가 안 된다.** 애플이 **2026-07-20 무렵부터** 모든 제출물의 Info.plist 를 기계로 검사하기 시작했다. 2.4.3 은 6/25 에 *같은 문구로* 통과했지만, 연령등급 수정이 **새 제출**을 일으키자 그 시점 기준으로 재검사되어 반려됐다. → **재제출 = 그때 기준으로 처음부터 다시 검사.**
+   - 같은 일을 겪은 전례: 맥 앱 ScreenFloat (7/16 당일 승인 → 한 줄 수정 재제출 → 동일 자동 반려). [eternalstorms](https://blog.eternalstorms.at/2026/07/21/tales-from-app-review/) · [despia](https://blog.despia.com/placeholder-purpose-strings-fix-the-5-1-1-rejection)
+   - Expo 측 자동주입 문제는 **2024-12 부터 미해결**: [expo/expo#33761](https://github.com/expo/expo/issues/33761) · [#11532](https://github.com/expo/expo/issues/11532) · #26730 · #11736
+3. **✅ 빌드 후 심사 제출 전 필수 점검 — IPA 를 직접 열어본다.**
+   ```bash
+   # Application Archive URL 은 eas build:list 에 나온다 (30일 뒤 만료되니 그때그때)
+   curl -sL -o app.zip "<Application Archive URL>"
+   python -c "import zipfile,re,plistlib; z=zipfile.ZipFile('app.zip'); \
+   n=[x for x in z.namelist() if re.match(r'Payload/[^/]+\.app/Info\.plist$',x)][0]; \
+   p=plistlib.loads(z.read(n)); [print(k,'=',p[k]) for k in sorted(p) if 'UsageDescription' in k]"
+   ```
+   영문 기본 문구가 하나라도 보이면 **제출하지 말고 app.json 에 먼저 적는다.**
+
+**부수 사실**
+- **버전은 안 올려도 된다.** 출시된 적 없는 버전이면 **빌드번호만** 올리면 재사용 가능(`autoIncrement` 가 자동). 실제로 과거에도 2.2.3 → 빌드 60·61·62·63, 2.2.4 → 65·66·67 로 여러 번 그렇게 했다.
+- App Store Connect 반려 화면의 **항목 줄 빨간 ⊖ 는 누르지 말 것** — 제출에서 항목을 빼며 **되돌릴 수 없다**. `Edit` → 빌드 교체 → `Update Review` → `Resubmit to App Review` 가 정상 경로. **편집은 재제출 전 한 번만** 가능하므로 **빌드가 TestFlight 에 뜬 걸 확인한 뒤** 편집을 시작한다. (메시지 `Reply` 는 편집 횟수와 무관, 언제든 가능)
 
 ---
 
