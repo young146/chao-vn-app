@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { askAssistant, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
+import { renderAnswer } from '../components/RichAnswer';
 
 const ORANGE = '#FF6B35';
 const STORE_KEY = 'xc_assistant_history_v1';
@@ -25,15 +26,9 @@ const EXAMPLES = [
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 // **굵게** 만 처리하는 초경량 렌더러 (한 줄 텍스트 → bold 구간 분리)
-function renderRich(text) {
-  return String(text || '').split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') ? (
-      <Text key={i} style={{ fontWeight: '700' }}>{part.slice(2, -2)}</Text>
-    ) : (
-      <Text key={i}>{part}</Text>
-    )
-  );
-}
+// 굵은 글씨 + **눌리는 주소**. 규칙은 components/RichAnswer.js 한 곳에만 둔다 —
+// 같은 답변이 검색결과 AI 카드에도 나오므로 두 벌로 두면 한쪽만 고쳐진다.
+const renderRich = renderAnswer;
 
 function sourceLabel(r) {
   if (r.source === 'google') return '구글맵';

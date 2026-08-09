@@ -14,6 +14,7 @@ import {
   askAssistant, resolveAssistantResultUrl,
 } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
+import { renderAnswer } from '../components/RichAnswer';
 
 const BRAND = '#FF6B35';
 // 스크롤 바닥 여백. 예전엔 화면을 덮는 고정 광고배너 높이만큼(약 165) 비워 뒀는데,
@@ -214,7 +215,7 @@ export default function SearchResultsScreen({ route, navigation }) {
                     맨 아래로 밀려나 있었다. 우리 24년치 자산이 먼저 보여야 하는데
                     요약이 그 자리를 뺏으면 안 된다. 요약은 요약답게. */}
                 <Text style={styles.aiReply} numberOfLines={aiOpen ? undefined : 7}>
-                  {aiReply}
+                  {renderAnswer(aiReply)}
                 </Text>
                 {aiReply.length > 180 && (
                   <TouchableOpacity onPress={() => setAiOpen((v) => !v)} activeOpacity={0.7}>
