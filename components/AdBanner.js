@@ -16,6 +16,9 @@ import {
   fetchAppAdsConfig,
   trackAppAdClick,
 } from "../services/FirebaseAdService";
+// 광고주 월간 리포트용 성과 집계. 네이티브 모듈이 없으면 조용히 no-op 이므로
+// 구버전 앱에서도 안전하다(lib/analytics.js 의 defensive load 참고).
+import { logPromoImpression, logPromoClick } from "../lib/analytics";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -240,6 +243,20 @@ const AdMediaVideo = ({ videoUrl, style, thumbnailUrl }) => {
 // export 는 홈 캐러셀(components/HomeAdCarousel.js)이 같은 렌더러를 쓰기 위한 것.
 // 동작은 그대로 — 기존 호출부에 영향 없음.
 export const AdMedia = ({ ad, style, thumbnailKey = null, active = true, isVisible = true }) => {
+  // 노출 집계 — 모든 광고 슬롯(배너·띠·상세·팝업·홈캐러셀)이 이 컴포넌트를 거치므로
+  // 여기 한 곳에만 붙이면 전부 잡힌다. 슬롯별로 따로 붙이면 새 슬롯이 생길 때마다 샌다.
+  //
+  // active && isVisible 일 때만 센다:
+  //   - active=false 는 캐러셀 양옆에 살짝 걸친 이웃 광고(정지 썸네일)
+  //   - isVisible=false 는 화면 밖
+  //   → 광고주에게 "봤다"고 말할 수 있는 상태만 노출로 인정한다.
+  //
+  // ⚠️ 훅은 조건부 return 보다 반드시 위에 있어야 한다(아래로 내리면 훅 순서가 깨져 크래시).
+  useEffect(() => {
+    if (!ad || !active || !isVisible) return;
+    logPromoImpression(ad, thumbnailKey);
+  }, [ad?._campaignId, ad?.id, thumbnailKey, active, isVisible]);
+
   if (ad?.videoUrl) {
     const thumbUrl = thumbnailKey && ad?.thumbnails?.[thumbnailKey]
       ? ad.thumbnails[thumbnailKey]
@@ -325,7 +342,8 @@ export const handleAdPress = async (ad) => {
   if (!ad) return;
 
   // 클릭 추적 (비동기)
-  trackAdClick(ad);
+  trackAdClick(ad);          // 기존: Firestore 누적 카운터 (어드민 화면이 씀)
+  logPromoClick(ad);         // 신규: GA4 — 날짜별·광고주별 리포트의 원천
 
   // 링크 열기
   if (ad.linkUrl) {
@@ -452,7 +470,10 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
                   onPress={() => handleAdPress(ad)}
                   activeOpacity={0.85}
                 >
-                  <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} isVisible={isCurrentOrNext} />
+                  {/* active 는 화면에 *지금* 보이는 칸인지 알린다. 이미지에는 렌더 영향이
+                      없지만(영상 재생 제어용 값), 노출 집계가 이 값을 본다. 안 넘기면
+                      기본값 true 라서 다음 칸까지 노출로 세어 광고주에게 과다 보고된다. */}
+                  <AdMedia ad={ad} style={styles.adImage} thumbnailKey={thumbnailKey} active={i === index} isVisible={isCurrentOrNext} />
                 </TouchableOpacity>
               )}
             </View>
