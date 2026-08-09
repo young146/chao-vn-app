@@ -17,10 +17,12 @@ import * as WebBrowser from 'expo-web-browser';
 // 주소로 볼 것:
 //  ① http(s):// 로 시작하는 것
 //  ② www. 로 시작하는 것
-//  ③ 우리가 실제로 안내하는 맨몸 도메인 (vnkorlife.com, chaovietnam.co.kr)
-//     — AI 가 "vnkorlife.com" 처럼 http 없이 말하는 경우가 많다.
+//  ③ **맨몸 도메인 전부** — AI 는 "vnkorlife.com" 처럼 http 없이 말하는 경우가 훨씬 많다.
+//     끝(TLD)이 실제 도메인 꼬리일 때만 인정한다. 그래야 "index.html" 이나 소수점 숫자를
+//     주소로 착각하지 않는다. 한글 앞글자는 [a-z0-9] 라 애초에 안 걸린다("있습니다.com" 안전).
 // 끝에 붙은 문장부호(. , ) 등)는 주소에서 뺀다 — "…co.kr)" 을 통째로 열면 깨진다.
-const URL_RE = /(https?:\/\/[^\s<>()[\]"']+|www\.[^\s<>()[\]"']+|(?:vnkorlife|chaovietnam)\.[a-z.]{2,6}(?:\/[^\s<>()[\]"']*)?)/gi;
+const URL_RE =
+  /(https?:\/\/[^\s<>()[\]"'`]+|www\.[^\s<>()[\]"'`]+|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.(?:com\.vn|co\.kr|com|net|org|kr|vn|io|dev|app|me|info|biz|shop|store|link|page)(?:\/[^\s<>()[\]"'`]*)?)/gi;
 const TRAILING = /[.,!?;:)\]}"'…]+$/;
 
 function normalize(raw) {
@@ -75,13 +77,23 @@ function withLinks(chunk, keyBase) {
   return out;
 }
 
-/** AI 답변 텍스트 → 굵은 글씨 + 눌리는 주소가 섞인 조각들 */
+/** AI 답변 텍스트 → 굵은 글씨 + 눌리는 주소가 섞인 조각들
+ *
+ * ⚠️ **굵은 글씨 안에서도 주소를 링크로 만든다.** 처음엔 안 했다가 물렸다 —
+ *    AI 는 사이트 이름을 `**vnkorlife.com**` 처럼 **굵게** 쓰는데, 스토어 주소는
+ *    굵지 않게 쓴다. 그래서 "앱 설치는 되는데 사이트 주소는 안 눌리는" 상태가 됐다.
+ *    굵은 조각을 그냥 글자로 흘려보내면 정작 **우리 사이트 링크만** 죽는다.
+ */
 export function renderAnswer(text) {
   return String(text || '')
     .split(/(\*\*[^*]+\*\*)/g)
     .flatMap((part, i) =>
       part.startsWith('**') && part.endsWith('**')
-        ? [<Text key={`b${i}`} style={{ fontWeight: '700' }}>{part.slice(2, -2)}</Text>]
+        ? [
+            <Text key={`b${i}`} style={{ fontWeight: '700' }}>
+              {withLinks(part.slice(2, -2), `b${i}`)}
+            </Text>,
+          ]
         : withLinks(part, `s${i}`)
     );
 }
