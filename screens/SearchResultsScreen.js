@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import {
   searchUnified, getRegions, resolveResultUrl, isDirectoryResult, TYPE_LABEL,
-  askAssistant, resolveAssistantResultUrl,
+  askAssistantStream, resolveAssistantResultUrl,
 } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 import { renderAnswer } from '../components/RichAnswer';
@@ -51,8 +51,12 @@ export default function SearchResultsScreen({ route, navigation }) {
   const [aiReply, setAiReply] = useState('');
   const [aiResults, setAiResults] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
+  // 지금 무엇을 하는 중인지("'컨설팅' 찾는 중"). 서버가 알려준다.
+  const [aiStatus, setAiStatus] = useState('');
   // 빠르게 다시 검색하면 예전 답이 늦게 도착해 새 답을 덮을 수 있다 → 순번으로 막는다.
   const aiSeq = useRef(0);
+  // 돌고 있는 스트림 손잡이 — 새 검색을 하거나 화면을 떠날 때 끊는다.
+  const aiStreamRef = useRef(null);
 
   const [followQ, setFollowQ] = useState('');
   const [aiOpen, setAiOpen] = useState(false);   // AI 답변 펼침 여부(기본: 접힘)
@@ -77,30 +81,53 @@ export default function SearchResultsScreen({ route, navigation }) {
   // AI 가 이해한 검색어로 목록을 좁혔을 때 화면에 표시할 말(빈 값이면 원문 그대로 검색한 것)
   const [aiTerms, setAiTerms] = useState([]);
 
-  const askAI = useCallback(async (q) => {
+  const askAI = useCallback((q) => {
     const text = (q || '').trim();
     if (!text) return;
     const my = ++aiSeq.current;
-    setAiLoading(true); setAiReply(''); setAiResults([]); setAiTerms([]);
-    const { reply, results, terms } = await askAssistant([{ role: 'user', content: text }]);
-    if (my !== aiSeq.current) return;   // 늦게 온 예전 답은 버린다
-    setAiReply(reply || '');
-    setAiResults(Array.isArray(results) ? results : []);
-    setAiLoading(false);
+    aiStreamRef.current?.cancel?.();          // 앞 요청이 돌고 있으면 끊는다
+    setAiLoading(true); setAiReply(''); setAiResults([]); setAiTerms([]); setAiStatus('');
+    const stale = () => my !== aiSeq.current;  // 늦게 온 예전 답은 버린다
 
-    // ── AI 가 이해한 검색어로 목록을 다시 좁힌다 ──────────────────────────
-    // 왜: 목록 검색은 사용자가 친 **문장 그대로**를 받는다. "베트남 진출을 위한
-    //     컨설팅업체를 소개해줘" 같은 문장에서 '위한' 같은 흔한 낱말이 기사 수천 건을
-    //     끌고 들어온다. 군말 사전으로 걸러내는 건 영원히 완성되지 않는다 —
-    //     새 문장이 오면 새 군말이 나온다.
-    //     자연어를 이해하는 검색이 필요해서 AI 를 쓰는 것이니, **AI 가 정한 검색어**를
-    //     목록에도 그대로 물려준다. 추가 비용·추가 대기 없다(이미 돌린 결과의 부산물).
-    // 흐름: 문장 그대로의 목록이 먼저 뜨고 → AI 가 도착하면 정확한 목록으로 바뀐다.
-    const t = Array.isArray(terms) ? terms.filter(Boolean) : [];
-    if (t.length && t.join(' ') !== text) {
-      setAiTerms(t);
-      search({ q: t.join(' '), type: '', city, district, page: 1 });
-    }
+    // 흘려보내기 — 글자가 만들어지는 대로 붙인다. 첫 글자가 2~3초에 뜬다.
+    aiStreamRef.current = askAssistantStream([{ role: 'user', content: text }], {
+      onDelta: (t) => {
+        if (stale()) return;
+        setAiLoading(false);   // 첫 글자가 오면 '검색 중' 표시를 내린다
+        setAiStatus('');
+        setAiReply((prev) => prev + t);
+      },
+      // 도구를 쓰기 전 서두였다는 뜻 — 최종 답은 다음 판에 온다. 화면을 비운다.
+      onReset: () => { if (!stale()) { setAiReply(''); setAiLoading(true); } },
+      // 무엇을 찾는 중인지 — 빈 화면에서 기다리는 것과 체감이 완전히 다르다.
+      onStatus: (s) => { if (!stale()) setAiStatus(s); },
+      onError: () => {
+        if (stale()) return;
+        setAiLoading(false); setAiStatus('');
+        setAiReply('연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.');
+      },
+      onDone: ({ reply, results, terms }) => {
+        if (stale()) return;
+        // 흘려받은 글자와 최종본을 한 번 맞춘다(중간에 놓친 조각이 있어도 여기서 바로잡힌다)
+        setAiReply(reply || '');
+        setAiResults(Array.isArray(results) ? results : []);
+        setAiLoading(false); setAiStatus('');
+
+        // ── AI 가 이해한 검색어로 목록을 다시 좁힌다 ──────────────────────────
+        // 왜: 목록 검색은 사용자가 친 **문장 그대로**를 받는다. "베트남 진출을 위한
+        //     컨설팅업체를 소개해줘" 같은 문장에서 '위한' 같은 흔한 낱말이 기사 수천 건을
+        //     끌고 들어온다. 군말 사전으로 걸러내는 건 영원히 완성되지 않는다 —
+        //     새 문장이 오면 새 군말이 나온다.
+        //     자연어를 이해하는 검색이 필요해서 AI 를 쓰는 것이니, **AI 가 정한 검색어**를
+        //     목록에도 그대로 물려준다. 추가 비용·추가 대기 없다(이미 돌린 결과의 부산물).
+        // 흐름: 문장 그대로의 목록이 먼저 뜨고 → AI 가 도착하면 정확한 목록으로 바뀐다.
+        const t = Array.isArray(terms) ? terms.filter(Boolean) : [];
+        if (t.length && t.join(' ') !== text) {
+          setAiTerms(t);
+          search({ q: t.join(' '), type: '', city, district, page: 1 });
+        }
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, city, district]);
 
@@ -120,6 +147,8 @@ export default function SearchResultsScreen({ route, navigation }) {
   useEffect(() => {
     if (initialQ) { search({ q: initialQ, type: '', city, district, page: 1 }); askAI(initialQ); }
     else setLoading(false);
+    // 화면을 떠나면 돌고 있는 AI 스트림을 끊는다 — 사라진 화면에 setState 하지 않기 위해.
+    return () => { aiStreamRef.current?.cancel?.(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -201,12 +230,14 @@ export default function SearchResultsScreen({ route, navigation }) {
               <Text style={styles.aiHeadText}>✦ AI 답변</Text>
             </View>
 
-            {aiLoading ? (
+            {aiLoading && !aiReply ? (
               <View style={styles.aiLoadingRow}>
                 <ActivityIndicator size="small" color="#7C3AED" />
-                {/* 문구는 중립적으로. "구글 평점까지 함께" 는 식당·병원 질문에만 맞는 말이라
-                    비자·문화 같은 질문에서는 엉뚱해 보였다. 무엇을 찾는지는 답이 나오면 알게 된다. */}
-                <Text style={styles.aiLoadingText}>검색 중…</Text>
+                {/* 서버가 "지금 무엇을 찾는 중"인지 알려주면 그걸 그대로 보여준다.
+                    빈 화면에서 막연히 기다리는 것과 "'컨설팅' 찾는 중"을 보는 것은 체감이 다르다.
+                    아직 아무 소식이 없으면 중립적으로 '검색 중…'. ("구글 평점까지 함께" 같은
+                    문구는 식당·병원 질문에만 맞는 말이라 비자·문화 질문에서 엉뚱해 보였다.) */}
+                <Text style={styles.aiLoadingText}>{aiStatus ? `${aiStatus}…` : '검색 중…'}</Text>
               </View>
             ) : (
               <>

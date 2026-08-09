@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { askAssistant, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
+import { askAssistantStream, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 import { renderAnswer } from '../components/RichAnswer';
 
@@ -60,11 +60,17 @@ export default function AssistantScreen({ navigation, route }) {
   // **보내지는 않는다** — 무엇을 더 물을지는 사용자가 정한다.
   const [input, setInput] = useState(route?.params?.q || '');
   const [loading, setLoading] = useState(false);
+  // 도착하는 중인 답(스트리밍). 다 받으면 messages 로 옮겨 담고 비운다.
+  const [streaming, setStreaming] = useState('');
+  // 지금 무엇을 하는 중인지("'컨설팅' 찾는 중"). 서버가 알려준다.
+  const [status, setStatus] = useState('');
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [bizSeed, setBizSeed] = useState(null); // 진출기업·옐로 상세 팝업 대상(null=닫힘)
   const scrollRef = useRef(null);
+  // 돌고 있는 스트림 손잡이 — 새로 보내거나 화면을 떠날 때 끊는다.
+  const streamRef = useRef(null);
   const chatIdRef = useRef('');
   const messagesRef = useRef([]);
   const historyRef = useRef([]);
@@ -94,21 +100,34 @@ export default function AssistantScreen({ navigation, route }) {
     AsyncStorage.setItem(STORE_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
-  const send = useCallback(async (text) => {
+  // 흘려보내기(스트리밍)로 받는다 — 답을 다 만들 때까지 기다리지 않고, 글자가
+  // 만들어지는 대로 화면에 붙인다. 사업체를 찾는 질문은 예전에 15초간 빈 화면이었다.
+  const send = useCallback((text) => {
     const q = String(text || '').trim();
     if (!q) return;
     const next = [...messagesRef.current, { role: 'user', content: q }];
     setMessages(next);
     setInput('');
     setLoading(true);
-    try {
-      const { reply, results } = await askAssistant(next);
+    setStreaming(''); setStatus('');
+    streamRef.current?.cancel?.();
+
+    let acc = '';   // 지금까지 도착한 글자(화면 표시용)
+    const finish = (reply, results) => {
       const after = [...next, { role: 'assistant', content: reply, results }];
       setMessages(after);
       persist(chatIdRef.current, after);
-    } finally {
-      setLoading(false);
-    }
+      setLoading(false); setStreaming(''); setStatus('');
+    };
+
+    streamRef.current = askAssistantStream(next, {
+      onDelta: (t) => { acc += t; setStreaming(acc); setStatus(''); },
+      // 도구를 쓰기 전 서두였다 — 최종 답은 다음 판에 온다. 말풍선을 비운다.
+      onReset: () => { acc = ''; setStreaming(''); },
+      onStatus: (s) => setStatus(s),
+      onDone: ({ reply, results }) => finish(reply, results),
+      onError: () => finish('연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', []),
+    });
   }, [persist]);
 
   const newChat = useCallback(() => {
@@ -142,6 +161,8 @@ export default function AssistantScreen({ navigation, route }) {
       .then((raw) => { if (raw) setHistory(JSON.parse(raw)); })
       .catch(() => {});
     chatIdRef.current = newId();
+    // 화면을 떠나면 돌고 있는 스트림을 끊는다 — 사라진 화면에 setState 하지 않기 위해.
+    return () => { streamRef.current?.cancel?.(); };
   }, []);
 
   // 헤더 우측: 기록 / 새 채팅
@@ -231,10 +252,20 @@ export default function AssistantScreen({ navigation, route }) {
             )
           )
         )}
-        {loading && (
+        {/* 도착하는 중인 답 — 글자가 만들어지는 대로 여기 붙는다.
+            다 받은 뒤에 messages 로 옮겨 담으므로 이 말풍선은 잠깐만 존재한다. */}
+        {!!streaming && (
+          <View style={styles.botRow}>
+            <View style={styles.botBubble}>
+              <Text style={styles.botText}>{renderRich(streaming)}</Text>
+            </View>
+          </View>
+        )}
+        {loading && !streaming && (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={ORANGE} />
-            <Text style={styles.loadingText}>찾는 중…</Text>
+            {/* 서버가 무엇을 찾는 중인지 알려주면 그대로 보여준다 */}
+            <Text style={styles.loadingText}>{status ? `${status}…` : '찾는 중…'}</Text>
           </View>
         )}
       </ScrollView>

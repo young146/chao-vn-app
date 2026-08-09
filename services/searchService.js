@@ -92,6 +92,106 @@ export async function askAssistant(messages) {
   }
 }
 
+// ============================================================
+// AI 도우미 — **흘려보내기(스트리밍)**. 글자가 만들어지는 대로 화면에 붙인다.
+//
+// 왜: 예전에는 답을 **다 만든 뒤에야** 한 번에 받았다. 사업체를 찾는 질문은 15초가 걸렸고,
+//     그동안 화면은 빈 채였다. 사람은 15초를 안 기다린다 — 검색에서 이탈이 가장 큰 구간이었다.
+//     전체 시간은 그대로여도 **첫 글자가 2~3초에 뜨면** 사람은 기다린다. 바뀐 건 체감이다.
+//
+// ⚠️ 왜 fetch 가 아니라 XMLHttpRequest 인가:
+//     리액트네이티브의 fetch 는 `response.body`(읽어가며 처리하는 통로)를 **주지 않는다.**
+//     웹 브라우저에만 있는 기능이다. 앱에서 스트림을 읽는 방법은 XHR 의 onprogress 로
+//     "지금까지 도착한 글자"를 반복해서 훑는 것뿐이다. 순수 JS라 네이티브 추가 없음 = OTA 안전.
+//
+// ⚠️ 옛 앱 호환: 서버는 `stream:true` 를 **부탁한 요청에만** 흘려보낸다. 옛 OTA 를 쓰는
+//     사용자는 예전 JSON 을 그대로 받으므로 아무것도 안 고쳐도 계속 동작한다.
+//
+// handlers = { onDelta(글자조각), onReset(), onStatus(문구), onDone({reply,results,terms}), onError(e) }
+// 반환: { cancel() } — 화면을 떠나거나 새로 검색할 때 부르면 이후 콜백이 멈춘다.
+// ============================================================
+export function askAssistantStream(messages, handlers = {}) {
+  const { onDelta, onReset, onStatus, onDone, onError } = handlers;
+  const list = (messages || []).map((m) => ({ role: m.role, content: m.content }));
+  let cancelled = false;
+  let gotAny = false;    // 사건을 하나라도 받았나 — 폴백 판단에 쓴다
+  let finished = false;  // done/error 로 끝났나
+
+  const xhr = new XMLHttpRequest();
+  let read = 0;   // responseText 에서 이미 처리한 글자 수
+  let buf = '';   // 아직 `\n\n` 이 안 온 미완성 꼬리
+
+  const handle = (ev) => {
+    if (cancelled) return;
+    gotAny = true;
+    if (ev.type === 'delta') { if (onDelta) onDelta(ev.text || ''); }
+    else if (ev.type === 'reset') { if (onReset) onReset(); }
+    else if (ev.type === 'status') { if (onStatus) onStatus(ev.text || ''); }
+    else if (ev.type === 'done') {
+      finished = true;
+      if (onDone) onDone({
+        reply: ev.reply || '',
+        results: Array.isArray(ev.results) ? ev.results : [],
+        terms: Array.isArray(ev.terms) ? ev.terms : [],
+      });
+    } else if (ev.type === 'error') {
+      finished = true;
+      if (onError) onError(new Error(ev.message || 'assistant_failed'));
+    }
+    // 'open' 은 연결 확인용이라 화면이 할 일이 없다
+  };
+
+  // SSE 한 덩이 = `data: {…}\n\n`. 덩이 단위로만 해석해야 JSON 이 반토막 나지 않는다.
+  const feed = (chunk) => {
+    buf += chunk;
+    const parts = buf.split('\n\n');
+    buf = parts.pop();          // 마지막 조각은 아직 안 끝났을 수 있으니 남겨 둔다
+    for (const p of parts) {
+      const line = p.trim();
+      if (!line.startsWith('data:')) continue;
+      let ev;
+      try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+      handle(ev);
+    }
+  };
+
+  // onprogress 는 "지금까지 도착한 전체"를 준다 → 새로 늘어난 만큼만 잘라 쓴다
+  const pump = () => {
+    const t = xhr.responseText || '';
+    if (t.length > read) { feed(t.slice(read)); read = t.length; }
+  };
+
+  // 스트림이 아예 못 뜬 경우에만 예전 방식으로 한 번 더 — 사용자에게 빈 화면을 주지 않는다.
+  // (도중에 끊긴 경우는 폴백하지 않는다. 이미 돈이 나간 요청을 통째로 다시 돌리는 셈이라.)
+  const fallback = (err) => {
+    if (cancelled || finished) return;
+    if (gotAny) { if (onError) onError(err || new Error('stream_broken')); return; }
+    askAssistant(list)
+      .then((r) => { if (!cancelled) { finished = true; if (onDone) onDone(r); } })
+      .catch((e) => { if (!cancelled && onError) onError(e); });
+  };
+
+  try {
+    xhr.open('POST', `${SEARCH_API}/api/assistant`);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onprogress = pump;
+    xhr.onload = () => { pump(); if (!finished) fallback(new Error('no_done_event')); };
+    xhr.onerror = () => fallback(new Error('network'));
+    xhr.ontimeout = () => fallback(new Error('timeout'));
+    xhr.timeout = 90000;   // 서버 상한(60초)보다 넉넉히
+    xhr.send(JSON.stringify({ stream: true, messages: list }));
+  } catch (e) {
+    fallback(e);
+  }
+
+  return {
+    cancel() {
+      cancelled = true;
+      try { xhr.abort(); } catch (_) { /* 이미 끝났으면 무시 */ }
+    },
+  };
+}
+
 // 도우미 결과 카드 1건을 눌렀을 때 열 URL — 구글결과=구글맵, 옐로/기업=상세, 뉴스/매거진=원문
 export function resolveAssistantResultUrl(r) {
   if (!r) return null;
