@@ -146,28 +146,21 @@ const normalizeUnifiedForApp = (d) => {
 };
 
 // 실제 Firestore fetch + 메모리/디스크 캐시 동시 갱신.
-// app_ads(기존) + ads_unified(통합센터, 앱 지면) 을 병합해 하나의 docs 배열로.
-// ⚠️ ads_unified 읽기가 실패해도 app_ads 는 그대로 동작(구버전과 동일). 통합은 순수 추가.
+// 통합센터(ads_unified)의 '앱 지면' 광고만 읽는다.
+// (2026-08-09 이관 완료: 기존 app_ads 19건을 ads_unified 로 옮김 → app_ads 는 더 이상 읽지 않음)
 const fetchAndStoreRawDocs = async () => {
   const db = await getDb();
-  const [appAdsSnap, unifiedSnap] = await Promise.all([
-    getDocs(query(collection(db, 'app_ads'), where('isActive', '==', true))),
-    getDocs(
-      query(collection(db, 'ads_unified'), where('surfaces', 'array-contains', 'app')),
-    ).catch(() => null), // 통합 읽기 실패는 무시 → app_ads 경로 보존
-  ]);
+  const unifiedSnap = await getDocs(
+    query(collection(db, 'ads_unified'), where('surfaces', 'array-contains', 'app')),
+  );
 
   const docs = [];
-  appAdsSnap.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
-
-  if (unifiedSnap) {
-    unifiedSnap.forEach((docSnap) => {
-      const d = { id: docSnap.id, ...docSnap.data() };
-      if (d.isActive === false) return; // 비활성 제외 (인덱스 회피 위해 클라 필터)
-      if (!d.placements || !d.placements.app || !d.placements.app.position) return; // 앱 위치 없으면 스킵
-      docs.push(normalizeUnifiedForApp(d));
-    });
-  }
+  unifiedSnap.forEach((docSnap) => {
+    const d = { id: docSnap.id, ...docSnap.data() };
+    if (d.isActive === false) return; // 비활성 제외 (인덱스 회피 위해 클라 필터)
+    if (!d.placements || !d.placements.app || !d.placements.app.position) return; // 앱 위치 없으면 스킵
+    docs.push(normalizeUnifiedForApp(d));
+  });
 
   rawDocsCache = docs;
   rawDocsStoredAt = Date.now();
@@ -281,7 +274,7 @@ export const trackAppAdImpression = async (campaignId) => {
   if (!campaignId) return;
   try {
     const db = await getDb();
-    await updateDoc(doc(db, 'app_ads', campaignId), { impressions: increment(1) });
+    await updateDoc(doc(db, 'ads_unified', campaignId), { impressions: increment(1) });
   } catch (error) {
     console.log('광고 노출수 업데이트 실패:', error?.message || error);
   }
@@ -294,7 +287,7 @@ export const trackAppAdClick = async (campaignId) => {
   if (!campaignId) return;
   try {
     const db = await getDb();
-    await updateDoc(doc(db, 'app_ads', campaignId), { clicks: increment(1) });
+    await updateDoc(doc(db, 'ads_unified', campaignId), { clicks: increment(1) });
   } catch (error) {
     console.log('광고 클릭수 업데이트 실패:', error?.message || error);
   }
