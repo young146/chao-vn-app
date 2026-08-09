@@ -30,12 +30,6 @@
 - [ ] **⓪-e 앱 아이콘 원본 대기** — 사장님이 1024px+ 원본을 찾아주시기로 함(2026-08-06). 받으면 icon / adaptive-icon(안전영역 여백 포함) / splash 를 각각 다시 생성.
 - [ ] **⓪-d 앱 아이콘 해상도** 🟡 — `icon.png`·`adaptive-icon.png`·`splash.png` **셋 다 동일 파일**(해시 일치, 225×225). 런처는 432px, iOS 앱스토어는 1024px 로 그리므로 **최대 4.5배 확대 → 뿌옇다**. 적응형 아이콘은 바깥 33% 가 마스크로 잘리는데 여백 없는 꽉 찬 정사각형이라 **흰 테두리·산봉우리가 잘린다**. 사장님이 원본(1024px+) 찾아주시기로 함(2026-08-06). → 빌드 후 **런처·앱스토어 아이콘이 선명하고 안 잘리면** ✅
 
-- [ ] **⓪-f 딥링크: `www.vnkorlife.com` 검증 실패** 🟡 — Play Console 알림 "딥 링크 7개가 작동하지 않을 수 있음"(2026-08-06). **구글 Digital Asset Links 공식 API로 확정**: 5개 도메인 중 `www.vnkorlife.com` 하나만 실패, 사유 `ERROR_CODE_REDIRECT`. 파일은 멀쩡한데 **Vercel 이 www→apex 로 308 리다이렉트**하고 안드로이드 검증기는 **리다이렉트를 따라가지 않는다**. (iOS `apple-app-site-association` 도 같은 이유로 실패)
-  - 참고: 이 사이트의 정본 주소는 **apex**(`app/layout.tsx` metadataBase, sitemap, robots 전부 `https://vnkorlife.com`). 즉 우리가 뿌리는 링크는 전부 apex 라 **실사용 손실은 작다.** 정책 위반도 아니고 마감도 없다.
-  - **해결책 A (앱 빌드 불필요·즉시)**: Vercel 에서 www 를 리다이렉트 대신 앱을 서빙하게 바꾸고, www→apex 정규화를 Next.js 에서 `/.well-known` 만 제외하고 처리. 지금 나가 있는 2.4.4 바이너리로도 바로 검증이 통과한다.
-  - **해결책 B (다음 빌드에 포함·더 단순)**: `app.json` 의 `intentFilters`·`associatedDomains` 에서 www.vnkorlife.com 4개 경로를 제거. www 링크는 어차피 브라우저에서 apex 로 넘어간다(지금과 동작 동일). SEO 위험 없음.
-  - → 사장님 선택 대기. B 를 고르면 **네이티브 변경이라 빌드 필요**하므로 여기 남겨 둔다.
-
 - [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
@@ -377,6 +371,27 @@
 | 매거진 페이지에만 테마 헤더 없음 | 페이지 템플릿이 `elementor_canvas` | 페이지를 지우고 같은 이름으로 다시 생성(기본 템플릿) |
 | 지난 호 표지 아래가 잘림 | 내가 넣은 `aspect-ratio:1/1.37` + `object-fit:cover` | 고정 박스 제거, `width:100%;height:auto` |
 | 개수를 두 번 잘못 셈(32개·2개) | CSS 블록 안의 클래스 *이름 문자열*까지 grep 에 걸림 | 실제 태그(`<div class=...>`)만 세기 |
+
+---
+
+## 2026-08-09 — ✅ [딥링크] `www.vnkorlife.com` 검증 실패 해결 (앱 재빌드 없이)
+
+- **한 일**: Play Console·GA4 가 경고하던 "잘못 구성된 딥 링크 7개" 를 해결. **앱 바이너리는 손대지 않았다** — 웹 쪽 설정만 바꿔서 지금 나가 있는 2.4.4 로 그대로 고쳤다.
+- **7개의 정체 (GA4 CSV 실측)**: **전부 `www.vnkorlife.com`** 한 호스트였다. `/jobs.*`(사용자 119) · `/market.*`(60) · `/realestate.*`(46) · `/neighborbusiness.*`(4) · `/app/share.*` · `/download.*` · `/tab/.*`(각 0).
+  - ⚠️ **직전 판단이 틀렸다**: 2026-08-06 에 "정본이 apex 라 실사용 손실은 작다" 고 적었는데, **30일간 실사용자 229명**이 앱 대신 브라우저로 떨어지고 있었다. **추정하지 말고 GA4 CSV 를 받아 셌어야 했다.**
+- **원인**: `www.vnkorlife.com` 의 308 리다이렉트가 **Vercel 도메인 설정**(Settings → Domains → Redirect to Another Domain)에 걸려 있었다. 이건 **Next.js 가 실행되기 전에** 응답하므로 `next.config.ts`·middleware 로는 경로별 예외를 만들 수 없다. 그런데 **안드로이드 App Links 검증기와 iOS 는 리다이렉트를 따라가지 않는다** → `/.well-known/` 의 검증 파일 2개를 영영 못 읽었다.
+  - 판별법: 응답 헤더가 `server: Vercel` + 308 + `x-vercel-cache` 없음 → **플랫폼 레벨 리다이렉트**(코드로 못 막음). Next.js 리다이렉트면 여기에 흔적이 남는다.
+- **조치**:
+  1. `vnkorlife-web` 에 `middleware.ts` 신설 — www→apex 308 을 코드에서 처리하되 `matcher` 로 `/.well-known/` 만 제외. (커밋 `06f0cd5`)
+  2. 사장님이 Vercel → Domains → `www.vnkorlife.com` 을 **Redirect to Another Domain → Connect to an environment(Production)** 로 변경.
+  - **순서가 중요**: 코드 먼저 배포 → 그다음 설정 변경. 반대로 하면 www 에 사이트 전체가 중복 노출되는 구간이 생긴다.
+- **검증 (실측)**: www 의 `assetlinks.json`·`apple-app-site-association` → **200, 이동 없음**. `/jobs`·`/market`·`/` → **308 → apex 유지**(SEO 변화 없음).
+- **상태**: ✅ 완료. ⏳ 구글 Digital Asset Links API 는 **아직 `ERROR_CODE_REDIRECT`(캐시)** — 몇 시간~하루 뒤 자동 갱신. 안드로이드 실기기 반영은 **설치·업데이트 시점 재검증**이라 며칠에 걸쳐 서서히.
+- **다음 단계**: 며칠 뒤 검증 API 재확인 (아래 명령). 통과 확인되면 이 항목 종료.
+  ```bash
+  curl -s "https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://www.vnkorlife.com&relation=delegate_permission%2Fcommon.handle_all_urls"
+  ```
+- **참고 — Vercel "DNS Change Recommended" 딱지는 별건이고 무해**: apex `A 76.76.21.21`, www `CNAME cname.vercel-dns.com` 은 Vercel 구주소다. 동작에 문제 없으며 딥링크와 무관. DNS 변경은 실패 시 사이트 전체가 죽으므로 **급하지 않으면 건드리지 말 것.**
 
 ---
 
