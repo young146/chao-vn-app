@@ -30,7 +30,17 @@
 - [ ] **⓪-e 앱 아이콘 원본 대기** — 사장님이 1024px+ 원본을 찾아주시기로 함(2026-08-06). 받으면 icon / adaptive-icon(안전영역 여백 포함) / splash 를 각각 다시 생성.
 - [ ] **⓪-d 앱 아이콘 해상도** 🟡 — `icon.png`·`adaptive-icon.png`·`splash.png` **셋 다 동일 파일**(해시 일치, 225×225). 런처는 432px, iOS 앱스토어는 1024px 로 그리므로 **최대 4.5배 확대 → 뿌옇다**. 적응형 아이콘은 바깥 33% 가 마스크로 잘리는데 여백 없는 꽉 찬 정사각형이라 **흰 테두리·산봉우리가 잘린다**. 사장님이 원본(1024px+) 찾아주시기로 함(2026-08-06). → 빌드 후 **런처·앱스토어 아이콘이 선명하고 안 잘리면** ✅
 
-- [ ] **① iOS Firebase Analytics 활성화** 🔴 — 빌드 직전 `GoogleService-Info.plist` 의 `IS_ANALYTICS_ENABLED` = `true`, `app.json` infoPlist 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED` = `true` 인지 **눈으로 확인**. 커밋 `4e78d3a` 로 저장돼 있어 clean checkout 이면 자동 포함되지만, 과거 미커밋으로 누락된 전례가 있으니 `git status` 재확인. → 빌드 후 **Firebase 콘솔에 iOS 이벤트가 실제로 들어오면** ✅ 처리. (지금 iOS 로그인 ~100명이 통째로 안 보이는 원인)
+- [ ] **① iOS Firebase Analytics — 앱 쪽 준비 완료, 데이터 유입 대기** 🟡 (2026-08-09 전수 점검 완료. **아래 6개는 다시 확인하지 말 것**)
+  - ✅ **빌드 76 바이너리 실측** — IPA 내려받아 실행파일에서 `FIRAnalytics`·`GoogleAppMeasurement`·`RNFBAnalyticsModule`·`FIRApp` 심볼 전부 확인. `Info.plist` 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED=True`, 수집 차단 키(`..._DEACTIVATED` 등) 없음. `GoogleService-Info.plist` 가 `Payload/app.app/` 에 번들됨(`IS_ANALYTICS_ENABLED=True`). **빌드 75 도 동일** — 즉 8월 빌드부터는 정상 탑재.
+  - ✅ **GA4 ↔ Firebase 연결** — iOS 스트림 `properties/512238887/dataStreams/13279761924`, `firebaseAppId 1:249390849714:ios:2f749dcfadaf5146e973ab` = plist `GOOGLE_APP_ID` 와 일치. 번들ID·팀ID(9NAKBDVGPP) 모두 일치.
+  - ✅ **코드** — `lib/analytics.js` 는 안드로이드와 **같은 경로**를 쓰고 안드로이드는 정상 수집 중(주 19,760 이벤트). `app.plugin.js` 는 안드로이드만 건드림(iOS 간섭 없음).
+  - ✅ **스토어** — 2.4.4 는 2026-08-08 출시 완료.
+  - ❗ **현상**: GA4 에 iOS 는 `0` 이 아니라 **행 자체가 없음**(지난 1년 누적도 0). 그럼에도 **과거 빌드에는 모듈이 아예 없었으므로 0 이 정상**이었다.
+  - ❗ **현재 유력 원인 = 아직 2.4.4 가 안 퍼짐.** 애플 ASC Analytics 도 같은 말을 한다 — `App Version: 2.4.4` 세션이 **"Not Enough Data"**. (ASC 는 `Opt-in Only` 로 **전체의 28%** 만 집계, 집계 지연 1~2일)
+  - ⏭ **다음에 할 일**: 며칠 뒤 GA4 재조회. `daily-news-final` 의 `.env`(`FIREBASE_SERVICE_ACCOUNT_JSON`+`GA4_PROPERTY_ID`)로 GA4 Data API 를 바로 부를 수 있다 — `runReport`(dimension `platform`) 와 `runRealtimeReport`. **스크립트는 반드시 그 저장소 폴더 안에서 실행**(node_modules 해석 때문).
+  - 🔴 **그때도 iOS 가 비어 있고 ASC 에 2.4.4 세션이 수십 건 이상이면** → 그때가 진짜 측정 결함. 남은 수단은 맥 + Xcode 개발빌드로 `-FIRDebugEnabled` DebugView.
+  - ⚠️ **함정 — 앱 화면의 버전 표시를 믿지 말 것**: `MoreScreen.js:367` 은 `Constants.expoConfig?.version` (= **OTA 로 전달되는 JS 값**). `runtimeVersion` 이 `2.4.3` 로 고정이라 **6월 빌드(74)에도 OTA 가 전달되어 화면에 "v2.4.4" 로 뜬다.** 네이티브 빌드 확인은 **앱스토어 버튼("업데이트" vs "열기")** 이나 재설치로만 가능. → 개선안: 다음 빌드에 `expo-application` 추가해 `nativeBuildVersion` 을 함께 표시.
+  - 📌 **곁가지 발견(별건)**: GA4 데이터 보관이 **2개월(기본값)** 이다. 관리 → 데이터 설정 → 데이터 보관 에서 **14개월로 무료 변경 가능** — 안 바꾸면 오늘 데이터도 2개월 뒤 사라진다. Firebase 앱 설정의 `App Store ID` 도 비어 있음(값 `6480538597`, 설치 기여도 추적에 필요).
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
 **지금 빌드해야 하나?** → 🔴 이 있으면 즉시 / 🟡 만 3개 이상이면 모아서 / 비었으면 불필요(OTA로 충분). 신규 유입 캠페인 직전이면 빌드 우선(신규 사용자는 *현재* 빌드를 받으므로 측정 인프라가 빌드돼 있어야 함).
