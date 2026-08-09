@@ -124,9 +124,12 @@ Errors are learning opportunities. When something breaks:
 
 **절대 git에 올리면 안 되는 것** (API 키, 토큰, 서비스계정 JSON, `.env` 실값, 비밀번호):
 
-- **정본(master) 백업 위치**: `C:\Users\XINCHAO\OneDrive\dev-secrets\`
-  - 프로젝트별 하위폴더로 정리됨: `chao-vn-app/`, `daily-news-final/`, `vnkorlife-web/`, `xinchao_crm/`
-  - `RESTORE.ps1` — 새 환경에서 각 프로젝트로 시크릿을 복원하는 스크립트
+- **정본(master) 백업 위치**: `%OneDrive%\dev-secrets\` (PowerShell 은 `$env:OneDrive\dev-secrets`)
+  - ⚠️ **계정명을 박지 말 것.** 사무실·집 등 PC 마다 사용자 폴더가 다르다(`C:\Users\hanyo\...` / `C:\Users\XINCHAO\...`).
+    한 PC 기준으로 적으면 다른 PC 에서 반드시 깨진다 — 상위 폴더 상대경로 금지 규칙과 같은 이유다.
+  - 프로젝트별 하위폴더로 정리됨: `chao-vn-app/`, `daily-news-final/`, `vnkorlife-web/`, `xinchao_crm/`, `jobs-crm/`
+  - `RESTORE.ps1` — 새 환경에서 각 프로젝트로 시크릿을 복원하는 스크립트.
+    **새 시크릿을 백업했으면 이 스크립트의 `$mappings` 에도 반드시 추가할 것** — 안 그러면 백업은 됐는데 복원이 안 된다.
 - **규칙**:
   1. 시크릿을 새로 만들거나 바꾸면 → 해당 프로젝트 폴더의 `.env`(로컬)와 위 `dev-secrets\<project>\` 백업 **둘 다** 갱신한다.
   2. 시크릿 파일(`.env`, `*serviceAccount*.json`, `*.pem`, `*credentials*`)은 **반드시 `.gitignore` 에 있어야** 한다. 커밋 전 확인.
