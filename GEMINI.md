@@ -130,6 +130,13 @@ Errors are learning opportunities. When something breaks:
   - 프로젝트별 하위폴더로 정리됨: `chao-vn-app/`, `daily-news-final/`, `vnkorlife-web/`, `xinchao_crm/`, `jobs-crm/`
   - `RESTORE.ps1` — 새 환경에서 각 프로젝트로 시크릿을 복원하는 스크립트.
     **새 시크릿을 백업했으면 이 스크립트의 `$mappings` 에도 반드시 추가할 것** — 안 그러면 백업은 됐는데 복원이 안 된다.
+  - `CHECK.ps1` — **백업이 최신인지 점검**한다. `.\CHECK.ps1` (점검만) / `.\CHECK.ps1 -Sync` (빠진 것만 올림).
+    작업 폴더는 OneDrive **밖**이라 PC 마다 다르고, 백업 폴더는 OneDrive **안**이라 모든 PC 가 같다.
+    끊기는 자리는 **작업 폴더 → 백업 폴더로 손으로 복사하는 단계** 하나뿐이고, 실제로 3건이 누락돼 있었다
+    (안드로이드 서명키 `.jks`, `jobs-crm` 통째, iOS `plist` 4개월 낡음). **시크릿을 만지면 이걸 돌릴 것.**
+    ⛔ 내용이 다른 파일은 `-Sync` 로도 자동으로 안 덮는다 — 낡은 백업으로 덮으면 오히려 사고다.
+  - ⚠️ **PowerShell 스크립트(`.ps1`)는 UTF-8 BOM 으로 저장할 것.** Windows PowerShell 5.1 은 BOM 없는 파일을
+    ANSI(cp949)로 읽어 한글이 깨진다 — 한글 파일명 매핑이 조용히 실패한다(2026-08-09 실제 발생).
 - **규칙**:
   1. 시크릿을 새로 만들거나 바꾸면 → 해당 프로젝트 폴더의 `.env`(로컬)와 위 `dev-secrets\<project>\` 백업 **둘 다** 갱신한다.
   2. 시크릿 파일(`.env`, `*serviceAccount*.json`, `*.pem`, `*credentials*`)은 **반드시 `.gitignore` 에 있어야** 한다. 커밋 전 확인.
