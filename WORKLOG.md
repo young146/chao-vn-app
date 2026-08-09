@@ -109,9 +109,13 @@
 
 **배포**: 서버 `a38b081` · 웹 `421c8f3`(둘 다 Vercel 반영 확인) · 앱 `67e3c33` → OTA `34d5b23b-…`(rv 2.4.3)
 
-**⚠️ 이 PC 로컬 함정**: `daily-news-final/.env.local` 의 `ANTHROPIC_API_KEY` 가 **빈 값**이다.
-Next.js 는 `.env.local` 이 `.env` 를 덮으므로 **로컬에서만** AI 가 죽는다(운영은 Vercel 환경변수라 무관).
-로컬 테스트 시 셸 환경변수로 덮어써야 한다. 정본 백업은 `C:\Users\hanyo\OneDrive\dev-secrets\` (CLAUDE.md 에는 `XINCHAO` 계정 경로로 적혀 있는데 이 PC 는 `hanyo` 다).
+**⚠️ 이 PC 로컬 함정 — 해결함(2026-08-09)**: `daily-news-final/.env.local` 의 `ANTHROPIC_API_KEY` 가 **빈 값**이라 로컬 AI 가 죽었다.
+원인은 그 파일이 손으로 쓴 게 아니라 **`vercel env pull` 산출물**이기 때문이다(`VERCEL_*`·`TURBO_*`·`VERCEL_OIDC_TOKEN` 이 들어 있다).
+**Vercel 은 Sensitive 로 표시된 변수를 되돌려주지 않고 빈 값으로 내려보낸다.** Next.js 는 `.env.local` 이 `.env` 를 덮으므로,
+`.env` 에 멀쩡한 키가 있어도 **로컬에서만** 죽는다(운영은 Vercel 런타임 값을 쓰므로 무관).
+→ `.env` 값으로 채워 해결하고 셸 우회 없이 동작 확인. `dev-secrets` 백업은 29개 키 전부 이미 일치(갱신 불필요).
+⚠️ **다음에 `vercel env pull` 을 돌리면 다시 비워진다** — 그때마다 다시 채울 것.
+정본 백업은 `C:\Users\hanyo\OneDrive\dev-secrets\` (CLAUDE.md 에는 `XINCHAO` 계정 경로로 적혀 있는데 이 PC 는 `hanyo` 다).
 
 **다음 단계**
 - 사장님 실물 확인(앱은 완전 종료 후 두 번 재실행해야 OTA 적용).
