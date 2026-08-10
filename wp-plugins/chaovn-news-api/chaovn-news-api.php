@@ -9,7 +9,8 @@
  *              v2.2: 매거진 호(號) 체계 + 웹 매거진 페이지 [chaovn_magazine] + 호 페이지
  *                    (/magazine-issue/issue-NNN/) + 호별 PDF 링크 + 홈용 [chaovn_issue_cover]
  *              v2.3: 매거진 페이지 공유 미리보기(og:image)를 이번 호 표지로 자동 지정
- * Version: 2.3.0
+ *              v2.3.1: 호 페이지(/magazine-issue/issue-NNN/)도 같게 — 2.3 에서 빠져 있었다
+ * Version: 2.3.1
  *
  * ⚠️ 이 파일은 FTP 로 직접 올린다(자동 배포 없음).
  *    그래서 **고칠 때마다 위 Version 을 반드시 올린다.** 그것이 "서버에 새 파일이
@@ -895,12 +896,28 @@ add_shortcode('chaovn_magazine', 'chaovn_magazine_shortcode');
 add_action('wp', 'chaovn_magazine_social_preview');
 
 function chaovn_magazine_social_preview() {
-    if (is_admin() || !is_page()) return;
+    if (is_admin()) return;
 
-    $post = get_post();
-    if (!$post || !has_shortcode($post->post_content, 'chaovn_magazine')) return;
+    $issue_id = 0;
+    $post     = null;
 
-    $issue_id = chaovn_get_display_issue_id();
+    if (is_page()) {
+        // 매거진 페이지(/magazine_flip/) → 오늘 기준 '이번 호'
+        $post = get_post();
+        if (!$post || !has_shortcode($post->post_content, 'chaovn_magazine')) return;
+        $issue_id = chaovn_get_display_issue_id();
+    } elseif (is_tax(CHAOVN_ISSUE_TAX)) {
+        // 호 페이지(/magazine-issue/issue-565/) → **그 호**.
+        // 2026-08-10 사장님이 이 주소를 카톡에 올렸는데 제목이
+        // "제 565호 Archives - Xin Chao Vietnam"(워드프레스 아카이브 기본값)으로 나가고
+        // 이미지도 앱 홍보 배너였다. 매거진 페이지만 고쳐두고 여기를 빠뜨렸다.
+        $term = get_queried_object();
+        if (!$term || is_wp_error($term)) return;
+        $issue_id = (int) $term->term_id;
+    } else {
+        return;
+    }
+
     if (!$issue_id) return;
 
     $cover_id = (int) get_term_meta($issue_id, 'chaovn_issue_cover_id', true);
@@ -910,10 +927,23 @@ function chaovn_magazine_social_preview() {
     $url = wp_get_attachment_image_url($cover_id, 'large');
     if (!$url) return;
 
-    // ① 대표이미지 바꿔치기 — 이 페이지에서만.
-    add_filter('post_thumbnail_id', function ($id, $p) use ($post, $cover_id) {
-        return ((int) (is_object($p) ? $p->ID : $p) === (int) $post->ID) ? $cover_id : $id;
-    }, 10, 2);
+    // ① 이미지 '실체'를 알려준다 — URL 만 바꾸면 og:image:width/height 가
+    //    엉뚱한 기본 이미지 값(1200x670 가로)으로 남아, 세로로 긴 표지가 잘려 보인다.
+    if ($post) {
+        // 페이지: 대표이미지를 바꿔치기
+        add_filter('post_thumbnail_id', function ($id, $p) use ($post, $cover_id) {
+            return ((int) (is_object($p) ? $p->ID : $p) === (int) $post->ID) ? $cover_id : $id;
+        }, 10, 2);
+    } else {
+        // 분류(호 페이지): 대표이미지가 없다. Rank Math 가 '소셜 이미지'로 읽는
+        // 텀 메타를 가로채 표지를 돌려준다 — 같은 효과를 낸다.
+        add_filter('get_term_metadata', function ($value, $object_id, $meta_key) use ($issue_id, $cover_id, $url) {
+            if ((int) $object_id !== (int) $issue_id) return $value;
+            if ($meta_key === 'rank_math_facebook_image_id') return array($cover_id);
+            if ($meta_key === 'rank_math_facebook_image')    return array($url);
+            return $value; // null 을 그대로 돌려줘야 워드프레스가 원래 값을 읽는다
+        }, 10, 3);
+    }
 
     // ② Rank Math 못박기. 필터가 없거나 이름이 바뀌면 그냥 무시된다(무해).
     foreach (array('facebook', 'twitter') as $net) {
