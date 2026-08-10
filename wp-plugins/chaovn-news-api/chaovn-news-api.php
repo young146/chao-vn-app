@@ -6,7 +6,15 @@
  *              v2: 날짜별 Transient 캐시, 발행 시 자동 갱신, 날씨/환율 사전 캐시 추가
  *              v2.1: 한국 주요뉴스(Korea-Hot) 섹션 추가 — 그 전까지 '기타'로 떨어지고 화면에 영문이 노출됐다
  *              v2.1.1: 그 키를 Jenny 의 'korea_hot' 에 맞춤 (지어낸 키는 앱 '더보기'를 비운다)
- * Version: 2.1.2
+ *              v2.2: 매거진 호(號) 체계 + 웹 매거진 페이지 [chaovn_magazine] + 호 페이지
+ *                    (/magazine-issue/issue-NNN/) + 호별 PDF 링크 + 홈용 [chaovn_issue_cover]
+ *              v2.3: 매거진 페이지 공유 미리보기(og:image)를 이번 호 표지로 자동 지정
+ * Version: 2.3.0
+ *
+ * ⚠️ 이 파일은 FTP 로 직접 올린다(자동 배포 없음).
+ *    그래서 **고칠 때마다 위 Version 을 반드시 올린다.** 그것이 "서버에 새 파일이
+ *    올라갔는지" 확인할 수 있는 유일한 표시다 — 플러그인 목록에서 눈으로 대조한다.
+ *    (2026-08-10: v2.1.2 인 채로 다섯 번이나 바뀌어 있어 사장님이 발견)
  * Author: Chao Vietnam Team
  * License: GPL v2 or later
  * Text Domain: chaovn-news-api
