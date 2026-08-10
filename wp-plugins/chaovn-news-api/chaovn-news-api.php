@@ -861,6 +861,68 @@ define('CHAOVN_MAGPAGE_BACK_ISSUES', 14); // 지난 호 노출 개수.
 
 add_shortcode('chaovn_magazine', 'chaovn_magazine_shortcode');
 
+// ============================================================
+// 🔗 매거진 페이지 공유 미리보기 = 이번 호 표지
+// ------------------------------------------------------------
+// 문제 (2026-08-10 사장님 확인):
+//   카톡·페북에 /magazine_flip/ 을 붙이면 표지가 아니라 **앱 홍보 이미지**가 뜨고
+//   제목도 "Magazine_flip - Xin Chao Vietnam" 으로 나갔다.
+//   Rank Math 가 페이지에 지정된 대표이미지(또는 기본 이미지)를 og:image 로 내보내기 때문.
+//
+// 왜 자동으로 만드나:
+//   호가 바뀔 때마다 사람이 대표이미지를 갈아 끼우면 반드시 잊는다(격주 발행).
+//   이미 `chaovn_get_display_issue_id()` 가 "오늘 기준 이번 호"를 알고 있으니
+//   그 호의 표지를 그대로 공유 이미지로 쓴다. → **직원 작업 0.**
+//
+// 어떻게:
+//   1) `post_thumbnail_id` 로 이 페이지의 대표이미지를 표지로 바꿔치기한다.
+//      → Rank Math 가 이미지의 **실제 가로·세로**까지 맞게 내보낸다.
+//        (URL 만 바꾸면 og:image:width/height 가 옛 이미지 값으로 남아 잘려 보인다)
+//   2) 그 위에 Rank Math 필터로 이미지·제목·설명을 한 번 더 못박는다.
+//      필터명이 바뀌어도 1)이 남으므로 조용히 실패해도 표지는 나온다.
+//
+// 페이지 판별을 슬러그가 아니라 **숏코드 존재 여부**로 하는 이유:
+//   페이지를 옮기거나 이름을 바꿔도 따라간다. (실제로 8/7 에 페이지를 지웠다 다시 만든 적 있음)
+// ============================================================
+add_action('wp', 'chaovn_magazine_social_preview');
+
+function chaovn_magazine_social_preview() {
+    if (is_admin() || !is_page()) return;
+
+    $post = get_post();
+    if (!$post || !has_shortcode($post->post_content, 'chaovn_magazine')) return;
+
+    $issue_id = chaovn_get_display_issue_id();
+    if (!$issue_id) return;
+
+    $cover_id = (int) get_term_meta($issue_id, 'chaovn_issue_cover_id', true);
+    $issue    = chaovn_get_issue_payload($issue_id);
+    if (!$cover_id || !$issue) return;
+
+    $url = wp_get_attachment_image_url($cover_id, 'large');
+    if (!$url) return;
+
+    // ① 대표이미지 바꿔치기 — 이 페이지에서만.
+    add_filter('post_thumbnail_id', function ($id, $p) use ($post, $cover_id) {
+        return ((int) (is_object($p) ? $p->ID : $p) === (int) $post->ID) ? $cover_id : $id;
+    }, 10, 2);
+
+    // ② Rank Math 못박기. 필터가 없거나 이름이 바뀌면 그냥 무시된다(무해).
+    foreach (array('facebook', 'twitter') as $net) {
+        add_filter("rank_math/opengraph/{$net}/image", function () use ($url) { return $url; }, 99);
+    }
+
+    $title = sprintf('%s · 씬짜오베트남 매거진', $issue['title']);
+    $desc  = $issue['date']
+        ? sprintf('%s 발행 · 기사 %d편. 이번 호 목차를 확인하세요.', mysql2date('Y년 n월 j일', $issue['date']), (int) $issue['count'])
+        : '이번 호 목차를 확인하세요.';
+
+    add_filter('rank_math/opengraph/facebook/og_title', function () use ($title) { return $title; }, 99);
+    add_filter('rank_math/opengraph/facebook/og_description', function () use ($desc) { return $desc; }, 99);
+    add_filter('rank_math/opengraph/twitter/twitter_title', function () use ($title) { return $title; }, 99);
+    add_filter('rank_math/opengraph/twitter/twitter_description', function () use ($desc) { return $desc; }, 99);
+}
+
 function chaovn_magazine_shortcode($atts) {
     $atts = shortcode_atts(array(
         'back' => CHAOVN_MAGPAGE_BACK_ISSUES,
