@@ -10,7 +10,8 @@
  *                    (/magazine-issue/issue-NNN/) + 호별 PDF 링크 + 홈용 [chaovn_issue_cover]
  *              v2.3: 매거진 페이지 공유 미리보기(og:image)를 이번 호 표지로 자동 지정
  *              v2.3.1: 호 페이지(/magazine-issue/issue-NNN/)도 같게 — 2.3 에서 빠져 있었다
- * Version: 2.3.1
+ *              v2.3.2: 공유 카드를 1200x630 가로로 자동 생성 — 세로 표지가 잘리던 문제 해결
+ * Version: 2.3.2
  *
  * ⚠️ 이 파일은 FTP 로 직접 올린다(자동 배포 없음).
  *    그래서 **고칠 때마다 위 Version 을 반드시 올린다.** 그것이 "서버에 새 파일이
@@ -893,6 +894,79 @@ add_shortcode('chaovn_magazine', 'chaovn_magazine_shortcode');
 // 페이지 판별을 슬러그가 아니라 **숏코드 존재 여부**로 하는 이유:
 //   페이지를 옮기거나 이름을 바꿔도 따라간다. (실제로 8/7 에 페이지를 지웠다 다시 만든 적 있음)
 // ============================================================
+/**
+ * 공유 카드용 가로 이미지를 만들어 그 URL 을 돌려준다. 실패하면 '' (호출부가 표지로 폴백).
+ *
+ * 왜 필요한가 (2026-08-10 사장님 지적):
+ *   카톡·페북 카드 칸은 **가로 1.91:1**인데 잡지 표지는 **세로 1:1.367**이다.
+ *   세로 그림을 가로 칸에 넣으면 가운데만 남고 **로고와 아래 문구가 잘린다.**
+ *   실제로 "인짜오 베트남" 제호와 하단 특집 문구가 다 날아갔다.
+ *
+ * 어떻게:
+ *   1200x630 칸을 만들고 → 표지를 크게 늘려 흐릿하게 깔고(배경) →
+ *   그 위에 **표지 전체를 잘림 없이** 가운데 얹는다.
+ *   배경이 표지 색에서 나오므로 호마다 색감이 자연히 어울린다.
+ *
+ * 글자는 넣지 않는다: GD 로 한글을 그리려면 폰트 파일이 필요한데 서버마다 다르고,
+ * 제목·발행일은 어차피 카드 아래 글자(og:title/description)로 나간다.
+ *
+ * 만든 파일은 uploads/chaovn-og/ 에 남겨 재사용한다. 표지를 바꾸면 첨부 ID 가
+ * 달라지므로 파일명이 바뀌어 자동으로 다시 만들어진다.
+ */
+function chaovn_og_card_url($cover_id) {
+    if (!$cover_id || !function_exists('imagecreatetruecolor')) return '';
+
+    $src_path = get_attached_file($cover_id);
+    if (!$src_path || !file_exists($src_path)) return '';
+
+    $up  = wp_upload_dir();
+    if (!empty($up['error'])) return '';
+    $dir = trailingslashit($up['basedir']) . 'chaovn-og';
+    $rel = 'og-' . (int) $cover_id . '-v1.jpg';   // v1: 판형을 바꾸면 v2 로 올려 다시 만들게 한다
+    $out = $dir . '/' . $rel;
+    $url = trailingslashit($up['baseurl']) . 'chaovn-og/' . $rel;
+
+    if (file_exists($out)) return $url;              // 이미 만들어 둔 것 재사용
+    if (!wp_mkdir_p($dir)) return '';
+
+    $bytes = @file_get_contents($src_path);
+    if (!$bytes) return '';
+    $src = @imagecreatefromstring($bytes);
+    if (!$src) return '';
+
+    $W = 1200; $H = 630; $PAD = 34;                  // 위아래 여백 — 표지가 칸에 딱 붙지 않게
+    $sw = imagesx($src); $sh = imagesy($src);
+    if ($sw < 1 || $sh < 1) { imagedestroy($src); return ''; }
+
+    $canvas = imagecreatetruecolor($W, $H);
+
+    // ── 배경: 표지를 아주 작게 줄였다가 크게 늘리면 자연스러운 흐림이 된다.
+    //    (GD 의 가우시안 블러를 큰 이미지에 여러 번 거는 것보다 훨씬 빠르다)
+    $tiny = imagecreatetruecolor(40, 21);
+    imagecopyresampled($tiny, $src, 0, 0, 0, 0, 40, 21, $sw, $sh);
+    for ($i = 0; $i < 3; $i++) imagefilter($tiny, IMG_FILTER_GAUSSIAN_BLUR);
+    imagecopyresampled($canvas, $tiny, 0, 0, 0, 0, $W, $H, 40, 21);
+    imagedestroy($tiny);
+    imagefilter($canvas, IMG_FILTER_BRIGHTNESS, -34); // 표지가 도드라지게 배경만 어둡게
+
+    // ── 표지: 세로를 칸 높이에 맞추고 비율 유지. 절대 자르지 않는다.
+    $th = $H - ($PAD * 2);
+    $tw = (int) round($sw * ($th / $sh));
+    if ($tw > $W - ($PAD * 2)) {                     // 혹시 가로로 넓은 표지면 가로 기준으로
+        $tw = $W - ($PAD * 2);
+        $th = (int) round($sh * ($tw / $sw));
+    }
+    $x = (int) (($W - $tw) / 2);
+    $y = (int) (($H - $th) / 2);
+    imagecopyresampled($canvas, $src, $x, $y, 0, 0, $tw, $th, $sw, $sh);
+
+    $ok = imagejpeg($canvas, $out, 82);
+    imagedestroy($canvas);
+    imagedestroy($src);
+
+    return $ok ? $url : '';
+}
+
 add_action('wp', 'chaovn_magazine_social_preview');
 
 function chaovn_magazine_social_preview() {
@@ -924,17 +998,23 @@ function chaovn_magazine_social_preview() {
     $issue    = chaovn_get_issue_payload($issue_id);
     if (!$cover_id || !$issue) return;
 
-    $url = wp_get_attachment_image_url($cover_id, 'large');
+    // 가로 카드를 우선 쓴다 — 표지를 통째로 담을 수 있는 유일한 방법.
+    // 못 만들면(GD 없음·권한 문제 등) 표지 원본으로 조용히 내려간다.
+    $card = chaovn_og_card_url($cover_id);
+    $url  = $card ?: wp_get_attachment_image_url($cover_id, 'large');
     if (!$url) return;
 
-    // ① 이미지 '실체'를 알려준다 — URL 만 바꾸면 og:image:width/height 가
-    //    엉뚱한 기본 이미지 값(1200x670 가로)으로 남아, 세로로 긴 표지가 잘려 보인다.
-    if ($post) {
+    // ① 가로 카드를 못 만들어 **표지 원본**을 쓸 때만, 이미지의 '실체'를 알려준다.
+    //    URL 만 바꾸면 og:image:width/height 가 기본 이미지 값(가로)으로 남아
+    //    세로 표지가 더 심하게 잘린다.
+    //    ⚠️ 반대로 가로 카드를 쓸 때 이걸 걸면 세로 치수(618x845)가 나가서
+    //       멀쩡한 가로 이미지를 세로로 오해하게 만든다. 그래서 폴백일 때만 건다.
+    if (!$card && $post) {
         // 페이지: 대표이미지를 바꿔치기
         add_filter('post_thumbnail_id', function ($id, $p) use ($post, $cover_id) {
             return ((int) (is_object($p) ? $p->ID : $p) === (int) $post->ID) ? $cover_id : $id;
         }, 10, 2);
-    } else {
+    } elseif (!$card) {
         // 분류(호 페이지): 대표이미지가 없다. Rank Math 가 '소셜 이미지'로 읽는
         // 텀 메타를 가로채 표지를 돌려준다 — 같은 효과를 낸다.
         add_filter('get_term_metadata', function ($value, $object_id, $meta_key) use ($issue_id, $cover_id, $url) {
@@ -948,6 +1028,11 @@ function chaovn_magazine_social_preview() {
     // ② Rank Math 못박기. 필터가 없거나 이름이 바뀌면 그냥 무시된다(무해).
     foreach (array('facebook', 'twitter') as $net) {
         add_filter("rank_math/opengraph/{$net}/image", function () use ($url) { return $url; }, 99);
+    }
+    if ($card) {
+        // 가로 카드는 항상 1200x630 이다. 치수도 같이 못박아 둔다.
+        add_filter('rank_math/opengraph/facebook/og_image_width',  function () { return 1200; }, 99);
+        add_filter('rank_math/opengraph/facebook/og_image_height', function () { return 630; }, 99);
     }
 
     $title = sprintf('%s · 씬짜오베트남 매거진', $issue['title']);
