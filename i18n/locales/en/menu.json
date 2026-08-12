@@ -15,6 +15,7 @@
   "newUpdateTitle": "Update Available",
   "newUpdateMessage": "A new update is available.\nRestart to apply.",
   "restartNow": "Restart Now",
+  "restartingNow": "Restarting...",
   "restartManually": "The update has been downloaded.\nPlease close the app completely and reopen it to apply.",
   "appVersion": "XinChao Vietnam v{{version}}",
   "appDescription": "",

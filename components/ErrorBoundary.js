@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Updates from 'expo-updates';
+import { restartApp } from '../lib/restartApp';
 
 // 크래시 발생 시 자동 재시작 대기 시간 (초)
 const AUTO_RELOAD_SECONDS = 5;
@@ -24,6 +25,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentWillUnmount() {
     if (this._timer) clearInterval(this._timer);
+    if (this._hardRestartTimer) clearTimeout(this._hardRestartTimer);
   }
 
   _startCountdown() {
@@ -46,11 +48,27 @@ export default class ErrorBoundary extends React.Component {
       // OTA 번들로 실행 중이면 reloadAsync로 재시작 (이전 버전으로 롤백될 수 있음)
       if (!__DEV__ && Updates.isEnabled) {
         await Updates.reloadAsync();
+        // 여기까지 왔는데 화면이 그대로면 reloadAsync 가 *조용히* 실패한 것이다.
+        // 안드로이드에서 실제로 그런다 — 예외도 안 나고 아무 일도 안 일어난다.
+        // 그러면 사용자는 "재시작 중..." 스피너에 갇힌다(버튼도 사라진 상태).
+        // 프로세스를 통째로 재시작하는 최후 수단을 걸어 둔다. 사유는 lib/restartApp.js 참고.
+        this._hardRestartTimer = setTimeout(() => {
+          restartApp({ onFailed: () => this._recover() });
+        }, 1500);
+        return;
       }
+      // 개발 모드이거나 Updates 가 꺼져 있으면 재렌더링으로 복구를 시도한다
+      this._recover();
     } catch (e) {
       // reloadAsync 실패 시 state 리셋으로 앱 재렌더링 시도
-      this.setState({ hasError: false, error: null, countdown: AUTO_RELOAD_SECONDS, reloading: false });
+      this._recover();
     }
+  }
+
+  /** 재시작이 안 될 때 최소한 화면은 되살린다 (버튼 없는 스피너에 갇히지 않게) */
+  _recover() {
+    if (this._hardRestartTimer) clearTimeout(this._hardRestartTimer);
+    this.setState({ hasError: false, error: null, countdown: AUTO_RELOAD_SECONDS, reloading: false });
   }
 
   render() {

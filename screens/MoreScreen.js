@@ -8,7 +8,6 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
-  Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,8 +18,9 @@ import { useRequireAuth } from "../hooks/useRequireAuth";
 import { ScrollBottomBanner } from "../components/AdBanner";
 import * as Updates from "expo-updates";
 import Constants from "expo-constants";
-// RNRestart는 Expo Updates 루프 문제로 제거 (Updates.reloadAsync() 사용)
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// 재시작은 lib/restartApp.js 한 곳에서만 한다 —
+// reloadAsync 로는 안드로이드에서 조용히 실패한다(그 파일 주석에 이유 전부).
+import { restartApp } from "../lib/restartApp";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 
@@ -86,32 +86,25 @@ export default function MoreScreen({ navigation }) {
             { text: t('common:later'), style: "cancel" },
             {
               text: t('restartNow'),
-              // ⚠️ 안드로이드는 **대화상자가 닫힌 뒤에** 재시작해야 한다 (2026-08-08 사장님 확인).
+              // 재시작 수단은 lib/restartApp.js 가 정한다.
               //
-              // 왜: reloadAsync 는 JS 를 통째로 새로 띄운다. 그런데 이 onPress 가 불릴 때
-              // 안드로이드의 네이티브 대화상자는 아직 화면에 남아 있고, 그 대화상자가
-              // 지금 없애려는 화면(액티비티)을 붙잡고 있다. 그래서 재시작이 조용히 실패했다.
-              // iOS 는 대화상자 처리 방식이 달라 그냥 됐기 때문에 **안드로이드에서만**
-              // "눌러도 그 자리에 머무는" 증상으로 보였다.
+              // 2026-08-08 에 "대화상자가 닫힐 시간을 주면 되겠지" 하고 400ms 지연 +
+              // Updates.reloadAsync() 로 고쳤는데 **여전히 안 됐다**(사장님 2026-08-12 재보고).
+              // 지연의 문제가 아니라 reloadAsync 자체가 안드로이드의 이 상황에서 안 통한다.
+              // 이제 프로세스를 통째로 재시작한다 — 화면에 무엇이 떠 있든 상관없다.
               onPress: () => {
-                const doReload = async () => {
-                  try {
-                    await AsyncStorage.setItem('OTA_SKIP_CHECK', '1');
-                    await Updates.reloadAsync();
-                  } catch (e) {
-                    console.log("수동 업데이트 적용 실패:", e);
-                    // 조용히 삼키면 사용자는 버튼이 고장난 줄 안다.
-                    // 실패했으면 **무엇을 하면 되는지** 알려준다 — 내려받기는 이미 끝났으므로
-                    // 앱을 껐다 켜기만 하면 새 버전으로 뜬다.
+                // 눌렀는데 아무 반응이 없으면 또 "고장난 버튼"이 된다.
+                // 재시작 직전까지 무엇이 진행 중인지 화면에 남긴다.
+                setUpdateInfo({ isAvailable: true, message: t('restartingNow') });
+                restartApp({
+                  markOtaApplied: true,
+                  onFailed: () => {
+                    // 모든 수단이 실패 — 내려받기는 이미 끝났으므로
+                    // 앱을 껐다 켜기만 하면 새 버전으로 뜬다. 그 말을 해 준다.
+                    setUpdateInfo({ isAvailable: true, message: t('restartManually') });
                     Alert.alert(t('newUpdateTitle'), t('restartManually'));
-                  }
-                };
-                // 대화상자가 닫히는 시간을 준다. iOS 는 필요 없어 0.
-                if (Platform.OS === 'android') {
-                  setTimeout(doReload, 400);
-                } else {
-                  doReload();
-                }
+                  },
+                });
               },
             },
           ]

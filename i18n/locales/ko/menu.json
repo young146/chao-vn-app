@@ -15,6 +15,7 @@
   "newUpdateTitle": "업데이트 확인",
   "newUpdateMessage": "새 업데이트가 있습니다.\n앱을 재시작하면 적용됩니다.",
   "restartNow": "지금 재시작",
+  "restartingNow": "재시작하는 중입니다...",
   "restartManually": "업데이트를 내려받았습니다.\n앱을 완전히 껐다가 다시 켜면 적용됩니다.",
   "appVersion": "씬짜오베트남 v{{version}}",
   "appDescription": "",
