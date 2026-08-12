@@ -12,8 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { askAssistantStream, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
-import VoiceSearchSheet from '../components/VoiceSearchSheet';
-import { isVoiceSupported, isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
+import MicButton from '../components/MicButton';
+import { isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const ORANGE = '#FF6B35';
@@ -66,10 +66,9 @@ export default function AssistantScreen({ navigation, route }) {
   const [streaming, setStreaming] = useState('');
   // 지금 무엇을 하는 중인지("'컨설팅' 찾는 중"). 서버가 알려준다.
   const [status, setStatus] = useState('');
-  // 말로 묻기 / 읽어주기 — 모듈이 없는 기기에서는 버튼을 숨긴다.
-  const micOK = isVoiceSupported();
+  // 읽어주기 — 모듈이 없는 기기에서는 버튼을 숨긴다.
+  // (마이크는 MicButton 이 스스로 판단해 숨으므로 여기서 볼 필요가 없다)
   const speakOK = isSpeakSupported();
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [speakingIdx, setSpeakingIdx] = useState(-1);   // 지금 읽고 있는 답변의 위치
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -263,7 +262,10 @@ export default function AssistantScreen({ navigation, route }) {
                   <Text style={styles.botText}>{renderRich(m.content)}</Text>
                 </View>
                 {/* 읽어주기 — 말로 물으신 분은 읽기도 불편하다(노안).
-                    자동 재생은 안 한다. 듣고 싶을 때만 누르면 된다. */}
+                    자동 재생은 안 한다. 듣고 싶을 때만 누르면 된다.
+                    ⚠️ **검색결과 AI카드와 똑같이 생겨야 한다.** 처음엔 여기만 흐린 회색이라
+                       "잘 안 보인다"는 지적을 받았다(2026-08-12). 같은 기능이 두 곳에서
+                       다르게 생기면 어르신은 같은 것인 줄 모른다. */}
                 {speakOK && (
                   <TouchableOpacity
                     onPress={() => toggleSpeak(i, m.content)}
@@ -273,7 +275,7 @@ export default function AssistantScreen({ navigation, route }) {
                     accessibilityLabel={speakingIdx === i ? '읽기 멈춤' : '읽어주기'}
                     style={styles.speakBtn}
                   >
-                    <Ionicons name={speakingIdx === i ? 'stop-circle' : 'volume-high'} size={17} color="#9CA3AF" />
+                    <Ionicons name={speakingIdx === i ? 'stop-circle' : 'volume-high'} size={17} color="#6D28D9" />
                     <Text style={styles.speakText}>{speakingIdx === i ? '멈춤' : '읽어주기'}</Text>
                   </TouchableOpacity>
                 )}
@@ -320,17 +322,12 @@ export default function AssistantScreen({ navigation, route }) {
           editable={!loading}
         />
         {/* 말로 묻기 — 대화창에서도 키보드 없이 이어갈 수 있어야 한다 */}
-        {micOK && !loading && (
-          <TouchableOpacity
-            onPress={() => setVoiceOpen(true)}
-            activeOpacity={0.7}
-            hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
-            accessibilityRole="button"
-            accessibilityLabel="말로 묻기"
-            style={styles.micInline}
-          >
-            <Ionicons name="mic" size={22} color={ORANGE} />
-          </TouchableOpacity>
+        {!loading && (
+          <MicButton
+            color={ORANGE} size={22} label="말로 묻기"
+            onOpen={() => { stopSpeaking(); setSpeakingIdx(-1); }}
+            onText={(t) => send(t)}
+          />
         )}
         <TouchableOpacity
           style={[styles.sendBtn, (loading || !input.trim()) && styles.sendBtnOff]}
@@ -376,16 +373,6 @@ export default function AssistantScreen({ navigation, route }) {
 
       {/* 진출기업·옐로 상세 — 앱 안 팝업 */}
       <BizDetailSheet visible={bizSeed !== null} seed={bizSeed} onClose={() => setBizSeed(null)} />
-      <VoiceSearchSheet
-        visible={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onResult={(t) => {
-          // 말한 내용을 **바로 보낸다.** 입력칸에 넣고 "보내기를 누르세요" 하면 거기서 또 막힌다.
-          setVoiceOpen(false);
-          stopSpeaking(); setSpeakingIdx(-1);
-          send(t);
-        }}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -426,9 +413,12 @@ const styles = StyleSheet.create({
 
   inputBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#E5E7EB', backgroundColor: '#fff' },
   input: { flex: 1, backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: '#111827' },
-  micInline: { paddingHorizontal: 8, paddingVertical: 6 },
-  speakBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 2 },
-  speakText: { color: '#9CA3AF', fontSize: 12, fontWeight: '700' },
+  // 검색결과 AI카드와 **같은 토큰**. 한쪽만 바꾸지 말 것.
+  speakBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    backgroundColor: '#EDE9FE', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6,
+  },
+  speakText: { color: '#6D28D9', fontSize: 13, fontWeight: '800' },
   sendBtn: { backgroundColor: ORANGE, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 11 },
   sendBtnOff: { opacity: 0.4 },
   sendText: { color: '#fff', fontWeight: '700', fontSize: 15 },

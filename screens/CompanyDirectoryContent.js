@@ -18,6 +18,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { searchCompanies, listCompanies } from '../lib/companyDirectoryApi';
 import { logEvent } from '../lib/analytics';
 import { ScrollBottomBanner } from '../components/AdBanner';
+import MicButton from '../components/MicButton';
 
 // ============================================================
 // 지역 필터 칩 목록
@@ -509,6 +510,9 @@ export default function CompanyDirectoryContent() {
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
+          {/* 말로 검색 — 검색창이 있는 곳엔 어디든 마이크를 둔다.
+              handleQueryChange 를 그대로 쓰므로 기존 검색 흐름(디바운스 포함)과 완전히 같다. */}
+          <MicButton size={20} label="말로 검색하기" onText={(t) => handleQueryChange(t)} />
           {query.length > 0 && Platform.OS === 'android' && (
             <TouchableOpacity onPress={() => handleQueryChange('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={18} color="#bbb" />

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { searchUnified, getRegions, resolveResultUrl, CAT_LABEL } from '../services/searchService';
 import { ScrollBottomBanner } from '../components/AdBanner';
+import MicButton from '../components/MicButton';
 
 const BRAND = '#FF6B35';
 const PURPLE = '#7C3AED';
@@ -92,6 +93,13 @@ export default function YellowPageScreen({ navigation }) {
               placeholder="업소명·업종 (예: 병원, 한식, 미용실)"
               placeholderTextColor="#9CA3AF"
               style={styles.searchInput}
+            />
+            {/* 말로 검색 — 어르신은 키보드에서 막힌다. 검색창이 있는 곳엔 어디든 마이크를 둔다.
+                (부품이 스스로 지원 여부를 판단해 숨으므로 여기서 검사하지 않는다) */}
+            <MicButton
+              size={20}
+              label="말로 검색하기"
+              onText={(t) => { setQ(t); setActiveQ(t); apply({ q: t }); }}
             />
           </View>
           <TouchableOpacity style={styles.searchBtn} onPress={onSearch} activeOpacity={0.85}>

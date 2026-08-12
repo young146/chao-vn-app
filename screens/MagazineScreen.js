@@ -27,6 +27,7 @@ import SectionNewsModal from '../components/SectionNewsModal';
 import AnnouncementBanner from '../components/AnnouncementBanner';
 import MarketStrip from '../components/MarketStrip';
 import VisitorValueCard from '../components/VisitorValueCard';
+import MicButton from '../components/MicButton';
 
 const { width } = Dimensions.get('window');
 
@@ -109,6 +110,13 @@ const SearchHeader = ({ onSearch, onClear, isSearching }) => {
           onSubmitEditing={handleSubmit}
           onFocus={() => setShowHistory(true)}
           returnKeyType="search"
+        />
+        {/* 말로 검색 — 검색창이 있는 곳엔 어디든 마이크를 둔다.
+            handleHistoryClick 과 같은 흐름(입력칸 채우고 바로 검색)이다. */}
+        <MicButton
+          size={20}
+          label="말로 검색하기"
+          onText={(t) => { setText(t); onSearch(t); setShowHistory(false); }}
         />
         {/* 검색어 입력 중이거나 검색 결과 표시 중일 때 X 버튼 표시 */}
         {(text.length > 0 || isSearching) && (

@@ -14,8 +14,8 @@ import {
   askAssistantStream, resolveAssistantResultUrl,
 } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
-import VoiceSearchSheet from '../components/VoiceSearchSheet';
-import { isVoiceSupported, isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
+import MicButton from '../components/MicButton';
+import { isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const BRAND = '#FF6B35';
@@ -55,10 +55,9 @@ export default function SearchResultsScreen({ route, navigation }) {
   const [aiLoading, setAiLoading] = useState(false);
   // 지금 무엇을 하는 중인지("'컨설팅' 찾는 중"). 서버가 알려준다.
   const [aiStatus, setAiStatus] = useState('');
-  // 말로 검색 / 읽어주기 — 모듈이 없는 기기에서는 버튼을 숨긴다.
-  const micOK = isVoiceSupported();
+  // 읽어주기 — 모듈이 없는 기기에서는 버튼을 숨긴다.
+  // (마이크는 MicButton 이 스스로 판단해 숨으므로 여기서 볼 필요가 없다)
   const speakOK = isSpeakSupported();
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   // 빠르게 다시 검색하면 예전 답이 늦게 도착해 새 답을 덮을 수 있다 → 순번으로 막는다.
   const aiSeq = useRef(0);
@@ -72,8 +71,11 @@ export default function SearchResultsScreen({ route, navigation }) {
   // 여기서 바로 대화를 이어가지 않는 이유: 이 화면은 '검색 결과 목록'이고,
   // 대화는 AI 도우미 화면이 이미 잘 하고 있다(기록 저장·되돌아보기 포함).
   // 두 벌로 만들면 반드시 어긋나므로, 맥락만 넘겨 자연스럽게 넘어가게 한다.
-  const askFollow = () => {
-    const q = followQ.trim();
+  // arg 로 넘기면 그것을, 없으면 입력칸 값을 쓴다.
+  // ⚠️ 말로 받은 문장을 setFollowQ 로 넣고 바로 부르면 **빈 값이 나간다** —
+  //    setState 는 다음 렌더에야 반영되기 때문. 그래서 직접 받는 길을 열어 뒀다.
+  const askFollow = (spoken) => {
+    const q = String(typeof spoken === 'string' ? spoken : followQ).trim();
     if (!q || !aiReply) return;
     setFollowQ('');
     navigation.navigate('AI도우미', {
@@ -179,8 +181,8 @@ export default function SearchResultsScreen({ route, navigation }) {
   };
 
   // 말로 검색해서 들어온 문장 — 검색창에 넣고 **바로 검색까지** 한다.
-  const onVoiceResult = (t) => {
-    setVoiceOpen(false);
+  // "이제 검색을 누르세요" 를 만들지 않는다. 거기서 또 막히기 때문이다.
+  const onVoiceSearch = (t) => {
     stopSpeaking(); setSpeaking(false);
     setQuery(t); setActiveQ(t); setTypeFilter('');
     search({ q: t, type: '', city, district, page: 1 });
@@ -229,18 +231,7 @@ export default function SearchResultsScreen({ route, navigation }) {
             />
             {/* 말로 검색 — 여기서도 다시 물을 수 있어야 한다.
                 홈에서만 되면 "한 번 검색한 뒤에는 또 키보드"가 되어 반쪽이다. */}
-            {micOK && (
-              <TouchableOpacity
-                onPress={() => setVoiceOpen(true)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
-                accessibilityRole="button"
-                accessibilityLabel="말로 검색하기"
-                style={styles.micInline}
-              >
-                <Ionicons name="mic" size={20} color={BRAND} />
-              </TouchableOpacity>
-            )}
+            <MicButton color={BRAND} size={20} label="말로 검색하기" onText={onVoiceSearch} />
           </View>
           <TouchableOpacity style={styles.searchBtn} onPress={onSubmit} activeOpacity={0.85}>
             <Text style={styles.searchBtnText}>검색</Text>
@@ -350,6 +341,12 @@ export default function SearchResultsScreen({ route, navigation }) {
                     placeholderTextColor="#9B8FB5"
                     style={styles.followInput}
                   />
+                  {/* 이어서 묻기에도 마이크. 말로 물어놓고 후속 질문만 키보드면
+                      바로 거기서 다시 막힌다 — 대화가 한 번에 끊긴다. */}
+                  <MicButton
+                    color="#7C3AED" size={20} label="말로 이어서 물어보기"
+                    onText={(t) => { stopSpeaking(); setSpeaking(false); askFollow(t); }}
+                  />
                   <TouchableOpacity
                     style={[styles.followBtn, !followQ.trim() && styles.followBtnOff]}
                     onPress={askFollow}
@@ -448,11 +445,6 @@ export default function SearchResultsScreen({ route, navigation }) {
 
       {/* 진출기업·옐로 상세 — 앱 안 팝업 */}
       <BizDetailSheet visible={bizSeed !== null} seed={bizSeed} onClose={() => setBizSeed(null)} />
-      <VoiceSearchSheet
-        visible={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onResult={onVoiceResult}
-      />
     </View>
   );
 }
@@ -490,9 +482,13 @@ const styles = StyleSheet.create({
   aiHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   aiHeadText: { color: '#6D28D9', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.3 },
   aiMore: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
-  micInline: { paddingLeft: 6, paddingRight: 2 },
-  speakBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  speakText: { color: '#7C3AED', fontSize: 12.5, fontWeight: '700' },
+  // 읽어주기 — AI도우미 화면과 **똑같은 모양**이어야 한다(components/RichAnswer 옆 주석 참조).
+  // 두 곳에서 다르게 생기면 어르신은 같은 기능인 줄 모른다.
+  speakBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#EDE9FE', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6,
+  },
+  speakText: { color: '#6D28D9', fontSize: 13, fontWeight: '800' },
   aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 4 },
   aiLoadingText: { color: '#6B5B8A', fontSize: 13 },
   aiReply: { color: '#1F1B2E', fontSize: 14, lineHeight: 21 },

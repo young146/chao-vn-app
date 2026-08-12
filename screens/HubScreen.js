@@ -25,8 +25,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeAdCarousel from '../components/HomeAdCarousel';
-import VoiceSearchSheet from '../components/VoiceSearchSheet';
-import { isVoiceSupported } from '../lib/voice';
+import MicButton from '../components/MicButton';
 
 const BRAND = '#E85D04';
 const INK = '#171412';
@@ -59,10 +58,6 @@ export default function HubScreen({ navigation, route }) {
   const [query, setQuery] = useState('');
   const [exIdx, setExIdx] = useState(0);
   const [focused, setFocused] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
-  // 말로 검색이 되는 기기인가 — 구버전 앱(네이티브 모듈 없음)·
-  // 구글 음성서비스가 없는 안드로이드에서는 false → 마이크 버튼을 **숨긴다**.
-  const micOK = isVoiceSupported();
 
   // 홈 탭/제목 재탭(resetSearch) 시 입력 초기화 — 홈은 항상 깨끗한 첫 화면
   useEffect(() => {
@@ -137,20 +132,18 @@ export default function HubScreen({ navigation, route }) {
               style={styles.searchInput}
             />
             {/* 말로 검색 — 키보드를 못 치는 분들의 **입구**.
-                어르신들이 "다 잘 나온다"고 놀라시고도 키보드에서 막히셨다(2026-08-09).
-                ⚠️ 쓸 수 없는 기기에서는 **아예 숨긴다.** 있는데 안 눌리는 게 제일 나쁘다. */}
-            {micOK && (
-              <TouchableOpacity
-                style={styles.micBtn}
-                onPress={() => setVoiceOpen(true)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel="말로 검색하기"
-              >
-                <Ionicons name="mic" size={22} color={BRAND} />
-              </TouchableOpacity>
-            )}
+                어르신들이 "다 잘 나온다"고 놀라시고도 키보드에서 막히셨다(2026-08-09). */}
+            <MicButton
+              color={BRAND}
+              size={22}
+              label="말로 검색하기"
+              onText={(t) => {
+                // 말한 내용을 검색창에 넣고 **바로 검색까지** 한다.
+                // 여기서 멈추고 "검색을 누르세요" 하면 어르신은 또 한 번 막힌다.
+                setQuery(t);
+                navigation.navigate('검색결과', { q: t });
+              }}
+            />
             {/* 검색 버튼은 하나. 'AI 검색'이라고 적으면 다시 두 갈래가 되어버린다 —
                 사용자에게 "지금 검색인가 질문인가"를 묻지 않는 것이 이 화면의 요점이다.
                 ✦ 는 AI가 함께 돈다는 표시일 뿐 별도 모드가 아니다. */}
@@ -165,17 +158,6 @@ export default function HubScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
 
-          <VoiceSearchSheet
-            visible={voiceOpen}
-            onClose={() => setVoiceOpen(false)}
-            onResult={(t) => {
-              // 말한 내용을 검색창에 넣고 **바로 검색까지** 한다.
-              // 여기서 멈추고 "검색을 누르세요" 하면 어르신은 또 한 번 막힌다.
-              setVoiceOpen(false);
-              setQuery(t);
-              navigation.navigate('검색결과', { q: t });
-            }}
-          />
           <Text style={styles.searchHint}>
             검색하면 <Text style={{ fontWeight: '700', color: '#7C3AED' }}>AI가 함께</Text> 찾아 드려요
           </Text>
@@ -216,10 +198,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1, minWidth: 0, fontSize: 15, color: INK,
     paddingVertical: Platform.OS === 'ios' ? 2 : 8,
-  },
-  // 마이크 — 검색 버튼 왼쪽. 손가락이 굵어도 닿게 hitSlop 을 넉넉히 줬다(위 JSX).
-  micBtn: {
-    paddingHorizontal: 6, paddingVertical: 4, marginLeft: 4,
   },
   aiChip: {
     backgroundColor: '#7C3AED', borderRadius: 999,
