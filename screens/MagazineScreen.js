@@ -552,17 +552,30 @@ export default function MagazineScreen({ navigation, route }) {
           // 그 날짜 지면을 그대로 보여줘야 하므로 채우지 않는다.
           let newsData = await getNewsSectionsCached(isRefresh, targetDate, !filtered);
 
-          // 오늘 뉴스가 없으면 다음날 뉴스가 올라올 때까지 직전 날짜로 fallback
+          // 오늘 지면이 아직 없으면 직전 발행일 지면을 그대로 보여준다
           // (최대 7일 뒤까지 시도 — 라벨은 "오늘의 뉴스" 그대로 유지)
+          //
+          // ⚠️ 판단 기준은 `totalCount` 다. **`newsSections.length` 로 보면 안 된다.**
+          //   서버는 fill=1 이면 그날 발행분이 0건이어도 섹션을 과거 기사로 채워 보낸다.
+          //   그래서 일요일(발행 없음)에도 섹션이 11개 와서 "뉴스가 있다"로 판정됐고,
+          //   fallback 이 아예 돌지 않았다. 결과는 **토요일 지면의 열화판**이었다
+          //   (실측 2026-08-09: 토요일 92건 → 일요일 77건, 전부 토요일 것의 부분집합.
+          //    빠진 15건에 **주요 뉴스 2건이 통째로 포함** — 맨 위 큰 카드가 사라졌다).
+          //   채우기는 섹션당 8건까지만 하고, 탑뉴스 표시는 *그 날짜 기사*에만 붙기 때문이다.
+          //   평일 새벽에도 같은 일이 매일 벌어지고 있었다(그날 첫 기사가 올라오기 전).
+          //
+          //   totalCount 는 서버가 세는 **그 날짜 자체 발행분**이다(채운 기사는 안 센다).
+          //   0 이면 "그 날은 지면이 없다" 가 정확한 뜻이다.
+          //
           // 단, 못 불러온 것(failed)은 "뉴스가 없다"가 아니다 — 망이 끊긴 상태에서
           // 7번을 더 두드려봐야 7배로 기다리기만 한다. 그럴 땐 바로 안내로 넘긴다.
-          if (newsData.newsSections.length === 0 && !newsData.failed && !filtered) {
+          if (!newsData.totalCount && !newsData.failed && !filtered) {
             for (let i = 1; i <= 7; i++) {
               const past = new Date();
               past.setDate(past.getDate() - i);
               // 여기는 "오늘 뉴스가 아직 없어 어제로 내려가는" 경로 = 여전히 오늘의 뉴스 모드 → 채운다
               const pastData = await getNewsSectionsCached(isRefresh, past, true);
-              if (pastData.newsSections.length > 0) {
+              if (pastData.totalCount > 0) {
                 newsData = pastData;
                 break;
               }
