@@ -492,12 +492,21 @@ export default function MagazineScreen({ navigation, route }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isFilteredByDate, setIsFilteredByDate] = useState(false);
   const [showingYesterdayNews, setShowingYesterdayNews] = useState(false);
+  // 뉴스가 비었을 때 "그날 뉴스가 없음" 인지 "못 불러옴" 인지 — 화면 안내 문구가 갈린다
+  const [newsFailed, setNewsFailed] = useState(false);
 
   // 🗂️ 뉴스 항목별 기사 보기 모달 state
   const [selectedSection, setSelectedSection] = useState(null);
   const [sectionsList, setSectionsList] = useState([]); // API에서 로드한 섹션 목록
 
-  const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null) => {
+  /**
+   * @param {boolean} filtered 사용자가 날짜를 직접 고른 상태인지.
+   *   ⛔ 이 값을 state 에서 바로 읽으면 안 된다 — setIsFilteredByDate(true) 직후에
+   *   같은 렌더의 이 함수를 부르면 클로저는 아직 옛 값(false)을 들고 있어서,
+   *   고른 날짜가 아래에서 "오늘"로 덮어써졌다. 날짜 버튼 라벨만 바뀌고 내용은 오늘
+   *   것이 나오던 원인이다. 그래서 부르는 쪽이 명시적으로 넘긴다.
+   */
+  const fetchPosts = async (pageNum = 1, isRefresh = false, query = searchQuery, date = null, filtered = isFilteredByDate) => {
     try {
       if (pageNum === 1) {
         if (!isRefresh) {
@@ -535,17 +544,19 @@ export default function MagazineScreen({ navigation, route }) {
         // 🗞️ 뉴스 탭: 카테고리별 섹션으로 표시 (WordPress 사이트와 동일)
         if (type === 'news' && !query) {
           let targetDate = date || selectedDate;
-          if (!isFilteredByDate) {
+          if (!filtered) {
             targetDate = new Date(); // 오늘 날짜
           }
 
           // 3번째 인자 = 과거 뉴스로 채울지. "지난 뉴스 보기"로 날짜를 고른 경우에는
           // 그 날짜 지면을 그대로 보여줘야 하므로 채우지 않는다.
-          let newsData = await getNewsSectionsCached(isRefresh, targetDate, !isFilteredByDate);
+          let newsData = await getNewsSectionsCached(isRefresh, targetDate, !filtered);
 
           // 오늘 뉴스가 없으면 다음날 뉴스가 올라올 때까지 직전 날짜로 fallback
           // (최대 7일 뒤까지 시도 — 라벨은 "오늘의 뉴스" 그대로 유지)
-          if (newsData.newsSections.length === 0 && !isFilteredByDate) {
+          // 단, 못 불러온 것(failed)은 "뉴스가 없다"가 아니다 — 망이 끊긴 상태에서
+          // 7번을 더 두드려봐야 7배로 기다리기만 한다. 그럴 땐 바로 안내로 넘긴다.
+          if (newsData.newsSections.length === 0 && !newsData.failed && !filtered) {
             for (let i = 1; i <= 7; i++) {
               const past = new Date();
               past.setDate(past.getDate() - i);
@@ -555,11 +566,13 @@ export default function MagazineScreen({ navigation, route }) {
                 newsData = pastData;
                 break;
               }
+              if (pastData.failed) break;
             }
           }
           // 자동 fallback인 경우에도 selectedDate는 오늘 유지 → 라벨은 "오늘의 뉴스"
           setShowingYesterdayNews(false);
 
+          setNewsFailed(!!newsData.failed);
           setNewsSections(newsData.newsSections || []);
           setHasMore(false); // 섹션 뷰에서는 무한 스크롤 없음
           setLoading(false);
@@ -578,7 +591,11 @@ export default function MagazineScreen({ navigation, route }) {
         newPosts = await wordpressApi.getBoardPosts(pageNum);
       } else if (categoryId) {
         // 카테고리별 포스트 (뉴스 외)
-        const dateStr = date ? date.toISOString().split('T')[0] : null;
+        // toISOString() 은 UTC 라 한국·베트남에서 하루 앞당겨진다 — 현지 달력값을 그대로 쓴다
+        const pad = (n) => String(n).padStart(2, '0');
+        const dateStr = date
+          ? `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+          : null;
         newPosts = await wordpressApi.getPostsByCategory(categoryId, pageNum, 10, dateStr);
       } else {
         newPosts = await wordpressApi.getMagazinePosts(pageNum);
@@ -638,7 +655,8 @@ export default function MagazineScreen({ navigation, route }) {
       setSelectedDate(new Date());
       setPage(1);
       setHasMore(true);
-      fetchPosts(1, false, '', null);
+      // 바로 위에서 끈 날짜 필터를 명시적으로 넘긴다 (state 는 아직 옛 값이다)
+      fetchPosts(1, false, '', null, false);
     }
   }, [resetSearch]);
 
@@ -664,7 +682,7 @@ export default function MagazineScreen({ navigation, route }) {
     setIsFilteredByDate(false); // 검색 시 날짜 필터 해제
     setPage(1);
     setHasMore(true);
-    fetchPosts(1, false, query);
+    fetchPosts(1, false, query, null, false);
   };
 
   // 🔙 검색 취소 및 홈으로 복귀
@@ -683,7 +701,9 @@ export default function MagazineScreen({ navigation, route }) {
       setSearchQuery(''); // 날짜 선택 시 검색어 해제
       setPage(1);
       setHasMore(true);
-      fetchPosts(1, false, '', date);
+      // filtered=true 를 직접 넘긴다 — 바로 위 setIsFilteredByDate(true) 는
+      // 이 클로저에 아직 반영돼 있지 않다(그래서 예전엔 고른 날짜가 무시됐다)
+      fetchPosts(1, false, '', date, true);
     }
   };
 
@@ -692,7 +712,7 @@ export default function MagazineScreen({ navigation, route }) {
     setSelectedDate(new Date());
     setPage(1);
     setHasMore(true);
-    fetchPosts(1, false, searchQuery, null);
+    fetchPosts(1, false, searchQuery, null, false);
   };
 
   const loadMore = () => {
@@ -976,6 +996,32 @@ export default function MagazineScreen({ navigation, route }) {
                 </View>
               </View>
             )}
+
+            {/* 🕳️ 뉴스가 없을 때 — 예전엔 아무것도 안 그려서 헤더와 하단 광고만 남았다.
+                사용자 입장에선 "그날 뉴스가 없는 건지, 앱이 고장난 건지" 알 방법이 없었다. */}
+            {type === 'news' && !searchQuery && !loading && newsSections.length === 0 && (
+              <View style={styles.newsEmptyBox}>
+                <Ionicons
+                  name={newsFailed ? 'cloud-offline-outline' : 'newspaper-outline'}
+                  size={40}
+                  color="#CCC"
+                />
+                <Text style={styles.newsEmptyText}>
+                  {newsFailed ? t('newsLoadFailed') : t('noNews')}
+                </Text>
+                <Text style={styles.newsEmptySubText}>
+                  {newsFailed ? t('newsLoadFailedHint') : t('noNewsHint')}
+                </Text>
+                <TouchableOpacity
+                  style={styles.newsRetryButton}
+                  onPress={() => fetchPosts(1, true, '', isFilteredByDate ? selectedDate : null)}
+                >
+                  <Ionicons name="refresh" size={16} color="#fff" />
+                  <Text style={styles.newsRetryText}>{t('retry')}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {searchQuery.length > 0 && (
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>'{searchQuery}' {t('searchResult')}</Text>
@@ -1647,6 +1693,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     textAlign: 'center',
+  },
+  newsEmptyBox: {
+    alignItems: 'center',
+    paddingVertical: 44,
+    paddingHorizontal: 24,
+  },
+  newsEmptyText: {
+    marginTop: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#666',
+    textAlign: 'center',
+  },
+  newsEmptySubText: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  newsRetryButton: {
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FF6B35',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  newsRetryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   centerContainer: {
     flex: 1,

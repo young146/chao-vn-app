@@ -47,5 +47,9 @@
     "news": "News",
     "board": "Board",
     "magazine": "Magazine"
-  }
+  },
+  "noNewsHint": "Try picking another date.",
+  "newsLoadFailed": "Could not load the news",
+  "newsLoadFailedHint": "Check your connection and try again.",
+  "retry": "Try again"
 }

@@ -38,6 +38,29 @@ const CACHE_BUST_WINDOW_MS = 30 * 60 * 1000;
 const newsCacheBustValue = (forceRefresh) =>
   forceRefresh ? Date.now() : Math.floor(Date.now() / CACHE_BUST_WINDOW_MS);
 
+/**
+ * 뉴스 지면 날짜를 'YYYY-MM-DD' 로 만든다.
+ *
+ * ⛔ toISOString() 을 쓰면 안 된다 — 그건 UTC 다. 한국(UTC+9)·베트남(UTC+7) 에서는
+ * 자정~오전 9시(한국) 사이에 *어제* 날짜가 나와서, 아침에 앱을 열면 하루 밀린 지면을
+ * 요청하게 된다. 사용자가 달력에서 고른 날짜도 같은 이유로 하루 앞당겨졌다.
+ *
+ * 그래서 날짜는 그 Date 의 *현지 달력값*(연·월·일)을 그대로 쓴다. 다만 지면을 만드는
+ * 기준은 편집국이 있는 호치민 시각이므로, 베트남에 아직 오지 않은 날짜는 요청해봐야
+ * 빈 지면이다 → 베트남 오늘로 눌러 준다(기기 시계가 앞서 있는 경우도 같이 막힌다).
+ */
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000; // 베트남은 서머타임이 없어 고정이다
+const vnTodayStr = () =>
+  new Date(Date.now() + VN_OFFSET_MS).toISOString().split("T")[0];
+const newsDateStr = (targetDate) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  const local = targetDate
+    ? `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}`
+    : vnTodayStr();
+  const vnToday = vnTodayStr();
+  return local > vnToday ? vnToday : local;
+};
+
 
 // 뉴스 카테고리 섹션 정의 (WordPress 사이트와 동일한 순서)
 const NEWS_SECTIONS_CONFIG = [
@@ -513,6 +536,47 @@ const NEWS_TERMINAL_API_URL =
   "https://chaovietnam.co.kr/wp-json/chaovn/v1/news-terminal";
 
 /**
+ * 뉴스 요청 전용 타임아웃.
+ *
+ * 기본 5초로는 부족하다 — 이 응답은 light=1 로 줄이고도 147KB 라서 베트남 모바일망에서
+ * 자주 넘긴다. 그러면 아래 catch 로 떨어져 뉴스탭이 통째로 빈다(매거진 홈을 12초로
+ * 따로 둔 것과 같은 이유다).
+ */
+const NEWS_REQUEST_TIMEOUT = 12000;
+
+/**
+ * 쌓이기만 하던 옛 뉴스 캐시를 지운다.
+ *
+ * 왜 필요한가: 캐시 키가 (날짜 × 채움 여부) 마다 하나씩 생기는데 지우는 코드가 없었다.
+ * 게다가 안드로이드의 AsyncStorage 는 SQLite 이고 **6MB 상한**이 걸려 있다(iOS 는 파일
+ * 기반이라 상한이 없다 — 그래서 이 사고는 안드로이드에서만 났다). 꽉 차면 setItem 이
+ * "database or disk is full" 로 던진다. 옛 V4·V5 키는 기사 본문까지 담고 있어 1건에
+ * 수백 KB 라 이것들만으로도 한도에 닿는다.
+ */
+let newsCachePruned = false; // 앱 실행당 한 번만 (getAllKeys 는 DB 전체 조회다)
+const pruneNewsCache = async (keepRecent = 6) => {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    // 옛 버전 키(V4·V5…)는 전부, 현재 버전 키는 최근 것만 남긴다.
+    // 키 꼬리가 날짜라 사전순 정렬 = 시간순 정렬이다.
+    // 접두사에 _ 를 붙이지 않는다 — 맨 처음 키는 버전 없는 "NEWS_SECTIONS_CACHE" 였다
+    const obsolete = keys.filter(
+      (k) =>
+        k.startsWith("NEWS_SECTIONS_CACHE") && !k.startsWith(NEWS_CACHE_KEY),
+    );
+    const current = keys
+      .filter((k) => k.startsWith(`${NEWS_CACHE_KEY}_`))
+      .sort();
+    const drop = obsolete.concat(
+      current.slice(0, Math.max(0, current.length - keepRecent)),
+    );
+    if (drop.length) await AsyncStorage.multiRemove(drop);
+  } catch {
+    // 청소 실패는 조용히 넘긴다 — 이것 때문에 뉴스가 안 나오면 본말전도다
+  }
+};
+
+/**
  * @param {boolean} forceRefresh 캐시 무시하고 새로 받기
  * @param {Date}    targetDate   조회할 날짜
  * @param {boolean} allowBackfill "오늘의 뉴스"면 true — 섹션이 비면 서버가 과거 기사로 채운다.
@@ -524,14 +588,18 @@ export const getNewsSectionsCached = async (
   targetDate = null,
   allowBackfill = true,
 ) => {
+  // 캐시 키는 실패 경로에서도 써야 한다 — try 밖에서 만든다.
+  // (예전엔 catch 안에서 다시 만들면서 _f 를 빠뜨려, 저장한 적 없는 키를 뒤졌다)
+  const dateStr = newsDateStr(targetDate);
+  // 채운 지면과 안 채운 지면은 내용이 다르므로 캐시도 따로 둔다
+  const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}${allowBackfill ? "_f" : ""}`;
+
+  if (!newsCachePruned) {
+    newsCachePruned = true;
+    pruneNewsCache();
+  }
+
   try {
-    const dateStr = targetDate
-      ? targetDate.toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0];
-
-    // 채운 지면과 안 채운 지면은 내용이 다르므로 캐시도 따로 둔다
-    const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}${allowBackfill ? "_f" : ""}`;
-
     // 1. 캐시 확인
     if (!forceRefresh) {
       const cached = await AsyncStorage.getItem(cacheKey);
@@ -557,7 +625,7 @@ export const getNewsSectionsCached = async (
       ? `${NEWS_TERMINAL_API_URL}/${dateStr}${query}`
       : `${NEWS_TERMINAL_API_URL}${query}`;
 
-    const response = await api.get(apiUrl);
+    const response = await api.get(apiUrl, { timeout: NEWS_REQUEST_TIMEOUT });
     const apiData = response.data;
 
     if (!apiData.success) {
@@ -631,14 +699,22 @@ export const getNewsSectionsCached = async (
       date: apiData.date || dateStr,
     };
 
-    // 4. 캐시 저장
-    await AsyncStorage.setItem(
+    // 4. 캐시 저장 — ⛔ 여기서 await 하면 안 된다.
+    //
+    // 저장 실패는 "다음에 좀 느려진다" 일 뿐인데, 예전에는 이 await 가 성공 경로
+    // 한가운데(return 앞)에 있어서 던지는 순간 catch 로 떨어졌다. 그러면 이미 정상으로
+    // 받아온 뉴스가 통째로 버려지고 빈 목록이 나갔다 — 화면이 텅 비고 하단 광고만 남는
+    // 그 증상이다. 안드로이드 AsyncStorage 6MB 상한(pruneNewsCache 주석 참고)에 닿으면
+    // 실제로 그렇게 된다. 저장은 뒤에서 조용히 하고, 실패하면 청소만 걸어 둔다.
+    AsyncStorage.setItem(
       cacheKey,
       JSON.stringify({
         data: result,
         timestamp: Date.now(),
       }),
-    );
+    ).catch(() => {
+      pruneNewsCache();
+    });
 
     console.log(
       `✅ ${newsSections.length}개 뉴스 섹션 로드 완료 (${Date.now() - startTime}ms)`,
@@ -647,12 +723,8 @@ export const getNewsSectionsCached = async (
   } catch (error) {
     console.error("getNewsSectionsCached error:", error.message);
 
-    // 에러 시 캐시 사용 시도
+    // 에러 시 캐시 사용 시도 — 위에서 만든 cacheKey 를 그대로 쓴다(_f 포함).
     try {
-      const dateStr = targetDate
-        ? targetDate.toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0];
-      const cacheKey = `${NEWS_CACHE_KEY}_${dateStr}`;
       const cached = await AsyncStorage.getItem(cacheKey);
       if (cached) {
         console.log("⚠️ 에러 발생, 이전 캐시 사용");
@@ -662,7 +734,9 @@ export const getNewsSectionsCached = async (
       console.error("캐시 읽기 실패:", cacheError);
     }
 
-    return { newsSections: [], totalCount: 0, date: null };
+    // failed: 화면이 "그날 뉴스가 없음" 과 "못 불러옴" 을 구분해 안내하기 위한 표시.
+    // 둘 다 빈 목록이라 이 표시가 없으면 사용자에게 할 말이 없다.
+    return { newsSections: [], totalCount: 0, date: null, failed: true };
   }
 };
 

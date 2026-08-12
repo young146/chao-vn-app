@@ -47,5 +47,9 @@
     "news": "Tin tức",
     "board": "Bảng tin",
     "magazine": "Tạp chí"
-  }
+  },
+  "noNewsHint": "Hãy thử chọn ngày khác.",
+  "newsLoadFailed": "Không tải được tin tức",
+  "newsLoadFailedHint": "Vui lòng kiểm tra kết nối mạng rồi thử lại.",
+  "retry": "Thử lại"
 }

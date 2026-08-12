@@ -47,5 +47,9 @@
     "news": "뉴스",
     "board": "게시판",
     "magazine": "매거진"
-  }
+  },
+  "noNewsHint": "다른 날짜를 골라 보세요.",
+  "newsLoadFailed": "뉴스를 불러오지 못했습니다",
+  "newsLoadFailedHint": "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+  "retry": "다시 시도"
 }
