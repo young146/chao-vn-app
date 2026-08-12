@@ -21,14 +21,28 @@
 >
 > 🚨 2026-06-25 2.4.3 빌드에서 아래 ①이 **누락된 채 나가 iOS 측정이 지금까지 0건**인 사고 있었음. 재발 금지.
 
-- [ ] **⓪ Android targetSdk 36 (Android 16)** 🔴🔴 **마감 2026-08-31** — 그날부터 Google Play 는 API 36 미만 타겟의 **업데이트 제출을 거부**한다(기존 앱은 살아있음. 11/1 까지 연장 신청은 가능). `app.json` 의 expo-build-properties 가 `targetSdkVersion: 35` 로 **명시 고정**돼 있었다 — SDK 54(RN 0.81)는 이미 Android 16 대응이므로 핀만 올리면 된다. **딸림 변화**: API 36 은 최소폭 600dp 이상(태블릿·폴더블 펼침·크롬북)에서 세로고정을 무시한다 → 사장님 결정으로 **세로 유지**(`android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY=true`, application 레벨). ⚠️ 이 opt-out 은 **API 37 에서는 안 통한다** — 다음 사이클에 태블릿 대응이 숙제. → 빌드 후 **폰 세로 정상 + 태블릿에서 세로 유지** 확인되면 ✅
-- [ ] **⓪-b Android 푸시 알림 아이콘** 🔴 — `app.json` 의 expo-notifications 플러그인이 아이콘으로 `./assets/icon.png` 를 가리키고 있었다. 이 파일은 **알파 채널이 아예 없는 불투명 이미지**(PNG 청크 확인: PLTE 만, tRNS 없음). 안드로이드는 상태표시줄 아이콘을 **알파로 실루엣을 떠서** 그리므로 → **흰 사각형 덩어리**가 된다. 제대로 만든 `notification_icon.png`(96×96 RGBA)가 이미 있는데 옛 `notification` 항목에만 걸려 있었고, 플러그인 소스상 **플러그인 설정이 우선**(`icon = icon || getNotificationIcon(config)`). → 빌드 후 **실기기 푸시 알림에 로고 실루엣이 뜨면** ✅
+> ✅ **2026-08-09 전수 대조 — 아래는 2.4.4(빌드 76, 8/6·8/8)에 이미 실려 나갔음이 소스로 확인되어 삭제/축소했다.**
+> 확인 방법: `git show <빌드커밋>:app.json` 으로 **빌드 시점 소스**를 직접 읽음. 문서를 믿지 않고 실물을 봤다.
+> · **⓪ Android targetSdk 36** — 빌드 시점 이미 `36`. Play 가 2.4.4 를 받았으므로 **8/31 마감 해소됨.** → 삭제
+> · **⓪-f www 딥링크** — 사장님이 **해결책 A(Vercel 이 www 를 리다이렉트 없이 서빙)** 를 적용. 구글 Digital Asset Links API 로
+>   4개 도메인(vnkorlife.com·www·chaovietnam.co.kr·www) **전부 검증 통과** 확인. `app.json` 의 www 항목은 이제 유효하므로 **그대로 둔다.** → 삭제
+
+- [ ] **⓪-b Android 푸시 알림 아이콘 — 빌드에는 들어감. 사장님 눈으로 확인만 남음** 🟡 — 2.4.4 빌드 시점 `app.json` 의 expo-notifications 플러그인이 `./assets/notification_icon.png` 를 가리키는 것 확인. (예전엔 알파 채널이 없는 `icon.png` 를 가리켜 상태표시줄에 **흰 사각형 덩어리**로 떴다 — 안드로이드는 알파로 실루엣을 뜬다.) → **실기기 푸시 알림에 로고 실루엣이 뜨면** ✅ 삭제
 - [ ] **⓪-c AsyncStorage 메이저 불일치 — ⛔ 이번 빌드에서 *의도적으로 제외*** 🟡 — 설치 `1.23.1` ↔ SDK 54 요구 `2.2.0`. `expo-doctor` 가 매번 경고하지만 **고치려 들지 말 것.**
   - **왜 그대로 두는가**: 2026-01-18 커밋 `e3bc46c` 가 **iOS 시작 즉시 크래시**(`RCTThirdPartyComponentsProvider.mm` 의 Fabric 등록 중 nil) 때문에 2.2.0 → 1.23.1 로 **일부러 내린 것**이다. `package.json` 의 `overrides` 3개도 그때 같이 박혔다(firebase·@firebase/auth 가 각자 다른 버전을 끌어오는 것을 막기 위해). 이후 **7개월간 운영에서 안정적**.
   - **왜 지금 올리면 안 되는가**: 시작 크래시는 **OTA 로 못 고친다** — 앱이 업데이트를 받기 전에 죽는다. iOS 는 스토어 재심사까지 며칠. 날짜 마감(⓪)이 걸린 빌드에 크래시 전력이 있는 변경을 섞는 것은 나쁜 거래다.
   - **언제 하나**: 마감 빌드가 스토어에 안착한 뒤, **개발빌드(`--profile development`)로 iOS 실기기 부팅 확인**을 거쳐 따로 올린다. 참고로 `@firebase/auth` 1.12.0 은 `^2.2.0` 을 원하지만 `optional` 이라 경고일 뿐 설치는 정상이다.
-- [ ] **⓪-e 앱 아이콘 원본 대기** — 사장님이 1024px+ 원본을 찾아주시기로 함(2026-08-06). 받으면 icon / adaptive-icon(안전영역 여백 포함) / splash 를 각각 다시 생성.
-- [ ] **⓪-d 앱 아이콘 해상도** 🟡 — `icon.png`·`adaptive-icon.png`·`splash.png` **셋 다 동일 파일**(해시 일치, 225×225). 런처는 432px, iOS 앱스토어는 1024px 로 그리므로 **최대 4.5배 확대 → 뿌옇다**. 적응형 아이콘은 바깥 33% 가 마스크로 잘리는데 여백 없는 꽉 찬 정사각형이라 **흰 테두리·산봉우리가 잘린다**. 사장님이 원본(1024px+) 찾아주시기로 함(2026-08-06). → 빌드 후 **런처·앱스토어 아이콘이 선명하고 안 잘리면** ✅
+- [ ] **⓪-d·⓪-e 앱 아이콘 — 빌드에는 들어감. 사장님 눈으로 확인만 남음** 🟡 — 2.4.4 빌드 시점 `icon.png` **1024×1024** 확인, `adaptive-icon.png` 도 **별도 파일로 분리**됨(예전엔 셋이 같은 225×225 파일이라 최대 4.5배 확대 → 뿌옇고, 적응형 마스크에 산봉우리가 잘렸다). → **런처·앱스토어 아이콘이 선명하고 안 잘리면** ✅ 삭제
+
+- [ ] **③ 음성으로 검색하기 (어르신 접근성)** 🔵 **다음 빌드의 주인공** — 2026-08-09 사장님 요청.
+  어르신들이 "다 잘 나온다"고 놀라셨는데 **키보드에서 막혔다.** 오타도 많다. 검색을 아무리 빠르게 만들어도 못 치면 소용없다.
+  - `expo-speech-recognition@3.1.3` (SDK 54 겨냥본. Expo 공식 아님 — **defensive load 로 감쌀 것**)
+  - `expo-speech@~14.0.8` (Expo 공식) — 답을 **읽어주기**. 어르신은 말하기만 불편한 게 아니라 **읽기도 불편**하다.
+  - `app.json`: 안드로이드 `RECORD_AUDIO` 추가(**지금 없다**), iOS `NSSpeechRecognitionUsageDescription` 추가
+    (`NSMicrophoneUsageDescription` 은 이미 있음)
+  - → 빌드 후 **실기기에서 말해서 검색되고, 답을 읽어주면** ✅
+- [ ] **④ `expo-application` 추가** 🟡 — 화면의 버전 표시가 **실제 네이티브 빌드와 어긋난다**(아래 ① 의 ⚠️ 함정 참조).
+  `nativeBuildVersion` 을 함께 표시하면 "지금 이 폰에 깔린 게 몇 번 빌드인가"를 눈으로 확인할 수 있다. ③ 빌드에 동승.
 
 - [ ] **① iOS Firebase Analytics — 앱 쪽 준비 완료, 데이터 유입 대기** 🟡 (2026-08-09 전수 점검 완료. **아래 6개는 다시 확인하지 말 것**)
   - ✅ **빌드 76 바이너리 실측** — IPA 내려받아 실행파일에서 `FIRAnalytics`·`GoogleAppMeasurement`·`RNFBAnalyticsModule`·`FIRApp` 심볼 전부 확인. `Info.plist` 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED=True`, 수집 차단 키(`..._DEACTIVATED` 등) 없음. `GoogleService-Info.plist` 가 `Payload/app.app/` 에 번들됨(`IS_ANALYTICS_ENABLED=True`). **빌드 75 도 동일** — 즉 8월 빌드부터는 정상 탑재.
