@@ -118,11 +118,19 @@
   "재시작은 됐는데 버전이 그대로" — 지금 증상보다 고약한 고장이 될 뻔했다.
   → **iOS 는 `Updates.reloadAsync()` 를 그대로 쓴다. iOS 동작은 이 작업 전과 완전히 동일하다.**
   크래시 화면의 폴백도 안드로이드에서만 건다.
-- **📌 곁가지로 발견 (아직 안 고침 — 사장님 판단 대기)**: [App.js](App.js) 의 **자동** 업데이트 경로도
-  iOS 에서 `RNRestart.Restart()` 를 부른다(`fetchUpdateAsync()` 직후). 위 논리대로면 **iOS 는 자동
-  업데이트 직후 재시작해도 옛 번들이 뜨고, 새 버전은 그 다음 콜드 스타트에 적용**된다. 즉 iOS 사용자는
-  OTA 를 **한 박자 늦게** 받는다. 고치려면 iOS 만 `Updates.reloadAsync()` 로 바꾸면 되는데,
-  **부팅 경로라 사장님 승인 후에** 손댄다.
+- **📌 곁가지로 발견 → ✅ 같이 고침 (사장님 승인 2026-08-12)**: [App.js](App.js) 의 **자동** 업데이트
+  경로도 iOS 에서 `RNRestart.Restart()` 를 불렀다(`fetchUpdateAsync()` 직후). 위 논리대로면 **iOS 는
+  자동 업데이트 직후 재시작해도 옛 번들이 뜨고, 새 버전은 그 다음 콜드 스타트에 적용**된다 —
+  iOS 사용자가 OTA 를 **한 박자 늦게** 받고 있었다.
+  → `restartApp({ markOtaApplied: true })` 호출로 교체(플랫폼 분기는 그 함수 안에 있다).
+  **부수 효과로 부팅이 더 안전해졌다**: App.js 최상단의 `import RNRestart from "react-native-restart"`
+  (네이티브 모듈 하드 import)가 사라지고, restartApp 안의 defensive load 로 바뀌었다 —
+  모듈이 없는 바이너리에서도 부팅이 죽지 않는다.
+  - 뒷받침: expo-updates 안에 절차가 **두 개** 따로 있다 — `RelaunchProcedure`(런처 교체 + 리로드) 와
+    `RecreateReactContextProcedure`(리로드만). RNRestart 의 iOS 동작은 **후자와 동일**하다.
+    expo 스스로 이 둘을 다른 이름으로 구분해 둔 것이 근거다.
+  - ⚠️ 아직 **소스 기반 추정**이다. 실물 확인 방법: 아이폰에서 자동 업데이트 직후 더보기의 버전이
+    안 바뀌었다가, 앱을 완전히 껐다 켜면 바뀌면 추정이 맞다.
 - **배포**: 앱 OTA (production) — 순수 JS. `react-native-restart` 는 이미 `package.json`·바이너리에 있다
   (App.js 가 최상단에서 import 중) → **빌드 불필요.**
 - **상태**: ⏳ 안드로이드 실기기 확인 대기 (iOS 는 무변경)

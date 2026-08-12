@@ -99,7 +99,10 @@ import {
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import RNRestart from "react-native-restart";
+// 재시작은 lib/restartApp.js 한 곳에서만 한다 (플랫폼별로 수단이 다르다 — 그 파일 주석 참고).
+// 여기서 react-native-restart 를 직접 import 하지 않는 것이 부팅에도 안전하다:
+// 그 안에서는 defensive load 로 받으므로, 모듈이 없는 바이너리에서도 앱이 죽지 않는다.
+import { restartApp } from "./lib/restartApp";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from 'expo-linking';
 import { NavigationContainer, useNavigation, createNavigationContainerRef, getStateFromPath as defaultGetStateFromPath } from "@react-navigation/native";
@@ -664,14 +667,16 @@ export default function App() {
 
             console.log("✅ 다운로드 완료 - 자동 재시작...");
 
-            // 루프 방지 플래그 저장 후 즉시 재시작
-            await AsyncStorage.multiSet([
-              ['OTA_JUST_APPLIED', '1'],
-              ['OTA_SKIP_CHECK', '1'],
-            ]).catch(() => {});
-
-            // 프로세스 완전 재시작 (iOS/Android 동일) - 껐다 켜기와 동일하여 OTA 후 멈춤 방지
-            RNRestart.Restart();
+            // 재시작 (루프 방지 플래그 저장도 restartApp 안에서 함께 한다).
+            //
+            // ⚠️ 예전에는 여기서 iOS·안드로이드 모두 RNRestart.Restart() 를 불렀다.
+            //    안드로이드에서는 옳다(프로세스를 죽였다 살리므로 새 번들이 뜬다).
+            //    그러나 **iOS 에서는 RNRestart 가 JS 만 다시 읽는다** — 새 번들을 가리키게
+            //    바꾸는 단계(setLauncher)를 건너뛰므로 **옛 번들이 그대로 다시 뜬다.**
+            //    즉 iOS 사용자는 "재시작은 됐는데 버전은 그대로"였고, 새 버전은 그 다음
+            //    콜드 스타트에야 적용됐다 — OTA 를 한 박자 늦게 받고 있었다.
+            //    (근거와 소스 위치는 lib/restartApp.js 상단 주석에 전부 적어 뒀다)
+            await restartApp({ markOtaApplied: true });
           }
         } catch (e) {
           console.log("⚠️ 업데이트 체크 실패 (앱 정상 작동):", e?.message);
