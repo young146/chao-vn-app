@@ -12,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { askAssistantStream, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
+import VoiceSearchSheet from '../components/VoiceSearchSheet';
+import { isVoiceSupported, isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const ORANGE = '#FF6B35';
@@ -64,6 +66,11 @@ export default function AssistantScreen({ navigation, route }) {
   const [streaming, setStreaming] = useState('');
   // 지금 무엇을 하는 중인지("'컨설팅' 찾는 중"). 서버가 알려준다.
   const [status, setStatus] = useState('');
+  // 말로 묻기 / 읽어주기 — 모듈이 없는 기기에서는 버튼을 숨긴다.
+  const micOK = isVoiceSupported();
+  const speakOK = isSpeakSupported();
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [speakingIdx, setSpeakingIdx] = useState(-1);   // 지금 읽고 있는 답변의 위치
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -130,7 +137,21 @@ export default function AssistantScreen({ navigation, route }) {
     });
   }, [persist]);
 
+  // 답을 소리로 읽어준다. 다시 누르면 멈춤. 다른 답을 누르면 그쪽으로 옮겨 간다.
+  // ⚠️ setState 업데이터 안에서 speak/stop 을 부르지 않는다 — 업데이터는 순수해야 한다
+  //    (이 파일 위쪽 persist() 에도 같은 주의가 붙어 있다). 그래서 ref 로 현재값을 읽는다.
+  const speakingRef = useRef(-1);
+  useEffect(() => { speakingRef.current = speakingIdx; }, [speakingIdx]);
+  const toggleSpeak = useCallback((idx, text) => {
+    const cur = speakingRef.current;
+    stopSpeaking();
+    if (cur === idx) { setSpeakingIdx(-1); return; }
+    setSpeakingIdx(idx);
+    speak(text, { onDone: () => setSpeakingIdx(-1) });
+  }, []);
+
   const newChat = useCallback(() => {
+    stopSpeaking(); setSpeakingIdx(-1);
     setMessages([]);
     setInput('');
     chatIdRef.current = newId();
@@ -162,7 +183,7 @@ export default function AssistantScreen({ navigation, route }) {
       .catch(() => {});
     chatIdRef.current = newId();
     // 화면을 떠나면 돌고 있는 스트림을 끊는다 — 사라진 화면에 setState 하지 않기 위해.
-    return () => { streamRef.current?.cancel?.(); };
+    return () => { streamRef.current?.cancel?.(); stopSpeaking(); };
   }, []);
 
   // 헤더 우측: 기록 / 새 채팅
@@ -241,6 +262,21 @@ export default function AssistantScreen({ navigation, route }) {
                 <View style={styles.botBubble}>
                   <Text style={styles.botText}>{renderRich(m.content)}</Text>
                 </View>
+                {/* 읽어주기 — 말로 물으신 분은 읽기도 불편하다(노안).
+                    자동 재생은 안 한다. 듣고 싶을 때만 누르면 된다. */}
+                {speakOK && (
+                  <TouchableOpacity
+                    onPress={() => toggleSpeak(i, m.content)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={speakingIdx === i ? '읽기 멈춤' : '읽어주기'}
+                    style={styles.speakBtn}
+                  >
+                    <Ionicons name={speakingIdx === i ? 'stop-circle' : 'volume-high'} size={17} color="#9CA3AF" />
+                    <Text style={styles.speakText}>{speakingIdx === i ? '멈춤' : '읽어주기'}</Text>
+                  </TouchableOpacity>
+                )}
                 {!!(m.results && m.results.length) && (
                   <View style={styles.cards}>
                     {m.results.slice(0, 8).map((r, j) => (
@@ -283,6 +319,19 @@ export default function AssistantScreen({ navigation, route }) {
           onSubmitEditing={() => send(input)}
           editable={!loading}
         />
+        {/* 말로 묻기 — 대화창에서도 키보드 없이 이어갈 수 있어야 한다 */}
+        {micOK && !loading && (
+          <TouchableOpacity
+            onPress={() => setVoiceOpen(true)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="말로 묻기"
+            style={styles.micInline}
+          >
+            <Ionicons name="mic" size={22} color={ORANGE} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[styles.sendBtn, (loading || !input.trim()) && styles.sendBtnOff]}
           onPress={() => send(input)}
@@ -327,6 +376,16 @@ export default function AssistantScreen({ navigation, route }) {
 
       {/* 진출기업·옐로 상세 — 앱 안 팝업 */}
       <BizDetailSheet visible={bizSeed !== null} seed={bizSeed} onClose={() => setBizSeed(null)} />
+      <VoiceSearchSheet
+        visible={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onResult={(t) => {
+          // 말한 내용을 **바로 보낸다.** 입력칸에 넣고 "보내기를 누르세요" 하면 거기서 또 막힌다.
+          setVoiceOpen(false);
+          stopSpeaking(); setSpeakingIdx(-1);
+          send(t);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -367,6 +426,9 @@ const styles = StyleSheet.create({
 
   inputBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#E5E7EB', backgroundColor: '#fff' },
   input: { flex: 1, backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: '#111827' },
+  micInline: { paddingHorizontal: 8, paddingVertical: 6 },
+  speakBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 2 },
+  speakText: { color: '#9CA3AF', fontSize: 12, fontWeight: '700' },
   sendBtn: { backgroundColor: ORANGE, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 11 },
   sendBtnOff: { opacity: 0.4 },
   sendText: { color: '#fff', fontWeight: '700', fontSize: 15 },

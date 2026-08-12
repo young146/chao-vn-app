@@ -14,6 +14,8 @@ import {
   askAssistantStream, resolveAssistantResultUrl,
 } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
+import VoiceSearchSheet from '../components/VoiceSearchSheet';
+import { isVoiceSupported, isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const BRAND = '#FF6B35';
@@ -53,6 +55,11 @@ export default function SearchResultsScreen({ route, navigation }) {
   const [aiLoading, setAiLoading] = useState(false);
   // 지금 무엇을 하는 중인지("'컨설팅' 찾는 중"). 서버가 알려준다.
   const [aiStatus, setAiStatus] = useState('');
+  // 말로 검색 / 읽어주기 — 모듈이 없는 기기에서는 버튼을 숨긴다.
+  const micOK = isVoiceSupported();
+  const speakOK = isSpeakSupported();
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   // 빠르게 다시 검색하면 예전 답이 늦게 도착해 새 답을 덮을 수 있다 → 순번으로 막는다.
   const aiSeq = useRef(0);
   // 돌고 있는 스트림 손잡이 — 새 검색을 하거나 화면을 떠날 때 끊는다.
@@ -147,8 +154,9 @@ export default function SearchResultsScreen({ route, navigation }) {
   useEffect(() => {
     if (initialQ) { search({ q: initialQ, type: '', city, district, page: 1 }); askAI(initialQ); }
     else setLoading(false);
-    // 화면을 떠나면 돌고 있는 AI 스트림을 끊는다 — 사라진 화면에 setState 하지 않기 위해.
-    return () => { aiStreamRef.current?.cancel?.(); };
+    // 화면을 떠나면 돌고 있는 AI 스트림을 끊고 읽기도 멈춘다.
+    // (사라진 화면에 setState 하지 않기 위해서이기도 하고, 다른 화면에서 소리가 계속 나면 안 된다)
+    return () => { aiStreamRef.current?.cancel?.(); stopSpeaking(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,9 +164,27 @@ export default function SearchResultsScreen({ route, navigation }) {
   //    타입칩·지역·페이지는 이미 받은 목록을 걸러내는 동작이라 질문이 달라지지 않는다.
   //    거기서도 부르면 같은 답을 돈 내고 다시 받는 셈이고, 서버 rate limit 에도 걸린다.
   const onSubmit = () => {
+    stopSpeaking(); setSpeaking(false);   // 새로 물으면 읽던 것은 멈춘다
     setActiveQ(query); setTypeFilter('');
     search({ q: query, type: '', city, district, page: 1 });
     askAI(query);
+  };
+
+  // 답을 소리로 읽어준다. 다시 누르면 멈춤.
+  // ⚠️ 자동 재생하지 않는다 — 공공장소에서 갑자기 소리가 나면 그 길로 안 쓰게 된다.
+  const toggleSpeak = () => {
+    if (speaking) { stopSpeaking(); setSpeaking(false); return; }
+    setSpeaking(true);
+    speak(aiReply, { onDone: () => setSpeaking(false) });
+  };
+
+  // 말로 검색해서 들어온 문장 — 검색창에 넣고 **바로 검색까지** 한다.
+  const onVoiceResult = (t) => {
+    setVoiceOpen(false);
+    stopSpeaking(); setSpeaking(false);
+    setQuery(t); setActiveQ(t); setTypeFilter('');
+    search({ q: t, type: '', city, district, page: 1 });
+    askAI(t);
   };
   const onChip = (t) => { setTypeFilter(t); search({ q: activeQ, type: t, city, district, page: 1 }); };
   const onCity = (c) => { setCity(c); setDistrict(''); setPicker(null); search({ q: activeQ, type: typeFilter, city: c, district: '', page: 1 }); };
@@ -201,6 +227,20 @@ export default function SearchResultsScreen({ route, navigation }) {
               style={styles.searchInput}
               autoFocus={!initialQ}
             />
+            {/* 말로 검색 — 여기서도 다시 물을 수 있어야 한다.
+                홈에서만 되면 "한 번 검색한 뒤에는 또 키보드"가 되어 반쪽이다. */}
+            {micOK && (
+              <TouchableOpacity
+                onPress={() => setVoiceOpen(true)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="말로 검색하기"
+                style={styles.micInline}
+              >
+                <Ionicons name="mic" size={20} color={BRAND} />
+              </TouchableOpacity>
+            )}
           </View>
           <TouchableOpacity style={styles.searchBtn} onPress={onSubmit} activeOpacity={0.85}>
             <Text style={styles.searchBtnText}>검색</Text>
@@ -228,6 +268,26 @@ export default function SearchResultsScreen({ route, navigation }) {
                 → 링크를 없애고 답 아래에 입력창을 뒀다(아래 followRow). */}
             <View style={styles.aiHead}>
               <Text style={styles.aiHeadText}>✦ AI 답변</Text>
+              {/* 읽어주기 — 말로 물으신 분은 **읽기도 불편하다**(노안).
+                  말로 묻고 답은 눈으로 읽어야 하면 반쪽짜리다.
+                  ⚠️ 자동 재생은 안 한다. 공공장소에서 갑자기 소리가 나면 다시 안 쓴다. */}
+              {speakOK && !!aiReply && !aiLoading && (
+                <TouchableOpacity
+                  onPress={toggleSpeak}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={speaking ? '읽기 멈춤' : '답변 읽어주기'}
+                  style={styles.speakBtn}
+                >
+                  <Ionicons
+                    name={speaking ? 'stop-circle' : 'volume-high'}
+                    size={19}
+                    color="#7C3AED"
+                  />
+                  <Text style={styles.speakText}>{speaking ? '멈춤' : '읽어주기'}</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {aiLoading && !aiReply ? (
@@ -388,6 +448,11 @@ export default function SearchResultsScreen({ route, navigation }) {
 
       {/* 진출기업·옐로 상세 — 앱 안 팝업 */}
       <BizDetailSheet visible={bizSeed !== null} seed={bizSeed} onClose={() => setBizSeed(null)} />
+      <VoiceSearchSheet
+        visible={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onResult={onVoiceResult}
+      />
     </View>
   );
 }
@@ -425,6 +490,9 @@ const styles = StyleSheet.create({
   aiHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   aiHeadText: { color: '#6D28D9', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.3 },
   aiMore: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
+  micInline: { paddingLeft: 6, paddingRight: 2 },
+  speakBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  speakText: { color: '#7C3AED', fontSize: 12.5, fontWeight: '700' },
   aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 4 },
   aiLoadingText: { color: '#6B5B8A', fontSize: 13 },
   aiReply: { color: '#1F1B2E', fontSize: 14, lineHeight: 21 },

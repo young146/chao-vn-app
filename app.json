@@ -206,6 +206,13 @@
       "@react-native-google-signin/google-signin",
       "@react-native-community/datetimepicker",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "말로 검색하시려면 마이크가 필요합니다. 말씀하신 내용은 검색어로만 쓰이고 저장하지 않습니다.",
+          "speechRecognitionPermission": "말씀하신 내용을 글자로 바꿔 검색창에 넣기 위해 음성 인식을 사용합니다. 저장하거나 다른 곳에 보내지 않습니다."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

@@ -18,6 +18,9 @@ import { useRequireAuth } from "../hooks/useRequireAuth";
 import { ScrollBottomBanner } from "../components/AdBanner";
 import * as Updates from "expo-updates";
 import Constants from "expo-constants";
+// 네이티브 빌드 번호를 읽기 위해. 구버전 앱에는 이 모듈이 없으므로 **방어적으로** 불러온다.
+let Application = null;
+try { Application = require("expo-application"); } catch (_) { /* 구버전 빌드 */ }
 // 재시작은 lib/restartApp.js 한 곳에서만 한다 —
 // reloadAsync 로는 안드로이드에서 조용히 실패한다(그 파일 주석에 이유 전부).
 import { restartApp } from "../lib/restartApp";
@@ -357,7 +360,14 @@ export default function MoreScreen({ navigation }) {
 
       {/* 앱 정보 */}
       <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>{t('appVersion', { version: Constants.expoConfig?.version || '2.2.5' })}</Text>
+        {/* ⚠️ expoConfig.version 은 **OTA 로 전달되는 JS 값**이라 실제 설치된
+            네이티브 빌드와 어긋난다 — 6월 빌드에도 OTA 가 닿으면 "v2.4.4" 로 뜼었다.
+            그래서 괄호 안에 **진짜 빌드 번호**를 함께 보여 준다.
+            이게 없어서 "이 폰에 깔린 게 몇 번 빌드인가"를 재설치 없이는 확인할 수 없었다. */}
+        <Text style={styles.appInfoText}>
+          {t('appVersion', { version: Constants.expoConfig?.version || '2.2.5' })}
+          {Application?.nativeBuildVersion ? ` (build ${Application.nativeBuildVersion})` : ''}
+        </Text>
         {__DEV__ ? (
           <Text style={[styles.appInfoText, { color: "#FF6B35" }]}>
             {t('devMode')}
