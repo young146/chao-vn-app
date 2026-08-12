@@ -112,11 +112,11 @@ export default function SearchResultsScreen({ route, navigation }) {
     let acc = '';
     speechRef.current = readAloud
       ? createSpeechStream({
+          onStart: () => setSpeaking(true),     // 소리가 실제로 나기 시작할 때만 '멈춤' 표시
           onIdle: () => setSpeaking(false),
           onError: () => { setSpeaking(false); reportSpeechProblem(); },
         })
       : null;
-    if (readAloud) setSpeaking(true);
 
     // 흘려보내기 — 글자가 만들어지는 대로 붙인다. 첫 글자가 2~3초에 뜬다.
     aiStreamRef.current = askAssistantStream([{ role: 'user', content: text }], {

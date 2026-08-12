@@ -129,11 +129,12 @@ export default function AssistantScreen({ navigation, route }) {
     askedByVoice.current = false;          // 이번 질문에만 적용
     speechRef.current = readAloud
       ? createSpeechStream({
+          onStart: () => setReading(true),      // 소리가 실제로 나기 시작할 때만 '멈춤' 표시
           onIdle: () => { setSpeakingIdx(-1); setReading(false); },
           onError: () => { setReading(false); setSpeakingIdx(-1); reportSpeechProblem(); },
         })
       : null;
-    setReading(readAloud);
+    setReading(false);
 
     let acc = '';   // 지금까지 도착한 글자(화면 표시용)
     const finish = (reply, results) => {
