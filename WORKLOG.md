@@ -51,7 +51,11 @@
     프로덕션 빌드 후 TestFlight 로 사장님 아이폰에서 확인하는 것이 현실적 경로.
   - ⚠️ `runtimeVersion` 은 **2.4.3 그대로 둔다** — 새 모듈이 defensive load 라 구버전 바이너리에서도 안전하고,
     그래야 OTA 한 번으로 신·구 사용자 모두에게 닿는다(구버전에서는 마이크 버튼이 스스로 숨는다)
-  - → **iOS 실기기 확인 + 프로덕션 빌드 + 스토어 승인**되면 ✅
+  - 📌 **2026-08-13 버전 2.5.0 으로 확정** (사장님: iOS 는 빌드마다 버전을 올린다. 빌드번호는 autoIncrement 가 처리).
+    빌드+제출은 사장님이 직접 실행(자격증명 입력 필요): `npx eas-cli@latest build --platform all --profile production --auto-submit`
+    ⚠️ eas.json 의 submit 설정상 **iOS = TestFlight 까지만**(앱스토어 공개는 ASC 에서 별도 수동),
+    **안드로이드 = production 트랙 즉시 공개**(구글 심사 후 전체 배포됨)이다.
+  - → **iOS TestFlight 실기기 확인 + 스토어 승인**되면 ✅
 - [x] **④ `expo-application`** — 완료. 더보기 화면 버전 뒤에 `(build 번호)` 표시. ③ 빌드에 동승.
 
 - [ ] **① iOS Firebase Analytics — 앱 쪽 준비 완료, 데이터 유입 대기** 🟡 (2026-08-09 전수 점검 완료. **아래 6개는 다시 확인하지 말 것**)
