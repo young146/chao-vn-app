@@ -3,7 +3,7 @@
     "name": "씬짜오베트남",
     "slug": "chao-vn-app",
     "owner": "young146",
-    "version": "2.4.4",
+    "version": "2.4.5",
     "newArchEnabled": false,
     "scheme": "chaovietnam",
     "orientation": "portrait",
@@ -64,7 +64,7 @@
         ],
         "NSPhotoLibraryUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 선택하기 위해 사진 라이브러리에 접근합니다. 예: 프로필 사진을 업로드하거나 중고거래 물품 사진을 등록할 때 사용합니다.",
         "NSCameraUsageDescription": "프로필 사진, 물품 사진, 댓글 및 채팅에 첨부할 사진을 촬영하기 위해 카메라에 접근합니다. 예: 중고거래 물품을 직접 촬영하여 등록하거나 채팅에서 사진을 전송할 때 사용합니다.",
-        "NSMicrophoneUsageDescription": "동영상을 촬영할 때 소리를 함께 녹음하기 위해 마이크에 접근합니다. 예: 동네업체를 소개하는 짧은 동영상을 앱에서 직접 촬영해 등록할 때 매장 안내 음성이 함께 녹음됩니다. 음성만 따로 녹음하거나 저장하지 않습니다.",
+        "NSMicrophoneUsageDescription": "말로 검색하기와 동영상 촬영에 마이크를 사용합니다. 예: 검색창의 마이크 버튼을 눌러 찾으시는 것을 말씀하시면 글자로 바꿔 검색해 드리고, 동네업체 소개 동영상을 촬영할 때는 소리가 함께 녹음됩니다. 말씀하신 내용은 검색어로만 쓰이고 녹음을 저장하지 않습니다.",
         "NSLocationWhenInUseUsageDescription": "주변 중고거래 물품을 찾고 거래 위치를 지도에서 확인하기 위해 위치 정보에 접근합니다."
       }
     },
@@ -208,7 +208,6 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "말로 검색하시려면 마이크가 필요합니다. 말씀하신 내용은 검색어로만 쓰이고 저장하지 않습니다.",
           "speechRecognitionPermission": "말씀하신 내용을 글자로 바꿔 검색창에 넣기 위해 음성 인식을 사용합니다. 저장하거나 다른 곳에 보내지 않습니다."
         }
       ],

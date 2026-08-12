@@ -140,8 +140,10 @@ export default function HubScreen({ navigation, route }) {
               onText={(t) => {
                 // 말한 내용을 검색창에 넣고 **바로 검색까지** 한다.
                 // 여기서 멈추고 "검색을 누르세요" 하면 어르신은 또 한 번 막힌다.
+                // spoken: 말로 물었다는 표시 — 결과 화면이 답을 **소리로도** 들려준다.
+                // 이게 빠져서 홈에서 말로 검색하면 조용했었다(2026-08-12 감사에서 발견).
                 setQuery(t);
-                navigation.navigate('검색결과', { q: t });
+                navigation.navigate('검색결과', { q: t, spoken: true });
               }}
             />
             {/* 검색 버튼은 하나. 'AI 검색'이라고 적으면 다시 두 갈래가 되어버린다 —

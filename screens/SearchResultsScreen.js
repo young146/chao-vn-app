@@ -181,6 +181,9 @@ export default function SearchResultsScreen({ route, navigation }) {
 
   // 진입 시 홈에서 받은 질의로 즉시 검색 — 목록과 AI 를 동시에 건다
   useEffect(() => {
+    // 홈에서 **말로** 검색해 들어왔으면 여기서도 소리로 답한다.
+    // (askAI 가 askedByVoice 를 읽으므로 반드시 askAI **앞**에 세워야 한다)
+    if (route?.params?.spoken) askedByVoice.current = true;
     if (initialQ) { search({ q: initialQ, type: '', city, district, page: 1 }); askAI(initialQ); }
     else setLoading(false);
     // 화면을 떠나면 돌고 있는 AI 스트림을 끊고 읽기도 멈춘다.
@@ -210,6 +213,9 @@ export default function SearchResultsScreen({ route, navigation }) {
 
   const toggleSpeak = () => {
     if (speaking) { speechRef.current?.stop(); stopSpeaking(); setSpeaking(false); return; }
+    // 자동 낭독이 준비 중일 수 있다(말로 물은 직후) — 그대로 두고 손으로도 읽으면
+    // 잠시 뒤 **두 목소리가 겹친다.** 자동 쪽을 끄고 손으로 읽는다.
+    speechRef.current?.stop?.();
     setSpeaking(true);
     speak(aiReply, {
       onDone: () => setSpeaking(false),
