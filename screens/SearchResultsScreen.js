@@ -15,7 +15,7 @@ import {
 } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 import MicButton from '../components/MicButton';
-import { isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
+import { isSpeakSupported, speak, stopSpeaking, createSpeechStream } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const BRAND = '#FF6B35';
@@ -59,6 +59,11 @@ export default function SearchResultsScreen({ route, navigation }) {
   // (마이크는 MicButton 이 스스로 판단해 숨으므로 여기서 볼 필요가 없다)
   const speakOK = isSpeakSupported();
   const [speaking, setSpeaking] = useState(false);
+  // **말로 물었으면 말로 답한다.** 글을 읽기 어려워서 말로 묻는 것이니,
+  // 글만 주면 절반만 해결한 것이다. (타자로 물었으면 소리는 안 낸다 —
+  //  타자를 칠 수 있는 분은 읽을 수 있고, 조용한 자리일 수도 있다)
+  const askedByVoice = useRef(false);
+  const speechRef = useRef(null);
   // 빠르게 다시 검색하면 예전 답이 늦게 도착해 새 답을 덮을 수 있다 → 순번으로 막는다.
   const aiSeq = useRef(0);
   // 돌고 있는 스트림 손잡이 — 새 검색을 하거나 화면을 떠날 때 끊는다.
@@ -74,7 +79,9 @@ export default function SearchResultsScreen({ route, navigation }) {
   // arg 로 넘기면 그것을, 없으면 입력칸 값을 쓴다.
   // ⚠️ 말로 받은 문장을 setFollowQ 로 넣고 바로 부르면 **빈 값이 나간다** —
   //    setState 는 다음 렌더에야 반영되기 때문. 그래서 직접 받는 길을 열어 뒀다.
-  const askFollow = (spoken) => {
+  // byVoice=true 면 다음 화면에서도 **소리로 답한다**. 말로 이어 물었으면 말로 답해야
+  // 대화가 끊기지 않는다 — 화면이 바뀐다고 말이 글로 바뀌면 어색하다.
+  const askFollow = (spoken, byVoice) => {
     const q = String(typeof spoken === 'string' ? spoken : followQ).trim();
     if (!q || !aiReply) return;
     setFollowQ('');
@@ -84,6 +91,7 @@ export default function SearchResultsScreen({ route, navigation }) {
         { role: 'assistant', content: aiReply },
       ],
       ask: q,
+      spoken: !!byVoice,
     });
   };
 
@@ -95,8 +103,17 @@ export default function SearchResultsScreen({ route, navigation }) {
     if (!text) return;
     const my = ++aiSeq.current;
     aiStreamRef.current?.cancel?.();          // 앞 요청이 돌고 있으면 끊는다
+    speechRef.current?.stop?.();
     setAiLoading(true); setAiReply(''); setAiResults([]); setAiTerms([]); setAiStatus('');
     const stale = () => my !== aiSeq.current;  // 늦게 온 예전 답은 버린다
+
+    // 말로 물었으면 **문장이 완성되는 대로 읽어 준다** — 글과 말이 함께 나온다.
+    const readAloud = askedByVoice.current && speakOK;
+    let acc = '';
+    speechRef.current = readAloud
+      ? createSpeechStream({ onIdle: () => setSpeaking(false) })
+      : null;
+    if (readAloud) setSpeaking(true);
 
     // 흘려보내기 — 글자가 만들어지는 대로 붙인다. 첫 글자가 2~3초에 뜬다.
     aiStreamRef.current = askAssistantStream([{ role: 'user', content: text }], {
@@ -105,14 +122,19 @@ export default function SearchResultsScreen({ route, navigation }) {
         setAiLoading(false);   // 첫 글자가 오면 '검색 중' 표시를 내린다
         setAiStatus('');
         setAiReply((prev) => prev + t);
+        acc += t;
+        speechRef.current?.push(acc);
       },
       // 도구를 쓰기 전 서두였다는 뜻 — 최종 답은 다음 판에 온다. 화면을 비운다.
-      onReset: () => { if (!stale()) { setAiReply(''); setAiLoading(true); } },
+      // 도구 쓰기 전 서두는 화면에서도 지워지고 **읽기도 멈춰야 한다** —
+      // 안 그러면 버려진 문장을 소리로 읽는다.
+      onReset: () => { if (!stale()) { setAiReply(''); setAiLoading(true); acc = ''; speechRef.current?.reset(); } },
       // 무엇을 찾는 중인지 — 빈 화면에서 기다리는 것과 체감이 완전히 다르다.
       onStatus: (s) => { if (!stale()) setAiStatus(s); },
       onError: () => {
         if (stale()) return;
         setAiLoading(false); setAiStatus('');
+        speechRef.current?.stop(); setSpeaking(false);
         setAiReply('연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.');
       },
       onDone: ({ reply, results, terms }) => {
@@ -121,6 +143,8 @@ export default function SearchResultsScreen({ route, navigation }) {
         setAiReply(reply || '');
         setAiResults(Array.isArray(results) ? results : []);
         setAiLoading(false); setAiStatus('');
+        // 흘려 읽던 것과 최종본을 맞추고 남은 꼬리를 마저 읽는다
+        speechRef.current?.flush(reply || acc);
 
         // ── AI 가 이해한 검색어로 목록을 다시 좁힌다 ──────────────────────────
         // 왜: 목록 검색은 사용자가 친 **문장 그대로**를 받는다. "베트남 진출을 위한
@@ -158,7 +182,7 @@ export default function SearchResultsScreen({ route, navigation }) {
     else setLoading(false);
     // 화면을 떠나면 돌고 있는 AI 스트림을 끊고 읽기도 멈춘다.
     // (사라진 화면에 setState 하지 않기 위해서이기도 하고, 다른 화면에서 소리가 계속 나면 안 된다)
-    return () => { aiStreamRef.current?.cancel?.(); stopSpeaking(); };
+    return () => { aiStreamRef.current?.cancel?.(); speechRef.current?.stop?.(); stopSpeaking(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -167,6 +191,7 @@ export default function SearchResultsScreen({ route, navigation }) {
   //    거기서도 부르면 같은 답을 돈 내고 다시 받는 셈이고, 서버 rate limit 에도 걸린다.
   const onSubmit = () => {
     stopSpeaking(); setSpeaking(false);   // 새로 물으면 읽던 것은 멈춘다
+    askedByVoice.current = false;         // 타자로 물었으면 소리는 안 낸다
     setActiveQ(query); setTypeFilter('');
     search({ q: query, type: '', city, district, page: 1 });
     askAI(query);
@@ -175,7 +200,7 @@ export default function SearchResultsScreen({ route, navigation }) {
   // 답을 소리로 읽어준다. 다시 누르면 멈춤.
   // ⚠️ 자동 재생하지 않는다 — 공공장소에서 갑자기 소리가 나면 그 길로 안 쓰게 된다.
   const toggleSpeak = () => {
-    if (speaking) { stopSpeaking(); setSpeaking(false); return; }
+    if (speaking) { speechRef.current?.stop(); stopSpeaking(); setSpeaking(false); return; }
     setSpeaking(true);
     speak(aiReply, { onDone: () => setSpeaking(false) });
   };
@@ -184,6 +209,7 @@ export default function SearchResultsScreen({ route, navigation }) {
   // "이제 검색을 누르세요" 를 만들지 않는다. 거기서 또 막히기 때문이다.
   const onVoiceSearch = (t) => {
     stopSpeaking(); setSpeaking(false);
+    askedByVoice.current = true;   // 이 질문의 답은 소리로도 들려드린다
     setQuery(t); setActiveQ(t); setTypeFilter('');
     search({ q: t, type: '', city, district, page: 1 });
     askAI(t);
@@ -345,7 +371,7 @@ export default function SearchResultsScreen({ route, navigation }) {
                       바로 거기서 다시 막힌다 — 대화가 한 번에 끊긴다. */}
                   <MicButton
                     color="#7C3AED" size={20} label="말로 이어서 물어보기"
-                    onText={(t) => { stopSpeaking(); setSpeaking(false); askFollow(t); }}
+                    onText={(t) => { speechRef.current?.stop?.(); setSpeaking(false); askFollow(t, true); }}
                   />
                   <TouchableOpacity
                     style={[styles.followBtn, !followQ.trim() && styles.followBtnOff]}

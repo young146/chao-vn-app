@@ -13,7 +13,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { askAssistantStream, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 import MicButton from '../components/MicButton';
-import { isSpeakSupported, speak, stopSpeaking } from '../lib/voice';
+import { isSpeakSupported, speak, stopSpeaking, createSpeechStream } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const ORANGE = '#FF6B35';
@@ -70,6 +70,11 @@ export default function AssistantScreen({ navigation, route }) {
   // (마이크는 MicButton 이 스스로 판단해 숨으므로 여기서 볼 필요가 없다)
   const speakOK = isSpeakSupported();
   const [speakingIdx, setSpeakingIdx] = useState(-1);   // 지금 읽고 있는 답변의 위치
+  // **말로 물었으면 말로 답한다.** 글을 읽기 어려워서 말로 묻는 것이니 글만 주면 절반이다.
+  // (타자로 물었으면 소리는 안 낸다 — 칠 수 있는 분은 읽을 수 있고, 조용한 자리일 수도 있다)
+  const askedByVoice = useRef(false);
+  const speechRef = useRef(null);
+  const [reading, setReading] = useState(false);   // 도착하는 답을 소리로 읽는 중인가
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -117,6 +122,15 @@ export default function AssistantScreen({ navigation, route }) {
     setLoading(true);
     setStreaming(''); setStatus('');
     streamRef.current?.cancel?.();
+    speechRef.current?.stop?.();
+
+    // 말로 물었으면 문장이 완성되는 대로 읽어 준다 — 글과 말이 함께 나온다.
+    const readAloud = askedByVoice.current && speakOK;
+    askedByVoice.current = false;          // 이번 질문에만 적용
+    speechRef.current = readAloud
+      ? createSpeechStream({ onIdle: () => { setSpeakingIdx(-1); setReading(false); } })
+      : null;
+    setReading(readAloud);
 
     let acc = '';   // 지금까지 도착한 글자(화면 표시용)
     const finish = (reply, results) => {
@@ -124,15 +138,19 @@ export default function AssistantScreen({ navigation, route }) {
       setMessages(after);
       persist(chatIdRef.current, after);
       setLoading(false); setStreaming(''); setStatus('');
+      // 읽던 것과 최종본을 맞추고 남은 꼬리를 마저 읽는다.
+      // 읽는 중이면 그 답변에 '멈춤'이 뜨도록 위치를 잡아 준다.
+      if (speechRef.current) { setSpeakingIdx(after.length - 1); setReading(false); speechRef.current.flush(reply); }
     };
 
     streamRef.current = askAssistantStream(next, {
-      onDelta: (t) => { acc += t; setStreaming(acc); setStatus(''); },
-      // 도구를 쓰기 전 서두였다 — 최종 답은 다음 판에 온다. 말풍선을 비운다.
-      onReset: () => { acc = ''; setStreaming(''); },
+      onDelta: (t) => { acc += t; setStreaming(acc); setStatus(''); speechRef.current?.push(acc); },
+      // 도구를 쓰기 전 서두였다 — 최종 답은 다음 판에 온다.
+      // 말풍선을 비우고 **읽던 것도 멈춘다**(버려진 문장을 소리로 읽으면 안 된다).
+      onReset: () => { acc = ''; setStreaming(''); speechRef.current?.reset(); },
       onStatus: (s) => setStatus(s),
       onDone: ({ reply, results }) => finish(reply, results),
-      onError: () => finish('연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', []),
+      onError: () => { speechRef.current?.stop?.(); setReading(false); finish('연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', []); },
     });
   }, [persist]);
 
@@ -143,6 +161,7 @@ export default function AssistantScreen({ navigation, route }) {
   useEffect(() => { speakingRef.current = speakingIdx; }, [speakingIdx]);
   const toggleSpeak = useCallback((idx, text) => {
     const cur = speakingRef.current;
+    speechRef.current?.stop?.();
     stopSpeaking();
     if (cur === idx) { setSpeakingIdx(-1); return; }
     setSpeakingIdx(idx);
@@ -172,8 +191,10 @@ export default function AssistantScreen({ navigation, route }) {
     seededRef.current = true;
     messagesRef.current = seed;
     setMessages(seed);
+    // 검색결과에서 **말로** 이어 물었으면 여기서도 소리로 답한다(route 로 넘어온다).
+    if (route?.params?.spoken) askedByVoice.current = true;
     if (ask) send(ask);
-  }, [route?.params?.seed, route?.params?.ask, send]);
+  }, [route?.params?.seed, route?.params?.ask, route?.params?.spoken, send]);
 
   // 최초: 기록 로드 + 새 대화 id
   useEffect(() => {
@@ -182,7 +203,7 @@ export default function AssistantScreen({ navigation, route }) {
       .catch(() => {});
     chatIdRef.current = newId();
     // 화면을 떠나면 돌고 있는 스트림을 끊는다 — 사라진 화면에 setState 하지 않기 위해.
-    return () => { streamRef.current?.cancel?.(); stopSpeaking(); };
+    return () => { streamRef.current?.cancel?.(); speechRef.current?.stop?.(); stopSpeaking(); };
   }, []);
 
   // 헤더 우측: 기록 / 새 채팅
@@ -258,9 +279,6 @@ export default function AssistantScreen({ navigation, route }) {
               </View>
             ) : (
               <View key={i} style={styles.botRow}>
-                <View style={styles.botBubble}>
-                  <Text style={styles.botText}>{renderRich(m.content)}</Text>
-                </View>
                 {/* 읽어주기 — 말로 물으신 분은 읽기도 불편하다(노안).
                     자동 재생은 안 한다. 듣고 싶을 때만 누르면 된다.
                     ⚠️ **검색결과 AI카드와 똑같이 생겨야 한다.** 처음엔 여기만 흐린 회색이라
@@ -279,6 +297,9 @@ export default function AssistantScreen({ navigation, route }) {
                     <Text style={styles.speakText}>{speakingIdx === i ? '멈춤' : '읽어주기'}</Text>
                   </TouchableOpacity>
                 )}
+                <View style={styles.botBubble}>
+                  <Text style={styles.botText}>{renderRich(m.content)}</Text>
+                </View>
                 {!!(m.results && m.results.length) && (
                   <View style={styles.cards}>
                     {m.results.slice(0, 8).map((r, j) => (
@@ -294,6 +315,21 @@ export default function AssistantScreen({ navigation, route }) {
             다 받은 뒤에 messages 로 옮겨 담으므로 이 말풍선은 잠깐만 존재한다. */}
         {!!streaming && (
           <View style={styles.botRow}>
+            {/* 도착하는 중에 소리로도 읽고 있으면 **여기서 바로 멈출 수 있어야** 한다.
+                답이 다 오기를 기다렸다 멈추게 하면 이미 늦다. */}
+            {reading && (
+              <TouchableOpacity
+                onPress={() => { speechRef.current?.stop?.(); stopSpeaking(); setReading(false); }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="읽기 멈춤"
+                style={styles.speakBtn}
+              >
+                <Ionicons name="stop-circle" size={17} color="#6D28D9" />
+                <Text style={styles.speakText}>멈춤</Text>
+              </TouchableOpacity>
+            )}
             <View style={styles.botBubble}>
               <Text style={styles.botText}>{renderRich(streaming)}</Text>
             </View>
@@ -325,8 +361,8 @@ export default function AssistantScreen({ navigation, route }) {
         {!loading && (
           <MicButton
             color={ORANGE} size={22} label="말로 묻기"
-            onOpen={() => { stopSpeaking(); setSpeakingIdx(-1); }}
-            onText={(t) => send(t)}
+            onOpen={() => { speechRef.current?.stop?.(); stopSpeaking(); setSpeakingIdx(-1); }}
+            onText={(t) => { askedByVoice.current = true; send(t); }}
           />
         )}
         <TouchableOpacity
