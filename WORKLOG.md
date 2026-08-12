@@ -106,9 +106,26 @@
   앞쪽 줄이 조용히 사라진 것. 커밋 전에 diff 로 잡아 되돌리고 1줄 삽입으로 다시 했다.
   → **번역 파일은 반드시 그 줄만 손으로 고칠 것.** 읽어서 다시 쓰지 말 것.
   (중복 키 자체는 지금 무해하다 — 코드가 전부 `t('notificationSettings.xxx')` 로 안쪽을 짚는다. 그대로 둔다)
+- **🚨 iOS 를 망칠 뻔했다 (사장님 지적으로 잡음)**: "iOS 는 원래 자동으로 재시작된다"는 말씀에
+  확인해 보니 **같은 이름의 함수가 플랫폼마다 하는 일이 전혀 다르다.**
+  - 안드로이드 `RestartModule.java` → `ProcessPhoenix.triggerRebirth()` = **프로세스 재시작**
+  - iOS `Restart.m` → `RCTTriggerReloadCommandListeners()` = **JS 만 다시 읽기**
+
+  그리고 expo-updates 가 iOS 에서 재시작할 때는 두 단계를 밟는다
+  (`expo-updates/ios/EXUpdates/Procedures/RelaunchProcedure.swift:73-76`):
+  ① `setLauncher(launcherWithDatabase)` — **새 번들을 가리키게 바꾸고** → ② `RCTTriggerReload...`.
+  **RNRestart 는 ②만 하고 ①을 건너뛴다** → iOS 에서 부르면 **옛 번들을 그대로 다시 읽는다.**
+  "재시작은 됐는데 버전이 그대로" — 지금 증상보다 고약한 고장이 될 뻔했다.
+  → **iOS 는 `Updates.reloadAsync()` 를 그대로 쓴다. iOS 동작은 이 작업 전과 완전히 동일하다.**
+  크래시 화면의 폴백도 안드로이드에서만 건다.
+- **📌 곁가지로 발견 (아직 안 고침 — 사장님 판단 대기)**: [App.js](App.js) 의 **자동** 업데이트 경로도
+  iOS 에서 `RNRestart.Restart()` 를 부른다(`fetchUpdateAsync()` 직후). 위 논리대로면 **iOS 는 자동
+  업데이트 직후 재시작해도 옛 번들이 뜨고, 새 버전은 그 다음 콜드 스타트에 적용**된다. 즉 iOS 사용자는
+  OTA 를 **한 박자 늦게** 받는다. 고치려면 iOS 만 `Updates.reloadAsync()` 로 바꾸면 되는데,
+  **부팅 경로라 사장님 승인 후에** 손댄다.
 - **배포**: 앱 OTA (production) — 순수 JS. `react-native-restart` 는 이미 `package.json`·바이너리에 있다
   (App.js 가 최상단에서 import 중) → **빌드 불필요.**
-- **상태**: ⏳ 안드로이드 실기기 확인 대기
+- **상태**: ⏳ 안드로이드 실기기 확인 대기 (iOS 는 무변경)
 - **다음 단계**: 다음 OTA 가 나간 뒤 더보기 → 업데이트 확인 → "지금 재시작" 을 눌러 **앱이 스스로 꺼졌다 켜지는지** 확인.
 
 ---

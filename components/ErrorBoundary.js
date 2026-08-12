@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import * as Updates from 'expo-updates';
 import { restartApp } from '../lib/restartApp';
 
@@ -52,9 +52,15 @@ export default class ErrorBoundary extends React.Component {
         // 안드로이드에서 실제로 그런다 — 예외도 안 나고 아무 일도 안 일어난다.
         // 그러면 사용자는 "재시작 중..." 스피너에 갇힌다(버튼도 사라진 상태).
         // 프로세스를 통째로 재시작하는 최후 수단을 걸어 둔다. 사유는 lib/restartApp.js 참고.
-        this._hardRestartTimer = setTimeout(() => {
-          restartApp({ onFailed: () => this._recover() });
-        }, 1500);
+        //
+        // ⛔ 안드로이드에서만. iOS 는 이 경로가 원래 잘 동작하고, 거기서 프로세스 재시작을
+        //    시도해봐야 옛 번들을 다시 읽을 뿐이다(lib/restartApp.js 상단 주석).
+        //    잘 되는 쪽은 건드리지 않는다.
+        if (Platform.OS === 'android') {
+          this._hardRestartTimer = setTimeout(() => {
+            restartApp({ onFailed: () => this._recover() });
+          }, 1500);
+        }
         return;
       }
       // 개발 모드이거나 Updates 가 꺼져 있으면 재렌더링으로 복구를 시도한다
