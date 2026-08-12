@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Keyboard,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Keyboard, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { askAssistantStream, resolveAssistantResultUrl, isDirectoryResult, TYPE_LABEL } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 import MicButton from '../components/MicButton';
-import { isSpeakSupported, speak, stopSpeaking, createSpeechStream } from '../lib/voice';
+import { isSpeakSupported, speak, stopSpeaking, createSpeechStream, probeSpeech } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const ORANGE = '#FF6B35';
@@ -128,7 +128,10 @@ export default function AssistantScreen({ navigation, route }) {
     const readAloud = askedByVoice.current && speakOK;
     askedByVoice.current = false;          // 이번 질문에만 적용
     speechRef.current = readAloud
-      ? createSpeechStream({ onIdle: () => { setSpeakingIdx(-1); setReading(false); } })
+      ? createSpeechStream({
+          onIdle: () => { setSpeakingIdx(-1); setReading(false); },
+          onError: () => { setReading(false); setSpeakingIdx(-1); reportSpeechProblem(); },
+        })
       : null;
     setReading(readAloud);
 
@@ -152,21 +155,31 @@ export default function AssistantScreen({ navigation, route }) {
       onDone: ({ reply, results }) => finish(reply, results),
       onError: () => { speechRef.current?.stop?.(); setReading(false); finish('연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.', []); },
     });
-  }, [persist]);
+  }, [persist, reportSpeechProblem]);
 
   // 답을 소리로 읽어준다. 다시 누르면 멈춤. 다른 답을 누르면 그쪽으로 옮겨 간다.
   // ⚠️ setState 업데이터 안에서 speak/stop 을 부르지 않는다 — 업데이터는 순수해야 한다
   //    (이 파일 위쪽 persist() 에도 같은 주의가 붙어 있다). 그래서 ref 로 현재값을 읽는다.
   const speakingRef = useRef(-1);
   useEffect(() => { speakingRef.current = speakingIdx; }, [speakingIdx]);
+  // 읽어주기가 안 되면 **왜 안 되는지 알려준다.** "아무 일도 안 일어남"은 고칠 수 없다.
+  const reportSpeechProblem = useCallback(async () => {
+    const p = await probeSpeech();
+    Alert.alert('읽어주기를 쓸 수 없어요', p.reason || '알 수 없는 이유로 소리가 나지 않습니다.');
+  }, []);
+
   const toggleSpeak = useCallback((idx, text) => {
     const cur = speakingRef.current;
-    speechRef.current?.stop?.();
-    stopSpeaking();
-    if (cur === idx) { setSpeakingIdx(-1); return; }
+    speechRef.current?.stop?.();           // 자동 낭독이 돌고 있으면 끈다
+    if (cur === idx) { stopSpeaking(); setSpeakingIdx(-1); return; }   // 같은 답을 다시 누름 = 멈춤
+    // ⚠️ 여기서 stopSpeaking() 을 또 부르지 않는다 — speak() 가 스스로 앞엣것을 확인하고 정리한다.
+    //    바로 앞에서 stop 을 던지면 그것이 speak 뒤에 도착해 방금 시작한 말을 죽인다(2026-08-12 사고).
     setSpeakingIdx(idx);
-    speak(text, { onDone: () => setSpeakingIdx(-1) });
-  }, []);
+    speak(text, {
+      onDone: () => setSpeakingIdx(-1),
+      onError: () => { setSpeakingIdx(-1); reportSpeechProblem(); },
+    });
+  }, [reportSpeechProblem]);
 
   const newChat = useCallback(() => {
     stopSpeaking(); setSpeakingIdx(-1);

@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, Modal, FlatList, Platform, Dimensions,
+  ActivityIndicator, Modal, FlatList, Platform, Dimensions, Alert,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ import {
 } from '../services/searchService';
 import BizDetailSheet from '../components/BizDetailSheet';
 import MicButton from '../components/MicButton';
-import { isSpeakSupported, speak, stopSpeaking, createSpeechStream } from '../lib/voice';
+import { isSpeakSupported, speak, stopSpeaking, createSpeechStream, probeSpeech } from '../lib/voice';
 import { renderAnswer } from '../components/RichAnswer';
 
 const BRAND = '#FF6B35';
@@ -111,7 +111,10 @@ export default function SearchResultsScreen({ route, navigation }) {
     const readAloud = askedByVoice.current && speakOK;
     let acc = '';
     speechRef.current = readAloud
-      ? createSpeechStream({ onIdle: () => setSpeaking(false) })
+      ? createSpeechStream({
+          onIdle: () => setSpeaking(false),
+          onError: () => { setSpeaking(false); reportSpeechProblem(); },
+        })
       : null;
     if (readAloud) setSpeaking(true);
 
@@ -199,10 +202,19 @@ export default function SearchResultsScreen({ route, navigation }) {
 
   // 답을 소리로 읽어준다. 다시 누르면 멈춤.
   // ⚠️ 자동 재생하지 않는다 — 공공장소에서 갑자기 소리가 나면 그 길로 안 쓰게 된다.
+  // 읽어주기가 안 되면 **왜 안 되는지 알려준다.** "아무 일도 안 일어남"은 고칠 수 없다.
+  const reportSpeechProblem = async () => {
+    const p = await probeSpeech();
+    Alert.alert('읽어주기를 쓸 수 없어요', p.reason || '알 수 없는 이유로 소리가 나지 않습니다.');
+  };
+
   const toggleSpeak = () => {
     if (speaking) { speechRef.current?.stop(); stopSpeaking(); setSpeaking(false); return; }
     setSpeaking(true);
-    speak(aiReply, { onDone: () => setSpeaking(false) });
+    speak(aiReply, {
+      onDone: () => setSpeaking(false),
+      onError: () => { setSpeaking(false); reportSpeechProblem(); },
+    });
   };
 
   // 말로 검색해서 들어온 문장 — 검색창에 넣고 **바로 검색까지** 한다.
