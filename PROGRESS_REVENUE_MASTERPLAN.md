@@ -60,12 +60,13 @@
 
 블로그 셋업 상세는 [PROGRESS_BLOG_3CHANNEL.md](https://github.com/young146/xinchao-blog-assistant/blob/main/PROGRESS_BLOG_3CHANNEL.md) (`xinchao-blog-assistant` 저장소) + 그 저장소 `blogger-setup/` 체크리스트.
 
-- [ ] **(사장님)** Blogger 제목·주소 변경: 제목 `베트남 살이 실전노트`, 주소 `vietnam-note` → `vn-life-note` → `vietnam-living-note` 순 시도
-- [ ] **(사장님)** 설정: 설명·검색 설명 입력, 검색엔진 표시=예, HTTPS 리디렉션 켜기, 시간대 GMT+7
+- [x] **(사장님)** Blogger 제목·주소 변경 — ✅ 2026-08-19 완료: 제목 `베트남 살이 실전노트`, 주소 `vietnam-note.blogspot.com`
+- [ ] **(사장님)** 설정: 설명·검색 설명 입력, 검색엔진 표시=예(확인됨), HTTPS 리디렉션 켜기(✅), 시간대 GMT+7
 - [ ] **(사장님)** 테마 Contempo 적용
-- [ ] **(사장님)** 도메인 구매: **호스팅어**(기존 도메인 2개와 같은 곳, DNS 한 화면 관리) — 1순위 `vietnamnote.com` (연 1~2만 원대)
-- [ ] **(사장님+AI)** Blogger 에 도메인 연결:
-  1. Blogger 설정 → 게시 → **맞춤 도메인** → `www.vietnamnote.com` 입력 → 저장하면 오류 화면에 **CNAME 2개**가 표시됨(`ghs.google.com` + 이 블로그 전용 검증 CNAME)
+- [x] **(사장님)** 도메인 구매 — ✅ 2026-08-18 완료: **`vietnamsari.com`** 호스팅어에서 3년 $39.99 (만료 2029-08-18, 자동갱신 ON, WHOIS 개인정보보호 ON, 갱신가 연 $19.99). `vietnamnote.com`·`vietnam-note.com` 은 선점되어 있었음.
+- [ ] 📌 **vnkorlife.com 재사용은 기각** — 루트는 Vercel 사이트가 사용 중이라 불가, 서브도메인(blog.vnkorlife.com)은 기술적으로 가능하고 애드센스 심사도 건너뛸 수 있으나: ① 실험 채널 제재가 도메인 전체(본진 SEO)로 번질 수 있고 ② 독립 브랜드 결정과 모순되며 ③ vnkorlife.com/blog 에 이미 같은 조사의 파생 글이 올라가 한 도메인에 같은 글 두 벌이 됨. 연 $11 이 격리 방화벽 값.
+- [x] **(사장님+AI)** Blogger 에 도메인 연결 — ✅ 2026-08-19 완료: DNS 6줄(CNAME 2 + A 4) 호스팅어 기입, dns.google 로 전 세계 반영 실측 확인, Blogger 맞춤 도메인 저장 + 도메인 리디렉션 + HTTPS 2종 토글 ON. 인증서 발급 대기만 남음(자동). 절차 기록은 아래 유지:
+  1. Blogger 설정 → 게시 → **맞춤 도메인** → `www.vietnamsari.com` 입력 → 저장하면 오류 화면에 **CNAME 2개**가 표시됨(`ghs.google.com` + 이 블로그 전용 검증 CNAME)
   2. 호스팅어 hPanel → 해당 도메인 DNS → 위 CNAME 2개 추가 + **A 레코드 4개**(네이키드용): `216.239.32.21` `216.239.34.21` `216.239.36.21` `216.239.38.21`
   3. 몇 분~수 시간 후 Blogger 에서 다시 저장 → 성공하면 **도메인 리디렉션**(vietnamnote.com→www) 켜기 → **HTTPS 사용 + HTTPS 리디렉션** 켜기 (인증서 발급에 시간 걸릴 수 있음)
 - [ ] **(AI)** 필수 페이지 3종 완성본(소개·개인정보처리방침·문의 — 실전노트 화자로 재작성, 확정 주소 반영) → 사장님 붙여넣기 → 레이아웃 메뉴 노출
@@ -104,3 +105,4 @@
 ## 작업 로그
 
 - 2026-08-18: 플랜 수립. 블로그 독립 브랜드 결정("베트남 살이 실전노트"), 타불라 기각, 드롭쉬핑→큐레이션샵 대체 결정. Phase 0 착수 (Blogger 설정 변경 + 도메인 구매 진행).
+- 2026-08-19: `vietnamsari.com` 구매(3년)·DNS 연결·Blogger 저장까지 완료. 블로그 제목/주소 변경 완료. 필수 페이지 3종을 실전노트 화자로 재작성 (`xinchao-blog-assistant/blogger-setup/`) — 사장님 붙여넣기 대기. vnkorlife.blog 재사용안은 검토 후 기각(사유 위 참조).
