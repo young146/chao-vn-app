@@ -71,7 +71,7 @@
   3. 몇 분~수 시간 후 Blogger 에서 다시 저장 → 성공하면 **도메인 리디렉션**(vietnamnote.com→www) 켜기 → **HTTPS 사용 + HTTPS 리디렉션** 켜기 (인증서 발급에 시간 걸릴 수 있음)
 - [x] **(AI)** 필수 페이지 3종 완성본 → 사장님 게시 + 메뉴 노출 + 작성자명 「실전노트 지기」 — ✅ 2026-08-19 전부 완료. HTTPS 포함 사이트 정상 서빙 실측(https 200).
 - [x] **(AI)** 발행도구 `CHANNEL_PROFILES` blogger 톤을 "실전노트 1인칭"으로 교체 — ✅ 2026-08-19
-- [ ] **(AI+사장님)** 승인용 글 생산: 돈·절차 각도 10~12편 추가 (현 4편 → 15편)
+- [ ] **(AI+사장님)** 승인용 글 생산: 돈·절차 각도 12편 추가 (현 4편 → 16편). **주제 12개 확정(2026-08-19)** → 리스트·체크박스는 [PROGRESS_BLOG_3CHANNEL.md](https://github.com/young146/xinchao-blog-assistant/blob/main/PROGRESS_BLOG_3CHANNEL.md) (`xinchao-blog-assistant` 저장소)
 - [ ] **(사장님)** 애드센스 → 사이트 추가(새 도메인) → 심사 신청
 
 ### Phase 1 — 제휴 확장
