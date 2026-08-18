@@ -109,6 +109,37 @@
 
 ---
 
+## 2026-08-14 — ✅ [인프라] info@ 로 매일 쏟아지던 DMARC 보고서 — 5개월 만에 원인 찾아 껐다
+
+- **증상**: 회사 메일 `info@chaovietnam.co.kr` 에 읽을 수 없는 영문 XML 메일이 **매일 10통 이상**. 사장님은
+  "최근에 뭘 유료로 신청한 것 아니냐"고 물었다. **셋 다 오해였다** — 신청한 적 없고, 무료이고, 갑작스러운 일도 아니었다.
+- **원인**: `_dmarc.chaovietnam.co.kr` TXT 안의 `rua=mailto:info@chaovietnam.co.kr` 한 줄.
+  이 줄은 **전 세계 수신 메일사(구글·야후·아마존SES·GoDaddy·Proofpoint…)에게 "검사 결과를 매일 이 주소로 보내달라"** 는 요청이다.
+  받는 쪽이 각자 하루 한 통씩 보내니, 우리가 많이 보낼수록 보고서도 늘어난다. **고장이 아니라 요청한 결과였다.**
+- **언제 들어갔나 — 특정함**: `daily-news-final` 커밋 **`6d2045b` (2026-03-16) "improve email deliverability and spam prevention"**.
+  3/1~3/14 대량메일 시스템 구축(Resend→SMTP→BCC배치) 직후, 스팸함 회피를 위해 SPF/DKIM/DMARC 를 넣은 그 작업이다.
+  다음날 `6914c21` SendGrid 도입 → `s1/s2._domainkey` CNAME 도 같은 시기. **잘못한 게 아니라 제대로 한 작업**이었고,
+  5개월 뒤에야 메일함 문제로 드러난 것뿐이다.
+- **어떻게 특정했나** (DNS 는 저장소에 없어 코드 추적 불가):
+  `vnkorlife.com` 과 대조했다 — **같은 호스팅어인데** `v=DMARC1; p=none` 뿐이다. 이게 자동 기본값이고,
+  chaovietnam 쪽만 `p=quarantine; pct=100; rua=...` 로 길다 → **사람이 손으로 넣은 것**. 그 다음 3월 커밋 로그에서 날짜를 맞췄다.
+- **조치**: 호스팅어 hPanel 에서 `rua=` 만 제거 (사장님이 직접 실행).
+  `v=DMARC1; p=quarantine; pct=100; rua=mailto:info@...` → **`v=DMARC1; p=quarantine; pct=100`**
+  **사칭 차단(quarantine 100%)은 그대로. 보고서만 중단.** 되돌리려면 같은 자리에 `; rua=mailto:...` 재부착.
+- **검증**: SPF · `s1._domainkey` · google-site-verification · MX(구글 5대) **4종 전부 무사 확인**.
+  ⚠️ **로컬 DNS 조회는 TTL 14400(4시간) 캐시 + NordVPN DNS 라 옛 값을 보여준다.**
+  → `https://dns.google/resolve?name=_dmarc.chaovietnam.co.kr&type=TXT` 로 우회해서 실제 값을 봤다.
+- **배포**: 코드 변경 없음 (DNS 설정 변경 · 저장소 무관)
+- **상태**: ✅ 완료
+- **다음 단계**:
+  - 사장님: info@ 에 5개월치 **약 1,500통**이 쌓여 있음 → `subject:"Report Domain: chaovietnam.co.kr"` 로 일괄 삭제 안내함.
+    Gmail 정렬이 **「관련성 순」이면 전체개수를 몰라 "N개 모두 선택" 링크가 안 뜬다** → 「최근 순」으로 바꾸거나 필터 일괄적용을 쓴다.
+  - 사흘 뒤에도 보고서가 계속 오면 다른 원인 → 재조사.
+  - ⚠️ 그 더미에 **진짜 고객 메일이 묻혀 있었을 가능성** — 지우기 전 훑어보시라고 안내함.
+- **관련 파일/문서**: DNS 만 변경(저장소 없음) · 기억 `dmarc-chaovietnam-dns.md`
+
+---
+
 ## 2026-08-12 — 🟢 [앱] "지금 재시작" 버튼이 안드로이드에서 안 먹던 문제 (2차 시도, 이번엔 원인을 잡았다)
 
 - **증상**: 더보기 → 업데이트 확인 → "지금 재시작" 을 눌러도 **앱이 그대로**. 버전 옆에 "앱을 재시작하면
