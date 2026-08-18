@@ -90,6 +90,7 @@
 |---|---|---|---|
 | **(이 파일) WORKLOG.md** | 맨 위 = 미빌드 네이티브 현황(제자리 갱신) · 아래 = 시간순 작업 기록 | **항상 여기부터** | 🟢 활성 |
 | [PROGRESS_CHAT_SYSTEM.md](PROGRESS_CHAT_SYSTEM.md) | 채팅·등록채널 구조와 함정 | 채팅/등록 오류 재발 시 | 🟢 참조 |
+| [PROGRESS_REVENUE_MASTERPLAN.md](PROGRESS_REVENUE_MASTERPLAN.md) | 디지털 수익 다각화 전체 구도·단계 플랜 | 수익(광고·제휴·블로그·샵) 작업 전 | 🟢 활성 |
 | [directives/ROADMAP.md](directives/ROADMAP.md) | 개선 백로그(ASO·로그인전환·푸시 등) | "다음에 뭘 만들지" 정할 때 | 🟡 백로그 |
 | [PROGRESS_MEASUREMENT_INFRA.md](PROGRESS_MEASUREMENT_INFRA.md) | GA4/측정 셋업 진행 | 측정 작업 재개 시 | 🟡 정체(5/25) |
 | [PROGRESS_PUSH_SYSTEM.md](PROGRESS_PUSH_SYSTEM.md) | 푸시 발송 시스템 구조 | 푸시 손볼 때 참고 | ⚪ 완료/참고 |
@@ -106,6 +107,19 @@
 - **다음 단계**: 다음 작업자가 이어서 할 일 (없으면 "없음")
 - **관련 파일/문서**: 링크
 ```
+
+---
+
+## 2026-08-18 — 🟢 [수익] 디지털 수익 마스터플랜 수립 — 블로그 독립 브랜드 + 제휴 스택
+
+- **한 일**: 회사 전체 디지털 수익 구도를 [PROGRESS_REVENUE_MASTERPLAN.md](PROGRESS_REVENUE_MASTERPLAN.md) 로 박제.
+  핵심 결정: ① Blogger 블로그를 씬짜오 브랜드에서 분리해 **"베트남 살이 실전노트"**(교민 1인칭 · 돈·서류·절차 틈새)로 재정의
+  ② 타불라 기각(월 7.5만 클릭 — 입점 기준 미달, 신청했으나 무응답) ③ 드롭쉬핑 보류 → vnkorlife **큐레이션 샵**으로 대체
+  ④ 애드센스 신청은 커스텀 도메인(`vietnamnote.com` 계열) 연결 후.
+- **배포**: 문서만 (코드 변경 없음)
+- **상태**: 🟡 진행중 — Phase 0 (블로그 정비 + 도메인 + 글 15편 + 애드센스 신청)
+- **다음 단계**: 사장님 = Blogger 제목·주소 변경 + 호스팅어에서 도메인 구매 / AI = 확정 주소 수령 시 필수 페이지 3종 완성본 + `CHANNEL_PROFILES` blogger 톤 수정 + 승인용 글 생산
+- **관련 파일/문서**: [PROGRESS_REVENUE_MASTERPLAN.md](PROGRESS_REVENUE_MASTERPLAN.md) · [PROGRESS_BLOG_3CHANNEL.md](https://github.com/young146/xinchao-blog-assistant/blob/main/PROGRESS_BLOG_3CHANNEL.md) `xinchao-blog-assistant` 저장소
 
 ---
 
