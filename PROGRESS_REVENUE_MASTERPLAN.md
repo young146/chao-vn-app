@@ -116,3 +116,36 @@
 - 2026-08-19: `vietnamsari.com` 구매(3년)·DNS 연결·Blogger 저장까지 완료. 블로그 제목/주소 변경 완료. 필수 페이지 3종을 실전노트 화자로 재작성 (`xinchao-blog-assistant/blogger-setup/`) — 사장님 붙여넣기 대기. vnkorlife.blog 재사용안은 검토 후 기각(사유 위 참조).
 - 2026-08-20: **계측 셋업 완료** — vietnamsari.com에 GA4(`G-CGTPWBF27C`) + 서치콘솔(URL접두어, 애널리틱스로 소유권 확인) 등록. 사이트맵은 `https:///`(도메인 누락 = Blogger 신규연결 일시현상)이라 도메인 정착 후 재제출 대기. **재발행(덮어쓰기) 버튼**도 도구에 추가(24차).
 - 2026-08-20: **Phase 1 착수 — 쿠팡 파트너스 가입 완료(ID `AF8354756`)** + vnkorlife 사이드바에 쿠팡 추천 카드·고지문 게시(`4567f22`, 라이브). 다음 = 마이페이지 스크린샷 등록 → 최종 승인. 지역타겟(한국→쿠팡/베트남→알리)은 승인 후 전환. 제휴 전략을 "쇼핑(전환 잘됨) 우선"으로 정리(여행·금융 제휴는 실행 기대 낮음).
+
+---
+
+### 📍 2026-08-20 세션 정리 (집에서 이어서 — 여기부터 읽기)
+
+**■ 쿠팡 파트너스 — 최종 승인 신청까지 완료, 메일 대기**
+- 가입 완료. **파트너스 ID `AF8354756`**. 다이나믹 배너 위젯: **id `1019744`** (680×140 캐러셀, 상품 이미지 자동).
+- **vnkorlife**: `CoupangCarousel` 컴포넌트 신규 → 4개 목록페이지(중고/구인/부동산/동네업소) **본문 상단**에 배치. (사이드바 텍스트카드는 제거 — 좁아서 상품 안 뜸) → `vnkorlife-web` `a00ed7f` 라이브.
+- **chaovietnam(WP/Sahifa)**: 테마옵션 → **Advertisement → "Below Header Banner Area"** 에 iframe 코드+고지문 붙여넣음 → 헤더에 상품 캐러셀 뜸(실측). ※ 위젯영역·사이드바는 좁아서 안 되고, **헤더 광고 슬롯**이 정답(680 폭 맞음).
+- **마이페이지 스크린샷**: chaovietnam·vnkorlife **2개 업로드 완료**. (앱은 미업로드 — "둘 중 하나만"이라 OK)
+- **승인 절차(검증함)**: 별도 신청버튼 없음, **스크린샷 등록=제출**. 영업일 1~3일, **메일 통보**.
+- **정산계좌**: 지금 입력란 없는 게 정상(미승인·수익0). **승인+수익 발생 시 쿠팡이 메일로 계좌입력 안내**. 지급: 발생월→익월25일 확정→익익월15일 지급. 조건: 최종승인+누계수익 1만원↑.
+- **⚠️ 지역 이슈**: 쿠팡은 **한국 외 IP 차단(Access Denied)** → 베트남에선 클릭 안 열림. 심사자는 한국이라 승인엔 무관. **승인 후 지역타겟 필수**.
+
+**■ 알리익스프레스·타오바오 — 이미 있음(기존), 단 이미지가 없음**
+- 정본: [`daily-news-final/lib/affiliate-links.js`] — aliexpress `invl.me/clnm8nk`, taobao `invl.me/clnm8si`, airalo, udemy. **Involve Asia**(계정 `af=1089810`, younghan146@gmail 추정). `/go/{slug}` 리다이렉트로 클릭추적.
+- chaovietnam 기사에 "베트남 생활·쇼핑 추천" 박스로 **이미 노출 중**(텍스트 버튼). 앱 MarketStrip엔 아직 없음.
+- **문제**: 텍스트뿐 → 클릭 거의 없음. 쿠팡처럼 **상품 이미지**로 바꿔야 함.
+- **확인함(Involve 대시보드)**: AliExpress 오퍼 Tools에 **Datafeed/Campaigns/Shoplinks = Not Available** → **Involve는 상품 이미지 위젯·배너 안 줌.** 되는 건 우상단 **Create Deeplink**(상품 URL→invl.me)뿐.
+
+**■ 다음에 할 일 (집에서, 우선순위)**
+1. **알리·타오바오 이미지 카드 만들기**(쿠팡 승인과 무관하게 지금 가능):
+   - 방식 = **큐레이션 이미지 카드** (Involve가 이미지 안 주므로). 알리 상품 이미지는 alicdn 공개라 가져다 씀.
+   - **정할 것**: (1) 사장님이 상품 4~6개 직접 고름 / (2) **AI가 인기 상품 추천 → 사장님은 Create Deeplink만** ← 손 덜 감(추천).
+   - 흐름: 상품 선택 → 각각 **Create Deeplink**로 `invl.me` 링크 생성 → **상품 URL + invl.me 링크**를 AI에게 → AI가 이미지 카드(캐러셀) 제작·배포.
+2. **지역 쇼핑 위젯 완성**(한국→쿠팡 / 베트남→알리·타오바오):
+   - **웹 vnkorlife**: 서버에서 `x-vercel-ip-country`로 국가판별(정확·무료). 지금 쿠팡 캐러셀 자리에 지역분기 추가.
+   - **chaovietnam**: 쿠팡 헤더 + 알리 박스 둘 다 이미 있음 → 지역분기는 후순위(WP라 손 더 감).
+   - **앱 MarketStrip**([`chao-vn-app/components/MarketStrip.js`]): **쇼핑 카드 추가** — 기기 국가판별(시간대/로케일) → 한국이면 쿠팡, 베트남이면 알리·타오바오. 기존 `WebBrowser.openBrowserAsync` + invl.me/쿠팡 링크. **JS-only → OTA 배포**(네이티브 모듈 없음, 새 빌드 불필요).
+3. **앱 국가 비율 확인**(파이어베이스 애널리틱스) → 앱에 쿠팡 넣을 값어치 있는지 판단(앱은 베트남 위주일 가능성).
+4. **쿠팡 승인 메일** 확인 → 승인되면 지역타겟 전환 + 정산계좌 안내 메일 대기.
+
+**핵심 파일 요약**: 쿠팡 배너=`vnkorlife-web/src/components/detail/CoupangCarousel.tsx` / 제휴 레지스트리=`daily-news-final/lib/affiliate-links.js`(+`/go/[slug]/route.js`, `affiliate-block.js`) / 앱 제휴=`chao-vn-app/components/MarketStrip.js`. 쿠팡: 파트너스 `AF8354756`, 위젯 `1019744`. 알리 Involve: `af=1089810`.
