@@ -149,3 +149,39 @@
 4. **쿠팡 승인 메일** 확인 → 승인되면 지역타겟 전환 + 정산계좌 안내 메일 대기.
 
 **핵심 파일 요약**: 쿠팡 배너=`vnkorlife-web/src/components/detail/CoupangCarousel.tsx` / 제휴 레지스트리=`daily-news-final/lib/affiliate-links.js`(+`/go/[slug]/route.js`, `affiliate-block.js`) / 앱 제휴=`chao-vn-app/components/MarketStrip.js`. 쿠팡: 파트너스 `AF8354756`, 위젯 `1019744`. 알리 Involve: `af=1089810`.
+
+---
+
+### 📍 2026-08-21 — 지역별 쇼핑 배너 라이브 + 상품 이미지 문제의 결론
+
+**■ 지역 타겟 쇼핑 배너 — 완성·라이브** (`vnkorlife-web` `34ff08f`→`4a5d473`)
+- `ShoppingBanner.tsx`: 기기 **시간대**로 국가 판별(`Asia/Seoul`=한국) → **한국이면 쿠팡 캐러셀 / 그 외(베트남)는 알리 카드**. 무료·즉시·외부요청 없음.
+- 베트남 방문자의 **쿠팡 Access Denied(한국 외 IP 차단) 문제 해소**. 4개 목록페이지 적용, VN 시간대 실렌더 확인.
+- `ChinaShoppingCard.tsx` = 베트남용 알리 카드(`invl.me/clnsm8m` + 고지문).
+
+**■ 상품 이미지가 왜 어려운가 — 조사·실측 결론 (중요, 다시 헤매지 말 것)**
+- **alicdn 이미지 직접 핫링크 = 403 차단**(실측). 남의 사이트에서 알리·타오바오 상품 이미지를 그냥 못 띄움.
+- **Involve Asia**: 알리 오퍼 Tools에 **Datafeed/Campaigns/Shoplinks = Not Available**(광고주가 안 열어준 것 — 우리가 켤 수 없음). 딥링크만 가능.
+- ⇒ 진짜 상품 이미지의 길은 둘뿐: **① 광고주 공식 API로 받아 self-host ② 상품 골라 이미지 수동 self-host**.
+
+**■ 그래서 한 것: AliExpress Portals 가입 (심사중)**
+- 알리는 **국제** 몰이라 자체 제휴 **Portals**(portals.aliexpress.com)에 외국인 가입 가능 → **여기가 상품 API/이미지의 진짜 창구**.
+- 2026-08-20 신청 완료, **심사 1~3영업일·메일 통보**. 가입폼: Non-network / Channel type Others / Site `chaovietnam.co.kr` / Traffic area Vietnam·Korea.
+- **승인 후 할 일**: App Key·Secret 발급 → 인기 상품 자동 수집 → **이미지 우리 서버 저장(self-host)** → **진짜 상품 이미지 카드/캐러셀**로 지금의 임시 CTA 카드 교체. (배치도 그때 다시 잡기 — 사장님 지시)
+
+**■ 타오바오 = 제외 결정 (2026-08-21)**
+- 딥링크는 되지만(Involve, 최대 18.3%), **화면이 중국어 전용**이라 교민 독자에게 실효 없음 → 뺐다. 링크는 `ChinaShoppingCard.tsx` 주석에 보관(`invl.me/clnsmgb`).
+- 참고: 타오바오 자체 제휴(**알리마마**)는 중국어·중국 실명인증 기반이라 **외국인 직접 가입 사실상 불가**(조사 확인). Involve가 유일 창구였음.
+- Involve가 준 `Taobao-Deeplinkable-CPS-Integration-Info.pdf` = **정산/추적 규격서**(item-level, CNY, SubID 1~5)일 뿐 **이미지와 무관**.
+
+**■ 지금 대기 중 (둘 다 메일)**
+| 항목 | 상태 | 승인 후 |
+|---|---|---|
+| 쿠팡 파트너스 | 스크린샷 제출 완료, 심사중 | 정산계좌 안내 메일 → 입력 |
+| AliExpress Portals | 신청 완료, 심사중 | **API 키 → 진짜 상품 이미지 카드 + 배치 재설계** |
+
+**■ 남은 할 일**
+1. (승인 후) 알리 Portals API로 **상품 이미지 카드 제작 + 쇼핑 배너 배치 재설계**.
+2. **앱 MarketStrip**에 지역 쇼핑 카드(한국→쿠팡/베트남→알리) — JS-only라 **OTA 배포 가능**.
+3. 앱 국가 비율(파이어베이스) 확인 → 앱 쇼핑 카드 방향 확정.
+4. chaovietnam 지역 분기(후순위, WP).
