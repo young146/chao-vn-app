@@ -687,6 +687,67 @@ export function InlineAdBanner({ screen = 'all', positionIndex = 0, style, inter
 }
 
 /**
+ * 자체 홍보("기본 광고") 소재 — 팔린 광고가 없는 자리를 채운다.
+ *   PROGRESS_AD_SLOTS.md §9.
+ *
+ * 왜 통합센터에 등록하지 않는가: 등록하면 노출 통계가 유료 광고와 섞이고
+ * 만료일 관리 대상이 된다. 여기 내장하면 그럴 일이 없다.
+ *
+ * 앱에는 '앱 설치' 소재를 두지 않는다 — 이미 앱을 쓰고 있는 사람에게 무의미하다.
+ */
+const HOUSE_CREATIVES = [
+  {
+    id: 'house_magazine',
+    title: '씬짜오 매거진',
+    sub: '베트남 한인 뉴스 · 인터뷰 · 칼럼을 한 곳에서',
+    cta: '읽기',
+    url: 'https://chaovietnam.co.kr/',
+    color: '#0369a1',
+  },
+  {
+    id: 'house_contact',
+    title: '이 자리에 광고하세요',
+    sub: '앱 · 웹 · 매거진 통합 광고 문의',
+    cta: '문의',
+    url: 'https://chaovietnam.co.kr/ad-inquiry/',
+    color: '#6d28d9',
+  },
+];
+
+/**
+ * 자체 홍보 배너 한 칸. 이미지가 아니라 글자로 그린다 —
+ * 새 이미지를 만들어 올릴 필요가 없고 어떤 폭에서도 안 깨진다.
+ */
+function HouseAd({ index = 0, placement = '', style }) {
+  const h = HOUSE_CREATIVES[index % HOUSE_CREATIVES.length];
+
+  useEffect(() => {
+    // 유료 광고와 같은 이벤트에 실어 보내되 promo_id 를 house_* 로 구분한다
+    // → 광고주 리포트에서 자체 홍보를 빼고 셀 수 있다.
+    logPromoImpression({ id: h.id, title: h.title }, placement);
+  }, [h.id, placement]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={[styles.houseAd, { backgroundColor: h.color }, style]}
+      onPress={() => {
+        logPromoClick({ id: h.id, title: h.title }, placement);
+        Linking.openURL(h.url).catch(() => {});
+      }}
+    >
+      <View style={styles.houseAdText}>
+        <Text style={styles.houseAdTitle} numberOfLines={1}>{h.title}</Text>
+        <Text style={styles.houseAdSub} numberOfLines={1}>{h.sub}</Text>
+      </View>
+      <View style={styles.houseAdBtn}>
+        <Text style={styles.houseAdBtnText}>{h.cta}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/**
  * 상세 페이지 광고 (상단/중간/하단)
  * @param {string} position - 'top', 'middle', 또는 'bottom'
  * @param {string} screen - 화면 타입 (news, job, realestate, danggn)
@@ -721,12 +782,13 @@ export function DetailAdBanner({ position = 'top', screen = 'all', style, interv
     );
   }
 
-  // 광고 없어도 자리 확보 (플레이스홀더)
-  return (
-    <View style={[styles.detailAdPlaceholder, style]}>
-      <Text style={styles.detailAdPlaceholderText}>광고</Text>
-    </View>
-  );
+  // 팔린 광고가 없는 자리 — 회색 "광고" 상자 대신 자체 홍보를 그린다 (§9).
+  // 상단·하단 두 칸까지만. 한 화면에서 셋 다 우리 배너면 광고가 아니라 도배로 보인다.
+  if (position === 'top') return <HouseAd index={0} placement={slot} style={style} />;
+  if (position === 'bottom') return <HouseAd index={1} placement={slot} style={style} />;
+
+  // 중간은 비면 아무것도 그리지 않는다. 회색 빈 상자는 지면만 먹고 아무것도 안 판다.
+  return null;
 }
 
 /**
@@ -1021,6 +1083,42 @@ const styles = StyleSheet.create({
   adImage: {
     width: "100%",
     height: "100%",
+  },
+  // 자체 홍보("기본 광고") 배너 — 팔린 광고가 없는 자리를 채운다 (§9)
+  houseAd: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    borderRadius: 10,
+  },
+  houseAdText: {
+    flex: 1,
+    marginRight: 10,
+  },
+  houseAdTitle: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  houseAdSub: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  houseAdBtn: {
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  houseAdBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
   },
   // 광고 없을 때 자리 확보 플레이스홀더
   detailAdPlaceholder: {

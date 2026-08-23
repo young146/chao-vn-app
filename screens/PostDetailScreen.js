@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import CommentsSection from '../components/commentsSection';
 import TranslatedText from '../components/TranslatedText';
 import { translateText } from '../services/TranslationService';
-import { PopupAd, ScrollBottomBanner } from '../components/AdBanner';
+import { DetailAdBanner, PopupAd, ScrollBottomBanner } from '../components/AdBanner';
 import { logMagazineOpen, logNewsRead, logShareClicked } from '../lib/analytics';
 
 // 뉴스 카테고리 ID (chaovietnam.co.kr WordPress 기준)
@@ -398,6 +398,9 @@ export default function PostDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* 본문 상단 광고 (통합센터: 앱 / 헤드 / 매거진 상세) */}
+        <DetailAdBanner position="top" screen="news" />
+
         <View style={styles.content}>
           {isLoadingBody && (
             <View style={styles.translatingContainer}>
@@ -424,6 +427,10 @@ export default function PostDetailScreen({ route, navigation }) {
             enableExperimentalMarginCollapsing={true}
           />
         </View>
+
+        {/* 본문 중간 광고 (통합센터: 앱 / 이너 / 매거진 상세) —
+            본문 끝, 공유 버튼 앞. 글 읽기를 끊지 않는 자리다. */}
+        <DetailAdBanner position="middle" screen="news" />
 
         {/* 📤 SNS 공유 섹션 */}
         <View style={styles.shareSection}>
@@ -480,6 +487,9 @@ export default function PostDetailScreen({ route, navigation }) {
         </View>
 
         <CommentsSection articleId={post.id} />
+
+        {/* 상세 하단 광고 (통합센터: 앱 / 하단 / 매거진 상세) */}
+        <DetailAdBanner position="bottom" screen="news" style={{ marginTop: 8 }} />
 
         {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
         <ScrollBottomBanner />

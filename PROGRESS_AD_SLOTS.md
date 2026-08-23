@@ -1,6 +1,6 @@
 # 광고 슬롯 재설계 (통합 광고센터)
 
-> **상태**: 🟡 설계 확정 대기 — 사장님 결정 1건 남음 (§7 「결정 대기」)
+> **상태**: 🟢 표준 확정 · 구현 완료 — **배포 대기**(WP FTP · 앱 OTA). §10 진행 현황 · §12 다음 단계
 > **시작**: 2026-08-23 · **관련**: [WORKLOG.md](WORKLOG.md) · [PROGRESS_REVENUE_MASTERPLAN.md](PROGRESS_REVENUE_MASTERPLAN.md)
 >
 > 왜 이 문서가 필요한가: 광고를 **등록하는 화면(통합 광고센터)** 과 **실제로 광고가 박히는 자리** 가 어긋나 있다.
@@ -12,14 +12,15 @@
 
 **이 문서 하나만 읽으면 이어서 일할 수 있다.** 앞 대화 내용을 다시 물을 필요 없다.
 
-**첫 행동**: §7 결정 대기 1건을 사장님께 확인 → 답이 나오면 §6 작업 순서 1번부터 착수.
+**첫 행동**: §10 진행 현황과 §12 다음 단계를 읽고, 아직 안 끝난 것부터 이어간다. 슬롯 정본은 §8.
 
 **작업 대상 저장소 (전부 `github.com/young146/<repo>`)**
 
 | 무엇 | 저장소 | 핵심 파일 |
 |---|---|---|
 | 등록 콘솔 | `daily-news-final` | `app/admin/ad-center/page.js` |
-| chaovietnam WP 표시 | `daily-news-final` | `wordpress-plugin/xinchao-unified-ads.php` · `wordpress-plugin/jenny-daily-news.php` |
+| chaovietnam WP 표시 (홈·상세) | `daily-news-final` | `wordpress-plugin/xinchao-unified-ads.php` |
+| 뉴스터미널 표시 (독립 지면) | `daily-news-final` | `wordpress-plugin/jenny-daily-news.php` |
 | vnkorlife 표시 | `vnkorlife-web` | 슬롯 컴포넌트 |
 | 앱 표시 | `chao-vn-app` | `services/FirebaseAdService.js` · `components/DetailAdBanner` · `screens/PostDetailScreen` |
 
@@ -60,7 +61,11 @@
 | 블로그 (`blog`) | `in-content` · `sidebar` |
 
 - 위치 타입은 `in-content-1` ~ `in-content-6` 까지 있고, 등록 시 `in-content` 로 넣으면 `startsWith` 매칭으로 전부 잡힌다.
-- 옐로페이지 = 코드상 `neighborbusiness`.
+- ⚠️ **옐로페이지는 `neighborbusiness` 가 아니다** (2026-08-23 소스 재확인, 앞 기록 정정).
+  - **옐로페이지** = `/yellowpage` (+ 상세 `/biz/[id]`) — 업소 디렉토리 3,700여 곳. 작업 전엔 **광고 슬롯이 하나도 없었다.**
+  - **동네업소** = `/neighborbusiness` (+ `/[id]`) — 사용자가 등록하는 업소. 슬롯 4개가 있는데 콘솔에서 지정을 못 했다.
+- **블로그 목록(`/blog`)에도 광고가 하나도 없었다.** 위 표의 `blog` 는 **상세**(`/blog/[slug]`) 뿐이다.
+  → 둘 다 §8-5 대로 신설했다.
 
 ### 앱 (chao-vn-app)
 콘솔의 위치 **1개가 앱의 여러 자리로 퍼진다** (`services/FirebaseAdService.js` 의 `POSITION_TO_SLOTS`):
@@ -163,8 +168,201 @@ Sahifa 테마의 헤더 광고 영역은 **`e3lan`**(아랍어 '광고') 클래�
 
 ---
 
-## 7. 결정 대기 ← 새 대화에서 여기부터
+## 7. 결정 완료 (2026-08-23)
 
-> **빈 슬롯에 자체 홍보(앱 설치 · 매거진 구독 · 광고문의)를 채울까, 그냥 비워둘까?**
+> **Q. 빈 슬롯에 자체 홍보(앱 설치 · 매거진 구독 · 광고문의)를 채울까, 그냥 비워둘까?**
+> **A. 자체 홍보로 채운다.** → 구현 규격은 §9.
 
-정해지면 위 6번 작업 순서대로 바로 착수한다.
+> **추가 결정 (사장님, 작업 중)**: **뉴스 터미널을 chaovietnam 의 '페이지'가 아니라 독립 지면으로 분리한다.**
+> 왜: 독자가 가장 많이 오는 화면이고 자리 구성도 다르다(사이드바 없음 · 섹션마다 1칸).
+> chaovietnam 밑의 페이지 하나로 두면 **그 지면만 따로 팔 수가 없다.** → 등록 폼의 지면이 3개 → **4개**.
+
+---
+
+## 8. 슬롯 표준 (정본) — 지면 × 페이지 × 위치
+
+**이 표가 정본이다.** 등록 콘솔(`ad-center`)의 선택지도, 표시 쪽 코드도 여기에 맞춘다.
+표에 없는 조합은 **콘솔에서 고를 수 없다**(팔 수 없는 자리를 파는 일을 없앤다).
+
+### 8-1. 위치(position) 어휘 — 전 지면 공통
+
+지금까지 지면마다 다른 낱말을 썼다(`head` vs `top`, `inner` vs `in-content`). 하나로 통일한다.
+
+| position | 뜻 | 칸 수 |
+|---|---|---|
+| `header` | **사이트 헤더 바로 아래** — 페이지 최상단. 콘텐츠보다 위 | 1 |
+| `top` | **콘텐츠 시작 지점** — 홈이면 '헤더 하단', 상세면 '본문 상단' | 1 |
+| `in-content` | **본문·목록 중간** 반복 슬롯. 페이지마다 칸 수가 다르다 | N |
+| `section` | **섹션(카테고리 블록) 하단** 반복 슬롯 | N |
+| `bottom` | **페이지 끝** | 1 |
+| `sidebar` | 사이드바 세로 스택 | N |
+| `popup` | 앱 전면 팝업 (앱 전용) | 1 |
+
+> **왜 `header` 와 `top` 을 나누는가**: 사장님 요구가 "헤더 · 헤더 하단" 두 칸이다. 한 낱말로는 둘을 못 판다.
+> `header` 는 **어느 페이지에서나 같은 자리**(사이트 상단)라 "전 지면 노출" 상품으로 팔기 좋고,
+> `top` 은 그 페이지 콘텐츠의 첫 칸이라 **페이지별로 팔린다.**
+
+### 8-2. 지면 4개
+
+| 지면 (`surface`) | 무엇 | 표시하는 코드 |
+|---|---|---|
+| `app` | 씬짜오 앱 | `chao-vn-app` |
+| `vnkorlife` | vnkorlife.com | `vnkorlife-web` |
+| `chaovietnam` | chaovietnam.co.kr **홈 · 기사 상세** | `daily-news-final/wordpress-plugin/xinchao-unified-ads.php` |
+| `news-terminal` 🆕 | **뉴스 터미널** (독립 지면) | `daily-news-final/wordpress-plugin/jenny-daily-news.php` |
+
+### 8-3. chaovietnam.co.kr (홈 · 기사 상세)
+
+| 페이지 (`page`) | `header` | `top` | `in-content` | `section` | `bottom` | `sidebar` |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|
+| `home` 시작 페이지 | 1 | 1 | — | **12** | 1 | **6** |
+| `detail` 기사 상세 | 1 | 1 | **2** | — | 1 | **6** |
+
+- **상세 중간 6 → 2**: 매 2단락마다 넣던 것을 **본문을 3등분해 2칸**으로 바꿨다.
+  단락 수와 무관하게 항상 2칸이라 광고주에게 "이 기사엔 몇 칸"이라고 말할 수 있다.
+- **`section` 12칸**: 홈의 카테고리 블록(`section.cat-box`) 아래마다 1칸. 라이브 홈에 **정확히 12개** 있음을 실측 확인.
+- ⚠️ **`header`·`top`·`section`·`bottom` 은 테마(Sahifa) 광고 칸을 쓰지 않는다.** `.e3lan` 은 광고차단 필터에 등재돼 있다(§5-1).
+  우리 플러그인이 **푸터에서 만들어 완성된 DOM 의 정해진 자리로 옮긴다.** 컨테이너 클래스는 `xc-slot`(← `ad`·`banner`·`e3lan` 금지).
+- ⚠️ **사이드바가 이제 페이지를 지킨다.** `page` 를 안 넘기면 플러그인이 현재 페이지를 스스로 판정한다
+  (`xinchao_current_page_bucket()`). "상세 전용"으로 판 광고가 홈에 뜨던 문제(§3-3) 해결.
+
+### 8-4. 뉴스 터미널 (독립 지면)
+
+화면이 **하나뿐**이라 '노출 페이지'를 고를 것이 없다 — 콘솔에서 그 칸을 숨긴다.
+
+| `header` | `top` | `section` | `bottom` | `sidebar` |
+|:--:|:--:|:--:|:--:|:--:|
+| 1 | 1 | **섹션마다 1** | 1 | — |
+
+- **사이드바가 없다.** 이 화면은 jenny 플러그인이 통째로 그리며 본문이 전체 폭을 쓴다.
+  테마 헤더(`#theme-header`)도 `#main-content` 도 없는 단독 템플릿이라, 슬롯을 **서버에서 직접** 심는다.
+- **섹션 수는 그날그날 다르다.** 재고가 2건 미만인 섹션은 아예 안 그려서, 2026-08-23 실측 기준 **5개**였다(최대 12).
+  광고가 없는 칸은 자동으로 숨겨지므로 문제되지 않는다.
+
+### 8-5. vnkorlife.com
+
+| 페이지 (`page`) | 라우트 | `top` | `in-content` | `bottom` | `sidebar` |
+|---|---|:--:|:--:|:--:|:--:|
+| `home` 홈 | `/` | 1 ✅ | — | 1 ✅ | — |
+| `market` 당근 목록 | `/market` | 1 ✅ | 6개당 1 ✅ | 1 ✅ | 1 ✅ |
+| `market-detail` 당근 상세 | `/market/[id]` | 1 ✅ | 1 ✅ | 1 ✅ | 1 ✅ |
+| `jobs` 구인 목록 | `/jobs` | 1 ✅ | 6개당 1 ✅ | 1 ✅ | 1 ✅ |
+| `jobs-detail` 구인 상세 | `/jobs/[id]` | 1 ✅ | 1 ✅ | 1 ✅ | 1 ✅ |
+| `realestate` 부동산 목록 | `/realestate` | 1 ✅ | 6개당 1 ✅ | 1 ✅ | 1 ✅ |
+| `realestate-detail` 부동산 상세 | `/realestate/[id]` | 1 ✅ | 1 ✅ | 1 ✅ | 1 ✅ |
+| `neighborbusiness` 동네업소 목록 | `/neighborbusiness` | 1 ✅ | 6개당 1 ✅ | 1 ✅ | 1 ✅ |
+| `neighborbusiness-detail` 동네업소 상세 | `/neighborbusiness/[id]` | 1 ✅ | 1 ✅ | 1 ✅ | 1 ✅ |
+| `yellowpage` 옐로페이지 | `/yellowpage` | **1 🆕** | **2 🆕** | — | — |
+| `yellowpage-detail` 업소 상세 | `/biz/[id]` | **1 🆕** | — | **1 🆕** | — |
+| `blog` 블로그 목록 | `/blog` | **1 🆕** | **4개당 1 🆕** | **1 🆕** | — |
+| `blog-detail` 블로그 상세 | `/blog/[slug]` | **1 🆕** | **3 🆕** | **1 🆕** | 1 ✅ |
+
+✅ = 이미 있음 · 🆕 = 이번에 신설
+
+- **vnkorlife 에는 `header` 를 두지 않는다.** 사장님이 말한 "헤더(검색창 아래)"는 이 사이트에서 **콘텐츠 첫 칸**이고,
+  그 자리를 이미 `top` 이 차지하고 있다. 낱말만 다르고 같은 자리다 — 새로 만들면 중복 슬롯이 된다.
+- **상세 4종의 `in-content`·`sidebar` 는 목표(헤더·하단)보다 많지만 그대로 둔다.**
+  빈 슬롯은 자동으로 숨겨져 해가 없고, 지우면 팔 수 있는 재고만 줄어든다. (⚠️ 사장님 판단으로 되돌릴 수 있음)
+- ⚠️ **`blog` 값의 뜻이 바뀌었다**: 이제 **`blog`=목록 / `blog-detail`=상세**. 예전엔 상세가 `blog` 를 썼다.
+  현재 등록된 광고 2건은 `targetPages` 가 비어 있어(=전체) **영향을 받지 않고**, 구 데이터용 호환 처리도 넣어 뒀다.
+
+### 8-6. 앱 (chao-vn-app)
+
+앱은 콘솔 위치 1개가 여러 자리로 퍼지는 구조를 **그대로 둔다**(`POSITION_TO_SLOTS`).
+
+| 콘솔 위치 | 표준 어휘로는 | 앱 실제 자리 |
+|---|---|---|
+| `head` | `header` | `home_banner` · `header` · `detail_top` |
+| `inner` | `in-content` | `home_inline` · `inline` · `detail_middle` |
+| `bottom` | `bottom` | `fixed_bottom` · `detail_bottom` |
+| `popup` | `popup` | `popup` |
+
+| 화면 | 상단 | 중간 | 하단 | 팝업 |
+|---|:--:|:--:|:--:|:--:|
+| 홈 · 목록 4종 · 상세 3종(당근·구인·부동산) | ✅ | ✅ | ✅ | ✅ |
+| **뉴스 상세 (`PostDetailScreen`)** | **🆕** | **🆕** | **🆕** | ✅ |
+
+- 뉴스 상세 = `screen="news"`. 콘솔의 `magazine`·`magazine-detail` 타겟이 여기로 온다(`TARGETPAGE_TO_SCREENS`).
+- **네이티브 변경 없음 → OTA 로 배포**(`eas update --channel production`). ⛔ `--branch main` / `--channel main` 금지.
+
+---
+
+## 9. 자체 홍보 폴백 ("기본 광고") — §7 결정에 따른 규격
+
+**규칙**: 슬롯에 배정된 유료 광고가 없을 때만 자체 홍보를 그린다. 유료 광고가 들어오면 자동으로 밀려난다.
+
+- **어디에 두나**: 통합센터에 광고로 등록하지 **않는다.** 등록하면 노출 통계가 유료 광고와 섞이고 만료일 관리 대상이 된다.
+  → 각 표시단(WP 플러그인 · 앱 `AdBanner`)에 **폴백으로 내장**한다.
+- **소재**: 이미지가 아니라 **HTML/글자 배너**다. 새 이미지 파일을 만들어 올릴 필요가 없고 어떤 폭에서도 안 깨진다.
+  - 웹: 앱 설치 · 교민 생활정보 · 광고 문의
+  - 앱: 매거진 · 광고 문의 (**'앱 설치'는 넣지 않는다** — 이미 앱을 쓰는 사람에게 무의미)
+- **한 지면 최대 2칸.** 20칸이 전부 우리 배너면 광고가 아니라 도배로 보인다.
+  - 웹: `window.__xcHouseN` 으로 페이지당 셈. **섹션 슬롯은 폴백을 끈다**(섹션이 여러 개라 켜면 줄줄이 붙는다).
+  - 앱: 상세 **상단·하단**만. **중간은 비면 아무것도 안 그린다**(예전의 회색 "광고" 상자를 없앴다).
+- **집계**: GA4 이벤트는 보내되 `promo_id` 를 `house_*` 로 구분한다 → 광고주 리포트에서 자체 홍보를 뺄 수 있다.
+
+---
+
+## 10. 진행 현황
+
+| # | 작업 | 상태 |
+|---|---|---|
+| 1 | 슬롯 표준 확정 (§8) | ✅ 2026-08-23 |
+| 2 | 표시 쪽 구현 — WP · jenny · vnkorlife | ✅ 코드 완료 (**WP 는 FTP 업로드 대기**) |
+| 3 | 등록 콘솔 재구성 + 뉴스터미널 지면 분리 | ✅ |
+| 4 | 앱 — 뉴스 상세 3자리 | ✅ 코드 완료 · **OTA 미발송** |
+| 5 | 검증 | 🟡 정적 검증만 끝 — 라이브 확인은 배포 후 |
+| 6 | 자체 홍보 폴백 (§9) | ✅ 웹·앱 모두 |
+
+**정적 검증으로 확인한 것**
+- `vnkorlife-web` — `tsc --noEmit` 통과 · `next build` 통과
+- `daily-news-final` — `next build` 통과
+- `chao-vn-app` · WP 플러그인 — 파서/괄호 균형 검사 통과 (PHP CLI 가 없어 `php -l` 은 못 돌림)
+- 라이브 HTML 실측 — chaovietnam 홈에 `section.cat-box` **12개**, `#theme-header`·`#main-content .content` 존재 확인.
+  뉴스터미널은 그 셋이 **하나도 없는** 단독 템플릿임을 확인(그래서 서버 삽입).
+
+---
+
+## 11. 무엇을 고쳤는지 (2026-08-23 구현)
+
+### `vnkorlife-web` — 배포: git push → Vercel 자동
+| 파일 | 바꾼 것 |
+|---|---|
+| `src/lib/models/ads.ts` | 페이지 값 추가: `yellowpage` · `yellowpage-detail` · `blog-detail` |
+| `src/components/detail/AdBanner.tsx` | 구 데이터 호환 — 예전에 `blog` 로 등록한 광고가 `blog-detail` 에서도 잡히게 |
+| `app/yellowpage/YellowPageClient.tsx` | 🆕 상단 1 + 목록 사이 2칸 |
+| `app/biz/[id]/BizDetailClient.tsx` | 🆕 상단 1 + 하단 1 |
+| `app/blog/page.tsx` | 🆕 상단 1 + 목록 4개당 1 + 하단 1 |
+| `app/blog/[slug]/page.tsx` | 🆕 상단 1 + 본문 3칸 + 하단 1 · 페이지값 `blog`→`blog-detail` |
+
+본문 3칸은 **애드센스가 쓰는 경계를 피해서** 놓는다 — 안 그러면 광고 둘이 붙어 나온다.
+
+### `daily-news-final` — 콘솔·API 는 git push → Vercel / **WP 플러그인은 FTP 수동**
+| 파일 | 바꾼 것 |
+|---|---|
+| `wordpress-plugin/xinchao-unified-ads.php` (v4.4.0) | ① 컨테이너 클래스 `xinchao-ad` → **`xc-slot`**(광고차단 회피) ② 현재 페이지 자동판정 — 사이드바가 더 이상 페이지를 섞지 않는다 ③ 본문 중간 **매 2단락(최대6) → 본문 3등분 2칸** ④ 홈·상세에 `header`·`top`·`section`·`bottom` 슬롯을 **JS 로 테마 DOM 에 꽂는다** ⑤ 자체 홍보 폴백 |
+| `wordpress-plugin/jenny-daily-news.php` | 뉴스터미널에 `header` 1 · `top` 1 · `section` 섹션당 1 · `bottom` 1. 예전 `in-content` 호출을 `top` 으로 고침 |
+| `app/admin/ad-center/page.js` | 지면 **3개 → 4개**(뉴스터미널 분리) · 위치에 `header`·`section` 추가 · 페이지에 동네업소·옐로페이지·블로그상세 추가 · **`PAGE_SLOTS`** 로 없는 조합은 못 고르게 |
+| `app/api/public/ads/route.js` | `news-terminal` 지면 지원 (`array-contains-any`) + 구 chaovietnam 타겟팅 호환 |
+
+⚠️ **뉴스터미널의 `in-content` → `top` 변경은 지금 떠 있는 광고에 영향이 있다.**
+현재 신한은행이 `in-content` 로 등록돼 있어, 플러그인을 올리면 터미널에서는 빠지고 **기사 상세에만** 남는다.
+→ 터미널에도 띄우려면 콘솔에서 **지면 "뉴스 터미널"을 체크하고 위치를 고른 뒤** 다시 저장한다.
+
+### `chao-vn-app` — 배포: git push → **`eas update --channel production`**
+| 파일 | 바꾼 것 |
+|---|---|
+| `screens/PostDetailScreen.js` | 뉴스 상세에 `DetailAdBanner` 상단·중간·하단 3자리 추가 |
+| `components/AdBanner.js` | 빈 자리의 회색 "광고" 상자 → 자체 홍보 배너(상단·하단 2칸) · 중간은 비면 아무것도 안 그린다 |
+
+---
+
+## 12. 다음 단계
+
+1. **WP 플러그인 2개를 FTP 로 올린다** (사장님) — 서버 `wp-content/plugins/`
+   - `xinchao-unified-ads.php` (v4.4.0) · `jenny-daily-news.php`
+2. **앱 OTA** — `eas update --channel production` (미발송)
+3. **라이브 검증** — 배포 후 각 페이지를 헤드리스 Chrome 으로 렌더해 `xc-slot` 이 제자리에 잡히는지 확인
+   `chrome --headless=new --virtual-time-budget=20000 --dump-dom <url> | grep -c xc-slot`
+   ⚠️ 자동화 플래그로는 **광고가 채워지는지**는 판단할 수 없다(§트랩 3). 슬롯 존재 확인용으로만 쓴다.
+4. **등록 광고 2건 재배치** — 신한은행·알리를 새 지면·위치 체계로 다시 저장
