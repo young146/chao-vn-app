@@ -616,7 +616,7 @@ https://chaovietnam.co.kr/wp-content/plugins/xinchao-unified-ads.php
 | 1 | 슬롯 표준 확정 (§8) | ✅ 2026-08-23 |
 | 2 | 표시 쪽 구현 — WP · jenny · vnkorlife | ✅ 코드 완료 (**WP 는 FTP 업로드 대기**) |
 | 3 | 등록 콘솔 재구성 + 뉴스터미널 지면 분리 | ✅ |
-| 4 | 앱 — 뉴스 상세 3자리 | ✅ 코드 완료 · **OTA 미발송** |
+| 4 | 앱 — 뉴스 상세 3자리 | ✅ **OTA 발송 완료** (2026-08-24, rv 2.4.3) |
 | 5 | 검증 | 🟡 정적 검증만 끝 — 라이브 확인은 배포 후 |
 | 6 | 자체 홍보 폴백 (§9) | ✅ 웹·앱 모두 |
 
@@ -666,7 +666,7 @@ https://chaovietnam.co.kr/wp-content/plugins/xinchao-unified-ads.php
 ## 12. 다음 단계
 
 1. **WP 플러그인 2개를 FTP 로 올린다** (사장님) — 서버 `wp-content/plugins/`
-   - `xinchao-unified-ads.php` **v4.6.0** · `jenny-daily-news.php` **v2.5.0**
+   - `xinchao-unified-ads.php` **v4.6.1** · `jenny-daily-news.php` **v2.5.0**
    - ⚠️ 올린 뒤 워드프레스 플러그인 목록에서 **판번호가 이 값인지 눈으로 확인**한다. 올렸다고 믿지 말 것.
 2. **앱 OTA** — `eas update --channel production` (미발송)
 3. **라이브 검증** — 배포 후 각 페이지를 헤드리스 Chrome 으로 렌더해 `xc-slot` 이 제자리에 잡히는지 확인

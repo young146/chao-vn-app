@@ -6,7 +6,7 @@
 >
 > **쓰기 규칙**: 작업을 완료하거나 중단할 때마다 맨 위에 새 항목을 추가한다. 깊은 기술 추적은 주제별 `PROGRESS_*.md`로 링크하고, 이 파일에는 **"무엇을 · 어디까지 · 다음은"** 요약만 남긴다.
 >
-> 최종 갱신: 2026-08-23
+> 최종 갱신: 2026-08-24
 
 ---
 
@@ -101,17 +101,26 @@ chaovietnam 홈은 콘솔에서 위치 4개를 고를 수 있는데 실제 슬�
   홈·상세에 헤더/상단/섹션/하단 슬롯을 JS 로 테마 DOM 에 삽입. 콘솔은 없는 조합을 못 고르게
 - **`chao-vn-app`** — 뉴스 상세에 상단·중간·하단 3자리 추가. 빈 자리의 회색 "광고" 상자를 **자체 홍보 배너**로 교체
 
-**배포 상태**
-- ✅ `vnkorlife-web` · `daily-news-final` — push 완료 (Vercel 자동 배포)
-- ✅ `chao-vn-app` — push 완료
-- ⏳ **WP 플러그인 2개는 FTP 수동 업로드 필요** (사장님) — `xinchao-unified-ads.php` · `jenny-daily-news.php`
-- ⏳ **앱 OTA 미발송** — `eas update --channel production`
+**배포 상태** (2026-08-24 갱신)
+- ✅ `vnkorlife-web` · `daily-news-final` — push + Vercel 배포 + 라이브 검증 완료
+- ✅ WP 플러그인 — `jenny-daily-news.php` **v2.5.0** 업로드 완료 · `xinchao-unified-ads.php` **v4.6.1** 만 남음
+- ✅ **앱 OTA 발송 완료** — 2026-08-24, `production` 채널, runtimeVersion **2.4.3**
+  (group `2ac24c71` / 커밋 `deed891`). 발송 전 실물 대조: 최신 빌드 v2.5.0(iOS #77·And #110)이
+  runtime 2.4.3 이고 `package.json` 무변경 → **순수 JS 변경만**임을 확인하고 보냈다.
+
+**그 뒤 이어서 한 일 (같은 날 ~ 8/24)**
+- chaovietnam 사이드바: e3lan 광고 위젯 → 일반 이미지 위젯 (EasyList 전역 차단 규칙 확인)
+- chaovietnam 사이드바에 통합센터 슬롯 창구 4개 신설(`n=0~3`) — 앞으로 등록만 하면 자동 노출
+- 슬롯 진단 모드 신설: chaovietnam `?xcads=debug` · vnkorlife `?xcads=debug`
+- vnkorlife 에 `header` 위치 신설 + 홈 인너 1칸 + 상세 4종 자리 조정
+- 헤더 광고를 **각 페이지 검색상자 바로 위**로 (네비 아래에 두니 히어로가 밀려 사이트 정체가 사라졌다)
+- 사이드바 광고를 인기목록·블로그·카카오톡 **아래**로
+- 신한은행 광고를 `top` → `header` · 전 페이지로 확대
 
 **다음 단계**
-1. WP 플러그인 FTP 업로드 → 라이브에서 `xc-slot` 이 제자리에 잡히는지 확인
-2. 앱 OTA 발송
-3. 등록된 광고 2건(신한은행·알리)을 새 지면·위치 체계로 다시 저장.
-   ⚠️ 신한은행이 `in-content` 라, 플러그인을 올리면 **뉴스터미널에서 빠지고 기사 상세에만** 남는다
+1. `xinchao-unified-ads.php` **v4.6.1** FTP 업로드 (빈 슬롯 위젯이 껍데기를 안 남기게)
+2. chaovietnam 홈 로고 옆의 **`[adinserter block="1"]` 글자 노출** 정리 — Ad Inserter 가 없어져 숏코드가 해석 안 됨
+3. vnkorlife 테스트 광고 3건 정리 (기간 만료라 안 뜨지만 `news-terminal` 같은 잘못된 페이지값이 남아 있다)
 
 ---
 
