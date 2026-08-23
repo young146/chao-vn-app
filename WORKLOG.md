@@ -110,6 +110,43 @@
 
 ---
 
+## 2026-08-23 (2) — 🟢 [수익] "애드센스가 안 뜬다" — 범인은 사장님 PC 의 NordVPN 광고차단이었다
+
+- **증상**: chaovietnam 에 애드센스 광고가 안 보인다. 어제는 불규칙하게 보이다가 오늘 아침엔 하나도 안 보였다.
+
+- **결론(원인)**: **사장님 PC 에 설치된 NordVPN 의 Threat Protection(광고·트래커 차단)**.
+  끄신 뒤 실측하니 차단 0건, `googleads.g.doubleclick.net` 에서 광고 200 x4 정상 수신.
+  · 확장이 아니라 **데스크톱 앱의 시스템 서비스**(`nordsec-threatprotection-service`)라 **시크릿 모드에도 걸린다.**
+  · **VPN 연결을 끊어도 이 차단은 따로 동작한다.** 그래서 "VPN 껐는데도 안 된다"가 성립했다.
+  · 광고차단은 요청을 실패시키지 않고 **빈 응답(204)** 을 준다 — 에러가 없어 원인 찾기가 어렵다.
+
+- **곁가지로 실제로 고친 것 (별건이지만 유효)**
+  1. **LiteSpeed 가 애드센스 스크립트를 막고 있었다.** 페이지에 `type="litespeed/javascript"` + `src`→`data-src` 로
+     나가 스크립트 요청 자체가 안 됐다. Site Kit 이 자동으로 심는 태그라 우리가 속성을 달 수 없어 **mu-plugin** 으로 해결:
+     `wordpress-plugin/mu-plugins/litespeed-ad-excludes.php` (공식 필터 3종에 애드센스·GA4·쿠팡·통합광고 제외).
+     설정 화면이 아니라 코드로 박은 이유 = 설정은 초기화·재설치 때 날아가고 **그러면 광고가 조용히 멈춘다**(사장님 지적).
+     ✅ FTP 업로드 완료.
+  2. **빈 광고 자리가 화면에 큰 공백으로 남는 문제.** 자리 10개 중 실제로 채워지는 건 1~3개다(재고 문제, 정상 동작).
+     구글 공식 방법으로 접는 mu-plugin 신설: `wordpress-plugin/mu-plugins/adsense-collapse-empty.php`
+     (`ins.adsbygoogle[data-ad-status="unfilled"]` 숨김 + 자동광고 래퍼 접기). ⚠️ **FTP 업로드 대기**.
+
+- **⚠️ 다음에 같은 일이 생기면 — 순서를 지킬 것 (오늘 이걸 안 지켜 크게 헤맸다)**
+  1. **애드센스 홈에서 수익/노출부터 본다.** 숫자가 나오면 사이트는 정상이다. (오늘 어제 $9.19 · 이번 달 $106.19 였다)
+  2. **"내 PC 에서만 안 된다"가 확인되면 그 PC 의 설치 프로그램·보안 SW 부터 본다.** 서버·플러그인·계정을 뒤지지 말 것.
+  3. 브라우저 진단은 **자동화 플래그(`--remote-debugging-port`, `--disable-blink-features`)를 쓰면 구글이 봇으로 보고
+     204 를 준다.** 그 204 를 사이트 문제로 오독하지 말 것. 확장·프로필 비교도 이 조건에선 무의미하다.
+  4. 애드센스 자리는 **원래 다 안 채워진다.** 자리 수가 아니라 `data-ad-status=filled` 개수를 봐야 한다.
+
+- **배제된 것들(다시 의심하지 말 것)**: VPN IP · 애드센스 계정/사이트 승인(둘 다 "준비됨") · 자동 최적화 실험(종료됨) ·
+  Site Kit 의 `host=ca-host-pub-…` 파라미터(정상값) · Chrome 확장 · Chrome 정책(비어 있음) · PC 성능(Core Ultra 5 125H).
+
+- **배포 상태**: 코드 전부 push 완료. ⚠️ FTP 미완 2건 — `adsense-collapse-empty.php`(신규) · `jenny-daily-news.php` 2.3.0.
+
+- **관련 파일**: `daily-news-final/wordpress-plugin/mu-plugins/litespeed-ad-excludes.php` ·
+  `…/mu-plugins/adsense-collapse-empty.php`
+
+---
+
 ## 2026-08-23 — 🟡 [수익] 쇼핑 캐러셀 3지면 전개 + 광고 슬롯 전수 조사 (설계 결정 대기)
 
 - **한 일 (1) 개발 PC 정비**: GitHub 7개 저장소를 전부 이 PC 에 clone·pull·의존성 설치·빌드 검증까지 마쳤다.
