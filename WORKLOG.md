@@ -110,6 +110,50 @@
 
 ---
 
+## 2026-08-23 (3) — 🟡 [수익] Shopee·Lazada 제휴 — AccessTrade 승인 대기 (세금번호 확인이 다음 행동)
+
+- **왜 했나**: 베트남 독자에게 실제로 팔리는 쇼핑몰은 **Shopee·Lazada** 다. 알리·쿠팡만으로는 현지 전환이 약하다.
+
+- **확인된 현황 (실물 화면·공식문서 기준. 추측 아님)**
+
+  | 경로 | 상태 |
+  |---|---|
+  | Involve Asia | 베트남 Shopee/Lazada 오퍼 **없음** — 이 경로는 막혔다 |
+  | Shopee 자체 제휴(AFF) | 7/7 신청 → **1개월 반 무응답**. 8/23 재신청 |
+  | AccessTrade VN 계정 | `AT2221955` (HAN YOUNG MIN / young146), ATSP 20점 |
+  | └ Shopee VN Smartlink | **Pending** · 커미션 24%/Bill |
+  | └ Lazada Việt Nam | **Pending** · 커미션 40%/Bill |
+  | └ 세금번호(MST) | **비어 있음 / Awaiting confirmation** ← 유일하게 비어 있는 필수 항목 |
+
+- **공식 확인 사실**: `"Bạn chỉ lấy được link tiếp thị liên kết khi chiến dịch của bạn đã được phê duyệt."`
+  → **캠페인이 승인되기 전에는 제휴 링크를 만들 수 없다.** 승인 없이 미리 심어둘 방법은 없다.
+  승인 후 링크 생성 경로: `Tool → Create links(Deeplink) → 캠페인 선택 → Enter URL → Tạo link`
+
+- **⛔ AccessTrade 에는 "내 매체(사이트/앱) 등록" 화면이 따로 없다.** Traffic type 은 설문, profile/info 는 연락처뿐이다.
+  매체 URL 은 **캠페인 신청 시점에 함께 제출되는 구조**다. 다시 찾아 헤매지 말 것.
+
+- **세금번호 결론 (이 건은 여기서 종결)**: 사장님이 **개인 MST 번호를 확인해 오시는 것**으로 정리.
+  · 베트남에서 급여·세무 처리를 하고 계시면 **개인 MST 가 이미 발급돼 있을 가능성이 높다** → 회사 회계 담당자에게 확인
+  · 번호 조회: `https://tracuunnt.gdt.gov.vn/` → "Thông tin về người nộp thuế TNCN" → 여권/CCCD 로 조회
+  · 없으면 발급: `https://canhan.gdt.gov.vn/` → `Đăng ký thuế` → **양식 05-ĐK-TCT** + 여권 사본 → **3영업일**
+  · 근거: Thông tư 86/2024/TT-BTC (외국인). 회사 위임 시 양식 41/UQ-ĐKT
+
+- **코드 쪽 준비**: `daily-news-final/lib/affiliate-links.js` 에 자리만 주석으로 열어 뒀다.
+  승인·딥링크만 나오면 **두 줄 채우면 끝**이다.
+  ```js
+  // shopee: { name:'Shopee VN', label:'쇼피 베트남', deeplink:'' },
+  // lazada: { name:'Lazada VN', label:'라자다 베트남', deeplink:'' },
+  ```
+
+- **배포**: 코드 변경 없음(주석 자리만). 문서만 갱신.
+- **상태**: ⏳ 외부 승인 대기 — 우리가 지금 더 할 수 있는 일이 없다.
+- **다음 단계**:
+  1. 사장님 → 개인 MST 확인 후 AccessTrade `profile/info` 에 입력 + Update
+  2. 며칠 뒤 Shopee·Lazada Pending 이 풀렸는지 확인. 안 풀리면 `support@accesstrade.vn` 문의
+  3. 승인되면 → 딥링크 생성 → `affiliate-links.js` 두 줄 → 쇼핑 배너를 **"베트남 = Shopee·Lazada 우선"** 으로 재배치
+
+---
+
 ## 2026-08-23 (2) — 🟢 [수익] "애드센스가 안 뜬다" — 범인은 사장님 PC 의 NordVPN 광고차단이었다
 
 - **증상**: chaovietnam 에 애드센스 광고가 안 보인다. 어제는 불규칙하게 보이다가 오늘 아침엔 하나도 안 보였다.
@@ -140,7 +184,7 @@
 - **배제된 것들(다시 의심하지 말 것)**: VPN IP · 애드센스 계정/사이트 승인(둘 다 "준비됨") · 자동 최적화 실험(종료됨) ·
   Site Kit 의 `host=ca-host-pub-…` 파라미터(정상값) · Chrome 확장 · Chrome 정책(비어 있음) · PC 성능(Core Ultra 5 125H).
 
-- **배포 상태**: 코드 전부 push 완료. ⚠️ FTP 미완 2건 — `adsense-collapse-empty.php`(신규) · `jenny-daily-news.php` 2.3.0.
+- **배포 상태**: 코드 전부 push 완료. ✅ FTP 업로드도 완료 — `adsense-collapse-empty.php`(신규) · `jenny-daily-news.php` 2.3.0 (사장님 확인).
 
 - **관련 파일**: `daily-news-final/wordpress-plugin/mu-plugins/litespeed-ad-excludes.php` ·
   `…/mu-plugins/adsense-collapse-empty.php`

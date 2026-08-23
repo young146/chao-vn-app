@@ -1,10 +1,39 @@
 # 광고 슬롯 재설계 (통합 광고센터)
 
-> **상태**: 🟡 설계 확정 대기 — 사장님 결정 1건 남음 (맨 아래 「결정 대기」 참조)
+> **상태**: 🟡 설계 확정 대기 — 사장님 결정 1건 남음 (§7 「결정 대기」)
 > **시작**: 2026-08-23 · **관련**: [WORKLOG.md](WORKLOG.md) · [PROGRESS_REVENUE_MASTERPLAN.md](PROGRESS_REVENUE_MASTERPLAN.md)
 >
 > 왜 이 문서가 필요한가: 광고를 **등록하는 화면(통합 광고센터)** 과 **실제로 광고가 박히는 자리** 가 어긋나 있다.
 > 팔 수 없는 자리를 팔 수 있는 것처럼 보여주고, 페이지를 지정해도 지켜지지 않는다. 둘을 1:1로 맞추는 작업이다.
+
+---
+
+## 🚀 새 대화는 여기서 시작 (2026-08-23 인수인계)
+
+**이 문서 하나만 읽으면 이어서 일할 수 있다.** 앞 대화 내용을 다시 물을 필요 없다.
+
+**첫 행동**: §7 결정 대기 1건을 사장님께 확인 → 답이 나오면 §6 작업 순서 1번부터 착수.
+
+**작업 대상 저장소 (전부 `github.com/young146/<repo>`)**
+
+| 무엇 | 저장소 | 핵심 파일 |
+|---|---|---|
+| 등록 콘솔 | `daily-news-final` | `app/admin/ad-center/page.js` |
+| chaovietnam WP 표시 | `daily-news-final` | `wordpress-plugin/xinchao-unified-ads.php` · `wordpress-plugin/jenny-daily-news.php` |
+| vnkorlife 표시 | `vnkorlife-web` | 슬롯 컴포넌트 |
+| 앱 표시 | `chao-vn-app` | `services/FirebaseAdService.js` · `components/DetailAdBanner` · `screens/PostDetailScreen` |
+
+**먼저 알고 있어야 할 함정 3가지 (실측으로 확인된 것. 다시 검증하지 말 것)**
+
+1. **`.e3lan` 클래스는 광고차단 필터에 등재돼 있다** (Sahifa 테마 광고 영역, 아랍어 '광고'). 여기에 유료 광고를 걸면
+   광고차단 쓰는 독자에게 **안 보인다.** → 새 슬롯의 클래스명에 `ad`·`banner`·`e3lan` 을 쓰지 말 것.
+2. **이 워드프레스 서버는 외부 HTTP 아웃바운드(`wp_remote_get`)가 막혀 있다.** 플러그인이 외부 API 를 부르는 설계는
+   서버에서 조용히 실패한다 → 내장 폴백이 필요하다.
+3. **헤드리스 Chrome 진단 시 자동화 플래그를 쓰면 구글이 봇으로 보고 광고를 204(빈 응답)로 준다.**
+   슬롯 존재 확인(`--dump-dom`)에는 써도 되지만, **광고가 채워지는지 판단하는 용도로는 쓸 수 없다.**
+
+**앱 쪽 배포 판정**: 뉴스 상세 3자리 추가는 기존 `DetailAdBanner` 재사용 → 네이티브 변경 없음 → **OTA 로 배포 가능**
+(`eas update --channel production`). ⛔ `--branch main` / `--channel main` 금지.
 
 ---
 
@@ -134,7 +163,7 @@ Sahifa 테마의 헤더 광고 영역은 **`e3lan`**(아랍어 '광고') 클래�
 
 ---
 
-## 결정 대기 (내일 여기서 시작)
+## 7. 결정 대기 ← 새 대화에서 여기부터
 
 > **빈 슬롯에 자체 홍보(앱 설치 · 매거진 구독 · 광고문의)를 채울까, 그냥 비워둘까?**
 
