@@ -341,7 +341,7 @@ Sahifa 테마의 헤더 광고 영역은 **`e3lan`**(아랍어 '광고') 클래�
 | 파일 | 바꾼 것 |
 |---|---|
 | `wordpress-plugin/xinchao-unified-ads.php` (v4.4.0) | ① 컨테이너 클래스 `xinchao-ad` → **`xc-slot`**(광고차단 회피) ② 현재 페이지 자동판정 — 사이드바가 더 이상 페이지를 섞지 않는다 ③ 본문 중간 **매 2단락(최대6) → 본문 3등분 2칸** ④ 홈·상세에 `header`·`top`·`section`·`bottom` 슬롯을 **JS 로 테마 DOM 에 꽂는다** ⑤ 자체 홍보 폴백 |
-| `wordpress-plugin/jenny-daily-news.php` | 뉴스터미널에 `header` 1 · `top` 1 · `section` 섹션당 1 · `bottom` 1. 예전 `in-content` 호출을 `top` 으로 고침 |
+| `wordpress-plugin/jenny-daily-news.php` (v2.4.0) | 뉴스터미널에 `header` 1 · `top` 1 · `section` 섹션당 1 · `bottom` 1. 예전 `in-content` 호출을 `top` 으로 고침 |
 | `app/admin/ad-center/page.js` | 지면 **3개 → 4개**(뉴스터미널 분리) · 위치에 `header`·`section` 추가 · 페이지에 동네업소·옐로페이지·블로그상세 추가 · **`PAGE_SLOTS`** 로 없는 조합은 못 고르게 |
 | `app/api/public/ads/route.js` | `news-terminal` 지면 지원 (`array-contains-any`) + 구 chaovietnam 타겟팅 호환 |
 
@@ -360,7 +360,8 @@ Sahifa 테마의 헤더 광고 영역은 **`e3lan`**(아랍어 '광고') 클래�
 ## 12. 다음 단계
 
 1. **WP 플러그인 2개를 FTP 로 올린다** (사장님) — 서버 `wp-content/plugins/`
-   - `xinchao-unified-ads.php` (v4.4.0) · `jenny-daily-news.php`
+   - `xinchao-unified-ads.php` **v4.4.0** · `jenny-daily-news.php` **v2.4.0**
+   - ⚠️ 올린 뒤 워드프레스 플러그인 목록에서 **판번호가 이 값인지 눈으로 확인**한다. 올렸다고 믿지 말 것.
 2. **앱 OTA** — `eas update --channel production` (미발송)
 3. **라이브 검증** — 배포 후 각 페이지를 헤드리스 Chrome 으로 렌더해 `xc-slot` 이 제자리에 잡히는지 확인
    `chrome --headless=new --virtual-time-budget=20000 --dump-dom <url> | grep -c xc-slot`
