@@ -11,7 +11,9 @@
  *              v2.3: 매거진 페이지 공유 미리보기(og:image)를 이번 호 표지로 자동 지정
  *              v2.3.1: 호 페이지(/magazine-issue/issue-NNN/)도 같게 — 2.3 에서 빠져 있었다
  *              v2.3.2: 공유 카드를 1200x630 가로로 자동 생성 — 세로 표지가 잘리던 문제 해결
- * Version: 2.3.2
+ *              v2.3.3: 상시 콘텐츠(블로그)에 호가 자동으로 붙던 문제 해결 — 손으로 떼도 저장하면
+ *                      다시 붙어서 뗄 방법이 아예 없었다
+ * Version: 2.3.3
  *
  * ⚠️ 이 파일은 FTP 로 직접 올린다(자동 배포 없음).
  *    그래서 **고칠 때마다 위 Version 을 반드시 올린다.** 그것이 "서버에 새 파일이
@@ -244,6 +246,17 @@ function chaovn_get_magazine_issues($request) {
 define('CHAOVN_ISSUE_TAX', 'mag_issue');
 define('CHAOVN_CURRENT_ISSUE_OPT', 'chaovn_current_issue');
 
+/**
+ * 호(號)에 속하지 않는 "상시 콘텐츠" 카테고리.
+ *
+ * 왜 필요한가 (2026-08-25 사장님 지적으로 발견):
+ *   블로그 글은 종이 잡지에 실리지 않는데도 자동 부여가 호를 찍어, 565호 목차에 7건이 섞여 있었다.
+ *   더 나쁜 것은 **뗄 방법이 없었다는 점** — 글 편집화면에서 호를 체크 해제하고 저장하면
+ *   save_post 가 "호가 비었네" 하고 다시 찍는다. 사람이 손으로도 못 이기는 구조였다.
+ *   → 자동 부여 단계에서 아예 제외한다. (하위 카테고리도 함께 제외)
+ */
+define('CHAOVN_NON_ISSUE_CAT_IDS', array(795)); // 795 = 블로그
+
 add_action('init', 'chaovn_register_issue_taxonomy');
 function chaovn_register_issue_taxonomy() {
     register_taxonomy(CHAOVN_ISSUE_TAX, 'post', array(
@@ -472,6 +485,7 @@ function chaovn_auto_assign_issue($post) {
     if (wp_is_post_revision($post->ID) || wp_is_post_autosave($post->ID)) return;
     if ($post->post_status !== 'publish') return;
     if (chaovn_is_news_post($post->ID)) return;
+    if (chaovn_is_non_issue_post($post->ID)) return;   // 블로그 등 상시 콘텐츠는 호에 넣지 않는다
 
     // 발행일이 최근인 글만 (45일 = 호 3개분 여유. 예약발행·날짜 수정도 감안)
     $age_days = (time() - get_post_time('U', true, $post)) / DAY_IN_SECONDS;
@@ -2133,6 +2147,22 @@ function chaovn_is_news_post($post_id) {
     $cats = get_the_category($post_id);
     foreach ($cats as $cat) {
         if ((int) $cat->term_id === CHAOVN_NEWS_CAT_ID) return true;
+    }
+    return false;
+}
+
+/** 호에 넣지 않는 상시 콘텐츠인가 (블로그 등). 하위 카테고리도 같이 본다. */
+function chaovn_is_non_issue_post($post_id) {
+    $excluded = (array) CHAOVN_NON_ISSUE_CAT_IDS;
+    if (empty($excluded)) return false;
+
+    $cats = get_the_category($post_id);
+    foreach ($cats as $cat) {
+        foreach ($excluded as $ex) {
+            $ex = (int) $ex;
+            if ((int) $cat->term_id === $ex) return true;
+            if (cat_is_ancestor_of($ex, $cat->term_id)) return true;
+        }
     }
     return false;
 }
