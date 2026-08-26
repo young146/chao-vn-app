@@ -92,21 +92,65 @@
 
 ## 2026-08-27 — 🔴 [측정] iOS Analytics 가 왜 0건이었나 — Firebase 가 **아예 깨어나지 않고 있었다**
 
-**한 일**
-- GA4 정리: `vnkorlife.com` 에 GTM 컨테이너(`GTM-N3VNXDRJ`) 삽입·배포, MonsterInsights 제거(`G-6K2SPGVPL1` 로 새던 것), 계정을 잘못 골라 두 번 만들어진 빈 속성(한영민 `551670786`) 삭제. 두 사이트 모두 **통합 속성 + 전용 속성** 2곳으로 정리됨.
-- **iOS Analytics 0건 원인 규명** — 위 「다음 EAS Build 에 반드시 포함할 것」 ① 참고. 요약: RNFirebase 의 config plugin 이 Expo SDK 54 의 `AppDelegate.swift` 에서 삽입 지점을 못 찾아 **`FirebaseApp.configure()` 를 넣지 않고 조용히 건너뛰었다.** 빌드 로그에 경고가 찍혀 있었는데 아무도 안 봤다.
-- 수정: `app.plugin.js` 에 5번 블록(iOS AppDelegate Firebase 초기화 삽입) 추가. `app.json` version 2.5.1 로 상향.
+> 하루짜리 작업치고 파장이 컸다. 웹 측정 배선을 전부 정리했고, 몇 달째 0이던 iOS 측정의 진짜 원인을 찾아 고쳐서 제출까지 했다.
 
-**배포 상태**
-- 코드: 커밋·푸시 완료. **iOS 빌드·제출은 아직 안 함** (사장님이 시점 결정)
-- 웹(GA4/GTM/워드프레스) 정리는 **모두 반영 완료** — 사이트 응답으로 실물 확인함
+### 1. 웹 측정 정리 — **완료** (사이트 응답으로 실물 확인)
 
-**다음 단계**
-1. `npx eas-cli@latest build --platform ios --profile production --auto-submit` → TestFlight → ASC 에서 앱스토어 공개
-2. 배포 후 GA4 실시간에서 플랫폼 `iOS` 가 잡히는지 확인
-3. GA4 데이터 보관 2개월 → 14개월 변경 (안 하면 지금 쌓는 데이터도 2개월 뒤 사라짐)
+- `vnkorlife.com` 에 GTM 컨테이너 `GTM-N3VNXDRJ` 삽입([app/layout.tsx](https://github.com/young146/vnkorlife-web/blob/main/app/layout.tsx) · `vnkorlife-web` 저장소) → Vercel 배포·발행 완료
+- **MonsterInsights 제거** — 안 쓰는데도 `chaovietnam.co.kr` 전 페이지에 `G-6K2SPGVPL1` 을 붙이고 있었다. 플러그인 이름이 "**Google** Analytics for WordPress by MonsterInsights" 로 시작하고 관리자 메뉴 이름은 "**Insights**" 라 어디에도 "Monster" 가 안 보여 못 찾고 있었던 것. 비활성화 후 흔적 0회 확인
+- **중복 속성 삭제** — `vnkorlife.com` 속성이 두 계정에 하나씩 있었다. 속성 ID 순서(`551670786` < `551753960`)가 말해준다: 계정 드롭다운 기본값(한영민)으로 하나 만들고, 다시 씬짜오 베트남 계정에 만들었다. **GA4 는 속성을 계정 간 이동시킬 수 없어서** 지우고 다시 만드는 수밖에 없다. 빈 쪽(한영민 `551670786` / `G-CR0YG0GKSB`) 휴지통 이동
+- **측정 ID 5개 정체 확정** — GTM 의 「Google 태그」 목록에서 대조. `G-QTCWJ6GGH0`(통합) · `G-Y4DVHB1N7X`(XinchaoVietnam) · `G-YYPTGSWDEC`(vnkorlife 신규) · `G-CR0YG0GKSB`(빈 껍데기, 삭제) · `G-6K2SPGVPL1`(MonsterInsights, 이름이 `Untitled tag` 였다 = 사람이 안 만든 증거)
+- ✅ **GA4 데이터 보관 2개월 → 14개월** 변경 완료(3개 속성). 안 했으면 오늘 쌓는 것도 2개월 뒤 사라졌다
+- 결과: 두 사이트 모두 **통합 속성 + 자기 전용 속성** 2곳으로만 들어간다. 새는 곳도 빈 껍데기도 없음
 
-**참고**: 이번 진단 전체를 정리한 배선도 아티팩트가 있다 (계정·속성·스트림 지도 + 원인 도해).
+### 2. iOS Analytics 0건 원인 규명 — **수정·제출 완료, 심사 대기**
+
+원인·수정 상세는 맨 위 「다음 EAS Build 에 반드시 포함할 것」 **①** 참고. 한 줄 요약:
+
+> RNFirebase 의 config plugin 이 Expo SDK 54 의 `AppDelegate.swift` 에서 삽입 지점을 못 찾아
+> **`FirebaseApp.configure()` 를 넣지 않고 조용히 건너뛰었다.** 빌드 로그에 경고가 찍혀 있었는데 아무도 안 봤다.
+
+- `app.plugin.js` 5번 블록 추가 — `withAppDelegate` 로 직접 삽입. **앵커를 못 찾으면 throw 해서 빌드를 깨뜨린다** (조용히 넘어간 것이 사고의 원인이었으므로)
+- `eas.json` 의 `ascAppId` 가 **`6480538597` = 애플에 존재하지 않는 ID** 였다. 진짜는 **`6754750793`**(애플 lookup·Firebase 설정 일치). 이래서 `--auto-submit` 이 될 수 없었다 → 교정
+- **iOS 2.5.1 (빌드 78) 제출 완료** — 2026-08-27 00:31, `Waiting for Review`. 빌드가 성공했다는 것 자체가 삽입 성공의 증거다(실패하면 throw 하게 만들어 뒀다)
+- 안드로이드는 **빌드 안 함** — AppDelegate 는 iOS 전용이고 빌드 110 이 정상 수집 중
+
+### 3. 곁가지 발견 — 🔴 **강제 업데이트 모달은 한 번도 뜬 적이 없을 가능성이 높다**
+
+`components/ForceUpdateModal.js` + `lib/versionCheck.js` + `App.js` 로 이미 만들어져 있는데, **두 가지가 겹쳐서 동작할 수가 없었다**:
+
+1. **iOS** — `checkForceUpdate()` 가 Firebase Remote Config 를 부른다. 위 ②의 그 이유로 iOS 는 Firebase 가 안 깨어나 → 예외 → `catch` → `false`. **같은 뿌리다.** 2.5.1 부터 살아난다
+2. **양쪽 공통** — [lib/versionCheck.js:24](lib/versionCheck.js#L24) 가 `Constants.expoConfig?.version` 을 쓴다. 이건 **OTA 로 전달되는 값**이라 OTA 만 받으면 구버전 앱도 자기를 "2.5.1" 이라고 보고한다. 이 파일의 위쪽에 이미 *"앱 화면의 버전 표시를 믿지 말 것"* 함정으로 기록돼 있는데, 정작 이 코드가 거기 걸려 있었다 → **비교가 항상 false**
+
+- ✅ **스토어 자동 분기 주소는 이미 있고 살아 있다**: `https://chaovietnam-login.web.app/go/update/` (HTTP 200 확인). iPhone→App Store(`id6754750793`), Android→Play(`referrer=src%3Dupdate`). **앱이 가로채지 않는다** — 이 도메인의 딥링크 경로는 `/app/share/*` `/download*` `/tab/*` `/view*` 뿐이라 `/go/update` 는 밖이다. 푸시 알림 링크에 그대로 쓰면 된다
+
+### ⏭ 다음 작업 — 새 버전 안내 팝업 재설계 (**설계 합의됨. 2.5.1 승인·확인 후 착수**)
+
+> 새 버전이 나오면 **첫 실행 때 팝업**으로 업데이트를 안내하고, **이미 한 사람에게는 안 뜨게** 한다.
+
+- **OTA 는 대상이 아니다.** OTA 는 자동으로 받아 다음 실행 때 적용되고 재시작 유도도 이미 있다(2026-08-12). 스토어로 보낼 일이 아니다. **만들 건 "스토어 새 버전" 쪽 하나.**
+- **"이미 한 사람에게 안 뜨게" 는 저절로 풀린다** — 비교 대상을 `Constants.expoConfig.version`(OTA 값) → **`expo-application` 의 `nativeApplicationVersion`**(진짜 네이티브 버전)으로 바꾸면, 업데이트한 사람은 조건이 거짓이 되어 안 뜬다. 별도 기록 불필요
+- **구버전 소급 한계 + 우회**: `expo-application` 은 **빌드 77(2.5.0) 이상**에만 있다. 그 아래에서는 네이티브 버전을 못 읽는데 — **"모듈이 없다 = 빌드 76 이하 = 구버전"** 이라는 신호로 쓰면 그대로 해결된다
+- **2.4.2 이하(빌드 73 이하)는 이 기능이 영원히 못 닿는다.** runtimeVersion 이 달라 **OTA 자체를 안 받는다**. 그분들은 **푸시로만** 닿는다 → 푸시는 계속 필요
+  | 스토어 버전 | 빌드 | runtimeVersion | OTA |
+  |---|---|---|---|
+  | 2.4.3 ~ 2.5.1 | 74~78 | 2.4.3 | ✅ |
+  | 2.4.2 | 73 | 2.4.2 | ❌ |
+  | 2.4.0 / 2.4.1 | 71~72 | 2.4.0 | ❌ |
+- **정해진 설계 3가지**:
+  1. **강제 + 권장 2단**. 지금 모달은 닫을 수 없는 **강제**뿐이다. 앱이 안 죽는 정도의 변경에 강제를 쓰면 사용자가 화난다. 「나중에」 버튼이 있는 **권장** 단계를 하나 더 둔다
+  2. **「나중에」 누르면 3일간 안 뜬다** (AsyncStorage 에 기록). 매번 띄우면 앱을 지운다
+  3. **기준값은 Remote Config** 에 둔다 — 기존 `min_app_version`(강제)에 **`latest_app_version`(권장)** 을 추가. 앱을 새로 빌드하지 않고 **콘솔에서 숫자만 바꿔** 팝업을 켜고 끌 수 있다
+- ⚠️ **지금 손대지 말 것.** 2.5.1 심사 중에 OTA 를 섞으면 무엇 때문에 되고 안 되는지 구분이 안 된다. **승인 → iOS 측정 살아난 것 확인 → 그 다음.**
+
+### 다음 단계 (순서대로)
+
+1. **애플 심사 통과 대기** → ASC 에서 앱스토어 공개
+2. 공개 후 **GA4 실시간 → 비교 → 플랫폼 = iOS** 가 목록에 뜨는지 확인. 오늘은 값 자체가 없었다 — 생기면 그때가 완결
+3. iOS 측정 확인되면 → **푸시 알림 발송** (링크: `https://chaovietnam-login.web.app/go/update/`). ⏰ **2.5.1 공개 전에 보내지 말 것** — 지금 보내면 2.5.0(측정 죽은 버전)을 받게 되어 두 번 업데이트해야 한다
+4. 그 다음 **새 버전 안내 팝업 재설계** 착수 (위 ⏭)
+
+**참고**: 이번 진단 전체를 정리한 **배선도 아티팩트**가 있다 — 계정·속성·스트림 지도, 원인 도해, 확인 순서.
 
 ---
 
