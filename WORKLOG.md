@@ -68,14 +68,15 @@
   - ✅ **수정 완료 (2026-08-27)**: `app.plugin.js` 에 5번 블록 추가. `withAppDelegate` 로 `import FirebaseCore` + `FirebaseApp.configure()` 를 `didFinishLaunchingWithOptions` **맨 앞**(RN·updates 시작보다 먼저)에 직접 삽입. **앵커를 못 찾으면 `throw` 해서 빌드를 깨뜨린다** — 조용히 넘어간 것이 바로 이 사고의 원인이었다. RNFirebase 를 나중에 올려 그쪽이 다시 제대로 넣으면 중복 검사에 걸려 자동으로 아무 일도 안 한다.
   - ✅ **검증**: SDK 54 순정 템플릿 + expo-updates 변형본 **양쪽**에 적용 성공, 멱등성 확인(두 번 돌려도 1개), 앵커 없는 파일이면 throw 확인. (iOS prebuild 는 Windows 에서 못 돌아 변환 함수를 직접 호출해 검증했다)
   - ⏭ **남은 일: iOS 빌드 + 스토어 제출뿐.**
-    `npx eas-cli@latest build --platform ios --profile production`
+    `npx eas-cli@latest build --platform ios --profile production --auto-submit`
+    ⚠️ iOS 는 **TestFlight(App Store Connect) 업로드까지만** 자동이다. 앱스토어 공개는 ASC 에서 별도 수동.
     - `app.json` version **2.5.0 → 2.5.1** (앱스토어는 이미 배포된 2.5.0 에 새 빌드를 못 얹는다)
     - `runtimeVersion` 은 **2.4.3 그대로** — 바꾸면 기존 사용자 OTA 가 끊긴다
     - 빌드번호는 `eas.json` 의 `autoIncrement: true` 가 78 로 올려준다
     - 안드로이드는 **빌드 불필요** — AppDelegate 는 iOS 전용이고 빌드 110 이 정상 수집 중
   - → **스토어 배포 후 GA4 실시간에 iOS 가 뜨면** ✅ 삭제
   - 📌 **곁가지 1(별건, 아직 유효)**: GA4 데이터 보관이 **2개월(기본값)** 이다. 관리 → 데이터 설정 → 데이터 보관 에서 **14개월로 무료 변경 가능** — 안 바꾸면 오늘 데이터도 2개월 뒤 사라진다.
-  - 🟠 **곁가지 2(2026-08-27 발견) — `eas.json` 의 `ascAppId` 가 틀렸다**: 애플 lookup API 가 답한 이 앱의 진짜 App Store ID 는 **`6754750793`** 이다(Firebase 앱 설정도 같은 값). 그런데 `eas.json` 의 `submit.production.ios.ascAppId` 는 **`6480538597`** 로 다른 앱을 가리킨다. → `--auto-submit` 을 쓰면 엉뚱한 곳으로 간다. **제출 전에 고칠 것.** 측정과는 별개 문제라 이번 커밋에서는 건드리지 않았다.
+  - ✅ **곁가지 2(2026-08-27) — `eas.json` 의 `ascAppId` 오타 수정**: `6480538597` 은 **애플에 존재하지 않는 ID** 였다(lookup 조회 결과 없음). 진짜 App Store ID 는 **`6754750793`** — 애플 lookup 과 Firebase 앱 설정이 같은 값이다. 이 값이 틀려 있어서 `--auto-submit` 이 동작할 수 없었다. 2026-08-27 수정 완료.
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
 **지금 빌드해야 하나?** → 🔴 이 있으면 즉시 / 🟡 만 3개 이상이면 모아서 / 비었으면 불필요(OTA로 충분). 신규 유입 캠페인 직전이면 빌드 우선(신규 사용자는 *현재* 빌드를 받으므로 측정 인프라가 빌드돼 있어야 함).
@@ -101,7 +102,7 @@
 - 웹(GA4/GTM/워드프레스) 정리는 **모두 반영 완료** — 사이트 응답으로 실물 확인함
 
 **다음 단계**
-1. `npx eas-cli@latest build --platform ios --profile production` → TestFlight → 앱스토어 제출
+1. `npx eas-cli@latest build --platform ios --profile production --auto-submit` → TestFlight → ASC 에서 앱스토어 공개
 2. 배포 후 GA4 실시간에서 플랫폼 `iOS` 가 잡히는지 확인
 3. GA4 데이터 보관 2개월 → 14개월 변경 (안 하면 지금 쌓는 데이터도 2개월 뒤 사라짐)
 
