@@ -58,17 +58,24 @@
   - → **iOS TestFlight 실기기 확인 + 스토어 승인**되면 ✅
 - [x] **④ `expo-application`** — 완료. 더보기 화면 버전 뒤에 `(build 번호)` 표시. ③ 빌드에 동승.
 
-- [ ] **① iOS Firebase Analytics — 앱 쪽 준비 완료, 데이터 유입 대기** 🟡 (2026-08-09 전수 점검 완료. **아래 6개는 다시 확인하지 말 것**)
-  - ✅ **빌드 76 바이너리 실측** — IPA 내려받아 실행파일에서 `FIRAnalytics`·`GoogleAppMeasurement`·`RNFBAnalyticsModule`·`FIRApp` 심볼 전부 확인. `Info.plist` 의 `FIREBASE_ANALYTICS_COLLECTION_ENABLED=True`, 수집 차단 키(`..._DEACTIVATED` 등) 없음. `GoogleService-Info.plist` 가 `Payload/app.app/` 에 번들됨(`IS_ANALYTICS_ENABLED=True`). **빌드 75 도 동일** — 즉 8월 빌드부터는 정상 탑재.
-  - ✅ **GA4 ↔ Firebase 연결** — iOS 스트림 `properties/512238887/dataStreams/13279761924`, `firebaseAppId 1:249390849714:ios:2f749dcfadaf5146e973ab` = plist `GOOGLE_APP_ID` 와 일치. 번들ID·팀ID(9NAKBDVGPP) 모두 일치.
-  - ✅ **코드** — `lib/analytics.js` 는 안드로이드와 **같은 경로**를 쓰고 안드로이드는 정상 수집 중(주 19,760 이벤트). `app.plugin.js` 는 안드로이드만 건드림(iOS 간섭 없음).
-  - ✅ **스토어** — 2.4.4 는 2026-08-08 출시 완료.
-  - ❗ **현상**: GA4 에 iOS 는 `0` 이 아니라 **행 자체가 없음**(지난 1년 누적도 0). 그럼에도 **과거 빌드에는 모듈이 아예 없었으므로 0 이 정상**이었다.
-  - ❗ **현재 유력 원인 = 아직 2.4.4 가 안 퍼짐.** 애플 ASC Analytics 도 같은 말을 한다 — `App Version: 2.4.4` 세션이 **"Not Enough Data"**. (ASC 는 `Opt-in Only` 로 **전체의 28%** 만 집계, 집계 지연 1~2일)
-  - ⏭ **다음에 할 일**: 며칠 뒤 GA4 재조회. `daily-news-final` 의 `.env`(`FIREBASE_SERVICE_ACCOUNT_JSON`+`GA4_PROPERTY_ID`)로 GA4 Data API 를 바로 부를 수 있다 — `runReport`(dimension `platform`) 와 `runRealtimeReport`. **스크립트는 반드시 그 저장소 폴더 안에서 실행**(node_modules 해석 때문).
-  - 🔴 **그때도 iOS 가 비어 있고 ASC 에 2.4.4 세션이 수십 건 이상이면** → 그때가 진짜 측정 결함. 남은 수단은 맥 + Xcode 개발빌드로 `-FIRDebugEnabled` DebugView.
-  - ⚠️ **함정 — 앱 화면의 버전 표시를 믿지 말 것**: `MoreScreen.js:367` 은 `Constants.expoConfig?.version` (= **OTA 로 전달되는 JS 값**). `runtimeVersion` 이 `2.4.3` 로 고정이라 **6월 빌드(74)에도 OTA 가 전달되어 화면에 "v2.4.4" 로 뜬다.** 네이티브 빌드 확인은 **앱스토어 버튼("업데이트" vs "열기")** 이나 재설치로만 가능. → 개선안: 다음 빌드에 `expo-application` 추가해 `nativeBuildVersion` 을 함께 표시.
-  - 📌 **곁가지 발견(별건)**: GA4 데이터 보관이 **2개월(기본값)** 이다. 관리 → 데이터 설정 → 데이터 보관 에서 **14개월로 무료 변경 가능** — 안 바꾸면 오늘 데이터도 2개월 뒤 사라진다. Firebase 앱 설정의 `App Store ID` 도 비어 있음(값 `6480538597`, 설치 기여도 추적에 필요).
+- [ ] **① iOS Firebase Analytics — 🔴 원인 규명 완료. `app.plugin.js` 수정 끝, 이제 빌드만 하면 됨** (2026-08-27)
+  - **원인**: `@react-native-firebase/app@21.14.0` 의 config plugin 은 `AppDelegate.swift` 에서 `self.moduleName = "..."` 을 찾아 그 위에 `FirebaseApp.configure()` 를 끼워 넣는다. 그런데 **Expo SDK 54 의 AppDelegate 에는 그 줄이 없다** — `factory.startReactNative(withModuleName: "main", ...)` 로 바뀌었다. 못 찾으면 경고 한 줄만 남기고 **파일을 원본 그대로 돌려보낸다** → iOS 에서 Firebase 가 **초기화되지 않음** → Analytics 0건.
+  - **빌드 로그 증거** (빌드 77 · Prebuild 단계 6번째 줄):
+    `» ios: @react-native-firebase/app: Unable to determine correct Firebase insertion point in AppDelegate.swift. Skipping Firebase addition.`
+  - **왜 안드로이드는 멀쩡한가**: `firebase-common` 의 `FirebaseInitProvider` 가 프로세스 시작 시 자동 초기화한다. **iOS 만** AppDelegate 진입점 코드가 필요하다.
+  - **왜 오래 몰랐나**: ① 앱이 안 죽는다(`lib/analytics.js` 의 방어 코드가 삼킨다 — 구버전 앱을 지키려던 안전장치가 고장을 가렸다) ② 빌드가 성공한다 ③ 바이너리에는 Firebase 코드가 다 들어 있다.
+  - ⚠️ **2026-08-09 의 전수 점검은 틀리지 않았다 — *불완전*했다.** 모듈이 **실려 있는지**는 다 확인했는데 **깨우는지**는 아무도 안 봤다. 그때 확인한 6가지는 지금도 전부 참이다(바이너리 심볼 존재 · plist 번들·값 정상 · GA4↔Firebase 앱ID 일치 · 코드 경로 안드로이드와 동일 · 스토어 배포 완료). **다음에 비슷한 일이 생기면 "실려 있나" 다음에 "불러지나"를 반드시 볼 것.**
+  - ✅ **수정 완료 (2026-08-27)**: `app.plugin.js` 에 5번 블록 추가. `withAppDelegate` 로 `import FirebaseCore` + `FirebaseApp.configure()` 를 `didFinishLaunchingWithOptions` **맨 앞**(RN·updates 시작보다 먼저)에 직접 삽입. **앵커를 못 찾으면 `throw` 해서 빌드를 깨뜨린다** — 조용히 넘어간 것이 바로 이 사고의 원인이었다. RNFirebase 를 나중에 올려 그쪽이 다시 제대로 넣으면 중복 검사에 걸려 자동으로 아무 일도 안 한다.
+  - ✅ **검증**: SDK 54 순정 템플릿 + expo-updates 변형본 **양쪽**에 적용 성공, 멱등성 확인(두 번 돌려도 1개), 앵커 없는 파일이면 throw 확인. (iOS prebuild 는 Windows 에서 못 돌아 변환 함수를 직접 호출해 검증했다)
+  - ⏭ **남은 일: iOS 빌드 + 스토어 제출뿐.**
+    `npx eas-cli@latest build --platform ios --profile production`
+    - `app.json` version **2.5.0 → 2.5.1** (앱스토어는 이미 배포된 2.5.0 에 새 빌드를 못 얹는다)
+    - `runtimeVersion` 은 **2.4.3 그대로** — 바꾸면 기존 사용자 OTA 가 끊긴다
+    - 빌드번호는 `eas.json` 의 `autoIncrement: true` 가 78 로 올려준다
+    - 안드로이드는 **빌드 불필요** — AppDelegate 는 iOS 전용이고 빌드 110 이 정상 수집 중
+  - → **스토어 배포 후 GA4 실시간에 iOS 가 뜨면** ✅ 삭제
+  - 📌 **곁가지 1(별건, 아직 유효)**: GA4 데이터 보관이 **2개월(기본값)** 이다. 관리 → 데이터 설정 → 데이터 보관 에서 **14개월로 무료 변경 가능** — 안 바꾸면 오늘 데이터도 2개월 뒤 사라진다.
+  - 🟠 **곁가지 2(2026-08-27 발견) — `eas.json` 의 `ascAppId` 가 틀렸다**: 애플 lookup API 가 답한 이 앱의 진짜 App Store ID 는 **`6754750793`** 이다(Firebase 앱 설정도 같은 값). 그런데 `eas.json` 의 `submit.production.ios.ascAppId` 는 **`6480538597`** 로 다른 앱을 가리킨다. → `--auto-submit` 을 쓰면 엉뚱한 곳으로 간다. **제출 전에 고칠 것.** 측정과는 별개 문제라 이번 커밋에서는 건드리지 않았다.
 - [ ] **② iOS 푸시 알림 이미지 (Notification Service Extension)** 🟡 — 등록 2026-06-30. 발송측(`functions/index.js` `sendMulticastFCM`)은 이미 `apns.fcmOptions.imageUrl` 을 보내는 중 → **앱에 네이티브 익스텐션만 추가하면 됨**(expo-notifications NSE 설정 또는 config plugin). 안드로이드는 이미 빅픽처로 표시됨. → iOS 실기기에서 이미지 알림 수신 확인되면 ✅.
 
 **지금 빌드해야 하나?** → 🔴 이 있으면 즉시 / 🟡 만 3개 이상이면 모아서 / 비었으면 불필요(OTA로 충분). 신규 유입 캠페인 직전이면 빌드 우선(신규 사용자는 *현재* 빌드를 받으므로 측정 인프라가 빌드돼 있어야 함).
@@ -79,6 +86,26 @@
 - **edge-to-edge** — 이미 켜져 있음(`edgeToEdgeEnabled: true`).
 - **AdMob** — `package.json`·`node_modules` 양쪽에서 완전히 사라진 것 확인. (단 `app.plugin.js` 에 AdMob 처리 단계가 죽은 코드로 남아 있음 — `existsSync` 가드가 있어 무해)
 - **New Architecture** — `newArchEnabled: false` 유지. `react-native-restart` 가 미검증이라 지금 켜면 위험. **단 Expo SDK 55 에서 구 아키텍처가 사라질 예정** → 다음 사이클 숙제.
+
+---
+
+## 2026-08-27 — 🔴 [측정] iOS Analytics 가 왜 0건이었나 — Firebase 가 **아예 깨어나지 않고 있었다**
+
+**한 일**
+- GA4 정리: `vnkorlife.com` 에 GTM 컨테이너(`GTM-N3VNXDRJ`) 삽입·배포, MonsterInsights 제거(`G-6K2SPGVPL1` 로 새던 것), 계정을 잘못 골라 두 번 만들어진 빈 속성(한영민 `551670786`) 삭제. 두 사이트 모두 **통합 속성 + 전용 속성** 2곳으로 정리됨.
+- **iOS Analytics 0건 원인 규명** — 위 「다음 EAS Build 에 반드시 포함할 것」 ① 참고. 요약: RNFirebase 의 config plugin 이 Expo SDK 54 의 `AppDelegate.swift` 에서 삽입 지점을 못 찾아 **`FirebaseApp.configure()` 를 넣지 않고 조용히 건너뛰었다.** 빌드 로그에 경고가 찍혀 있었는데 아무도 안 봤다.
+- 수정: `app.plugin.js` 에 5번 블록(iOS AppDelegate Firebase 초기화 삽입) 추가. `app.json` version 2.5.1 로 상향.
+
+**배포 상태**
+- 코드: 커밋·푸시 완료. **iOS 빌드·제출은 아직 안 함** (사장님이 시점 결정)
+- 웹(GA4/GTM/워드프레스) 정리는 **모두 반영 완료** — 사이트 응답으로 실물 확인함
+
+**다음 단계**
+1. `npx eas-cli@latest build --platform ios --profile production` → TestFlight → 앱스토어 제출
+2. 배포 후 GA4 실시간에서 플랫폼 `iOS` 가 잡히는지 확인
+3. GA4 데이터 보관 2개월 → 14개월 변경 (안 하면 지금 쌓는 데이터도 2개월 뒤 사라짐)
+
+**참고**: 이번 진단 전체를 정리한 배선도 아티팩트가 있다 (계정·속성·스트림 지도 + 원인 도해).
 
 ---
 
