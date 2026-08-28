@@ -601,14 +601,27 @@ export const getNewsSectionsCached = async (
 
   try {
     // 1. 캐시 확인
+    //
+    // ⚠️ "오늘인데 그날 지면이 아직 0건" 인 결과는 **캐시로 쓰지 않는다** (2026-08-28).
+    //   그날 지면은 시간이 지나면 생긴다. 그런데 새벽에 한 번 열어 "없음" 을 받아두면
+    //   그 '없음' 이 2시간 동안 정답 행세를 하고, 화면은 계속 어제 뉴스를 보여준다.
+    //   (fetchPosts 가 totalCount 0 을 보고 어제로 내려가기 때문)
+    //   사장님 증상이 정확히 이것이었다 — "자동으로 안 뜨고 새로고침해야 오늘 뉴스가 뜬다".
+    //   당겨서 새로고침하면 forceRefresh 로 캐시를 건너뛰니 그때야 오늘 것이 나왔다.
+    //
+    //   지난 날짜의 '없음' 은 사실이므로 그대로 캐시를 쓴다 — 그 날은 영영 지면이 없다.
     if (!forceRefresh) {
       const cached = await AsyncStorage.getItem(cacheKey);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         const isExpired = Date.now() - timestamp > NEWS_CACHE_EXPIRY;
-        if (!isExpired) {
+        const isTodayEmpty = dateStr === vnTodayStr() && !(data?.totalCount > 0);
+        if (!isExpired && !isTodayEmpty) {
           console.log("📦 뉴스 캐시 사용");
           return data;
+        }
+        if (isTodayEmpty) {
+          console.log("🕘 오늘 지면이 아직 없다고 저장된 캐시 — 무시하고 다시 확인");
         }
       }
     }
@@ -706,15 +719,19 @@ export const getNewsSectionsCached = async (
     // 받아온 뉴스가 통째로 버려지고 빈 목록이 나갔다 — 화면이 텅 비고 하단 광고만 남는
     // 그 증상이다. 안드로이드 AsyncStorage 6MB 상한(pruneNewsCache 주석 참고)에 닿으면
     // 실제로 그렇게 된다. 저장은 뒤에서 조용히 하고, 실패하면 청소만 걸어 둔다.
-    AsyncStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        data: result,
-        timestamp: Date.now(),
-      }),
-    ).catch(() => {
-      pruneNewsCache();
-    });
+    // "오늘인데 아직 0건" 은 아예 저장하지 않는다. 저장해봐야 위에서 무시하고,
+    // 저장 자체가 안드로이드 6MB 상한을 갉아먹는다.
+    if (!(dateStr === vnTodayStr() && !(result.totalCount > 0))) {
+      AsyncStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          data: result,
+          timestamp: Date.now(),
+        }),
+      ).catch(() => {
+        pruneNewsCache();
+      });
+    }
 
     console.log(
       `✅ ${newsSections.length}개 뉴스 섹션 로드 완료 (${Date.now() - startTime}ms)`,
