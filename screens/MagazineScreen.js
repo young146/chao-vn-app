@@ -19,6 +19,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
 import { wordpressApi, MAGAZINE_BASE_URL, BOARD_BASE_URL, getHomeDataCached, getNewsSectionsCached, getSectionsList } from '../services/wordpressApi';
 import AdBanner, { InlineAdBanner, HomeBanner, HomeSectionAd, PopupAd, ScrollBottomBanner } from '../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -680,6 +681,39 @@ export default function MagazineScreen({ navigation, route }) {
       fetchPosts(1, false, '', null, false);
     }
   }, [resetSearch]);
+
+  /**
+   * 🗞️ 뉴스 탭은 **언제 들어와도 오늘 뉴스**가 떠야 한다 (2026-08-28 사장님 지시).
+   *
+   * 왜 필요한가: 날짜 필터를 끄는 길이 `resetSearch` 하나뿐이었고, 그건
+   * **탭 아이콘을 눌렀을 때만** 전달된다(App.js 의 tabPress 리스너).
+   * 그래서 아래 경로로 들어오면 지난번에 고른 날짜가 그대로 남아 있었다:
+   *   · 이메일·카톡 링크(딥링크)로 뉴스 화면에 바로 진입
+   *   · 알림을 눌러 진입
+   *   · 다른 탭에 갔다가 화면이 살아있는 채로 돌아옴
+   * 사장님이 "간혹 예전 날짜 뉴스가 그대로 뜬다" 고 한 것이 이 경우다.
+   *
+   * → 화면에 포커스될 때 날짜 필터가 켜져 있으면 오늘로 되돌린다.
+   *   기사 모달을 열고 닫는 것은 같은 화면 안의 일이라 포커스가 바뀌지 않는다
+   *   → 지난 뉴스를 보다가 기사를 읽고 닫는 흐름은 그대로 유지된다.
+   *
+   * ※ "오늘 지면이 없으면 지난 날짜로 내려가는" 처리는 fetchPosts 안에 이미 있다
+   *   (최대 7일, totalCount 기준). 여기서는 '오늘 모드로 되돌리는' 것만 한다.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (type !== 'news') return;
+      if (!isFilteredByDate) return;
+      setIsFilteredByDate(false);
+      setShowingYesterdayNews(false);
+      setSelectedDate(new Date());
+      setSearchQuery('');
+      setPage(1);
+      setHasMore(true);
+      // 방금 끈 필터를 명시적으로 넘긴다 — state 는 이 클로저에 아직 반영돼 있지 않다
+      fetchPosts(1, false, '', null, false);
+    }, [type, isFilteredByDate])
+  );
 
   // 🎯 홈 화면 진입 시 팝업 광고 표시 (세션 중 한 번만)
   useEffect(() => {
