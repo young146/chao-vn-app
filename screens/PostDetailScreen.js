@@ -13,8 +13,10 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import RenderHtml from 'react-native-render-html';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
@@ -34,6 +36,8 @@ export default function PostDetailScreen({ route, navigation }) {
   const { t: tHome } = useTranslation('home');
   const { post } = route.params;
   const { width } = useWindowDimensions();
+  // 키보드를 피해 올릴 때, 네비게이션 헤더 높이만큼은 빼고 계산해야 한다
+  const headerHeight = useHeaderHeight();
 
   // 빵조각(탐색경로) — 웹의 「뉴스 > 데일리 뉴스 > 경제」와 같은 줄을 앱에도 보여준다.
   //
@@ -328,6 +332,17 @@ export default function PostDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ⌨️ 댓글 입력창이 키보드에 가려지던 문제 (2026-08-28).
+          안드로이드는 app.json 의 softwareKeyboardLayoutMode="pan" 이 화면을 통째로
+          밀어 올려 줘서 멀쩡했다. **iOS 에는 그런 자동 처리가 없다** — 댓글을 쓰려고
+          입력창을 누르면 키보드가 그 위를 덮어, 자기가 무엇을 쓰는지 보이지 않았다.
+          안드로이드에서는 아예 보이지 않는 종류의 결함이라 오래 몰랐다.
+          그래서 iOS 에서만 켠다 — 안드로이드에 또 얹으면 두 번 밀려 어색해진다. */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+      >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* 빵조각(탐색경로) — 웹과 같은 자리를 잡아준다.
             분류를 모르는 글(매거진 등)에서는 아무것도 안 그린다 — 빈 줄이 더 나쁘다.
@@ -494,6 +509,7 @@ export default function PostDetailScreen({ route, navigation }) {
         {/* 하단 광고 — 예전엔 화면에 고정돼 있었으나 스크롤 끝으로 옮겼다 */}
         <ScrollBottomBanner />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* 🎯 뉴스 상세 진입 시 전면 팝업 광고 (10초 후 자동 닫힘) */}
       <PopupAd
@@ -507,6 +523,7 @@ export default function PostDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: {
     flex: 1,
     backgroundColor: '#fff',
