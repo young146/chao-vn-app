@@ -181,7 +181,7 @@ export default function ReportBlockSheet({
                 <View style={{ width: 22 }} />
               </View>
 
-              <ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled">
+              <ScrollView style={{ maxHeight: 260 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
                 {REPORT_REASONS.map((r) => {
                   const on = reason === r.key;
                   return (

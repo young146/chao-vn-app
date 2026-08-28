@@ -409,6 +409,7 @@ export default function AddItemScreen({ navigation, route }) {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
         {/* 사진 업로드 섹션 */}

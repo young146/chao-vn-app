@@ -99,6 +99,7 @@ export default function ReviewScreen({ route, navigation }) {
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 160 }}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>

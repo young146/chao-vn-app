@@ -429,6 +429,7 @@ export default function AddCandidateScreen({ navigation, route }) {
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
         {/* 헤더 배너 */}

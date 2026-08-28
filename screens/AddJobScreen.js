@@ -402,7 +402,7 @@ export default function AddJobScreen({ navigation, route }) {
   // ─── UI ───────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
 
         {/* 헤더 배너 */}
         <View style={styles.headerBanner}>

@@ -110,7 +110,7 @@ export default function BizDetailSheet({ visible, seed, onClose }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.body} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
             <Text style={styles.title}>{view.title || ''}</Text>
             {view.imageUrl ? (
               <ExpoImage source={{ uri: view.imageUrl }} style={styles.image} contentFit="cover" />

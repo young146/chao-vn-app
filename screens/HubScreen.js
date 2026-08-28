@@ -21,7 +21,7 @@
 //                              그게 복잡함의 절반이었다.
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Platform,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, Platform, Keyboard, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeAdCarousel from '../components/HomeAdCarousel';
@@ -87,6 +87,7 @@ export default function HubScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <ScrollView
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scroll}
       >
@@ -96,8 +97,13 @@ export default function HubScreen({ navigation, route }) {
           onInquiry={() => navigation.navigate('이웃사업', { screen: '이웃사업 등록' })}
         />
 
-        {/* ② 로고 */}
-        <View style={styles.lockup}>
+        {/* ② 로고 — 누르면 키보드가 내려간다.
+            iOS 에는 뒤로가기 버튼이 없어서, 검색창을 눌러 키보드를 띄운 뒤
+            **검색을 안 하고 그만두려 하면 치울 방법이 없었다**(2026-08-28 사장님 발견).
+            스크롤로 내리는 길(keyboardDismissMode)은 위에 뒀지만, 이 화면은 내용이
+            짧아 스크롤할 여지가 없을 수 있다. 그래서 아무 동작도 없던 로고 자리에
+            '빈 곳을 누르면 닫힌다' 는 흔한 동작을 얹었다. */}
+        <Pressable style={styles.lockup} onPress={Keyboard.dismiss}>
           <Image
             source={require('../assets/icon.png')}
             style={styles.badge}
@@ -105,7 +111,7 @@ export default function HubScreen({ navigation, route }) {
           />
           <Text style={styles.wordmark}>XinChaoVietnam</Text>
           <Text style={styles.since}>SINCE 2001</Text>
-        </View>
+        </Pressable>
 
         {/* ③ 검색창 — 하나 */}
         <View style={styles.searchWrap}>

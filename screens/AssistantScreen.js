@@ -266,6 +266,7 @@ export default function AssistantScreen({ navigation, route }) {
         ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
       >

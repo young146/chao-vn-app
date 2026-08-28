@@ -293,6 +293,7 @@ export default function AddAgentScreen({ navigation, route }) {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
         {/* 헤더 배너 */}

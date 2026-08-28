@@ -348,6 +348,7 @@ export default function AddNeighborBusinessScreen() {
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
         {/* 미디어 섹션 (사진/비디오) */}

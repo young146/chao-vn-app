@@ -294,7 +294,7 @@ export default function SearchResultsScreen({ route, navigation }) {
         </View>
       </View>
 
-      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: AD_CLEARANCE }}>
+      <ScrollView ref={scrollRef} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: AD_CLEARANCE }}>
         {/* ── AI 답변 — 목록 위에. 늦게 도착하므로 자리를 먼저 잡아 둔다 ── */}
         {(aiLoading || aiReply) && (
           <View style={styles.aiCard}>

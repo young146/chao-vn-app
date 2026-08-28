@@ -73,7 +73,7 @@ export default function YellowPageScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: AD_CLEARANCE }}>
+      <ScrollView ref={scrollRef} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: AD_CLEARANCE }}>
         <Text style={styles.h1}>베트남 남부 옐로페이지</Text>
         <Text style={styles.sub}>씬짜오 베트남이 정리한 한인 업소 디렉토리 — 검증된 연락처를 카테고리·지역으로.</Text>
 
