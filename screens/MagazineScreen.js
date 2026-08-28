@@ -494,6 +494,9 @@ export default function MagazineScreen({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPopup, setShowPopup] = useState(false); // 🎯 팝업 상태
   const popupShownRef = useRef(false); // 세션 중 한 번만 표시
+  // 마지막으로 **서버에서** 받아온 시각. 화면에 돌아왔을 때 다시 받을지 정하는 기준.
+  const lastFetchRef = useRef(Date.now());
+  const REFETCH_AFTER_MS = 5 * 60 * 1000; // 5분
   const mainListRef = useRef(null);
 
   // 날짜 선택 관련 state
@@ -668,7 +671,21 @@ export default function MagazineScreen({ navigation, route }) {
     }
   }, [type]);
 
-  // 🔙 탭을 누르면 검색 초기화 및 데이터 새로고침
+  /**
+   * 🔙 탭을 누르면 검색 초기화 + **서버에서 새로 받아온다**.
+   *
+   * 2026-08-28 사장님 지적:
+   *   "다른 탭은 누르면 로딩 표시가 잠깐 떴다 사라지는데, 뉴스·매거진 탭은 그 과정이
+   *    없어서 다른 데 갔다 와도 앞에서 보던 화면이 그대로 남아 있다."
+   *
+   * 원인: 여기서 `fetchPosts(1, false, ...)` 를 불렀다 — isRefresh=false 라
+   *   **캐시를 다시 읽을 뿐** 서버에 묻지 않았다(뉴스 2시간·홈 6시간).
+   *   그래서 눌러도 화면이 그대로고, 로딩 표시도 뜰 일이 없었다.
+   *
+   * → isRefresh=true 로 캐시를 건너뛰고, 도는 것이 보이도록 스피너도 직접 켠다.
+   *   (fetchPosts 는 isRefresh 일 때 스피너를 켜지 않는다 — 당겨서 새로고침은
+   *    RefreshControl 이 따로 표시하기 때문. 탭 클릭에는 그게 없다)
+   */
   useEffect(() => {
     if (resetSearch) {
       setSearchQuery('');
@@ -677,8 +694,10 @@ export default function MagazineScreen({ navigation, route }) {
       setSelectedDate(new Date());
       setPage(1);
       setHasMore(true);
+      setLoading(true);
+      lastFetchRef.current = Date.now();
       // 바로 위에서 끈 날짜 필터를 명시적으로 넘긴다 (state 는 아직 옛 값이다)
-      fetchPosts(1, false, '', null, false);
+      fetchPosts(1, true, '', null, false);
     }
   }, [resetSearch]);
 
@@ -702,17 +721,33 @@ export default function MagazineScreen({ navigation, route }) {
    */
   useFocusEffect(
     useCallback(() => {
-      if (type !== 'news') return;
-      if (!isFilteredByDate) return;
-      setIsFilteredByDate(false);
-      setShowingYesterdayNews(false);
-      setSelectedDate(new Date());
-      setSearchQuery('');
-      setPage(1);
-      setHasMore(true);
-      // 방금 끈 필터를 명시적으로 넘긴다 — state 는 이 클로저에 아직 반영돼 있지 않다
-      fetchPosts(1, false, '', null, false);
-    }, [type, isFilteredByDate])
+      if (type !== 'news' && type !== 'home') return;
+
+      // ⓐ 뉴스 탭에 날짜 필터가 켜진 채로 돌아왔다 → 오늘로 되돌린다
+      if (type === 'news' && isFilteredByDate) {
+        setIsFilteredByDate(false);
+        setShowingYesterdayNews(false);
+        setSelectedDate(new Date());
+        setSearchQuery('');
+        setPage(1);
+        setHasMore(true);
+        setLoading(true);
+        lastFetchRef.current = Date.now();
+        // 방금 끈 필터를 명시적으로 넘긴다 — state 는 이 클로저에 아직 반영돼 있지 않다
+        fetchPosts(1, true, '', null, false);
+        return;
+      }
+
+      // ⓑ 한참 만에 돌아왔으면 새로 받는다.
+      //   매번 받으면 다른 탭 잠깐 다녀올 때마다 화면이 깜빡여 거슬리고,
+      //   아예 안 받으면 앞에서 보던 화면이 계속 남는다 → 5분을 경계로 삼는다.
+      if (Date.now() - lastFetchRef.current < REFETCH_AFTER_MS) return;
+      if (searchQuery) return;          // 검색 결과를 보는 중이면 건드리지 않는다
+      if (isFilteredByDate) return;     // 특정 날짜를 보는 중이면 그대로 둔다
+      lastFetchRef.current = Date.now();
+      setLoading(true);
+      fetchPosts(1, true, '', null, false);
+    }, [type, isFilteredByDate, searchQuery])
   );
 
   // 🎯 홈 화면 진입 시 팝업 광고 표시 (세션 중 한 번만)
@@ -729,6 +764,7 @@ export default function MagazineScreen({ navigation, route }) {
     setRefreshing(true);
     setPage(1);
     setHasMore(true);
+    lastFetchRef.current = Date.now();
     fetchPosts(1, true, searchQuery, isFilteredByDate ? selectedDate : null);
   }, [type, categoryId, searchQuery, selectedDate, isFilteredByDate]);
 
