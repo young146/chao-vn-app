@@ -168,11 +168,14 @@
    제휴 단가 높은 글·앱 설치 등 **자산 획득형**은 소액 파일럿으로 검증한다.
 
 **1단계 배선 (daily-news-final 재사용, 새 시스템 없음)**:
-- [ ] 뉴스레터에 「실전노트」 코너 — Blogger RSS(vietnamsari.com)에서 최신 글 자동 삽입, fail-safe
-- [ ] 페북 4페이지 자동 게시 — publishToFacebookPage 재사용
-- [ ] 카톡 붙여넣기 txt 에 블로그 글 블록 합류 (사장님 손은 지금과 동일)
-- [ ] 채널별 UTM 표준 (utm_source=email|facebook|kakao|push / utm_campaign=siljeonnote)
-- [ ] 앱 공지·푸시에 블로그 글 (기존 커스텀 푸시 어드민 사용, 우선 수동 → 자동화)
+- [x] 뉴스레터에 「실전노트」 코너 — ✅ 2026-08-30 코드 완료(`faa6646`). 라이브·레거시 **양쪽** 배선
+  (어느 판이 실제 발송인지 저장소 안에서 확정 불가 — 서버 crontab 추정). **다음 발송에서 실물 확인할 것**
+- [x] 페북 4페이지 자동 게시 — ✅ 2026-08-30 `api/cron/fb-blog` 신설(하루 3회, 중복방지 Firestore).
+  **내일 첫 cron 후 페이지에서 실물 확인할 것**
+- [x] 카톡 붙여넣기 txt 에 블로그 글 블록 — ✅ 2026-08-30
+- [x] 채널별 UTM — ✅ email/newsletter · facebook/social · kakao/openchat, campaign=siljeonnote(카톡은 daily_news_*)
+- [ ] 앱 공지·푸시에 블로그 글 (기존 커스텀 푸시 어드민에서 우선 수동 — 사장님이 글 발행 후
+  vnkorlife.com/admin/push-notifications 에서 발송. 자동화는 다음 차수)
 2단계 = 색인 요청·내부링크·검색어 기반 주제 선정 / 3단계 = 주간 AI 마케팅 리포트.
 
 ---
