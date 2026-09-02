@@ -128,6 +128,12 @@ Errors are learning opportunities. When something breaks:
   - ⚠️ **계정명을 박지 말 것.** 사무실·집 등 PC 마다 사용자 폴더가 다르다(`C:\Users\hanyo\...` / `C:\Users\XINCHAO\...`).
     한 PC 기준으로 적으면 다른 PC 에서 반드시 깨진다 — 상위 폴더 상대경로 금지 규칙과 같은 이유다.
   - 프로젝트별 하위폴더로 정리됨: `chao-vn-app/`, `daily-news-final/`, `vnkorlife-web/`, `xinchao_crm/`, `jobs-crm/`
+  - `projects.ps1` — **작업 폴더 목록의 정본** (2026-09-02 신설). CHECK/RESTORE 가 함께 dot-source 한다.
+    후보 경로를 먼저 보고, 없으면 디스크에서 `.git` 이 있는 같은 이름 폴더를 **자동으로 찾는다.**
+    ⚠️ **왜 만들었나**: CHECK 과 RESTORE 가 각자 `$projects` 를 들고 있다가 갈라졌다 —
+    CHECK 은 `c:\xinchao-news-final\daily-news-final`(옛 경로), RESTORE 는 현재 경로.
+    그 바람에 **CHECK 이 daily-news-final 을 "작업 폴더 없음"으로 통째로 건너뛰고 있었다.**
+    = 그 저장소 시크릿은 몇 달간 점검조차 안 되고 있었다. 목록을 다시 두 군데로 나누지 말 것.
   - `RESTORE.ps1` — 새 환경에서 각 프로젝트로 시크릿을 복원하는 스크립트.
     **새 시크릿을 백업했으면 이 스크립트의 `$mappings` 에도 반드시 추가할 것** — 안 그러면 백업은 됐는데 복원이 안 된다.
   - `CHECK.ps1` — **백업이 최신인지 점검**한다. `.\CHECK.ps1` (점검만) / `.\CHECK.ps1 -Sync` (빠진 것만 올림).
@@ -135,6 +141,12 @@ Errors are learning opportunities. When something breaks:
     끊기는 자리는 **작업 폴더 → 백업 폴더로 손으로 복사하는 단계** 하나뿐이고, 실제로 3건이 누락돼 있었다
     (안드로이드 서명키 `.jks`, `jobs-crm` 통째, iOS `plist` 4개월 낡음). **시크릿을 만지면 이걸 돌릴 것.**
     ⛔ 내용이 다른 파일은 `-Sync` 로도 자동으로 안 덮는다 — 낡은 백업으로 덮으면 오히려 사고다.
+    → 덮기 전에 **키 이름만** 뽑아 양쪽을 비교하고(값은 절대 출력 금지), 로컬이 백업의
+      상위집합임을 확인한 뒤에 `Copy-Item` 으로 손수 덮는다.
+  - 📌 **`xinchao-blog-assistant\.env` 는 영구히 "다름"으로 뜬다 — 고치려 들지 말 것.**
+    차이는 `VNKORLIFE_REPO` **하나뿐이고 그건 비밀이 아니라 작업 폴더 경로**다.
+    로컬 `c:\vnkorlife.web\vnkorlife-web` ↔ 백업(다른 PC) 경로. 어느 쪽으로 맞춰도 반대편 PC 가 깨진다.
+    (근본 해결은 `app.py` 가 이 경로를 `projects.ps1` 처럼 자동 탐색하게 만드는 것 — 아직 안 함)
   - ⚠️ **PowerShell 스크립트(`.ps1`)는 UTF-8 BOM 으로 저장할 것.** Windows PowerShell 5.1 은 BOM 없는 파일을
     ANSI(cp949)로 읽어 한글이 깨진다 — 한글 파일명 매핑이 조용히 실패한다(2026-08-09 실제 발생).
 - **규칙**:
