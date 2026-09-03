@@ -71,6 +71,38 @@
 
 ---
 
+## 2026-09-03 — 💱 [수익] 환율계산기 완성·배포 / 배포 자동화 / 🔴 블로그 HTTPS 사건 (진행 중)
+
+### ✅ 끝난 것
+- **환율 계산기 라이브**: https://chaovietnam.co.kr/exchange-rate/ — v1.1.2 (씬짜오 브랜드,
+  「금액 입력/환산 결과」, placeholder, 출처 표기 「국제 기준환율·하루 1회 갱신」).
+  본문(환전 안내+FAQ ~2,300자)·SEO 제목·**구글 색인까지 완료** (색인 요청 당일 통과).
+  본문 원본은 `daily-news-final/wordpress-plugin/page-content/` 에 보관.
+- **뉴스터미널 환율 위젯**: 「네이버 환율 검색」(트래픽 유출) → 「환율 계산기」 내부 링크로 교체 (jenny v2.13.3).
+- **WP 플러그인 배포 자동화**: `npm run deploy:plugin -- <파일>` — **SFTP**(포트 65002, 암호화,
+  서버키 sha256 고정), 하위폴더/평면 배치 자동 판별, 버전 대조(서버가 최신이면 중단),
+  배포 후 REST 로 되읽어 확인. FTP 수작업 소멸. `.env` 에 FTP/SFTP 항목 추가(백업 동기화됨).
+- **워드프레스에서 AI 가 못 하는 건 "커스텀 .php 서버에 놓기"뿐**임을 실측 —
+  페이지 생성·숏코드·플러그인 활성화까지 AI 가 직접 한다 (daily-news CLAUDE.md 에 표로 기록).
+- **색인 확인 도구**: `daily-news-final/scripts/gsc-inspect.js` (URL 검사 API, `--site` 로 블로그 속성도).
+  서치콘솔 웹화면보다 API 가 최신인 경우 실측 확인.
+- **dev-secrets 점검 수리**: CHECK/RESTORE 가 목록이 갈라져 daily-news-final 을 몇 달간
+  SKIP 하고 있었음 → `projects.ps1`(자동 탐색) 신설로 일원화. FTP 항목 포함 백업 최신화.
+
+### 🔴 진행 중 — 실전노트 블로그 HTTPS 사건 (사무실에서 이어서)
+블로거 사이트맵이 `https:///`(도메인 누락)로 2주간 깨져 있어 **글 13편이 색인 0** 이었음
+→ 맞춤 도메인 재설정으로 **사이트맵은 고침** → 그 과정에서 **HTTPS 인증서가 죽었고
+9시간째 재발급 시작도 안 됨**(CT 로그로 확인). 현재 http 로만 열림.
+**상세 경위·사무실 체크리스트**: [PROGRESS_BLOG_3CHANNEL.md](https://github.com/young146/xinchao-blog-assistant/blob/main/PROGRESS_BLOG_3CHANNEL.md) (`xinchao-blog-assistant` 저장소) 맨 위 (3) 항목.
+⚠️ **HTTPS 해결 전에 여행 12편 발행 시작 금지.**
+
+### 다음 단계
+1. **(사무실)** 블로그 HTTPS 체크리스트 — 위 PROGRESS 문서 (3) 항목 순서대로
+2. (승인 후) 여행 12편 집필 시작 (주제·판정기준 확정돼 있음)
+3. (2~4주 뒤) `gsc-opportunity-report.js` 로 제목 192편 교체 효과 측정
+
+---
+
 ## 2026-09-02 — 💰 [수익] 검색수요 실측 — **우리가 잘 아는 분야에 시장이 없다**
 
 사장님 질문("애드센스 월 $120 로는 노후가 안 된다. 일반 인기 키워드로 넓히고 블로그를 늘리면?")
