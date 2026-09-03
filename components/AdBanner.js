@@ -338,12 +338,19 @@ const trackAdClick = async (ad) => {
  * 광고 클릭 핸들러
  */
 // export 는 홈 캐러셀이 같은 클릭 추적·링크 열기를 쓰기 위한 것. 동작 변경 없음.
-export const handleAdPress = async (ad) => {
+//
+// ⚠️ placement(자리 이름)를 **반드시 함께 넘긴다** — 2026-09-03 사장님이 잡아낸 버그.
+//    노출은 `logPromoImpression(ad, thumbnailKey)` 로 자리를 넘기는데 클릭만 안 넘겨서,
+//    GA4 에서 앱 클릭이 전부 `default` 라는 이름 없는 자리로 몰렸다. 그 결과
+//      home_banner  노출 22,378 · 클릭 0      ← 자리별로 보면 0 으로 보이고
+//      default      노출 0      · 클릭 65     ← 있을 수 없는 조합이 남았다
+//    광고주에게 "클릭 0회"라고 잘못 보고할 뻔했다. 실제로는 눌리고 있었다.
+export const handleAdPress = async (ad, placement) => {
   if (!ad) return;
 
   // 클릭 추적 (비동기)
-  trackAdClick(ad);          // 기존: Firestore 누적 카운터 (어드민 화면이 씀)
-  logPromoClick(ad);         // 신규: GA4 — 날짜별·광고주별 리포트의 원천
+  trackAdClick(ad);                   // 기존: Firestore 누적 카운터 (어드민 화면이 씀)
+  logPromoClick(ad, placement);       // GA4 — 날짜별·광고주별·**자리별** 리포트의 원천
 
   // 링크 열기
   if (ad.linkUrl) {
@@ -467,7 +474,7 @@ export function AdSlider({ ads, containerStyle, thumbnailKey = null, intervalMs 
               ) : (
                 <TouchableOpacity
                   style={{ flex: 1 }}
-                  onPress={() => handleAdPress(ad)}
+                  onPress={() => handleAdPress(ad, thumbnailKey)}
                   activeOpacity={0.85}
                 >
                   {/* active 는 화면에 *지금* 보이는 칸인지 알린다. 이미지에는 렌더 영향이
@@ -846,7 +853,7 @@ export function PopupAd({ visible, onClose, screen = 'all', autoCloseSeconds = 1
   // 광고 클릭 핸들러
   const handlePopupPress = async () => {
     if (ad) {
-      await handleAdPress(ad);
+      await handleAdPress(ad, 'popup');   // 팝업 광고 — 노출 쪽과 같은 이름을 쓴다
     }
     if (onClose) onClose();
   };

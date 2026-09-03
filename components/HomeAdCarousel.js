@@ -192,7 +192,7 @@ export default function HomeAdCarousel({ onInquiry, style }) {
               <TouchableOpacity
                 style={styles.slideTouch}
                 activeOpacity={0.9}
-                onPress={() => handleAdPress(it)}
+                onPress={() => handleAdPress(it, 'home_banner')}   // 노출과 같은 자리 이름
               >
                 {/* 화면에 있는 칸과 다음에 들어올 칸만 실제로 그린다 (iOS 메인 스레드 보호) */}
                 <AdMedia
